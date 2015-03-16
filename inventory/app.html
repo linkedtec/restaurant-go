@@ -1,0 +1,36 @@
+<html ng-app="myApp">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Inventory Manager</title>
+  <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/inventory/app.css">
+  <link rel="stylesheet" href="/lib/sweet-alert/sweet-alert.css">
+  <script src="/lib/sweet-alert/sweet-alert.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="row">
+      <ul class="menu">
+        <li><a href="#/viewInvByLoc">Inventory by Location</a></li>
+        <li><a href="#/viewAllInv">All Inventory</a></li>
+      </ul>
+    </div>
+    <div ng-view class="mainpanel"></div>
+
+    <!-- In production use:
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/x.x.x/angular.min.js"></script>
+    -->
+    
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.12/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.12/angular-route.min.js"></script>
+    
+    <script src="/inventory/app.js"></script>
+    <script src="/inventory/view_all/view_all.js"></script>
+    <script src="/inventory/view_loc/view_loc.js"></script>
+  </div>
+</body>
+</html>

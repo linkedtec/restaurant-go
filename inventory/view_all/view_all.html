@@ -1,0 +1,27 @@
+<h2> All Inventory </h2>
+
+<div class="row" style="margin-top:8px; margin-bottom:8px">
+  <div class="col-sm-6">
+    <p>Below are all inventory items that you carry and track.</p>
+  </div>
+  <div class="col-sm-6" style="text-align:right">
+    <input ng-model="new_item" placeholder=" New Item..." style="width:120px">
+    <button ng-click="addNewItem(new_item)" type="button" class="btn btn-primary btn-xs" style="font-size:14px">
+      <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add
+    </button>
+  </div>
+</div>
+
+
+<div class="row label_row">
+  <div class="col-xs-3">Item Name</div>
+  <div class="col-xs-2">Quantity</div>
+</div>
+
+<div ng-repeat="inv in inventory_items">
+  <div ng-class-even="'row inv_row inv_row_even'" ng-class-odd="'row inv_row'">
+    <div class="col-xs-3">{{inv.name}}</div>
+    <div class="col-xs-2">{{inv.quantity}}</div>
+  </div>
+</div>
+ 

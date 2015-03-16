@@ -1,0 +1,122 @@
+/* app css stylesheet */
+
+.mainpanel {
+  /*padding: 0px 20px;*/
+}
+
+.menu {
+  list-style: none;
+  padding: 1.2em 0.5em;
+  border-bottom: 0.1em solid #dddddd;
+  background-color: #ffffff;
+  color: #333333;
+}
+
+.menu:before {
+  content: "";
+}
+
+.menu:after {
+  content: "";
+}
+
+.menu > li {
+  display: inline;
+}
+
+.menu > li:before {
+  content: "";
+  padding-right: 2em;
+}
+
+.menu > li:nth-child(1):before {
+  content: "";
+  padding: 0;
+}
+
+.inv_row {
+  padding: 6px 0px;
+  font-size: 1.1em;
+}
+
+.inv_row_even {
+  background-color: #f2f2f2;
+}
+
+.add_inv_scroll_area {
+  height:300px;
+  overflow: auto;
+  background-color: #ffffff;
+  border-radius: 4px;
+  border: 1px solid #dddddd;
+  margin: 0px 28px;
+}
+
+.add_inv_scroll_cell {
+  margin: auto;
+  padding-left: 16px;
+  padding-top:8px;
+  padding-bottom:10px;
+  border-bottom: 1px solid #dddddd;
+}
+
+.add_inv_msg {
+  margin-left: 30px;
+  margin-right:30px;
+  padding: 6px 10px;
+  background-color: white;
+  border: 1px solid #22aa66;
+  border-radius: 6px;
+  color: #66aa22;
+}
+
+.label_row {
+  font-weight: bold;
+  background-color: #cce4ff;
+  padding: 6px 0px;
+  margin-bottom: 2px;
+}
+
+.loc_cell {
+  margin-left: 12px;
+  text-align: center;
+  padding:12px 0px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 0.1em solid #dddddd;
+}
+
+.sel_loc, .sel_loc:focus, .sel_loc:active {
+  background-color: #3388cc;
+  color: white;
+  border: 1px solid white;
+  font-weight: bold;
+  outline: none;
+}
+
+.add_inv {
+  border-radius:8px;
+  border:1px solid #22aa66;
+  background-color: #f8fff5;
+  margin-left:-8px;
+  padding-left: 8px;
+  margin-right:-8px;
+  padding-right:8px;
+  margin-top: -8px;
+  padding-top: 8px;
+  padding-bottom: 12px;
+}
+
+.hint_text {
+  font-style: italic;
+  color: #888888;
+}
+
+.btn_right {
+  margin-right: 6px;
+}
+
+
+
+
+
