@@ -8,10 +8,11 @@
     <p>Track your stock by storage location.</p>
   </div-->
   <div ng-show="empty_locs==false" class="col-sm-12" style="text-align:right">
-    <input ng-model="new_loc" placeholder=" New Location..." style="width:140px">
-    <button ng-click="addNewLoc(new_loc)" type="button" class="btn btn-primary btn-xs btn_right" style="font-size:14px">
+    <button ng-click="addNewLoc(new_loc)" type="button" class="btn btn-primary btn-sm btn_right" style="font-size:14px; float:right; margin-left:6px">
       <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Location
     </button>
+    <input ng-model="new_loc" class="form-control" placeholder=" New Location..." style="width:140px; float:right;">
+    
   </div>
 </div>
 
@@ -47,7 +48,7 @@
 
 <div ng-show="selected_loc!=null" style="margin-top:30px;">
   <div class="row">
-    <div class="col-xs-12" style="border-top:solid 1px #cccccc; padding-bottom:20px"></div>
+    <div class="col-xs-12" style="border-top:solid 1px #dddddd; padding-bottom:20px"></div>
   </div>
 </div>
 <div ng-show="selected_loc!=null" style="margin-top:4px; margin-bottom:16px">
@@ -80,12 +81,12 @@
   </div>
   <div ng-show="empty_inv==false">
     <div class="row">
-      <div class="col-xs-9 hint_text">
+      <div class="col-xs-8 hint_text">
         When doing inventory checklisting, update each item's Quantity and 
         Unit Price as needed, then click <b>Update</b> to save and mark it
         as checked.
       </div>
-      <div class="col-xs-3" style="text-align:right">
+      <div class="col-xs-4" style="text-align:right">
         <button ng-click="showAddInv()" type="button" class="btn btn-success btn-sm btn_right" style="font-size:14px">
           <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Inventory
         </button>
@@ -127,9 +128,9 @@
     <div class="col-xs-12" style="padding-left:44px; margin-top:20px; font-size:1.1em">
       <b>New</b> inventory item:
     </div>
-    <div class="col-xs-12">
-      <input ng-model="new_inv" placeholder=" Item name, e.g., Heineken keg" style="width:50%; margin-top:6px; margin-left:28px">
-      <button ng-click="addNewInv(new_inv)" type="button" class="btn btn-success btn-xs" style="font-size:14px; margin-left: 16px">
+    <div class="col-xs-12" style="margin-top:6px">
+      <input ng-model="new_inv" class="form-control" placeholder=" Item name, e.g., Heineken keg" style="width:50%; margin-left:28px; float:left">
+      <button ng-click="addNewInv(new_inv)" type="button" class="btn btn-success btn-sm" style="font-size:14px; margin-left: 6px">
           <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add New
         </button>
     </div>
@@ -162,31 +163,31 @@
 <!-- Location inventory -->
 <div ng-show="empty_inv==false && inv_items.length>0" style="margin-top:12px">
   <div class="row label_row">
-    <div class="col-xs-2 col-sm-3">Item Name</div>
-    <div class="col-xs-2">Unit</div>
-    <div class="col-xs-2">Quantity</div>
-    <div class="col-xs-3 col-sm-2">Unit Price</div>
+    <div class="col-xs-3 col-sm-3 min_padding"> &nbsp;Item Name</div>
+    <div class="col-xs-2 min_padding">Unit</div>
+    <div class="col-xs-2 min_padding">Quantity</div>
+    <div class="col-xs-2 col-sm-2 min_padding">Unit Price</div>
     <!--div class="col-xs-3" style="text-align:right">Update Item</div-->
   </div>
   <div ng-repeat="inv in inv_items">
     <div ng-class-even="'row inv_row inv_row_even'" ng-class-odd="'row inv_row'">
-      <div class="col-xs-2 col-sm-3" style="padding-top:4px">
+      <div class="col-xs-3 col-sm-3 min_padding" style="padding-top:6px">
+        <span ng-show="inv.updated_today==true" class="glyphicon glyphicon-ok-circle" style="margin-right:2px; color:#77dd22; font-size:1.4em"></span>
         {{inv.name}}
       </div>
-      <div class="col-xs-2" style="padding-top:4px">{{inv.unit}}</div>
-      <div class="col-xs-2" style="padding-top:4px">
-        <input ng-model="inv.quantity" style="width:100%; text-align:center">
+      <div class="col-xs-2 min_padding" style="padding-top:6px">{{inv.unit}}</div>
+      <div class="col-xs-2 min_padding">
+        <input ng-model="inv.quantity" class="form-control" style="width:100%; text-align:center; max-width:80px;">
       </div>
-      <div class="col-xs-2 col-sm-2" style="padding-top:4px">
-        <div class="hidden-xs" style="width:15%; float:left">$</div>
-        <input ng-model="inv.unit_price" style="float:left; width:85%; text-align:center">
+      <div class="col-xs-2 col-sm-2 min_padding">
+        <div class="hidden-xs" style="width:15%; float:left; padding-top:6px">$</div>
+        <input ng-model="inv.unit_price" class="form-control" style="float:left; width:85%; text-align:center; max-width:80px">
       </div>
-      <div class="col-xs-1">
-        <span ng-click="removeInvItem($index)" type="button" class="glyphicon glyphicon-trash" style="font-size:1.1em; padding-top:8px; color:#aaaaaa"><span>
+      <div class="col-xs-1 min_padding">
+        <span ng-click="removeInvItem($index)" type="button" class="glyphicon glyphicon-trash" style="font-size:1.1em; padding-top:10px; color:#aaaaaa"><span>
       </div>
-      <div class="col-xs-3 col-sm-2" style="text-align:right;">
-        <span ng-show="inv.updated_today==true" class="glyphicon glyphicon-ok-circle" style="font-size:1.2em;"></span>
-        <button ng-click="updateInvItem($index)" type="button" class="btn btn-default btn-sm" style="font-size:14px;">Update</button>
+      <div class="col-xs-2 col-sm-2 min_padding" style="text-align:right;">
+        <button ng-click="updateInvItem($index)" type="button" class="btn btn-default btn-sm" style="font-size:14px; width:100%; max-width:100px">Update</button>
       </div>
     </div>
   </div>

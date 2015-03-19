@@ -108,14 +108,22 @@
 }
 
 .hint_text {
-  font-style: italic;
+  /*font-style: italic;*/
   color: #888888;
+  font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial;
+  font-size:1.1em;
 }
 
 .btn_right {
-  margin-right: 6px;
+  margin-right: 4px;
 }
 
+.min_padding {
+  padding-left:4px !important;
+  padding-right:4px !important;
+  margin-left:0px !important;
+  margin-right:0px !important;
+}
 
 
 

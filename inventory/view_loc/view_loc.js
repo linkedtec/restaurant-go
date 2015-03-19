@@ -136,6 +136,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
   $scope.updateInvItem = function(index) {
     console.log(index);
     var item = $scope.inv_items[index];
+
     $http.put('/inv/loc', {
       name:item.name,
       unit:item.unit,
@@ -143,14 +144,16 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       quantity:item.quantity,
       unit_price:item.unit_price
     });
+    $scope.inv_items[index]["updated_today"] = true;
+
   };
 
   $scope.removeInvItem = function(index) {
     console.log(index);
     var item = $scope.inv_items[index];
     swal({
-      title: "Remove Item",
-      text: "This will remove " + item.name + " from " + $scope.selected_loc + ".  Are you sure?",
+      title: "Remove Item?",
+      text: "This will remove " + item.name + " from " + $scope.selected_loc + ".\n\n  It will not affect other locations which carry the item, and the item will still be accessible from the All Inventory list.",
       type: "warning",
       showCancelButton: true,
       confirmButtonColor: "#DD6B55",
@@ -196,7 +199,27 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       // hours, add key "updated_today": true
       for (var i = 0; i < $scope.inv_items.length; i++)
       {
-        $scope.inv_items[i]["updated_today"] = true;
+        var last_update_str = $scope.inv_items[i]["last_update"];
+
+        // e.g., 2015-03-16
+        var date_str = last_update_str.substring(0,last_update_str.indexOf('T'));
+        // e.g., 07:43:49
+        var time_str = last_update_str.substring(
+          last_update_str.indexOf('T')+1,
+          last_update_str.indexOf('.'));
+        var date_comps = date_str.split('-');
+        var time_comps = time_str.split(':');
+        var last_update = Date.UTC(
+          date_comps[0], parseInt(date_comps[1])-1, date_comps[2],
+          time_comps[0], time_comps[1], time_comps[2]);
+        var dt_sec = (Date.now() - last_update) / 1000.0
+        var dt_hour = dt_sec / 60.0 / 60.0
+        if (dt_hour < 24)
+        {
+          $scope.inv_items[i]["updated_today"] = true;
+        }
+        console.log("last updated " + dt_hour + " hours ago");
+        
       }
 
       if ($scope.inv_items.length == 0) {
