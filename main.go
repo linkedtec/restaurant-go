@@ -81,7 +81,7 @@ func getCurrentTime() string {
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./home.html")
+	http.ServeFile(w, r, "home.html")
 }
 
 // Adds an inventory item of a unit type to a location.
