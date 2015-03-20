@@ -8,6 +8,7 @@ ADD . /go/src/github.com/core433/restaurant-go
 # Build the restaurant-go command inside the container.
 # (You may fetch or manage dependencies here,
 # either manually or with a tool like "godep".)
+RUN go install github.com/lib/pq
 RUN go install github.com/core433/restaurant-go
 
 # Run the restaurant-go command by default when the container starts.
