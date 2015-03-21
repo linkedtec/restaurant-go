@@ -6,7 +6,9 @@ import (
 	_ "github.com/lib/pq"
 	"log"
 	"net/http"
+	"os"
 	"time"
+	"fmt"
 )
 
 var db *sql.DB
@@ -43,8 +45,16 @@ type NewItem struct {
 func main() {
 
 	var err error
-	// XXX For production will need to change this to access production DB
-	db, err = sql.Open("postgres", "host=localhost sslmode=disable user=dhchang dbname=dhchang")
+	// Production will have env RESTAURANT_PRODUCTION set by the Dockerfile
+	isProduction := os.Getenv("RESTAURANT_PRODUCTION")
+	var db_cmd string
+	if isProduction == "1" {
+	   db_cmd = fmt.Sprintf("host=%s sslmode=disable user=restaurant_app dbname=restaurant", os.Getenv("POSTGRES_PORT_5432_TCP_ADDR"))   
+	} else {
+	  db_cmd = "host=localhost sslmode=disable user=dhchang dbname=dhchang"
+	}
+		
+	db, err = sql.Open("postgres", db_cmd)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -81,7 +91,9 @@ func getCurrentTime() string {
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "home.html")
+	log.Println("Root handler")
+	http.ServeFile(w, r, "./home.html")
+	//fmt.Fprintf(w, "Hi there")
 }
 
 // Adds an inventory item of a unit type to a location.
@@ -187,10 +199,11 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		var result NewLocItem
 		err := decoder.Decode(&result)
 		if err != nil {
+		   log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		//log.Println(result.Name)
+		log.Println(result.Name)
 		//log.Println(result.Unit)
 		//log.Println(result.Loc)
 		//log.Println(result.Quantity)
@@ -204,31 +217,51 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		err = db.QueryRow("SELECT id FROM locations WHERE user_id=$1 and name=$2;", test_user_id, result.Location).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
+			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		log.Println("About the check if exists")
 
 		// Verify Item exists or add it
 		var exists bool
 		err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM items WHERE user_id=$1 AND name=$2);", test_user_id, result.Name).Scan(&exists)
+		if err != nil {
+		   log.Println(err.Error())
+		   http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		if !exists {
 			// the item doesn't currently exist, so add it
-			db.Exec("INSERT INTO items (name, user_id) VALUES ($1, $2)", result.Name, test_user_id)
+			_, err = db.Exec("INSERT INTO items (name, user_id) VALUES ($1, $2)", result.Name, test_user_id)
+			if err != nil {
+			   log.Println(err.Error())
+			   http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 		}
 		var existing_item_id int
 		err = db.QueryRow("SELECT id FROM items WHERE user_id=$1 and name=$2", test_user_id, result.Name).Scan(&existing_item_id)
 		if err != nil {
+		       log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		log.Println("Printing existing item id")
 		log.Println(existing_item_id)
 
 		// Verify Unit exists or add it
 		err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM units WHERE user_id=$1 AND name=$2);", test_user_id, result.Unit).Scan(&exists)
+		if err != nil {
+		   log.Println(err.Error())
+		}
 		if !exists {
 			// the item doesn't currently exist, so add it
-			db.Exec("INSERT INTO units (name, user_id) VALUES ($1, $2)", result.Unit, test_user_id)
+			_, err = db.Exec("INSERT INTO units (name, user_id) VALUES ($1, $2)", result.Unit, test_user_id)
+			if err != nil {
+			   log.Println(err.Error())
+			}
 		}
+		log.Println("About to test unit id existing")
 		var existing_unit_id int
 		err = db.QueryRow("SELECT id FROM units WHERE user_id=$1 and name=$2", test_user_id, result.Unit).Scan(&existing_unit_id)
 		if err != nil {
@@ -404,12 +437,17 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		decoder := json.NewDecoder(r.Body)
 		var result NewItem
+		log.Println("Post new location: ")
 		err := decoder.Decode(&result)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		db.Exec("INSERT INTO locations(name, user_id) VALUES ('" + string(result.Name) + "', " + string(test_user_id) + ");")
+		log.Println(result.Name)
+		_, err = db.Exec("INSERT INTO locations(name, user_id) VALUES ('" + string(result.Name) + "', " + string(test_user_id) + ");")
+		if err != nil {
+		   log.Println(err.Error())
+		}
 	default:
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
