@@ -3,12 +3,12 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 	"os"
 	"time"
-	"fmt"
 )
 
 var db *sql.DB
@@ -49,11 +49,11 @@ func main() {
 	isProduction := os.Getenv("RESTAURANT_PRODUCTION")
 	var db_cmd string
 	if isProduction == "1" {
-	   db_cmd = fmt.Sprintf("host=%s sslmode=disable user=restaurant_app dbname=restaurant", os.Getenv("POSTGRES_PORT_5432_TCP_ADDR"))   
+		db_cmd = fmt.Sprintf("host=%s sslmode=disable user=restaurant_app dbname=restaurant", os.Getenv("POSTGRES_PORT_5432_TCP_ADDR"))
 	} else {
-	  db_cmd = "host=localhost sslmode=disable user=dhchang dbname=dhchang"
+		db_cmd = "host=localhost sslmode=disable user=dhchang dbname=dhchang"
 	}
-		
+
 	db, err = sql.Open("postgres", db_cmd)
 	if err != nil {
 		log.Fatal(err)
@@ -199,7 +199,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		var result NewLocItem
 		err := decoder.Decode(&result)
 		if err != nil {
-		   log.Println(err.Error())
+			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -228,21 +228,21 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		var exists bool
 		err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM items WHERE user_id=$1 AND name=$2);", test_user_id, result.Name).Scan(&exists)
 		if err != nil {
-		   log.Println(err.Error())
-		   http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 		if !exists {
 			// the item doesn't currently exist, so add it
 			_, err = db.Exec("INSERT INTO items (name, user_id) VALUES ($1, $2)", result.Name, test_user_id)
 			if err != nil {
-			   log.Println(err.Error())
-			   http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 		}
 		var existing_item_id int
 		err = db.QueryRow("SELECT id FROM items WHERE user_id=$1 and name=$2", test_user_id, result.Name).Scan(&existing_item_id)
 		if err != nil {
-		       log.Println(err.Error())
+			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -252,13 +252,13 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// Verify Unit exists or add it
 		err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM units WHERE user_id=$1 AND name=$2);", test_user_id, result.Unit).Scan(&exists)
 		if err != nil {
-		   log.Println(err.Error())
+			log.Println(err.Error())
 		}
 		if !exists {
 			// the item doesn't currently exist, so add it
 			_, err = db.Exec("INSERT INTO units (name, user_id) VALUES ($1, $2)", result.Unit, test_user_id)
 			if err != nil {
-			   log.Println(err.Error())
+				log.Println(err.Error())
 			}
 		}
 		log.Println("About to test unit id existing")
@@ -359,37 +359,34 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 
+	switch r.Method {
+	case "GET":
+		var items []LocInvItem
+
+		rows, err := db.Query("SELECT items.name, units.name FROM items, units, item_units WHERE items.id=item_units.item_id AND units.id=item_units.unit_id AND items.user_id=$1 ORDER BY items.name ASC", test_user_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var invItem LocInvItem
+			if err := rows.Scan(&invItem.Name, &invItem.Unit); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			items = append(items, invItem)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(items)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
 	/*
-		switch r.Method {
-		case "GET":
-			var items []InventoryItem
-
-			rows, err := db.Query("SELECT * FROM inventory")
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			defer rows.Close()
-			for rows.Next() {
-				var name []byte
-				var qty []byte
-				var date []byte
-				var id int
-				if err := rows.Scan(&name, &qty, &date, &id); err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				invItem := InventoryItem{string(name), string(qty), string(date)}
-				items = append(items, invItem)
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			js, err := json.Marshal(items)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			w.Write(js)
 		case "POST":
 			decoder := json.NewDecoder(r.Body)
 			var result NewItem
@@ -399,11 +396,11 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			db.Exec("INSERT INTO inventory(name) VALUES ('" + string(result.Name) + "');")
-		default:
-			http.Error(w, "Invalid request", http.StatusBadRequest)
-			return
-		}
 	*/
+	default:
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
 }
 
 func locAPIHandler(w http.ResponseWriter, r *http.Request) {
@@ -446,7 +443,7 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(result.Name)
 		_, err = db.Exec("INSERT INTO locations(name, user_id) VALUES ('" + string(result.Name) + "', " + string(test_user_id) + ");")
 		if err != nil {
-		   log.Println(err.Error())
+			log.Println(err.Error())
 		}
 	default:
 		http.Error(w, "Invalid request", http.StatusBadRequest)

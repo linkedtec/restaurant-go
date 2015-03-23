@@ -1,6 +1,6 @@
 <h2> All Inventory </h2>
 
-<div class="row" style="margin-top:8px; margin-bottom:8px">
+<!--div class="row" style="margin-top:8px; margin-bottom:8px">
   <div class="col-sm-6">
     <p>Below are all inventory items that you carry and track.</p>
   </div>
@@ -10,18 +10,23 @@
       <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add
     </button>
   </div>
+</div-->
+<div class="row" style="margin-top:30px">
+  <div class="col-xs-12 hint_text">
+    Listed below are all the inventory items (by unit) which you carry in all
+    locations.
+  </div>
 </div>
 
-
-<div class="row label_row">
+<div class="row label_row" style="margin-top:20px">
   <div class="col-xs-3">Item Name</div>
-  <div class="col-xs-2">Quantity</div>
+  <div class="col-xs-2">Unit</div>
 </div>
 
 <div ng-repeat="inv in inventory_items">
-  <div ng-class-even="'row inv_row inv_row_even'" ng-class-odd="'row inv_row'">
+  <div ng-class-even="'row inv_row inv_row_even'" ng-class-odd="'row inv_row'" style="font-size:1.1em;">
     <div class="col-xs-3">{{inv.name}}</div>
-    <div class="col-xs-2">{{inv.quantity}}</div>
+    <div class="col-xs-2">{{inv.unit}}</div>
   </div>
 </div>
  
