@@ -4,6 +4,66 @@ body {
   font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial;
 }
 
+.toolbar {
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0px 20px;
+  width: 70%;
+  max-width:800px;
+  min-width:480px;
+}
+
+.full_divider {
+  margin: 0px 0px;
+  width:100%;
+  border-bottom: 0.1em solid #dddddd;
+}
+
+.all_inv_main {
+  overflow: visible;
+  margin-left: 20px;
+  min-width:480px;
+}
+
+.label_row {
+  font-weight: bold;
+  background-color: #e0f0ff;
+  padding: 0px 0px;
+  margin-bottom: 2px;
+  margin-top:0px;
+  margin-bottom:0px;
+  overflow:visible;
+  white-space: nowrap;
+  display: inline-block;
+  margin-right: 20px;
+  border-top: solid 1px #dddddd;
+  border-left: solid 1px #dddddd;
+}
+
+.all_inv_span {
+  display: inline-block;
+  padding: 8px 6px;
+  margin: 0px;
+  border-right: solid 1px #dddddd;
+  overflow:hidden;
+}
+
+/* The bottom black bar to close out the outline of the all inv area */
+.all_inv_bottom {
+  width:1200; 
+  border-bottom: solid 1px #dddddd;
+}
+
+.inv_row {
+  margin:0px;
+  padding: 0px;
+  overflow: visible;
+  display: inline-block;
+  border-left: solid 1px #dddddd;
+  white-space: nowrap;
+}
+
+
 .main_container {
   min-width:480px;
   max-width:800px;
@@ -17,8 +77,10 @@ body {
 
 .menu {
   list-style: none;
-  padding: 1.2em 0.5em;
-  border-bottom: 0.1em solid #dddddd;
+  padding-top:1.2em;
+  padding-bottom:0.6em;
+  /*padding: 1.2em 0em;*/
+  /*border-bottom: 0.1em solid #dddddd;*/
   background-color: #ffffff;
   color: #333333;
 }
@@ -43,11 +105,6 @@ body {
 .menu > li:nth-child(1):before {
   content: "";
   padding: 0;
-}
-
-.inv_row {
-  padding: 8px 0px;
-  font-size: 1.1em;
 }
 
 .inv_row_even {
@@ -81,13 +138,6 @@ body {
   color: white;
   font-size:1.1em;
   font-weight:bold;
-}
-
-.label_row {
-  font-weight: bold;
-  background-color: #e0f0ff;
-  padding: 8px 0px;
-  margin-bottom: 2px;
 }
 
 .loc_cell {
@@ -137,6 +187,39 @@ body {
   padding-right:8px;
 }
 
+.add_inv_all {
+  border-radius: 4px;
+  border:1px solid #aaddbb;
+  background-color: #fcfffa;
+  padding: 16px 10px;
+  width:800px;
+  margin-top: -11px;
+  margin-bottom:0px;
+}
+
+.add_row {
+  display: inline-block;
+  width:100%;
+  overflow: auto;
+  margin-bottom:10px;
+}
+
+.add_label {
+  float: left;
+  display: inline-block;
+  text-align: right;
+  font-size:1.1em;
+  width:120px;
+  padding-right: 8px;
+  margin-top:6px;
+}
+
+.input_right {
+  display: inline-block;
+  float:left;
+  width:240px;
+}
+
 .add_inv {
   border-radius:6px;
   border:1px solid #aaddbb;
@@ -151,7 +234,7 @@ body {
 }
 
 .add_inv_divider {
-  margin: 24px -8px;
+  margin: 16px -10px;
   border-bottom: 1px solid #aaddbb;
 }
 
@@ -168,6 +251,11 @@ body {
 
 .btn_right {
   margin-right: 4px;
+  float: right;
+}
+
+.inner_btn_left {
+  margin-top:-10px;
 }
 
 .min_padding {

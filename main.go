@@ -14,6 +14,19 @@ import (
 var db *sql.DB
 var test_user_id string = "1"
 
+type Beverage struct {
+	Distributor    string  `json:"distributor"`
+	Product        string  `json:"product"`
+	Brewery        string  `json:"brewery"`
+	AlcoholType    string  `json:"alcohol_type"`
+	ABV            float32 `json:"abv"`
+	PurchaseVolume float32 `json:"purchase_volume"`
+	PurchaseUnit   string  `json:"purchase_unit"`
+	PurchaseCost   float32 `json:"purchase_cost"`
+	Deposit        float32 `json:"deposit"`
+	FlavorProfile  string  `json:"flavor_profile"`
+}
+
 // When client getting existing existing inventory items from server
 type LocInvItem struct {
 	Name       string    `json:"name"`
@@ -361,9 +374,9 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
-		var items []LocInvItem
+		var beverages []Beverage
 
-		rows, err := db.Query("SELECT items.name, units.name FROM items, units, item_units WHERE items.id=item_units.item_id AND units.id=item_units.unit_id AND items.user_id=$1 ORDER BY items.name ASC", test_user_id)
+		rows, err := db.Query("SELECT distributor, product, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, deposit, flavor_profile FROM beverages WHERE user_id=$1", test_user_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -371,32 +384,46 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer rows.Close()
 		for rows.Next() {
-			var invItem LocInvItem
-			if err := rows.Scan(&invItem.Name, &invItem.Unit); err != nil {
+			var bev Beverage
+			if err := rows.Scan(
+				&bev.Distributor,
+				&bev.Product,
+				&bev.Brewery,
+				&bev.AlcoholType,
+				&bev.ABV,
+				&bev.PurchaseVolume,
+				&bev.PurchaseUnit,
+				&bev.PurchaseCost,
+				&bev.Deposit,
+				&bev.FlavorProfile); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			items = append(items, invItem)
+			beverages = append(beverages, bev)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		js, err := json.Marshal(items)
+		js, err := json.Marshal(beverages)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		w.Write(js)
-	/*
-		case "POST":
-			decoder := json.NewDecoder(r.Body)
-			var result NewItem
-			err := decoder.Decode(&result)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			db.Exec("INSERT INTO inventory(name) VALUES ('" + string(result.Name) + "');")
-	*/
+
+	case "POST":
+		log.Println("GOT POST INV")
+		decoder := json.NewDecoder(r.Body)
+		var bev Beverage
+		err := decoder.Decode(&bev)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		log.Println(bev)
+		db.Exec("INSERT INTO beverages(product, distributor, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, deposit, flavor_profile, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);",
+			bev.Product, bev.Distributor, bev.Brewery, bev.AlcoholType, bev.ABV, bev.PurchaseVolume, bev.PurchaseUnit, bev.PurchaseCost, bev.Deposit, bev.FlavorProfile, test_user_id)
+
 	default:
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return

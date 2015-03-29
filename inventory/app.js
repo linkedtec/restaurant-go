@@ -7,5 +7,5 @@ angular.module('myApp', [
   'myApp.viewInvByLoc'
 ]).
 config(['$routeProvider', function($routeProvider) {
-  $routeProvider.otherwise({redirectTo: '/viewInvByLoc'});
+  $routeProvider.otherwise({redirectTo: '/viewAllInv'});
 }]);
