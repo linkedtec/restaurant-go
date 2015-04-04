@@ -15,11 +15,13 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
   $scope.locations = [];        // all locations
   $scope.empty_locs = false;    // are locations empty?
   $scope.selected_loc = null;   // name of the selected location
+  $scope.last_update = null;    // last update text
   $scope.empty_inv = false;      // is location inventory empty?
   $scope.add_inv = false;       // add new inv item mode
   $scope.add_inv_existing_items = [];
-  $scope.new_inv_msg = "";      // dialog box for adding inventory status
+  $scope.new_success_msg = null;
   $scope.inv_items = [];
+  $scope.inv_started = false;
 
   // get locations, if empty, set $scope.empty_locs = true
   $http.get('/loc').
@@ -36,12 +38,44 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         $scope.locations = data;
       }
 
+      // Check the last_update field of storage locations and add a readable
+      // field for when it was last updated, called "last_update_pretty"
+      for (var loc_i in $scope.locations) {
+        var loc = $scope.locations[loc_i];
+        console.log(loc.last_update);
+        var mins_since_update = $scope.getMinutesSinceTime(loc.last_update);
+        var years_since_update = mins_since_update / 60 / 24 / 365;
+
+        // if years_since_update is greater than 50, we know this is 
+        // a bogus timestamp
+        var pretty_time = null;
+        if (years_since_update > 50) {
+          ;
+        } else {
+          if (mins_since_update < 5) {
+            pretty_time = 'Moments ago';
+          } else if (mins_since_update < 60) {
+            pretty_time = parseInt(mins_since_update).toString() + ' minutes ago';
+          } else if (mins_since_update < 24*60) {
+            pretty_time = parseInt(mins_since_update / 60).toString() + ' hours ago';
+          } else if (mins_since_update < 24*60*2) {
+            pretty_time = 'Yesterday'
+          } else {
+            pretty_time = parseInt(mins_since_update/24/60).toString() + ' days ago';
+          }
+        }
+        $scope.locations[loc_i]['last_update_pretty'] = pretty_time;
+      }
+
+      // Add the + New button for creating new locations
       $scope.locations.push(
         {
           name: "+ New",
           is_add: true
         }
       );
+
+      console.log($scope.locations);
 
       if ($scope.locations.length == 1)
       {
@@ -57,6 +91,13 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
   $scope.selectLoc = function(loc) {
     console.log(loc.name);
 
+    if (loc.name == $scope.selected_loc)
+    {
+      return;
+    }
+
+    $scope.inv_started = false;
+
     // check if the location is the "+ New" button for creating a new location
     if (loc.is_add === true) {
       if ($scope.add_loc === true)
@@ -68,14 +109,10 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       return;
     }
 
-    if (loc.name == $scope.selected_loc)
-    {
-      return;
-    }
-
     $scope.selected_loc = loc.name;
     $scope.add_inv = false;
     $scope.getLocInv();
+    $scope.last_update = loc.last_update_pretty;
   };
 
   $scope.hideAddLoc = function() {
@@ -132,7 +169,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
   // Shows the add new inventory item UI box
   $scope.showAddInv = function() {
     $scope.add_inv=true;
-    $scope.new_inv_msg = "";
+    $scope.new_success_msg = null;
 
     if ($scope.add_inv_existing_items.length == 0)
     {
@@ -144,92 +181,29 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     $scope.add_inv=false;
   };
 
-  // item is a string here...
-  $scope.addNewInv = function(item) {
-    console.log ('add item: ' + item);
-    // check if empty
-    if (item == undefined || item =='')
-    {
-      swal({
-        title:"Empty Name", 
-        text: "Please enter an item name!",
-        timer: 1500});
-      return;
-    }
-    // XXX check if item already in all inventory items
-    // NEED TO IMPLEMENT THIS
-    $http.post('/inv/loc', {
-      name:item, 
-      unit:"unit",
-      location: $scope.selected_loc,
-      quantity: 1,
-      unit_price: 0}).
-      success(function(data, status, headers, config) {
-        console.log(data);
-        // XXX push new item onto location's inventory items
-        // XXX if new item not in all inventory, push into
-        $scope.new_inv = "";
-        $scope.new_inv_msg = item + " was added to " + $scope.selected_loc;
-        $scope.getLocInv();
-      }).
-      error(function(data, status, headers, config) {
-    });
-  };
-
   // item is an object here
   $scope.addExistingInv = function(item) {
-    console.log ('add existing item: ' + item.name);
-
-    if (item.quantity=="" || item.quantity == null)
-    {
-      swal({
-        title:"Empty Quantity", 
-        text: "Please enter a Quantity for " + item.name + "!"});
-      return;
-    }
-    if (item.unit_price=="" || item.unit_price == null)
-    {
-      swal({
-        title:"Empty Unit Price", 
-        text: "Please enter a Unit Price for " + item.name + "!"});
-      return;
-    }
-
-    if (isNaN(item.quantity))
-    {
-      swal({
-        title:"Invalid Quantity: " + item.quantity, 
-        text: "Please check that " + item.name + "'s Quantity is a valid number!"});
-      return;
-    }
-    if (isNaN(item.unit_price))
-    {
-      swal({
-        title:"Invalid Unit Price: " + item.unit_price, 
-        text: "Please check that " + item.name + "'s Unit Price is a valid number!"});
-      return;
-    }
+    console.log ('add existing item: ' + item.product);
 
     $http.post('/inv/loc', {
-      name:item.name, 
-      unit:item.unit,
-      location: $scope.selected_loc,
-      quantity: parseFloat(item.quantity),
-      unit_price: parseFloat(item.unit_price)}).
+      id:item.id, 
+      location: $scope.selected_loc}).
       success(function(data, status, headers, config) {
         console.log(data);
         // XXX push new item onto location's inventory items
         // XXX if new item not in all inventory, push into
-        $scope.new_inv = "";
-        $scope.new_inv_msg = item.name + " was added to " + $scope.selected_loc;
-        $scope.getLocInv();
+        $scope.new_success_msg = item.product + " has been added to " + $scope.selected_loc + "!";
+        item.quantity = 0;
+        $scope.inv_items.push(item);
+        //$scope.getLocInv();
         // XXX remove added item from $scope.add_inv_existing_items manually
         for ( var i=$scope.add_inv_existing_items.length-1; i >= 0; i--) {
-          if ( $scope.add_inv_existing_items[i].name == item.name &&
-            $scope.add_inv_existing_items[i].unit == item.unit) {
+          if ( $scope.add_inv_existing_items[i].id == item.id) {
             $scope.add_inv_existing_items.splice(i, 1);
           }
         }
+
+        $scope.empty_inv = false;
       }).
       error(function(data, status, headers, config) {
     });
@@ -330,7 +304,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
           var test_item = $scope.add_inv_existing_items[i];
           for (var j=0; j < $scope.inv_items.length; j++) {
             var check_item = $scope.inv_items[j];
-            if (test_item.name == check_item.name && test_item.unit == check_item.unit)
+            if (test_item.id == check_item.id)
             {
               is_clean = false;
               break;
@@ -350,6 +324,59 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
 
     });
   };
+
+  $scope.startInv = function() {
+    $scope.inv_started = true;
+
+    // Create a backup of all quantities of inventory items with object
+    // with keys of item id and values of id quantity.  If user cancels
+    // inventory without saving, restore this
+    $scope.inv_quantity_backup = {};
+    for (var inv_i in $scope.inv_items) {
+      var inv = $scope.inv_items[inv_i];
+      $scope.inv_quantity_backup[inv.id] = inv.quantity;
+    };
+    console.log($scope.inv_quantity_backup);
+  };
+
+  $scope.saveInv = function() {
+    $scope.inv_started = false;
+
+    var post_item_quantities = []
+    for (var inv_i in $scope.inv_items) {
+      var inv = $scope.inv_items[inv_i];
+      console.log(inv.product);
+      console.log(inv.quantity);
+      post_item_quantities.push({id:inv.id, quantity:inv.quantity})
+    };
+
+    $http.put('/inv/loc', {
+      items:post_item_quantities,
+      location:$scope.selected_loc
+    });
+  }
+
+  $scope.cancelInv = function() {
+    $scope.inv_started = false;
+
+    // restore backup quantities
+    for (var inv_i in $scope.inv_items) {
+      var inv = $scope.inv_items[inv_i];
+      if (inv.id in $scope.inv_quantity_backup) {
+        console.log('apply backup');
+        console.log($scope.inv_items[inv_i].quantity);
+        $scope.inv_items[inv_i].quantity = $scope.inv_quantity_backup[inv.id];
+      }
+    }
+  }
+
+  $scope.addQuantity = function(inv, num) {
+    inv.quantity += num;
+
+    if (inv.quantity < 0) {
+      inv.quantity = 0;
+    }
+  }
 
   $scope.getLocInv = function() {
     $http.get('/inv/loc', {
@@ -406,5 +433,34 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
 
     });
   };
+
+  // helper function to get the number of minutes since a time stamp
+  $scope.getMinutesSinceTime = function(timestamp) {
+    // e.g., 2015-03-16
+    var date_str = timestamp.substring(0,timestamp.indexOf('T'));
+    // e.g., 07:43:49
+    // sometimes the timestamp doesn't have a . in it, in which case look
+    // to end at the Z, e.g., 0001-01-01T00:00:00Z
+    var dot_index = timestamp.indexOf('.');
+    if (dot_index < 0) {
+      dot_index = 99999;
+    }
+    var z_index = timestamp.indexOf('Z');
+    if (z_index < 0) {
+      z_index = 99999;
+    }
+    var end_index = Math.min(dot_index, z_index);
+    var time_str = timestamp.substring(
+      timestamp.indexOf('T')+1,
+      end_index);
+    var date_comps = date_str.split('-');
+    var time_comps = time_str.split(':');
+    var last_update = Date.UTC(
+      date_comps[0], parseInt(date_comps[1])-1, date_comps[2],
+      time_comps[0], time_comps[1], time_comps[2]);
+    var dt_sec = (Date.now() - last_update) / 1000.0;
+    return parseInt(dt_sec / 60.0);
+  };
+
 
 });

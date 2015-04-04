@@ -1,246 +1,282 @@
 
+<div class="container" style="min-width:520px; max-width:960px">
 
-<div class="row" style="margin-bottom:4px">
-  <!--div class="col-sm-12">
-    <h4> Inventory Management </h4>
-  </div>
-  <div class="col-sm-6">
-    <p>Track your stock by storage location.</p>
-  </div-->
-  <!--div ng-show="empty_locs==false" class="col-sm-12" style="text-align:right">
-    <button ng-click="addNewLoc(new_loc)" type="button" class="btn btn-primary btn-sm btn_right" style="font-size:14px; float:right; margin-left:6px">
-      <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Location
-    </button>
-    <input ng-model="new_loc" class="form-control" placeholder=" New Location..." style="width:140px; float:right;">
-    
-  </div-->
-</div>
-
-<!-- ADD NEW LOCATION HINT WHEN NO LOCATIONS EXIST ALREADY -->
-<div ng-show="empty_locs==true">
-  <div class="row">
-    <div class="col-xs-12" style="font-size:1.5em; margin-top:20px">
-      Manage Inventory by Storage Location
+  <div class="row" style="margin-bottom:8px">
+    <!--div class="col-sm-12">
+      <h4> Inventory Management </h4>
     </div>
-  </div>
-  <div class="row" style="margin-top:16px">
-    <div class="col-xs-12 hint_text">
-      Add a new location to start tracking your inventory!
-      &nbsp;For example, "Meat Freezer", "Storage Closet" or "Minibar Fridge".
-    </div>
-  </div>
-  <div class="row" style="margin-top:16px; margin-bottom:16px">
-    <div class="col-xs-8">
-      <input ng-model="new_loc" class="form-control" placeholder=" Location name">
-    </div>
-    <div class="col-xs-4">
-      <button ng-click="addNewLoc(new_loc)" type="button" class="btn btn-primary btn-sm btn_right" style="font-size:14px;">
+    <div class="col-sm-6">
+      <p>Track your stock by storage location.</p>
+    </div-->
+    <!--div ng-show="empty_locs==false" class="col-sm-12" style="text-align:right">
+      <button ng-click="addNewLoc(new_loc)" type="button" class="btn btn-primary btn-sm btn_right" style="font-size:14px; float:right; margin-left:6px">
         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Location
       </button>
-    </div>
+      <input ng-model="new_loc" class="form-control" placeholder=" New Location..." style="width:140px; float:right;">
+      
+    </div-->
   </div>
-</div>
 
-<!-- DRAW EXISTING LOCATIONS -->
-<div ng-show="empty_locs===false">
-  <div class="row">
-    <div ng-repeat="loc in locations">
-      <button class="col-xs-2 btn btn-default btn-md" style="margin-left:12px; padding:10px" ng-click="selectLoc(loc)" ng-class="{sel_loc: loc.name === selected_loc, add_loc_btn: loc.is_add === true}">{{loc.name}}</button>
-    </div>
-  </div>
-  <div ng-show="selected_loc==null" class="row" style="margin-top:16px;">
-    <div class="col-xs-12 hint_text">
-      Click on a storage location above to start managing inventory!
-    </div>
-  </div>
-</div>
-
-<!-- ADD LOCATION UI -->
-<div ng-show="add_loc===true" class="add_loc" style="margin-top:16px">
-  <div class="row" style="padding-left:16px; margin-top:20px;">
-    <div class="col-xs-9" style="font-size:1.3em; font-weight:bold;">
-      Add New Location
-    </div>
-    <div class="col-xs-3">
-      <button ng-click="hideAddLoc()" type="button" class="btn btn-default btn-sm btn_right" style="font-size:14px; float:right; margin-top:-10px">
-        <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> Close
-      </button>
-    </div>
-  </div>
-  <div class="row" style="padding-left:16px; margin-top:12px; margin-bottom:16px">
-    <div class="col-xs-9">
-      <input ng-model="new_loc" class="form-control" placeholder=" Location name">
-    </div>
-    <div class="col-xs-3">
-      <button ng-click="addNewLoc(new_loc)" type="button" class="btn btn-primary btn-sm btn_right" style="font-size:14px; float:right">
-        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Location
-      </button>
-    </div>
-  </div>
-</div>
-
-<div ng-show="selected_loc!=null" style="margin-top:20px;">
-  <div class="row">
-    <div class="col-xs-12" style="border-top:solid 1px #dddddd; padding-bottom:20px"></div>
-  </div>
-</div>
-<div ng-show="selected_loc!=null" style="margin-top:4px; margin-bottom:16px">
-  <div class="row">
-    <div class="col-xs-8" style="margin-top:-10px">
-      <h3>{{selected_loc}} Inventory</h3>
-    </div>
-    <div class="col-xs-4" style="text-align:right; margin-top:4px">
-      <button ng-click="" type="button" class="btn btn-default btn-sm btn_right" style="font-size:12px">
-        <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> Edit
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ADD NEW INV ITEM HINT WHEN NO ITEMS EXIST ALREADY -->
-<div ng-show="selected_loc!=null && add_inv==false">
-  <div ng-show="empty_inv==true">
+  <!-- ADD NEW LOCATION HINT WHEN NO LOCATIONS EXIST ALREADY -->
+  <div ng-show="empty_locs==true">
     <div class="row">
-      <div class="col-xs-9 hint_text">
-        This storage location doesn't have any inventory items yet! &nbsp; To get
-        started, add your first inventory item(s). 
+      <div class="col-xs-12" style="font-size:1.6em; margin-top:24px">
+        Manage Inventory by Storage Location
       </div>
-      <div class="col-xs-3" style="text-align:right">
-        <button ng-click="showAddInv()" type="button" class="btn btn-success btn-sm btn_right" style="font-size:14px">
-          <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Inventory
+    </div>
+    <div class="row" style="margin-top:20px">
+      <div class="col-xs-12 hint_text">
+        Add a new location to start tracking your inventory!
+        <br/>For example, "Keg Storage", "Wine Cooler" or "Minibar Fridge".
+      </div>
+    </div>
+    <div class="row" style="margin-top:16px; margin-bottom:16px">
+      <div class="col-xs-8">
+        <input ng-model="new_loc" class="form-control" placeholder=" Location name">
+      </div>
+      <div class="col-xs-4">
+        <button ng-click="addNewLoc(new_loc)" type="button" class="btn btn-primary btn-sm" style="font-size:14px; float:left">
+          <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Location
         </button>
       </div>
     </div>
   </div>
-  <div ng-show="empty_inv==false">
-    <div class="row">
-      <div class="col-xs-9 hint_text">
-        When doing inventory checklisting, update each item's Quantity and 
-        Unit Price as needed, then click <b>Update</b> to save and mark it
-        as checked.
+
+  <!-- DRAW EXISTING LOCATIONS -->
+  <div ng-show="empty_locs===false">
+    <div class="row" style="margin-bottom:6px">
+      <div class="col-xs-12" style="text-align:left; font-size:0.9em; color:#bbbbbb">
+        All Storage Locations:
       </div>
-      <div class="col-xs-3" style="text-align:right">
-        <button ng-click="showAddInv()" type="button" class="btn btn-success btn-sm btn_right" style="font-size:14px">
-          <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Inventory
+    </div>
+    <div class="row">
+      <div ng-repeat="loc in locations">
+        <button class="col-xs-2 btn btn-default btn-md" style="margin-left:12px; padding:10px" ng-click="selectLoc(loc)" ng-class="{sel_loc: loc.name === selected_loc, add_loc_btn: loc.is_add === true}">{{loc.name}}</button>
+      </div>
+    </div>
+    <div ng-show="selected_loc==null" class="row" style="margin-top:32px;">
+      <div class="col-xs-12 hint_text" style="font-size:1.4em">
+        Click on a storage location above to start managing inventory!
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD LOCATION UI -->
+  <div ng-show="add_loc===true" class="add_loc" style="margin-top:16px">
+    <div class="row" style="padding-left:16px; margin-top:20px;">
+      <div class="col-xs-9" style="font-size:1.3em; font-weight:bold;">
+        Add New Location
+      </div>
+      <div class="col-xs-3">
+        <button ng-click="hideAddLoc()" type="button" class="btn btn-default btn-sm btn_right" style="font-size:14px; float:right; margin-top:-10px">
+          <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> Close
+        </button>
+      </div>
+    </div>
+    <div class="row" style="padding-left:16px; margin-top:12px; margin-bottom:16px">
+      <div class="col-xs-9">
+        <input ng-model="new_loc" class="form-control" placeholder=" Location name">
+      </div>
+      <div class="col-xs-3">
+        <button ng-click="addNewLoc(new_loc)" type="button" class="btn btn-primary btn-sm btn_right" style="font-size:14px; float:right">
+          <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Location
         </button>
       </div>
     </div>
   </div>
-</div>
 
-<div ng-show="add_inv==true" class="add_inv">
-  <div class="row">
-    <div class="col-xs-8" style="font-size:1.3em; font-weight:bold; margin-top:2px; padding-left:30px;">
-      Add Items to Location
-    </div>
-    <div class="col-xs-4" style="text-align:right">
-      <button ng-click="hideAddInv()" type="button" class="btn btn-default btn-sm btn_right" style="font-size:14px">
-        <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> Close
-      </button>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-xs-12 hint_text" style="padding-left:44px; margin-top:10px">
-      Add inventory items to track your stock in this location. If the item type
-      exists in other locations already, pick from the list of <b>existing</b>
-      items in the system.
-    </div>
-  </div>
-  <!-- Inventory update messages dialog -->
-  <div ng-show="new_inv_msg.length>0" style="margin-top:8px;">
+  <div ng-show="selected_loc!=null" style="margin-top:14px;">
     <div class="row">
-      <div class="col-xs-12">
-        <div class="add_inv_msg">
-          <span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span>
-          {{new_inv_msg}}
+      <div class="col-xs-12" style="border-top:solid 1px #dddddd; margin-bottom:10px"></div>
+    </div>
+  </div>
+  <div ng-show="selected_loc!=null" style="margin-top:16px; margin-bottom:20px">
+    <div class="row">
+      <div class="col-xs-6" style="margin-top:-10px">
+        <span>
+          <button ng-click="" type="button" class="btn btn-default btn-sm" style="font-size:18px; float:left; margin-right:12px; color:#cccccc; border-color:#dddddd">
+            <span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
+          </button>
+        </span>
+        <span style="font-size:1.6em; float:left;">{{selected_loc}}</span>
+      </div>
+      <div ng-show="last_update !== null" class="col-xs-6 hint_text" style="text-align:right; margin-top:-4px; font-size:1.2em">
+        Last Counted: {{last_update}}
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD NEW INV ITEM HINT WHEN NO ITEMS EXIST ALREADY -->
+  <div ng-show="selected_loc!=null && add_inv==false">
+    <div ng-show="empty_inv==true">
+      <div class="row">
+        <div class="col-xs-9 hint_text">
+          This storage location doesn't have any inventory items yet! &nbsp; To get
+          started, add your first inventory item(s). 
+        </div>
+        <div class="col-xs-3" style="text-align:right">
+          <button ng-click="showAddInv()" type="button" class="btn btn-success btn-sm btn_right" style="font-size:14px">
+            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Inventory
+          </button>
         </div>
       </div>
     </div>
+    <!--div ng-show="empty_inv==false">
+      <div class="row">
+        <div class="col-xs-12 hint_text" style="margin-bottom:24px">
+          To start inventory checklisting, click the <b>Start Counting Inventory</b> 
+          button below:
+        </div>
+      </div>
+    </div-->
   </div>
-  <div class="row add_inv_divider"></div>
-  <div class="row">
-    <div class="col-xs-12" style="padding-left:44px; font-size:1.2em">
-      <b>New</b> inventory item:
-    </div>
-    <div class="col-xs-12" style="margin-top:6px">
-      <input ng-model="new_inv" class="form-control" placeholder=" Item name, e.g., Heineken keg" style="width:50%; margin-left:28px; float:left">
-      <button ng-click="addNewInv(new_inv)" type="button" class="btn btn-success btn-sm" style="font-size:14px; margin-left: 6px">
-          <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add New
+
+  <div ng-show="selected_loc !== null && empty_inv !== true">
+    <div class="row" ng-show="inv_started === false">
+      <div class="col-xs-12" style="float:none">
+        <button ng-click="startInv()" type="button" class="btn btn-default inv_xl_btn center-block" >
+          <span class="glyphicon glyphicon-check" aria-hidden="true"></span> Start Counting Inventory
         </button>
+      </div>
+    </div>
+
+    <div class="row" ng-show="inv_started === true">
+      <div class="col-xs-4">
+      </div>
+      <div class="col-xs-4 min_padding" style="text-align:center">
+        <button ng-click="saveInv()" type="button" class="btn btn-success inv_xl_btn" style="padding-right:36px; padding-left:36px;">
+          <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> Finish & Save
+        </button>
+      </div>
+      <div class="col-xs-4 min_padding" style="text-align:right">
+        <button ng-click="cancelInv()" type="button" class="btn btn-default btn-md" style="height:54px">
+          <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Discard Changes
+        </button>
+      </div>
     </div>
   </div>
-  <div class="row add_inv_divider"></div>
-  <div class="row">
-    <div class="col-xs-7" style="padding-left:44px; padding-top:6px; font-size:1.2em">
-      <b>Existing</b> items in other locations:
+
+  
+
+  <div ng-show="add_inv==true" class="add_inv" style="margin-top:20px">
+    <div class="row">
+      <div class="col-xs-8" style="font-size:1.4em; padding-top:4px; padding-left:30px;">
+        Add Beverages to {{selected_loc}}
+      </div>
+      <div class="col-xs-4" style="text-align:right">
+        <button ng-click="hideAddInv()" type="button" class="btn btn-default btn-sm btn_right" style="font-size:14px">
+          <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> Close
+        </button>
+      </div>
     </div>
-    <div class="col-xs-5" style="padding-right:44px">
-      <input ng-model="add_inv_query" class="form-control input-sm" placeholder="Search...">
+    <div class="row add_inv_divider"></div>
+    <div class="row" style="margin:0px 24px">
+      <div ng-show="new_success_msg !== null" class="add_row">
+      <div class="alert alert-success alert-dismissible" role="alert">
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span></button>
+        {{new_success_msg}}</div>
     </div>
-  </div>
-  <!-- SCROLL AREA FOR EXISTING INVENTORY ITEMS -->
-  <div 
-      <div class="add_inv_scroll_area" style="margin-top:12px; margin-bottom:20px">
-        <div ng-repeat="inv in add_inv_existing_items | filter:add_inv_query" class="add_inv_scroll_cell row">
-          <div class="col-xs-3 min_padding" style="padding-top:4px; font-size:1.1em;">
-            {{inv.name}}
-          </div>
-          <div class="col-xs-2 min_padding" style="padding-top:4px; font-size:1.1em">
-            {{inv.unit}}
-          </div>
-          <div class="col-xs-2 min_padding" style="padding-top:4px; font-size:1.1em">
-            <input ng-model="inv.quantity" class="form-control" style="width:100%; text-align:center; max-width:80px;" placeholder="Qty.">
-          </div>
-          <div class="col-xs-3 min_padding" style="padding-top:4px; font-size:1.1em">
-            <input ng-model="inv.unit_price" class="form-control" style="width:100%; text-align:center; max-width:80px;" placeholder="Unit $">
-          </div>
-          <div class="col-xs-2">
-            <button ng-click="addExistingInv(inv)" type="button" class="btn btn-success btn-sm" style="font-size:14px; float:right">
+    </div>
+    <div class="row">
+      <div class="col-xs-7 hint_text" style="padding-left:44px; padding-top:6px;">
+        Add inventory items to track your stock in this location.
+      </div>
+      <div class="col-xs-5" style="padding-right:44px">
+        <input ng-model="add_inv_query" class="form-control input-sm" placeholder="Search...">
+      </div>
+    </div>
+    <!-- SCROLL AREA FOR EXISTING INVENTORY ITEMS -->
+
+    <div class="add_inv_scroll_area" style="margin-top:12px; margin-bottom:20px">
+      <div ng-repeat="inv in add_inv_existing_items | filter:add_inv_query" class="add_inv_scroll_cell row">
+        <div class="col-xs-4 min_padding" style="padding-top:4px; font-size:1.1em;">
+          {{inv.product}}
+        </div>
+        <div class="col-xs-2 min_padding" style="padding-top:4px; font-size:1.1em;">
+          {{inv.alcohol_type}}
+        </div>
+        <div class="col-xs-3 min_padding" style="padding-top:4px; font-size:1.1em;">
+          {{inv.purchase_volume}} {{inv.purchase_unit}}
+        </div>
+        <div class="col-xs-3">
+          <button ng-click="addExistingInv(inv)" type="button" class="btn btn-success btn-sm" style="font-size:14px; float:right">
           <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add
-        </button>
-          </div>
+          </button>
         </div>
-  </div>
-</div>
-<!-- Location inventory -->
-<div ng-show="empty_inv==false && inv_items.length>0" style="margin-top:12px">
-  <div class="row">
-    <div class="col-xs-12 hint_text">
-      <span class="glyphicon glyphicon-ok-circle check_circle" style="margin-right:6px; float:left; margin-bottom:16px"></span> = updated today
-    </div>
-  </div>
-  <div class="row label_row">
-    <div class="col-xs-3 col-sm-3 min_padding"> &nbsp;Item Name</div>
-    <div class="col-xs-2 min_padding">Unit</div>
-    <div class="col-xs-2 min_padding">Quantity</div>
-    <div class="col-xs-2 col-sm-2 min_padding">Unit Price</div>
-    <!--div class="col-xs-3" style="text-align:right">Update Item</div-->
-  </div>
-  <div ng-repeat="inv in inv_items">
-    <div ng-class-even="'row inv_row inv_row_even'" ng-class-odd="'row inv_row'">
-      <div class="col-xs-3 col-sm-3 min_padding" style="padding-top:6px">
-        <span ng-show="inv.updated_today==true" class="glyphicon glyphicon-ok-circle check_circle" style="margin-right:6px; float:left; margin-top:-2px"></span>
-        <span style="float:left;">{{inv.name}}</span>
-      </div>
-      <div class="col-xs-2 min_padding" style="padding-top:6px">{{inv.unit}}</div>
-      <div class="col-xs-2 min_padding">
-        <input ng-model="inv.quantity" class="form-control" style="width:100%; text-align:center; max-width:80px;">
-      </div>
-      <div class="col-xs-2 col-sm-2 min_padding">
-        <div class="hidden-xs" style="width:15%; float:left; padding-top:6px">$</div>
-        <input ng-model="inv.unit_price" class="form-control" style="float:left; width:85%; text-align:center; max-width:80px">
-      </div>
-      <div class="col-xs-1 min_padding">
-        <span ng-click="removeInvItem($index)" type="button" class="glyphicon glyphicon-trash" style="font-size:1.1em; padding-top:10px; color:#aaaaaa"><span>
-      </div>
-      <div class="col-xs-2 col-sm-2 min_padding" style="text-align:right;">
-        <button ng-click="updateInvItem($index)" type="button" class="btn btn-default btn-sm" style="font-size:14px; width:100%; max-width:100px">Update</button>
       </div>
     </div>
   </div>
+
+  <div ng-show="empty_inv===false && selected_loc !== null" style="margin-top:36px">
+
+    <div ng-show="inv_started===false" class="row hint_text" style="font-size:1.2em">
+      <div class="col-xs-12">
+        The Quantities shown below are from the last time you did inventory. <br/> To
+        start counting current inventory, press the <b>Start Counting Inventory</b>
+        button above!
+      </div>
+    </div>
+
+    <div ng-show="inv_started===true" class="row">
+      <div class="col-xs-12" style="text-align:center; font-size:1.3em">
+        When you finish counting inventory in this location, don't forget to 
+        <b>Finish & Save</b>!
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Location inventory -->
+  <div ng-show="empty_inv==false && inv_items.length>0" style="margin-top:12px;">
+    <div class="row label_row_container">
+      <div class="col-xs-5 min_padding" style="padding:0px; float:left">
+          <button ng-show="add_inv===false" ng-click="showAddInv()" type="button" class="btn btn-success btn-sm" style="float:left; margin-right:8px; height:32px; font-size:1.0em">
+            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+          </button>
+        <span style="float:left; padding-top:8px">Product</span>
+      </div>
+      <div class="col-xs-6 min_padding" style="padding-top:8px">Quantity</div>
+      <!--div class="col-xs-3" style="text-align:right">Update Item</div-->
+    </div>
+    <div ng-repeat="inv in inv_items">
+      <div ng-class-even="'row inv_row_container inv_row_even'" ng-class-odd="'row inv_row_container'">
+        <div class="col-xs-5 min_padding" style="padding-top:6px">
+          <!--span ng-show="inv.updated_today==true" class="glyphicon glyphicon-ok-circle check_circle" style="margin-right:6px; float:left; margin-top:-2px;"></span-->
+          <span style="float:left; font-size:1.1em; padding-left:8px">{{inv.product}}</span>
+          <span style="float:left; font-size:1.1em; color:#999999; margin-left:4px">({{inv.purchase_volume}} {{inv.purchase_unit}})</span>
+        </div>
+        <div class="col-xs-6 min_padding">
+
+          <div ng-show="inv_started===false" style="font-size:1.1em; padding-top:5px">
+            {{inv.quantity}}
+          </div>
+
+          <div ng-show="inv_started===true">
+            <button ng-click="addQuantity(inv,-1)" type="button" class="btn btn-default inv_minus_btn">
+              <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
+            </button>
+            <input ng-model="inv.quantity" class="form-control" style="display:inline-block; float:left; text-align:center; max-width:70px; height:36px; font-size:1.3em;">
+            <button ng-click="addQuantity(inv,1)" type="button" class="btn btn-default inv_plus_btn">
+            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+            </button>
+            <button ng-click="addQuantity(inv,10)" type="button" class="btn btn-default inv_plus_btn">
+              <span style="font-size:1.2em"><b>+10</b></span>
+            </button>
+          </div>
+          
+        </div>
+        <div class="col-xs-1 min_padding">
+          <span ng-click="removeInvItem($index)" type="button" class="glyphicon glyphicon-trash" style="font-size:18px; padding-top:4px; padding-right:12px; float:right; color:#aaaaaa"><span>
+        </div>
+        <!--div class="col-xs-2 col-sm-2 min_padding" style="text-align:right;">
+          <button ng-click="updateInvItem($index)" type="button" class="btn btn-default btn-sm" style="font-size:14px; width:100%; max-width:100px">Update</button-->
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
-
-
 
 
 
