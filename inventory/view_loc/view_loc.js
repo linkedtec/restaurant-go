@@ -18,7 +18,8 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
   $scope.last_update = null;    // last update text
   $scope.empty_inv = false;      // is location inventory empty?
   $scope.add_inv = false;       // add new inv item mode
-  $scope.add_inv_existing_items = [];
+  $scope.add_inv_all_items = [];  // a cache from server of all inv items
+  $scope.add_inv_existing_items = [];  // all_items minus existing items in location
   $scope.new_success_msg = null;
   $scope.inv_items = [];
   $scope.inv_started = false;
@@ -171,9 +172,11 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     $scope.add_inv=true;
     $scope.new_success_msg = null;
 
-    if ($scope.add_inv_existing_items.length == 0)
+    if ($scope.add_inv_all_items.length == 0)
     {
       $scope.getExistingInv();
+    } else {
+      $scope.cleanUpExistingInv();
     }
   };
 
@@ -284,6 +287,28 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     
   };
 
+  $scope.cleanUpExistingInv = function() {
+    // On the client side, remove any entries in add_inv_existing_items
+    // which are already in this location
+    var clean_existing = [];
+    for (var i=0; i < $scope.add_inv_all_items.length; i++) {
+      var is_clean = true;
+      var test_item = $scope.add_inv_all_items[i];
+      for (var j=0; j < $scope.inv_items.length; j++) {
+        var check_item = $scope.inv_items[j];
+        if (test_item.id == check_item.id)
+        {
+          is_clean = false;
+          break;
+        }
+      }
+      if (is_clean) {
+        clean_existing.push(test_item);
+      }
+    }
+    $scope.add_inv_existing_items = clean_existing;
+  };
+
   $scope.getExistingInv = function() {
     $http.get('/inv', {
       params: {
@@ -295,30 +320,12 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       // is available
       console.log(data);
       if (data != null) {
-        $scope.add_inv_existing_items = data;
-        // On the client side, remove any entries in add_inv_existing_items
-        // which are already in this location
-        var clean_existing = [];
-        for (var i=0; i < $scope.add_inv_existing_items.length; i++) {
-          var is_clean = true;
-          var test_item = $scope.add_inv_existing_items[i];
-          for (var j=0; j < $scope.inv_items.length; j++) {
-            var check_item = $scope.inv_items[j];
-            if (test_item.id == check_item.id)
-            {
-              is_clean = false;
-              break;
-            }
-          }
-          if (is_clean) {
-            clean_existing.push(test_item);
-          }
-        }
-        $scope.add_inv_existing_items = clean_existing;
+        $scope.add_inv_all_items = data;
       }
       else {
-        $scope.add_inv_existing_items = [];
+        $scope.add_inv_all_items = [];
       }
+      $scope.cleanUpExistingInv();
     }).
     error(function(data, status, headers, config) {
 
