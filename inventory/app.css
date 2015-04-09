@@ -73,6 +73,35 @@ body {
   width:1400px;
 }
 
+.sort_div {
+  display:block;
+  padding: 8px 6px;
+  height:100%;
+  width:100%;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sort_div:hover {
+  background-color:#d0e5fc;
+}
+
+.sort_carat {
+  font-size:10px;
+  float:right;
+  color:#55aacc;
+  margin-top:4px;
+}
+
+.all_inv_label_span {
+  display: table-cell;
+  padding: 0;
+  border-right: solid 1px #dddddd;
+  position:relative;
+  height:100%;
+  color:#4488cc;
+}
+
 .all_inv_span {
   display: table-cell;
   padding: 8px 6px;
@@ -80,7 +109,6 @@ body {
   position:relative;
   height:100%;
 }
-
 
 .inv_row_container {
   padding: 12px 0px;
@@ -205,6 +233,22 @@ body {
   outline: none;
 }
 
+li.active a {
+  font-size:1.1em;
+  color:#0066aa;
+  text-decoration: none;
+}
+
+li a {
+  color:#66aadd;
+  text-decoration: none;
+}
+
+li a:hover {
+  text-decoration:none;
+}
+
+
 .add_loc_btn {
   border: none;
   color: #66aadd;
@@ -266,10 +310,7 @@ body {
 
 .control-label {
   font-weight:normal;
-}
-
-.input_add {
-  width:240px;
+  margin-bottom:2px;
 }
 
 .add_transparent_btn {
@@ -323,6 +364,21 @@ body {
   margin-right:0px !important;
 }
 
+.noselect {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
 
+.app-modal-window .modal-dialog {
+  min-width: 800px;
+}
+
+.modal-backdrop {
+  background-color: #ecf5ea;
+}
 
 

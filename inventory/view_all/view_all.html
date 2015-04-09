@@ -1,4 +1,5 @@
 <div class="all_inv_main">
+
   <div style="margin-top:20px; font-size:1.8em">
     Complete Inventory Spreadsheet
   </div>
@@ -9,8 +10,8 @@
   </div>
 
   <div ng-show="show_add_ui===true" class="add_inv_all" style="margin-top:10px">
-    <button ng-click="hideAddInv()" type="button" class="btn btn-default btn-sm inner_btn_left" style="font-size:14px">
-        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Close
+    <button ng-click="hideAddInv()" type="button" class="btn btn-warning btn-sm inner_btn_left" style="font-size:14px">
+        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Cancel
       </button>
     <div style="margin-left:10px; font-size:1.4em; display:inline-block">
       Add Beverage to Inventory
@@ -80,7 +81,7 @@
               <input ng-model="new_purchase_volume" type="number" min="0" class="form-control input_add" style="width:100px; margin-right:6px; float:left">
             </div>
             <div>
-              <select ng-model="new_purchase_unit" class="form-control input_add" ng-options="aunit for aunit in purchase_units" style="width:60px; float:left"></select>
+              <select ng-model="new_purchase_unit" class="form-control input_add" ng-options="aunit for aunit in volume_units" style="width:60px; float:left"></select>
             </div>
           </div>
         </div>
@@ -103,7 +104,7 @@
             </label>
             <div class="input-group" style="float:left; width:170px">
               <span class="input-group-addon">$</span>
-              <input ng-model="new_keg_deposit" type="number" min="0" class="form-control input_add" style="width:132px;" placeholder="">
+              <input ng-model="new_deposit" type="number" min="0" class="form-control input_add" style="width:132px;" placeholder="">
             </div>
           </div>
         </div>
@@ -124,12 +125,12 @@
           Sell Price
         </div>
       </div>
-      <div ng-repeat="add_sale in add_sales" class="row" style="margin-bottom:6px">
+      <div ng-repeat="add_sale in add_sales" class="row" style="margin-bottom:0px">
         <div class="col-xs-4">
           <div class="form-group" ng-class="{'has-error': form_ver.errors_sale_volume[$index]===true}">
             <input ng-model="add_sale.volume" type="number" min="0" class="form-control input_add" style="width:100px; margin-right:6px; float:left">
             <div>
-              <select ng-model="add_sale.unit" class="form-control input_add" ng-options="aunit for aunit in purchase_units" style="width:60px; float:left"></select>
+              <select ng-model="add_sale.unit" class="form-control input_add" ng-options="aunit for aunit in volume_units" style="width:60px; float:left"></select>
             </div>
           </div>
         </div>
@@ -182,36 +183,94 @@
   </div>
 
   <div class="label_row">
-    <div class="all_inv_span" style="width:200px;">Product</div
-    ><div class="all_inv_span" style="width:200px;">Distributor</div
-    ><div class="all_inv_span" style="width:200px;">Brewery</div
-    ><div class="all_inv_span" style="width:80px;">Alc. Type</div
-    ><div class="all_inv_span" style="width:60px;">% AbV</div
-    ><div class="all_inv_span" style="width:120px;">Purchase Size</div
-    ><div class="all_inv_span" style="width:60px;">P. Unit</div
-    ><div class="all_inv_span" style="width:60px;">P. Cost</div
-    ><div class="all_inv_span" style="width:100px;">Keg Deposit</div
-    ><div class="all_inv_span" style="width:120px;">Flavor Profile</div
+    <div class="all_inv_label_span noselect" style="width:60px;">
+      <span style="margin-left:6px; font-weight:normal"> </span>
+    </div
+    ><div class="all_inv_label_span noselect" style="width:200px;">
+      <div class="sort_div" ng-click="sortBy('product')">
+        <span>Product</span>
+        <span ng-show="sort_key === 'product'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+    </div
+    ><div class="all_inv_label_span noselect" style="width:200px;">
+      <div class="sort_div" ng-click="sortBy('distributor')">
+        <span>Distributor</span>
+        <span ng-show="sort_key === 'distributor'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+    </div
+    ><div class="all_inv_label_span noselect" style="width:200px;">
+      <div class="sort_div" ng-click="sortBy('brewery')">
+        <span>Brewery</span>
+        <span ng-show="sort_key === 'brewery'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+    </div
+    ><div class="all_inv_label_span noselect" style="width:80px;">
+      <div class="sort_div" ng-click="sortBy('alcohol_type')">
+        <span>Type</span>
+        <span ng-show="sort_key === 'alcohol_type'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+    </div
+    ><div class="all_inv_label_span noselect" style="width:80px;">
+      <div class="sort_div" ng-click="sortBy('abv')">
+        <span>% AbV</span>
+        <span ng-show="sort_key === 'abv'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+    </div
+    ><div class="all_inv_label_span noselect" style="width:120px;">
+      <div class="sort_div" ng-click="sortBy('purchase_volume')">
+        <span>Purchase Vol.</span>
+        <span ng-show="sort_key === 'purchase_volume'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+    </div
+    ><div class="all_inv_label_span noselect" style="width:70px;">
+      <div class="sort_div" ng-click="sortBy('purchase_unit')">
+        <span>P. Unit</span>
+        <span ng-show="sort_key === 'purchase_unit'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+    </div
+    ><div class="all_inv_label_span noselect" style="width:80px;">
+      <div class="sort_div" ng-click="sortBy('purchase_cost')">
+        <span>P. Cost</span>
+        <span ng-show="sort_key === 'purchase_cost'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+    </div
+    ><div class="all_inv_label_span noselect" style="width:110px;">
+      <div class="sort_div" ng-click="sortBy('deposit')">
+        <span>Keg Deposit</span>
+        <span ng-show="sort_key === 'deposit'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+    </div
+    ><div class="all_inv_label_span noselect" style="width:120px;">
+      <div class="sort_div" ng-click="sortBy('flavor_profile')">
+        <span>Flavor Profile</span>
+        <span ng-show="sort_key === 'flavor_profile'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+    </div
     ><div class="all_inv_span" style="width:100px;">Sale Volume</div
     ><div class="all_inv_span" style="width:100px;">Sale Price</div
   ></div>
   <div ng-repeat="inv in inventory_items | filter:all_inv_query">
     <div ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row'">
-      <div class="all_inv_span" style="width:200px;">{{inv.product}}</div
+      <div class="all_inv_span" style="width:60px; text-align:center;">
+        <button ng-click="editBeverage($index)" type="button" class="btn btn-md" style="font-size:14px; background-color:#ecfddf; border-color:#aaddbb">
+          <span class="glyphicon glyphicon-pencil" style="font-size:16px; color:#888888"></span>
+        </button>
+      </div
+      ><div class="all_inv_span" style="width:200px;">{{inv.product}}</div
       ><div class="all_inv_span" style="width:200px;">{{inv.distributor}}</div
       ><div class="all_inv_span" style="width:200px;">{{inv.brewery}}</div
       ><div class="all_inv_span" style="width:80px;">{{inv.alcohol_type}}</div
-      ><div class="all_inv_span" style="width:60px;">{{inv.abv}}</div
+      ><div class="all_inv_span" style="width:80px;">{{inv.abv}}</div
       ><div class="all_inv_span" style="width:120px;">{{inv.purchase_volume}}</div
-      ><div class="all_inv_span" style="width:60;">{{inv.purchase_unit}}</div
-      ><div class="all_inv_span" style="width:60px;">$ {{inv.purchase_cost}}</div
-      ><div class="all_inv_span" style="width:100px;">{{inv.deposit}}</div
+      ><div class="all_inv_span" style="width:70;">{{inv.purchase_unit}}</div
+      ><div class="all_inv_span" style="width:80px;">$ {{inv.purchase_cost}}</div
+      ><div class="all_inv_span" style="width:110px;">$ {{inv.deposit}}</div
       ><div class="all_inv_span" style="width:120px;">{{inv.flavor_profile}}</div
       ><div class="all_inv_span" style="width:100px;">
-        <div ng-repeat="sp in inv.sale_prices" style="padding:2px 0px">{{sp.volume}} {{sp.unit}}</div
+        <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">{{sp.volume}} {{sp.unit}}</div
       ></div
       ><div class="all_inv_span" style="width:100px;">
-        <div ng-repeat="sp in inv.sale_prices" style="padding:2px 0px">$ {{sp.price}}</div
+        <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">$ {{sp.price}}</div
       ></div
     ></div>
   </div>
@@ -219,4 +278,5 @@
 
 </div>
 
+<div ng-include src="'./view_all/edit_inv_modal.html'">
  

@@ -8,4 +8,13 @@ angular.module('myApp', [
 ]).
 config(['$routeProvider', function($routeProvider) {
   $routeProvider.otherwise({redirectTo: '/viewAllInv'});
-}]);
+}])
+
+.controller('myAppCtrl', function($scope, $location) {
+
+  $scope.isActive = function (viewLocation) {
+    var active = (viewLocation === $location.path());
+    return active;
+  };
+
+});

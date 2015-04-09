@@ -26,7 +26,12 @@ type Beverage struct {
 	PurchaseCost   float32     `json:"purchase_cost"`
 	Deposit        float32     `json:"deposit"`
 	FlavorProfile  string      `json:"flavor_profile"`
-	SalePrices     []SalePrice `json:"sale_prices"`
+	SalePrices     []SalePrice `json:"size_prices"`
+}
+
+type BeverageUpdate struct {
+	Bev        Beverage `json:"beverage"`
+	ChangeKeys []string `json:"change_keys"`
 }
 
 type SalePrice struct {
@@ -489,6 +494,125 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Write(js)
+
+	case "PUT":
+		log.Println("Received /inv PUT")
+		decoder := json.NewDecoder(r.Body)
+		var bev_update BeverageUpdate
+		err := decoder.Decode(&bev_update)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		log.Println(bev_update.Bev)
+		log.Println(bev_update.ChangeKeys)
+
+		// Here's how we update the keys:
+		// Any "special" keys not in the beverage table we handle individually
+		// Any keys in the beverage table should match the table's keys so
+		// we can just insert them
+		//
+		// First, handle the "special" keys
+		// TABLE size_prices
+		var doSalePrices bool
+		var doBeverage bool
+		var beverageUpdateKeys []string
+		for _, key := range bev_update.ChangeKeys {
+			if key == "size_prices" {
+				doSalePrices = true
+			} else {
+				doBeverage = true
+				beverageUpdateKeys = append(beverageUpdateKeys, key)
+			}
+		}
+
+		bev_id := bev_update.Bev.ID
+
+		if doSalePrices {
+			sps := bev_update.Bev.SalePrices
+			log.Println("Do sale prices ")
+
+			// First delete any size_prices entries with the beverage ID
+			query := fmt.Sprintf("DELETE FROM size_prices WHERE beverage_id=%d;", bev_id)
+			log.Println(query)
+			_, err = db.Exec(query)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			// Now insert fresh entries for the sale prices
+			for _, sp := range sps {
+				query := fmt.Sprintf("INSERT INTO size_prices(serving_size, serving_unit, serving_price, beverage_id) VALUES (%f, '%s', %f, %d);", sp.Volume, sp.Unit, sp.Price, bev_id)
+				log.Println(query)
+				_, err = db.Exec(query)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			}
+		}
+
+		if doBeverage {
+			log.Println("Do beverage")
+			var keys []string
+			var values []string
+
+			for _, key := range beverageUpdateKeys {
+				keys = append(keys, key)
+				if key == "product" {
+					values = append(values, "'"+bev_update.Bev.Product+"'")
+				} else if key == "distributor" {
+					values = append(values, "'"+bev_update.Bev.Distributor+"'")
+				} else if key == "brewery" {
+					values = append(values, "'"+bev_update.Bev.Brewery+"'")
+				} else if key == "alcohol_type" {
+					values = append(values, "'"+bev_update.Bev.AlcoholType+"'")
+				} else if key == "abv" {
+					values = append(values, fmt.Sprintf("%f", bev_update.Bev.ABV))
+				} else if key == "purchase_volume" {
+					values = append(values, fmt.Sprintf("%f", bev_update.Bev.PurchaseVolume))
+				} else if key == "purchase_unit" {
+					values = append(values, "'"+bev_update.Bev.PurchaseUnit+"'")
+				} else if key == "purchase_cost" {
+					values = append(values, fmt.Sprintf("%f", bev_update.Bev.PurchaseCost))
+				} else if key == "deposit" {
+					values = append(values, fmt.Sprintf("%f", bev_update.Bev.Deposit))
+				} else if key == "flavor_profile" {
+					values = append(values, "'"+bev_update.Bev.FlavorProfile+"'")
+				}
+			}
+
+			i := 0
+			var keys_string string
+			var values_string string
+			for _, key := range keys {
+				if i > 0 {
+					keys_string += ", "
+				}
+				keys_string += key
+				i++
+			}
+			i = 0
+			for _, value := range values {
+				if i > 0 {
+					values_string += ", "
+				}
+				values_string += value
+				i++
+			}
+			query := fmt.Sprintf("UPDATE beverages SET (%s) = (%s) WHERE id=%d;", keys_string, values_string, bev_id)
+			log.Println(query)
+			_, err = db.Exec(query)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
 
 	default:
 		http.Error(w, "Invalid request", http.StatusBadRequest)

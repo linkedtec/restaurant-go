@@ -15,15 +15,19 @@
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.12/angular.min.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.12/angular-route.min.js"></script>
   <script src="/lib/ui-bootstrap/ui-bootstrap-tpls-0.12.1.min.js"></script>
+
+  <script src="/inventory/app.js"></script>
+  <script src="/inventory/view_all/view_all.js"></script>
+  <script src="/inventory/view_loc/view_loc.js"></script>
 </head>
 <body>
   
   <div class="toolbar">
     <div class="container">
-      <ul class="menu">
-        <li><a href="#/viewAllInv">Inventory Spreadsheet</a></li>
-        <li><a href="#/viewInvByLoc">Storage Locations</a></li>
-        <li><a href="#/viewOnTap">On-Tap</a></li>
+      <ul class="menu" ng-controller="myAppCtrl">
+        <li ng-class="{ active: isActive('/viewAllInv')}"><a href="#/viewAllInv">Inventory Spreadsheet</a></li>
+        <li ng-class="{ active: isActive('/viewInvByLoc')}"><a href="#/viewInvByLoc">Storage Locations</a></li>
+        <li ng-class="{ active: isActive('/viewOnTap')}"><a href="#/viewOnTap">On-Tap</a></li>
       </ul>
     </div>
   </div>
@@ -36,8 +40,6 @@
   
   
   
-  <script src="/inventory/app.js"></script>
-  <script src="/inventory/view_all/view_all.js"></script>
-  <script src="/inventory/view_loc/view_loc.js"></script>
+  
 </body>
 </html>
