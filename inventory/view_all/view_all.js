@@ -12,7 +12,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 .controller('ViewAllInvCtrl', function($scope, $modal, $http) {
 
   $scope.show_add_ui = false;
-  $scope.alcohol_types = ["Beer", "Wine"];
+  $scope.alcohol_types = ["Draft Beer", "Bottle Beer", "Wine", "Bar Consumables", "N/A Bev"];
   $scope.volume_units = ["L", "mL", "oz", "pt", "qt", "gal"];
   $scope.new_success_msg = null;
   $scope.new_failure_msg = null;
@@ -64,7 +64,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   $scope.showKegHelp = function() {
     swal({
         title:"What is a Keg Deposit?", 
-        text: "Bars that serve beer from kegs often pay deposits per keg to their distributor.  If this doesn't apply to you, leave it blank."
+        text: "Bars that serve Draft Beer from kegs often pay deposits per keg to their distributor.  If this doesn't apply to you, leave it blank."
       });
       return;
   }
@@ -129,8 +129,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     } else {
       $scope.form_ver.error_type=false;
     }
-
-    console.log($scope.new_abv);
 
     if ($scope.new_abv === null || $scope.new_abv === '' || isNaN($scope.new_abv))
     {
@@ -219,7 +217,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       success(function(data, status, headers, config) {
         // this callback will be called asynchronously when the response
         // is available
-        console.log(data);
+        //console.log(data);
         // XXX if success, add returned item to $scope.inventory_items
         // otherwise, notify of failure and don't add
         //$scope.inventory_items.push({name:item, quantity:0, last_update:''})
@@ -239,6 +237,12 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       // is available
       console.log(data);
       $scope.inventory_items = data;
+
+      /* Add custom params
+      for (var i = 0; i < $scope.inventory_items.length; i++) {
+        $scope.inventory_items[i]['count'] = i;
+      }*/
+
       if ($scope.firstTimeSort) {
         $scope.firstTimeSort = false;
         $scope.sortBy('product');
@@ -250,7 +254,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   };
 
   $scope.sortBy = function(sort_str) {
-    console.log('SORTY BY ' + sort_str)
+    //console.log('SORTY BY ' + sort_str)
     var double_sort = sort_str === $scope.sort_key;
     if (double_sort) {
       $scope.double_sort *= -1;
@@ -258,7 +262,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.double_sort = -1;
     }
     $scope.sort_key = sort_str;
-    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_unit' || sort_str === 'purchase_cost' || sort_str === 'deposit');
+    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_unit' || sort_str === 'purchase_cost' || sort_str === 'deposit' || sort_str === 'count');
     $scope.inventory_items.sort(function(a, b) {
       var keyA = a[sort_str];
       var keyB = b[sort_str];
@@ -275,7 +279,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       }
       return keyA.localeCompare(keyB);
     })
-    console.log($scope.inventory_items);
   };
 
   $scope.addSaleRow = function(unit) {
@@ -303,7 +306,26 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
           return $scope.alcohol_types;
         }
       }
-    })
+    });
+
+    modalEditInstance.result.then(
+      // success status
+      function( result ) {
+        // the only time the modal calls success status is to pass that 
+        // a beverage has been deleted.  result is the id of the deleted bev
+        console.log('Deleting beverage id: ' + result);
+        for (var i = $scope.inventory_items.length-1; i >= 0; i--) {
+          var bev = $scope.inventory_items[i];
+          if (bev.id === result) {
+            $scope.inventory_items.splice(i, 1);
+            break;
+          }
+        }
+      }, 
+      // error status
+      function() {
+        ;
+      })
   };
 
   $scope.getAllInv();
@@ -356,7 +378,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   $scope.showKegHelp = function() {
     swal({
         title:"What is a Keg Deposit?", 
-        text: "Bars that serve beer from kegs often pay deposits per keg to their distributor.  If this doesn't apply to you, leave it blank."
+        text: "Bars that serve Draft Beer from kegs often pay deposits per keg to their distributor.  If this doesn't apply to you, leave it blank."
       });
       return;
   };
@@ -499,7 +521,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
         }
       }
     }
-    console.log(changedKeys);
     if (changedKeys.length == 0) {
       $modalInstance.dismiss('save');
       return;
@@ -520,8 +541,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       putObj[key] = $scope.beverage[key];
     }
     putObj.id = $scope.beverage.id;
-    console.log('PUT OBJ');
-    console.log(putObj);
 
     $http.put('/inv', {
       beverage:putObj,
@@ -529,7 +548,33 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     });
 
     $modalInstance.dismiss('save');
+  };
 
+  $scope.deleteItem = function() {
+    var bev_id = $scope.original_beverage.id;
+
+    swal({
+      title: "Delete Beverage?",
+      text: "This will remove " + $scope.original_beverage.product + " from the DB, and from all inventory locations which carry it.  This cannot be undone.",
+      type: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#DD6B55",
+      confirmButtonText: "Yes, remove it!",
+      closeOnConfirm: true },
+      function() {
+        $http.delete('/inv', {
+          params: {
+            id:bev_id
+        }
+      }).
+      success(function(data, status, headers, config) {
+        // communicate with ViewAllInvCtrl to delete its entry
+        $modalInstance.close(bev_id);
+      }).
+      error(function(data, status, headers, config) {
+        console.log(data);
+      });
+    });
   };
 
 });

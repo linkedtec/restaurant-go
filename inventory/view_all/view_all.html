@@ -1,7 +1,7 @@
 <div class="all_inv_main">
 
   <div style="margin-top:20px; font-size:1.8em">
-    Complete Inventory Spreadsheet
+    All Beverages Database
   </div>
 
   <div class="hint_text" style="margin-top:8px;">
@@ -10,11 +10,11 @@
   </div>
 
   <div ng-show="show_add_ui===true" class="add_inv_all" style="margin-top:10px">
-    <button ng-click="hideAddInv()" type="button" class="btn btn-warning btn-sm inner_btn_left" style="font-size:14px">
-        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Cancel
-      </button>
+    <button ng-click="hideAddInv()" type="button" class="btn btn-default btn-sm inner_btn_left" style="font-size:14px; min-height:32px;">
+      <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+    </button>
     <div style="margin-left:10px; font-size:1.4em; display:inline-block">
-      Add Beverage to Inventory
+      Add New Beverage to DB
     </div>
     
     <div style="font-size:1.1em; color:#88bb99; margin-top:16px">
@@ -47,7 +47,7 @@
         <div class="col-xs-4">
           <div class="form-group" ng-class="{'has-error': form_ver.error_type===true}">
             <label class="control-label"> Type </label>
-            <select ng-model="new_type" class="form-control input_add" ng-options="atype for atype in alcohol_types" style="width:130px;"></select>
+            <select ng-model="new_type" class="form-control input_add" ng-options="atype for atype in alcohol_types" style="width:150px;"></select>
           </div>
         </div>
         <div class="col-xs-4">
@@ -96,7 +96,7 @@
             </div>
           </div>
         </div>
-        <div class="col-xs-4" ng-show="new_type==='Beer' || new_type==='beer'">
+        <div class="col-xs-4" ng-show="new_type==='Draft Beer' || new_type==='draft beer'">
           <div class="form-group">
             <label class="control-label">
               Keg Deposit (optional)
@@ -119,10 +119,10 @@
     <div style="padding-left:12px; padding-right:24px; margin-top:12px">
       <div class="row" style="margin-bottom:4px">
         <div class="col-xs-4">
-          Sell Volume
+          Serving Size
         </div>
         <div class="col-xs-4">
-          Sell Price
+          Retail Price
         </div>
       </div>
       <div ng-repeat="add_sale in add_sales" class="row" style="margin-bottom:0px">
@@ -174,7 +174,7 @@
   <div style="margin-bottom:6px; margin-top:24px; float:left">
     <div style="float:left; min-width:140px">
       <button ng-show="show_add_ui===false" ng-click="showAddInv()" type="button" class="btn btn-success btn-sm" style="font-size:14px;">
-        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> New Inventory
+        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> New Beverage
       </button>
     </div>
     <div style="float:left; width:200px;">
@@ -246,8 +246,14 @@
         <span ng-show="sort_key === 'flavor_profile'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
       </div>
     </div
-    ><div class="all_inv_span" style="width:100px;">Sale Volume</div
-    ><div class="all_inv_span" style="width:100px;">Sale Price</div
+    ><div class="all_inv_span" style="width:100px;">Serving Size</div
+    ><div class="all_inv_span" style="width:100px;">Retail Price</div
+    ><div class="all_inv_label_span noselect" style="width:90px;">
+      <div class="sort_div" ng-click="sortBy('count')">
+        <span>Inventory</span>
+        <span ng-show="sort_key === 'count'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+    </div
   ></div>
   <div ng-repeat="inv in inventory_items | filter:all_inv_query">
     <div ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row'">
@@ -272,6 +278,7 @@
       ><div class="all_inv_span" style="width:100px;">
         <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">$ {{sp.price}}</div
       ></div
+      ><div class="all_inv_span" style="width:90px;">{{inv.count}}</div
     ></div>
   </div>
   <div class="all_inv_bottom"></div>

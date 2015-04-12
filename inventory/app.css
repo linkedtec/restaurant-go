@@ -9,7 +9,8 @@ body {
 .toolbar {
   width: 100%;
   background-color:#f5f5f5;
-  border-bottom:1px solid #dddddd;
+  border-bottom:1px solid #bbbbbb;
+  margin-bottom:10px;
 }
 
 .menu {
@@ -20,7 +21,7 @@ body {
   /*padding: 1.2em 0em;*/
   /*border-bottom: 0.1em solid #dddddd;*/
   color: #333333;
-  min-width:480px;
+  min-width:560px;
 }
 
 .full_divider {
@@ -31,7 +32,7 @@ body {
 .all_inv_main {
   overflow: visible;
   margin-left: 20px;
-  min-width:480px;
+  min-width:560px;
 }
 
 .label_row {
@@ -61,7 +62,7 @@ body {
 
 /* The bottom black bar to close out the outline of the all inv area */
 .all_inv_bottom {
-  width:1400; 
+  width:1610; 
   border-bottom: solid 1px #dddddd;
 }
 
@@ -121,7 +122,7 @@ body {
   margin-right: 5px;
   margin-left:5px;
   font-size: 14px;
-  height:36px;
+  height:38px;
   color:#bb5533;
   border: 1px solid #eebbbb;
   background-color: #fff5f5;
@@ -133,7 +134,7 @@ body {
   margin-right: 5px;
   margin-left:5px;
   font-size: 14px;
-  height:36px;
+  height:38px;
   color:#44aa11;
   border: 1px solid #aae0a0;
   background-color: #f5fff0;
@@ -147,7 +148,7 @@ body {
 
 
 .main_container {
-  min-width:480px;
+  min-width:560px;
   max-width:800px;
   margin-right: auto;
   margin-left: auto;
@@ -155,6 +156,8 @@ body {
 
 .mainpanel {
   /*padding: 0px 20px;*/
+  overflow: scroll;
+  min-height: 800px;
 }
 
 .menu:before {
@@ -265,16 +268,6 @@ li a:hover {
   color: #4499cc;
 }
 
-.add_loc {
-  border-radius: 6px;
-  border:1px solid #88badd;
-  background-color: #f1f8ff;
-  margin-left:-8px;
-  margin-right:-8px;
-  padding-left:8px;
-  padding-right:8px;
-}
-
 .add_inv_all {
   border-radius: 4px;
   border:1px solid #aaddbb;
@@ -319,13 +312,26 @@ li a:hover {
   color: #55aa55;
 }
 
+.add_loc {
+  border-radius: 6px;
+  border:1px solid #88badd;
+  background-color: #f1f8ff;
+  margin-left:-8px;
+  margin-right:-8px;
+  padding-left:8px;
+  padding-right:8px;
+  margin-top: -8px;
+  padding-top: 8px;
+  padding-bottom: 12px;
+}
+
 .add_inv {
   border-radius:6px;
   border:1px solid #aaddbb;
   background-color: #fcfffa;
   margin-left:-8px;
-  padding-left: 8px;
   margin-right:-8px;
+  padding-left: 8px;
   padding-right:8px;
   margin-top: -8px;
   padding-top: 8px;
@@ -351,10 +357,28 @@ li a:hover {
 .btn_right {
   margin-right: 4px;
   float: right;
+  min-height:32px;
+}
+
+.btn_clear {
+  background-color: red !important;
+  color:red;
+}
+.btn_clear:hover {
+  background-color:red;
+  color:red;
 }
 
 .inner_btn_left {
   margin-top:-10px;
+}
+
+.input_error {
+  background-color:#fff5f5;
+}
+
+.alert-danger {
+  padding:12px 12px;
 }
 
 .min_padding {
@@ -380,5 +404,12 @@ li a:hover {
 .modal-backdrop {
   background-color: #ecf5ea;
 }
+
+.box-shadow {
+  -webkit-box-shadow: 0 4px 4px -3px #bbbbbb;
+   -moz-box-shadow: 0 4px 4px -3px #bbbbbb;
+        box-shadow: 0 4px 4px -3px #bbbbbb;
+}
+
 
 

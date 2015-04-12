@@ -22,11 +22,11 @@
 </head>
 <body>
   
-  <div class="toolbar">
-    <div class="container">
+  <div class="toolbar box-shadow">
+    <div class="container" style="max-width:800px">
       <ul class="menu" ng-controller="myAppCtrl">
-        <li ng-class="{ active: isActive('/viewAllInv')}"><a href="#/viewAllInv">Inventory Spreadsheet</a></li>
-        <li ng-class="{ active: isActive('/viewInvByLoc')}"><a href="#/viewInvByLoc">Storage Locations</a></li>
+        <li ng-class="{ active: isActive('/viewAllInv')}"><a href="#/viewAllInv">Beverage Database</a></li>
+        <li ng-class="{ active: isActive('/viewInvByLoc')}"><a href="#/viewInvByLoc">Inventory</a></li>
         <li ng-class="{ active: isActive('/viewOnTap')}"><a href="#/viewOnTap">On-Tap</a></li>
       </ul>
     </div>

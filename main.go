@@ -27,6 +27,7 @@ type Beverage struct {
 	Deposit        float32     `json:"deposit"`
 	FlavorProfile  string      `json:"flavor_profile"`
 	SalePrices     []SalePrice `json:"size_prices"`
+	Count          int         `json:"count"`
 }
 
 type BeverageUpdate struct {
@@ -81,6 +82,11 @@ type Location struct {
 	LastUpdate time.Time `json:"last_update"`
 }
 
+type RenameTuple struct {
+	Name    string `json:"name"`
+	NewName string `json:"new_name"`
+}
+
 // When user posts a new inventory item
 type NewItem struct {
 	Name string `json:"name"`
@@ -130,7 +136,7 @@ func main() {
 
 func getCurrentTime() string {
 	const timeLayout = "Jan 2, 2006 3:04pm (MST)"
-	curTime := time.Now().Format(timeLayout)
+	curTime := time.Now().UTC().Format(timeLayout)
 	return curTime
 }
 
@@ -281,7 +287,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err.Error())
 		}
 		if !exists {
-			_, err = db.Exec("INSERT INTO location_beverages (beverage_id, location_id, quantity, last_update) VALUES ($1, $2, $3, $4);", locBev.ID, loc_id, 0, time.Now())
+			_, err = db.Exec("INSERT INTO location_beverages (beverage_id, location_id, quantity, last_update) VALUES ($1, $2, $3, $4);", locBev.ID, loc_id, 0, time.Now().UTC())
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -311,7 +317,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// first update location last_update
-		_, err = db.Exec("UPDATE locations SET last_update=$1 WHERE id=$2;", time.Now(), loc_id)
+		_, err = db.Exec("UPDATE locations SET last_update=$1 WHERE id=$2;", time.Now().UTC(), loc_id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			log.Println(err.Error())
@@ -333,7 +339,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			// now update its quantity in location_beverages
-			_, err := db.Exec("UPDATE location_beverages SET quantity=$1, last_update=$2 WHERE beverage_id=$3 AND location_id=$4;", anItem.Quantity, time.Now(), anItem.ID, loc_id)
+			_, err := db.Exec("UPDATE location_beverages SET quantity=$1, last_update=$2 WHERE beverage_id=$3 AND location_id=$4;", anItem.Quantity, time.Now().UTC(), anItem.ID, loc_id)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				log.Println(err.Error())
@@ -341,44 +347,6 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		//log.Println(batch.Items)
-
-		/*
-			// using name, unit, and location, and user, can determine the entry
-			// in location_item_units and update the quantity, unit_price, and
-			// last_update
-			// Verify Location exists or quit
-			var loc_id int
-			err = db.QueryRow("SELECT id FROM locations WHERE user_id=$1 AND name=$2;", test_user_id, result.Location).Scan(&loc_id)
-			if err != nil {
-				// if query failed will exit here, so loc_id is guaranteed below
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				log.Println(err.Error())
-				return
-			}
-
-			var item_id int
-			err = db.QueryRow("SELECT id FROM items WHERE user_id=$1 AND name=$2;", test_user_id, result.Name).Scan(&item_id)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				log.Println(err.Error())
-				return
-			}
-
-			var unit_id int
-			err = db.QueryRow("SELECT id FROM units WHERE user_id=$1 AND name=$2", test_user_id, result.Unit).Scan(&unit_id)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				log.Println(err.Error())
-				return
-			}
-
-			_, err = db.Exec("UPDATE location_item_units SET quantity=$1, unit_price=$2, last_update=$3 WHERE item_id=$4 AND unit_id=$5 AND loc_id=$6;", result.Quantity, result.Price, time.Now(), item_id, unit_id, loc_id)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				log.Println(err.Error())
-				return
-			}
-		*/
 
 	default:
 		http.Error(w, "Invalid request", http.StatusBadRequest)
@@ -417,6 +385,23 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
 			}
+			var exists bool
+			err := db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages WHERE beverage_id=$1);", bev.ID).Scan(&exists)
+			if !exists {
+				bev.Count = 0
+			} else {
+				// Now get the total count of this beverage
+				err = db.QueryRow("SELECT SUM(quantity) FROM location_beverages WHERE beverage_id=$1;", bev.ID).Scan(&bev.Count)
+				switch {
+				case err == sql.ErrNoRows:
+					bev.Count = 0
+				case err != nil:
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			}
+
 			beverages = append(beverages, bev)
 		}
 		// for each beverage want to include the list of sale volume:prices
@@ -613,6 +598,36 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+	case "DELETE":
+		// XXX verify user is authorized
+
+		bev_id := r.URL.Query().Get("id")
+
+		// First delete all location_beverages which have bev.ID as beverage_id
+		_, err := db.Exec("DELETE FROM location_beverages WHERE beverage_id=$1;", bev_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Then delete all size_prices which have beverage_id
+		_, err = db.Exec("DELETE FROM size_prices WHERE beverage_id=$1;", bev_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Lastly delete beverages which have beverage_id
+		_, err = db.Exec("DELETE FROM beverages WHERE id=$1;", bev_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// XXX In future delete tapped which have beverage_id
 
 	default:
 		http.Error(w, "Invalid request", http.StatusBadRequest)
@@ -664,6 +679,62 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err.Error())
 		}
+	case "PUT":
+		decoder := json.NewDecoder(r.Body)
+		var rename RenameTuple
+		err := decoder.Decode(&rename)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// Verify Location exists or quit
+		var loc_id int
+		err = db.QueryRow("SELECT id FROM locations WHERE user_id=$1 and name=$2;", test_user_id, rename.Name).Scan(&loc_id)
+		if err != nil {
+			// if query failed will exit here, so loc_id is guaranteed below
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		_, err = db.Exec("UPDATE locations SET name=$1 WHERE id=$2;", rename.NewName, loc_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+	case "DELETE":
+		// XXX first check user is authenticated to do this
+
+		loc_name := r.URL.Query().Get("location")
+
+		// Verify Location exists or quit
+		var loc_id int
+		err := db.QueryRow("SELECT id FROM locations WHERE user_id=$1 and name=$2;", test_user_id, loc_name).Scan(&loc_id)
+		if err != nil {
+			// if query failed will exit here, so loc_id is guaranteed below
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// First, delete all inventory items in this location in location_beverages
+		_, err = db.Exec("DELETE FROM location_beverages WHERE location_id=$1;", loc_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Next, delete location
+		_, err = db.Exec("DELETE FROM locations WHERE id=$1;", loc_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 	default:
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return

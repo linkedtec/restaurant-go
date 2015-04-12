@@ -11,18 +11,21 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
 
 .controller('ViewInvByLocCtrl', function($scope, $http) {
 
-  $scope.add_loc = false;        // add new location mode
+  $scope.add_loc = false;       // add new location mode
+  $scope.edit_loc = false;      // edit location mode
   $scope.locations = [];        // all locations
   $scope.empty_locs = false;    // are locations empty?
   $scope.selected_loc = null;   // name of the selected location
+  $scope.edit_loc_name = null;  
   $scope.last_update = null;    // last update text
-  $scope.empty_inv = false;      // is location inventory empty?
+  $scope.empty_inv = false;     // is location inventory empty?
   $scope.add_inv = false;       // add new inv item mode
   $scope.add_inv_all_items = [];  // a cache from server of all inv items
   $scope.add_inv_existing_items = [];  // all_items minus existing items in location
   $scope.new_success_msg = null;
   $scope.inv_items = [];
   $scope.inv_started = false;
+  $scope.update_failure_msg = "";
 
   // get locations, if empty, set $scope.empty_locs = true
   $http.get('/loc').
@@ -114,6 +117,12 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     $scope.add_inv = false;
     $scope.getLocInv();
     $scope.last_update = loc.last_update_pretty;
+    $scope.add_loc = false;       // add new location mode
+    $scope.edit_loc = false;      // edit location mode
+    $scope.empty_locs = false;    // are locations empty?
+    $scope.new_success_msg = null;
+    $scope.inv_started = false;
+    $scope.update_failure_msg = "";
   };
 
   $scope.hideAddLoc = function() {
@@ -156,15 +165,25 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         // otherwise, notify of failure and don't add
         // First, remove the "+ New" element at the end
         var add_new_loc = $scope.locations.splice(-1, 1);
-        $scope.locations.push({name:loc});
+        var new_loc_obj = {name:loc, last_update:null, last_update_pretty:null};
+        $scope.locations.push(new_loc_obj);
         $scope.locations.push(add_new_loc[0]);
         $scope.empty_locs = false;
         $scope.new_loc = "";
         $scope.add_loc = false;
-        $scope.selectLoc({name:loc});
+        $scope.selectLoc(new_loc_obj);
       }).
       error(function(data, status, headers, config) {
     });
+  };
+
+  $scope.toggleEditLoc = function() {
+    if ($scope.edit_loc) {
+      $scope.edit_loc = false;
+    } else {
+      $scope.edit_loc=true;
+      $scope.edit_loc_name = $scope.selected_loc;
+    }
   };
 
   // Shows the add new inventory item UI box
@@ -262,7 +281,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     var item = $scope.inv_items[index];
     swal({
       title: "Remove Item?",
-      text: "This will remove " + item.name + " from " + $scope.selected_loc + ".\n\n  It will not affect other locations which carry the item, and the item will still be accessible from the All Inventory list.",
+      text: "This will remove " + item.product + " from " + $scope.selected_loc + ".  It will not affect other locations which carry the item, or its entry in the Beverage DB.",
       type: "warning",
       showCancelButton: true,
       confirmButtonColor: "#DD6B55",
@@ -271,8 +290,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       function() {
         $http.delete('/inv/loc', {
           params: {
-            name:item.name,
-            unit:item.unit,
+            id:item.id,
             location:$scope.selected_loc
           }
         }).
@@ -347,6 +365,28 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
   };
 
   $scope.saveInv = function() {
+
+    var hasNaNs = false;
+    // first check that all update quantities are valid numbers
+    for (var inv_i in $scope.inv_items) {
+      var inv = $scope.inv_items[inv_i];
+      if (isNaN(inv.quantity) || inv.quantity < 0) {
+        $scope.inv_items[inv_i]['invalid_quantity'] = true;
+        hasNaNs = true;
+      }
+      else {
+        $scope.inv_items[inv_i]['invalid_quantity'] = false;
+      }
+    }
+    if (hasNaNs) {
+      $scope.update_failure_msg = "Please fix invalid quantities highlighted in red and try again!";
+      return;
+    }
+
+    $scope.update_failure_msg = "";
+
+
+    // inv_started shows the quantity adjustment UI
     $scope.inv_started = false;
 
     var post_item_quantities = []
@@ -354,7 +394,9 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       var inv = $scope.inv_items[inv_i];
       console.log(inv.product);
       console.log(inv.quantity);
-      post_item_quantities.push({id:inv.id, quantity:inv.quantity})
+      post_item_quantities.push({id:inv.id, quantity:parseFloat(inv.quantity)})
+      $scope.inv_items[inv_i]['invalid_quantity'] = false;
+      $scope.inv_items[inv_i]['add_q'] = null;
     };
 
     $http.put('/inv/loc', {
@@ -365,6 +407,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
 
   $scope.cancelInv = function() {
     $scope.inv_started = false;
+    $scope.update_failure_msg = "";
 
     // restore backup quantities
     for (var inv_i in $scope.inv_items) {
@@ -373,17 +416,96 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         console.log('apply backup');
         console.log($scope.inv_items[inv_i].quantity);
         $scope.inv_items[inv_i].quantity = $scope.inv_quantity_backup[inv.id];
+        $scope.inv_items[inv_i]['invalid_quantity'] = false;
+        $scope.inv_items[inv_i]['add_q'] = null;
       }
     }
   }
 
-  $scope.addQuantity = function(inv, num) {
-    inv.quantity += num;
+  $scope.addQuantity = function(inv, num, isAddQ) {
+
+    if (isNaN(num) || num === null) {
+      if (isAddQ) {
+        inv.add_q = null;
+      }
+      return;
+    }
+
+    var cur_quantity = parseFloat(inv.quantity);
+    var add_num = parseFloat(num);
+
+    inv.quantity = cur_quantity + add_num;
 
     if (inv.quantity < 0) {
       inv.quantity = 0;
     }
-  }
+
+    if (isAddQ) {
+      inv.add_q = null;
+    }
+  };
+
+  $scope.saveLocName = function() {
+    // First verify new name does not overlap with other locations
+    for (var i = 0; i < $scope.locations.length; i++) {
+      var loc = $scope.locations[i];
+      if ($scope.edit_loc_name == loc.name) {
+        swal({
+          type: "warning",
+          title:"Name Exists", 
+          text: "There is already a location named " + $scope.edit_loc_name + ", please choose another name!"});
+        return;
+      }
+    }
+
+    $http.put('/loc', {
+      name:$scope.selected_loc,
+      new_name:$scope.edit_loc_name
+    }).
+    success(function(data, status, headers, config) {
+      // update the local location with the new name
+      for (var i = 0; i < $scope.locations.length; i++) {
+        var loc = $scope.locations[i];
+        if (loc.name == $scope.selected_loc) {
+          loc.name = $scope.edit_loc_name;
+        }
+      }
+      $scope.selected_loc = $scope.edit_loc_name
+    }).
+    error(function(data, status, headers, config) {
+
+    });
+  };
+
+  $scope.deleteLoc = function() {
+    swal({
+      title: "Delete this Location?",
+      text: "This will remove " + $scope.selected_loc + " and all its inventory data, and cannot be undone.",
+      type: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#DD6B55",
+      confirmButtonText: "Yes, remove it!",
+      closeOnConfirm: true },
+      function() {
+        $http.delete('/loc', {
+          params: {
+          location:$scope.selected_loc
+        }
+      }).
+      success(function(data, status, headers, config) {
+        for (var i = $scope.locations.length-1; i >= 0; i--) {
+          var loc = $scope.locations[i];
+          if (loc.name === $scope.selected_loc) {
+            $scope.locations.splice(i, 1);
+          }
+        }
+        $scope.selected_loc = null;
+      }).
+      error(function(data, status, headers, config) {
+
+      });
+    });
+  };
 
   $scope.getLocInv = function() {
     $http.get('/inv/loc', {
@@ -400,6 +522,14 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       }
       else {
         $scope.inv_items = [];
+      }
+
+      // add a custom 'invalid_quantity' key for quantity update UI so we can 
+      // display red input boxes if quantity is not a number
+      for (var i = 0; i < $scope.inv_items.length; i++)
+      {
+        $scope.inv_items[i]['invalid_quantity'] = false;
+        $scope.inv_items[i]['add_q'] = null;
       }
 
       // check last_update in each inventory item and if updated within 24
