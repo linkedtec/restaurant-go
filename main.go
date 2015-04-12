@@ -451,7 +451,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		var bev_id int
-		err = db.QueryRow("SELECT currval('beverages_id_seq');").Scan(&bev_id)
+		err = db.QueryRow("SELECT last_value FROM beverages_id_seq;").Scan(&bev_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
