@@ -1,81 +1,32 @@
 
 <div class="container" style="min-width:560px; max-width:800px">
 
-  <div class="row" style="margin-bottom:8px">
-    <!--div class="col-sm-12">
-      <h4> Inventory Management </h4>
-    </div>
-    <div class="col-sm-6">
-      <p>Track your stock by storage location.</p>
-    </div-->
-    <!--div ng-show="empty_locs==false" class="col-sm-12" style="text-align:right">
-      <button ng-click="addNewLoc(new_loc)" type="button" class="btn btn-primary btn-sm btn_right" style="font-size:14px; float:right; margin-left:6px">
-        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Location
-      </button>
-      <input ng-model="new_loc" class="form-control" placeholder=" New Location..." style="width:140px; float:right;">
-      
-    </div-->
+  <div style="margin-top:20px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
+    Track Inventory by Storage Location
   </div>
-
-  <!-- ADD NEW LOCATION HINT WHEN NO LOCATIONS EXIST ALREADY -->
-  <div ng-show="empty_locs==true">
-    <div class="row">
-      <div class="col-xs-12" style="font-size:1.6em; margin-top:24px">
-        Manage Inventory by Storage Location
-      </div>
-    </div>
-    <div class="row" style="margin-top:20px">
-      <div class="col-xs-12 hint_text">
-        Add a new location to start tracking your inventory!
-        <br/>For example, "Keg Storage", "Wine Cooler" or "Minibar Fridge".
-      </div>
-    </div>
-    <div class="row" style="margin-top:16px; margin-bottom:16px">
-      <div class="col-xs-8">
-        <input ng-model="new_loc" class="form-control" placeholder=" Location name">
-      </div>
-      <div class="col-xs-4">
-        <button ng-click="addNewLoc(new_loc)" type="button" class="btn btn-primary btn-sm" style="font-size:14px; float:left">
-          <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Location
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- DRAW EXISTING LOCATIONS -->
-  <div ng-show="empty_locs===false">
-    <div class="row" style="margin-bottom:6px">
-      <div class="col-xs-12" style="text-align:left; font-size:0.9em; color:#bbbbbb">
-        All Storage Locations:
-      </div>
-    </div>
-    <div class="row">
-      <div ng-repeat="loc in locations">
-        <button class="col-xs-2 btn btn-default btn-md" style="margin-left:12px; padding:10px" ng-click="selectLoc(loc)" ng-class="{sel_loc: loc.name === selected_loc, add_loc_btn: loc.is_add === true}">{{loc.name}}</button>
-      </div>
-    </div>
-    <div ng-show="selected_loc==null" class="row" style="margin-top:32px;">
-      <div class="col-xs-12 hint_text" style="font-size:1.4em">
-        Click on a storage location above to start managing inventory!
-      </div>
-    </div>
+  <div class="hint_text" style="margin-top:6px;">
+    Create and maintain inventory lists based on physical storage locations.
   </div>
 
   <!-- ADD LOCATION UI -->
-  <div ng-show="add_loc===true" class="add_loc" style="margin-top:16px">
+  <div ng-show="add_loc===true || empty_locs===true" class="add_loc" style="margin-top:16px">
     <div class="row">
       <div class="col-xs-9" style="font-size:1.4em; padding-top:4px; padding-left:30px;">
         Add New Location
       </div>
-      <div class="col-xs-3" style="text-align:right">
+      <div class="col-xs-3" ng-show="empty_locs!==true" style="text-align:right">
         <button ng-click="hideAddLoc()" type="button" class="btn btn-default btn-sm btn_right" style="font-size:14px">
           <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
         </button>
       </div>
     </div>
+    <div class="row" ng-show="empty_locs===true" style="padding-left:30px; margin-top:10px;font-size:1.1em">
+      Inventory is tracked by physical storage locations -- let's create your 
+      first Location to get started!
+    </div>
     <div class="row" style="padding-left:16px; margin-top:12px; margin-bottom:16px">
       <div class="col-xs-9">
-        <input ng-model="new_loc" class="form-control" placeholder=" Location name">
+        <input ng-model="new_loc" class="form-control" placeholder="Location Name -- e.g., 'Wine Cooler' or 'Keg Room'">
       </div>
       <div class="col-xs-3" style="text-align:right">
         <button ng-click="addNewLoc(new_loc)" type="button" class="btn btn-primary btn-sm btn_right" style="font-size:14px; float:right">
@@ -85,31 +36,44 @@
     </div>
   </div>
 
-  <div ng-show="selected_loc!=null" style="margin-top:14px;">
-    <div class="row">
-      <div class="col-xs-12" style="border-top:solid 1px #dddddd; margin-bottom:10px"></div>
-    </div>
-  </div>
-  <div ng-show="selected_loc!=null" style="margin-top:16px; margin-bottom:20px">
+  <div ng-show="empty_locs===false" style="margin-top:24px; margin-bottom:24px">
     <div class="row">
       <div class="col-xs-6" style="margin-top:-10px">
-        <span>
-          <button ng-click="toggleEditLoc()" type="button" class="btn btn-default btn-sm" style="font-size:18px; float:left; margin-right:12px; color:#b5d9f0; border-color:#dddddd">
+        <span style="float:left">
+          <div class="btn-group" dropdown is-open="loc_dropdown_open">
+            <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.3em">
+              <span ng-show="selected_loc !== null" style="float:left; text-align:left; width:90%">
+                {{selected_loc}} 
+              </span>
+              <span ng-show="selected_loc === null" class="noselect" style="float:left; text-align:left; width:90%">
+                Select a Location
+              </span>
+              <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:6px; font-size:14px; color:#888888"></span>
+            </button>
+            <ul class="loc_dropdown dropdown-menu" role="menu">
+              <li class="loc_li" ng-repeat="loc in locations">
+                <a ng-click="selectLoc(loc)" ng-class="{new_loc: loc.is_add === true}" class="noselect">{{loc.name}}</a>
+              </li>
+            </ul>
+          </div>
+        </span>
+        <span ng-show="selected_loc !== null">
+          <button ng-click="toggleEditLoc()" type="button" class="btn btn-default btn-sm" style="font-size:24px; height:39px; float:left; margin-left:12px; color:#b5d9f0; border-color:#dddddd">
             <span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
           </button>
         </span>
-        <span style="font-size:1.6em; float:left;">{{selected_loc}}</span>
+        <!--span style="font-size:1.6em; float:left;">{{selected_loc}}</span-->
       </div>
-      <div ng-show="last_update !== null" class="col-xs-6 hint_text" style="text-align:right; margin-top:-4px; font-size:1.2em">
+      <div ng-show="last_update !== null" class="col-xs-6 hint_text" style="text-align:right; margin-top:0px; font-size:1.2em">
         Last Counted: {{last_update}}
       </div>
     </div>
   </div>
 
-  <div ng-show="selected_loc!==null && edit_loc===true" class="add_loc" style="margin-top:16px; margin-bottom:24px">
+  <div ng-show="selected_loc!==null && edit_loc===true" class="add_loc" style="margin-bottom:24px">
     <div class="row">
       <div class="col-xs-8" style="font-size:1.4em; padding-top:4px; padding-left:30px">
-        Edit Location
+        Edit This Location
       </div>
       <div class="col-xs-4" style="text-alight:right">
         <button ng-click="toggleEditLoc()" type="button" class="btn btn-default btn-sm btn_right" style="font-size:14px;">
@@ -214,10 +178,10 @@
     </div>
   </div>
 
-  <div ng-show="selected_loc !== null && empty_inv !== true">
+  <div ng-show="selected_loc !== null && empty_inv !== true" style="margin-top:36px">
     <div class="row" ng-show="inv_started === false">
       <div class="col-xs-12" style="float:none">
-        <button ng-click="startInv()" type="button" class="btn btn-default inv_xl_btn center-block" >
+        <button ng-click="startInv()" type="button" class="btn btn-default inv_xl_btn center-block" style="border-color:#aaddbb; border-width:2px">
           <span class="glyphicon glyphicon-check" aria-hidden="true"></span> Start Counting Inventory
         </button>
       </div>

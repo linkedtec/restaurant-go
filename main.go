@@ -346,7 +346,16 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 		}
-		//log.Println(batch.Items)
+		var retLoc Location
+		retLoc.LastUpdate = time.Now().UTC()
+		retLoc.Name = batch.Location
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(retLoc)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
 
 	default:
 		http.Error(w, "Invalid request", http.StatusBadRequest)

@@ -56,17 +56,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         if (years_since_update > 50) {
           ;
         } else {
-          if (mins_since_update < 5) {
-            pretty_time = 'Moments ago';
-          } else if (mins_since_update < 60) {
-            pretty_time = parseInt(mins_since_update).toString() + ' minutes ago';
-          } else if (mins_since_update < 24*60) {
-            pretty_time = parseInt(mins_since_update / 60).toString() + ' hours ago';
-          } else if (mins_since_update < 24*60*2) {
-            pretty_time = 'Yesterday'
-          } else {
-            pretty_time = parseInt(mins_since_update/24/60).toString() + ' days ago';
-          }
+          pretty_time = $scope.getPrettyTime(mins_since_update);
         }
         $scope.locations[loc_i]['last_update_pretty'] = pretty_time;
       }
@@ -74,7 +64,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       // Add the + New button for creating new locations
       $scope.locations.push(
         {
-          name: "+ New",
+          name: "+ New Location",
           is_add: true
         }
       );
@@ -86,11 +76,28 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         // setting empty_locs will tell the UI to draw the first-time
         // add new location helper
         $scope.empty_locs = true;
+      } else {
+        //$scope.selected_loc = $scope.locations[0].name;
       }
+      
     }).
     error(function(data, status, headers, config) {
 
     });
+
+  $scope.clearLocState = function() {
+    $scope.add_inv = false;
+    $scope.last_update = null;
+    $scope.add_loc = false;       // add new location mode
+    $scope.edit_loc = false;      // edit location mode
+    $scope.empty_locs = false;    // are locations empty?
+    if ($scope.locations.length == 1) {
+      $scope.empty_locs = true;
+    }
+    $scope.new_success_msg = null;
+    $scope.inv_started = false;
+    $scope.update_failure_msg = "";
+  };
 
   $scope.selectLoc = function(loc) {
     console.log(loc.name);
@@ -402,6 +409,33 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     $http.put('/inv/loc', {
       items:post_item_quantities,
       location:$scope.selected_loc
+    }).
+    success(function(data, status, headers, config) {
+      console.log(data)
+      // for the selected location, set last_update locally to just now
+      for (var i = 0; i < $scope.locations.length; i++) {
+        var loc = $scope.locations[i];
+        if (loc.name === $scope.selected_loc){
+          $scope.locations[i].last_update = data['last_update'];
+          var mins_since_update = $scope.getMinutesSinceTime($scope.locations[i].last_update);
+          var years_since_update = mins_since_update / 60 / 24 / 365;
+
+          // if years_since_update is greater than 50, we know this is 
+          // a bogus timestamp
+          var pretty_time = null;
+          if (years_since_update > 50) {
+            ;
+          } else {
+            pretty_time = $scope.getPrettyTime(mins_since_update);
+          }
+          $scope.locations[i]['last_update_pretty'] = pretty_time;
+          $scope.last_update = pretty_time;
+          break;
+        }
+      }
+    }).
+    error(function(data, status, headers, config) {
+
     });
   }
 
@@ -500,6 +534,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
           }
         }
         $scope.selected_loc = null;
+        $scope.clearLocState();
       }).
       error(function(data, status, headers, config) {
 
@@ -597,6 +632,22 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       time_comps[0], time_comps[1], time_comps[2]);
     var dt_sec = (Date.now() - last_update) / 1000.0;
     return parseInt(dt_sec / 60.0);
+  };
+
+  $scope.getPrettyTime = function(mins) {
+    var pretty_time = null;
+    if (mins < 5) {
+      pretty_time = 'Moments ago';
+    } else if (mins < 60) {
+      pretty_time = parseInt(mins).toString() + ' minutes ago';
+    } else if (mins < 24*60) {
+      pretty_time = parseInt(mins / 60).toString() + ' hours ago';
+    } else if (mins < 24*60*2) {
+      pretty_time = 'Yesterday'
+    } else {
+      pretty_time = parseInt(mins/24/60).toString() + ' days ago';
+    }
+    return pretty_time;
   };
 
 

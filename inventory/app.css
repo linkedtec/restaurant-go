@@ -215,6 +215,20 @@ body {
   font-weight:bold;
 }
 
+.loc_dropdown {
+  min-width:240px;
+}
+
+.loc_li a {
+  margin:0;
+  font-size:1.1em;
+  height:32px;
+}
+
+.new_loc {
+  color: #66aadd !important;
+}
+
 .loc_cell {
   margin-left: 12px;
   text-align: center;
@@ -345,7 +359,7 @@ li a:hover {
 
 .hint_text {
   /*font-style: italic;*/
-  color: #888888;
+  color: #999999;
   font-size:1.1em;
 }
 
