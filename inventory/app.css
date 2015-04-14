@@ -22,6 +22,7 @@ body {
   /*border-bottom: 0.1em solid #dddddd;*/
   color: #333333;
   min-width:560px;
+  font-size:1.1em;
 }
 
 .full_divider {
@@ -265,6 +266,18 @@ li a:hover {
   text-decoration:none;
 }
 
+.add_tap_btn {
+  border: none;
+  color: #66aadd;
+  background-color: #e8f5ff;
+  width: 120px;
+  height:52px;
+}
+
+.add_tap_btn:hover {
+  background-color: #d8f0ff;
+  color: #3370bb;
+}
 
 .add_loc_btn {
   border: none;
@@ -382,6 +395,13 @@ li a:hover {
   background-color:red;
   color:red;
 }
+
+.tap_box {
+  border: solid 1px gray;
+  height: 96px;
+  border-radius: 6px;
+}
+
 
 .inner_btn_left {
   margin-top:-10px;

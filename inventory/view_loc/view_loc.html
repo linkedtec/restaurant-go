@@ -2,16 +2,16 @@
 <div class="container" style="min-width:560px; max-width:800px">
 
   <div style="margin-top:20px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
-    Track Inventory by Storage Location
+    Manage Inventory
   </div>
   <div class="hint_text" style="margin-top:6px;">
-    Create and maintain inventory lists based on physical storage locations.
+    Do inventory by physical storage locations.
   </div>
 
   <!-- ADD LOCATION UI -->
   <div ng-show="add_loc===true || empty_locs===true" class="add_loc" style="margin-top:16px">
     <div class="row">
-      <div class="col-xs-9" style="font-size:1.4em; padding-top:4px; padding-left:30px;">
+      <div class="col-xs-9" style="font-size:1.3em; padding-top:4px; padding-left:30px;">
         Add New Location
       </div>
       <div class="col-xs-3" ng-show="empty_locs!==true" style="text-align:right">
@@ -21,12 +21,11 @@
       </div>
     </div>
     <div class="row" ng-show="empty_locs===true" style="padding-left:30px; margin-top:10px;font-size:1.1em">
-      Inventory is tracked by physical storage locations -- let's create your 
-      first Location to get started!
+      We track inventory by storage Locations.  &nbsp;Let's create one to get started!
     </div>
     <div class="row" style="padding-left:16px; margin-top:12px; margin-bottom:16px">
       <div class="col-xs-9">
-        <input ng-model="new_loc" class="form-control" placeholder="Location Name -- e.g., 'Wine Cooler' or 'Keg Room'">
+        <input ng-model="new_loc" class="form-control" placeholder="Location Name; for example, 'Wine Cooler' or 'Keg Room'">
       </div>
       <div class="col-xs-3" style="text-align:right">
         <button ng-click="addNewLoc(new_loc)" type="button" class="btn btn-primary btn-sm btn_right" style="font-size:14px; float:right">
@@ -72,7 +71,7 @@
 
   <div ng-show="selected_loc!==null && edit_loc===true" class="add_loc" style="margin-bottom:24px">
     <div class="row">
-      <div class="col-xs-8" style="font-size:1.4em; padding-top:4px; padding-left:30px">
+      <div class="col-xs-8" style="font-size:1.3em; padding-top:4px; padding-left:30px">
         Edit This Location
       </div>
       <div class="col-xs-4" style="text-alight:right">
@@ -107,9 +106,9 @@
   <div ng-show="selected_loc!=null && add_inv==false">
     <div ng-show="empty_inv==true">
       <div class="row">
-        <div class="col-xs-9 hint_text">
-          This storage location doesn't have any inventory items yet! &nbsp; To get
-          started, add your first inventory item(s). 
+        <div class="col-xs-9" style="font-size:1.1em">
+          This Location doesn't have inventory items yet!<br/>Before we can 
+          count inventory, add your first inventory item(s). 
         </div>
         <div class="col-xs-3" style="text-align:right">
           <button ng-click="showAddInv()" type="button" class="btn btn-success btn-sm btn_right" style="font-size:14px">
@@ -130,7 +129,7 @@
 
   <div ng-show="selected_loc!==null && add_inv==true" class="add_inv" style="margin-top:12px; margin-bottom:28px">
     <div class="row">
-      <div class="col-xs-8" style="font-size:1.4em; padding-top:4px; padding-left:30px;">
+      <div class="col-xs-8" style="font-size:1.3em; padding-top:4px; padding-left:30px;">
         Add Beverages to {{selected_loc}}
       </div>
       <div class="col-xs-4" style="text-align:right">
@@ -150,7 +149,7 @@
     </div>
     <div class="row">
       <div class="col-xs-7 hint_text" style="padding-left:44px; padding-top:6px;">
-        Add inventory items to track your stock in this location.
+        Add inventory items from your Beverage Database.
       </div>
       <div class="col-xs-5" style="padding-right:44px">
         <input ng-model="add_inv_query" class="form-control input-sm" placeholder="Search...">
@@ -211,10 +210,10 @@
 
   <div ng-show="empty_inv===false && selected_loc !== null" style="margin-top:0px">
 
-    <div ng-show="inv_started===false" class="row hint_text" style="font-size:1.2em">
+    <div ng-show="inv_started===false" class="row" style="font-size:1.1em">
       <div class="col-xs-12">
-        The Quantities shown below are from the last time you did inventory. <br/> To
-        start counting current inventory, press the <b>Start Counting Inventory</b>
+        The Quantities below are from the last time you did inventory. <br/>
+        To start current inventory, press the <b>Start Counting Inventory</b>
         button above!
       </div>
     </div>

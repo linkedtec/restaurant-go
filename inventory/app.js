@@ -4,7 +4,8 @@
 angular.module('myApp', [
   'ngRoute',
   'myApp.viewAllInv',
-  'myApp.viewInvByLoc'
+  'myApp.viewInvByLoc',
+  'myApp.viewOnTap'
 ]).
 config(['$routeProvider', function($routeProvider) {
   $routeProvider.otherwise({redirectTo: '/viewAllInv'});
