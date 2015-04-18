@@ -238,10 +238,11 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       console.log(data);
       $scope.inventory_items = data;
 
-      /* Add custom params
       for (var i = 0; i < $scope.inventory_items.length; i++) {
-        $scope.inventory_items[i]['count'] = i;
-      }*/
+        var inv = $scope.inventory_items[i];
+        var value = inv['purchase_cost'] * inv['count'];
+        $scope.inventory_items[i]['inventory'] = value;
+      }
 
       if ($scope.firstTimeSort) {
         $scope.firstTimeSort = false;
@@ -262,7 +263,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.double_sort = -1;
     }
     $scope.sort_key = sort_str;
-    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_unit' || sort_str === 'purchase_cost' || sort_str === 'deposit' || sort_str === 'count');
+    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_unit' || sort_str === 'purchase_cost' || sort_str === 'deposit' || sort_str === 'count' || sort_str === 'inventory');
     $scope.inventory_items.sort(function(a, b) {
       var keyA = a[sort_str];
       var keyB = b[sort_str];

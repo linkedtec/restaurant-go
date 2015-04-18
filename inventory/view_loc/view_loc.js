@@ -22,6 +22,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
   $scope.add_inv = false;       // add new inv item mode
   $scope.add_inv_all_items = [];  // a cache from server of all inv items
   $scope.add_inv_existing_items = [];  // all_items minus existing items in location
+  $scope.total_inventory = 0;
   $scope.new_success_msg = null;
   $scope.inv_items = [];
   $scope.inv_started = false;
@@ -396,6 +397,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     // inv_started shows the quantity adjustment UI
     $scope.inv_started = false;
 
+    $scope.total_inventory = 0;
     var post_item_quantities = []
     for (var inv_i in $scope.inv_items) {
       var inv = $scope.inv_items[inv_i];
@@ -404,6 +406,8 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       post_item_quantities.push({id:inv.id, quantity:parseFloat(inv.quantity)})
       $scope.inv_items[inv_i]['invalid_quantity'] = false;
       $scope.inv_items[inv_i]['add_q'] = null;
+      var value = inv['purchase_cost'] * inv['quantity'];
+      $scope.total_inventory += value;
     };
 
     $http.put('/inv/loc', {
@@ -567,24 +571,33 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         $scope.inv_items[i]['add_q'] = null;
       }
 
-      // check last_update in each inventory item and if updated within 24
+      // calculate total inventory
+      $scope.total_inventory = 0;
+      for (var i = 0; i < $scope.inv_items.length; i++)
+      {
+        var inv = $scope.inv_items[i];
+        var value = inv['purchase_cost'] * inv['quantity'];
+        $scope.total_inventory += value;
+      }
+
+      // check update in each inventory item and if updated within 24
       // hours, add key "updated_today": true
       for (var i = 0; i < $scope.inv_items.length; i++)
       {
-        var last_update_str = $scope.inv_items[i]["last_update"];
+        var update_str = $scope.inv_items[i]["update"];
 
         // e.g., 2015-03-16
-        var date_str = last_update_str.substring(0,last_update_str.indexOf('T'));
+        var date_str = update_str.substring(0,update_str.indexOf('T'));
         // e.g., 07:43:49
-        var time_str = last_update_str.substring(
-          last_update_str.indexOf('T')+1,
-          last_update_str.indexOf('.'));
+        var time_str = update_str.substring(
+          update_str.indexOf('T')+1,
+          update_str.indexOf('.'));
         var date_comps = date_str.split('-');
         var time_comps = time_str.split(':');
-        var last_update = Date.UTC(
+        var update = Date.UTC(
           date_comps[0], parseInt(date_comps[1])-1, date_comps[2],
           time_comps[0], time_comps[1], time_comps[2]);
-        var dt_sec = (Date.now() - last_update) / 1000.0
+        var dt_sec = (Date.now() - update) / 1000.0
         var dt_hour = dt_sec / 60.0 / 60.0
         if (dt_hour < 24)
         {
@@ -650,5 +663,12 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     return pretty_time;
   };
 
+  $scope.showInvHelp = function() {
+    swal({
+        title:"How is Inventory Calculated?", 
+        text: "Inventory = Product's Quantity * Purchase Cost.\nThe Purchase Cost can be found in the All Beverage DB."
+      });
+      return;
+  }
 
 });

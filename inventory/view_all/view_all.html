@@ -247,10 +247,16 @@
     </div
     ><div class="all_inv_span" style="width:100px;">Serving Size</div
     ><div class="all_inv_span" style="width:100px;">Retail Price</div
-    ><div class="all_inv_label_span noselect" style="width:90px;">
+    ><div class="all_inv_label_span noselect" style="width:100px;">
       <div class="sort_div" ng-click="sortBy('count')">
-        <span>Inventory</span>
+        <span>Inv. Count</span>
         <span ng-show="sort_key === 'count'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+    </div
+    ><div class="all_inv_label_span noselect" style="width:100px;">
+      <div class="sort_div" ng-click="sortBy('inventory')">
+        <span>Inventory</span>
+        <span ng-show="sort_key === 'inventory'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
       </div>
     </div
   ></div>
@@ -277,7 +283,8 @@
       ><div class="all_inv_span" style="width:100px;">
         <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">$ {{sp.price}}</div
       ></div
-      ><div class="all_inv_span" style="width:90px;">{{inv.count}}</div
+      ><div class="all_inv_span" style="width:100px;">{{inv.count}}</div
+      ><div class="all_inv_span" style="width:100px;">$ {{inv.inventory}}</div
     ></div>
   </div>
   <div class="all_inv_bottom"></div>

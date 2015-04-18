@@ -1,5 +1,5 @@
 
-<div class="container" style="min-width:560px; max-width:800px">
+<div class="container" style="min-width:620px; max-width:880px">
 
   <div style="margin-top:20px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
     Manage Inventory
@@ -37,7 +37,7 @@
 
   <div ng-show="empty_locs===false" style="margin-top:24px; margin-bottom:24px">
     <div class="row">
-      <div class="col-xs-6" style="margin-top:-10px">
+      <div class="col-xs-7">
         <span style="float:left">
           <div class="btn-group" dropdown is-open="loc_dropdown_open">
             <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.3em">
@@ -63,8 +63,9 @@
         </span>
         <!--span style="font-size:1.6em; float:left;">{{selected_loc}}</span-->
       </div>
-      <div ng-show="last_update !== null" class="col-xs-6 hint_text" style="text-align:right; margin-top:0px; font-size:1.2em">
-        Last Counted: {{last_update}}
+      <div ng-show="last_update !== null" class="col-xs-5" style="text-align:right; margin-top:0px;">
+        <div style="font-size:1.1em">Total Inventory: ${{total_inventory}}</div>
+        <div class="hint_text">Last Counted: {{last_update}}</div>
       </div>
     </div>
   </div>
@@ -231,25 +232,39 @@
   <!-- Location inventory -->
   <div ng-show="empty_inv==false && inv_items.length>0 && selected_loc !== null" style="margin-top:12px;">
     <div class="row label_row_container">
-      <div class="col-xs-4 min_padding" style="padding:0px; float:left">
+      <div class="col-xs-3 min_padding" style="padding:0px; float:left">
           <button ng-show="add_inv===false" ng-click="showAddInv()" type="button" class="btn btn-success btn-sm" style="float:left; margin-right:8px; height:32px; font-size:1.0em">
             <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
           </button>
         <span style="float:left; padding-top:8px">Product</span>
       </div>
-      <div class="col-xs-7 min_padding" style="padding-top:8px">Quantity</div>
+      <div class="col-xs-3 min_padding" style="padding-top:8px">Brewery</div>
+      <div class="col-xs-2 min_padding" style="padding-top:8px" ng-show="inv_started===false">Cost</div>
+      <div class="col-xs-1 min_padding" style="padding-top:8px" ng-show="inv_started===false">Qty</div>
+      <div class="col-xs-1 min_padding" style="padding-top:8px" ng-show="inv_started===true">Quantity</div>
+
+      <div class="col-xs-2 min_padding" style="padding-top:8px" ng-show="inv_started===false">
+        <span style="float:left">Inventory&nbsp;</span>
+        <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd; float:left" ng-click="showInvHelp()"></span>
+      </div>
       <!--div class="col-xs-3" style="text-align:right">Update Item</div-->
     </div>
     <div ng-repeat="inv in inv_items">
       <div ng-class-even="'row inv_row_container inv_row_even'" ng-class-odd="'row inv_row_container'">
-        <div class="col-xs-4 min_padding" style="padding-top:6px">
+        <div class="col-xs-3 min_padding" style="padding-top:6px">
           <!--span ng-show="inv.updated_today==true" class="glyphicon glyphicon-ok-circle check_circle" style="margin-right:6px; float:left; margin-top:-2px;"></span-->
           <span style="float:left; font-size:1.1em; padding-left:8px">{{inv.product}}</span>
-          <span style="float:left; font-size:1.1em; color:#999999; margin-left:4px">({{inv.purchase_volume}} {{inv.purchase_unit}})</span>
         </div>
-        <div class="col-xs-7 min_padding">
+        <div class="col-xs-3 min_padding" style="padding-top:6px">
+          {{inv.brewery}}
+        </div>
+        <div class="col-xs-2 min_padding" style="padding-top:6px" ng-show="inv_started===false">
+          ${{inv.purchase_cost}}
+          <span style="font-size:1.1em; color:#aaaaaa; margin-left:4px">({{inv.purchase_volume}} {{inv.purchase_unit}})</span>
+        </div>
+        <div class="min_padding" ng-class="{'col-xs-1': inv_started===false, 'col-xs-6': inv_started===true}">
 
-          <div ng-show="inv_started===false" style="font-size:1.1em; padding-top:5px">
+          <div ng-show="inv_started===false" style="font-size:1.1em; padding-top:6px; padding-left:2px;">
             {{inv.quantity}}
           </div>
 
@@ -271,9 +286,13 @@
               <input ng-model="inv.add_q" ng-class="{'input_error': inv.invalid_quantity===true}" class="form-control" style="display:inline-block; float:left; text-align:center; max-width:56px; height:38px; font-size:1.3em;" placeholder="">
             </div>
           </div>
-          
         </div>
-        <div class="col-xs-1 min_padding">
+        <div ng-show="inv_started===false" class="min_padding col-xs-2">
+          <div style="padding-left:18px; padding-top:6px">
+            $ {{inv.purchase_cost * inv.quantity}}
+          </div>
+        </div>
+        <div class="col-xs-1 min_padding" ng-show="inv_started===false">
           <button ng-click="removeInvItem($index)" type="button" class="btn btn-default btn-sm btn-right" style="font-size:14px; min-height:32px; color:#888888">
             <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
           </button>
