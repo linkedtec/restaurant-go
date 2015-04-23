@@ -14,6 +14,13 @@ import (
 var db *sql.DB
 var test_user_id string = "1"
 
+type VolumeUnit struct {
+	FullName string  `json:"full_name"`
+	AbbrName string  `json:"abbr_name"`
+	System   string  `json:"system"`
+	InLiters float32 `json:"in_liters"`
+}
+
 type Beverage struct {
 	ID             int         `json:"id"`
 	Distributor    string      `json:"distributor"`
@@ -116,6 +123,7 @@ func main() {
 	http.HandleFunc("/inv", invAPIHandler)
 	http.HandleFunc("/inv/loc", invLocAPIHandler)
 	http.HandleFunc("/loc", locAPIHandler)
+	http.HandleFunc("/volume_units", volumeUnitsHandler)
 
 	log.Printf("Listening on port 8080...")
 	log.Print("Current time is: " + getCurrentTime())
@@ -132,6 +140,43 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Root handler")
 	http.ServeFile(w, r, "./home.html")
 	//fmt.Fprintf(w, "Hi there")
+}
+
+func volumeUnitsHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		var vol_units []VolumeUnit
+
+		rows, err := db.Query("SELECT full_name, abbr_name, system, in_liters FROM volume_units;")
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var vu VolumeUnit
+			if err := rows.Scan(
+				&vu.FullName,
+				&vu.AbbrName,
+				&vu.System,
+				&vu.InLiters); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+			vol_units = append(vol_units, vu)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(vol_units)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+	default:
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
 }
 
 // Adds an inventory item type to a location.

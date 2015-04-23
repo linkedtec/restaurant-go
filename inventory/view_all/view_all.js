@@ -16,11 +16,28 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   $scope.volume_units = ["L", "mL", "oz", "pt", "qt", "gal"];
   $scope.new_success_msg = null;
   $scope.new_failure_msg = null;
-
+  $scope.cost_units = ['Cost / mL', 'Cost / oz'];
+  $scope.selected_cost_unit = 'Cost / mL';
   // sorting
   $scope.sort_key = null;
   $scope.double_sort = -1;
   $scope.firstTimeSort = true;
+
+  $http.get('/volume_units').
+  success(function(data, status, headers, config) {
+    // this callback will be called asynchronously when the response
+    // is available
+    console.log(data);
+    $scope.volume_units_full = data;
+    $scope.volume_units = [];
+    for (var i=0; i < data.length; i++)
+    {
+      $scope.volume_units.push(data[i].abbr_name);
+    }
+  }).
+  error(function(data, status, headers, config) {
+
+  });
 
   $scope.clearNewForm = function() {
     $scope.new_product = null;
@@ -59,7 +76,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
         text: "Percent Alcohol by Volume indicates the alcoholic content of your beverage."
       });
       return;
-  }
+  };
 
   $scope.showKegHelp = function() {
     swal({
@@ -67,7 +84,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
         text: "Bars that serve Draft Beer from kegs often pay deposits per keg to their distributor.  If this doesn't apply to you, leave it blank."
       });
       return;
-  }
+  };
 
   $scope.showPurchaseHelp = function() {
     swal({
@@ -75,7 +92,45 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
         text: "When you order new stock from your distributor / supplier, what is the volume of an individual order item, and how much does it cost?"
       });
       return;
-  }
+  };
+
+  $scope.selectCostUnit = function(cost_unit) {
+    $scope.selected_cost_unit = cost_unit;
+
+    for (var i = 0; i < $scope.inventory_items.length; i++) {
+      $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(
+        $scope.inventory_items[i]['purchase_volume'],
+        $scope.inventory_items[i]['purchase_unit'],
+        $scope.inventory_items[i]['purchase_cost']);
+    }
+  };
+
+  $scope.getPricePerVolume = function(vol, unit, cost) {
+
+    var in_liters = 0;
+    for (var i=0; i < $scope.volume_units_full.length; i++){
+      var vol_unit = $scope.volume_units_full[i];
+      if (unit === vol_unit['abbr_name']) {
+        in_liters = vol_unit['in_liters'];
+        break;
+      }
+    }
+
+    var vol_in_liters = in_liters * vol;
+
+    var cost_per_mL = cost / vol_in_liters / 1000.0;
+
+    // if display is cost / mL
+    if ($scope.selected_cost_unit.indexOf('mL') >= 0) {
+      return cost_per_mL;
+    }
+    // if display is cost / oz
+    else {
+      return cost_per_mL * 29.5735;
+    }
+
+    
+  };
 
   // Shows the add new inventory item UI box
   $scope.showAddInv = function() {
@@ -242,6 +297,11 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
         var inv = $scope.inventory_items[i];
         var value = inv['purchase_cost'] * inv['count'];
         $scope.inventory_items[i]['inventory'] = value;
+
+        $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(
+          $scope.inventory_items[i]['purchase_volume'],
+          $scope.inventory_items[i]['purchase_unit'],
+          $scope.inventory_items[i]['purchase_cost']);
       }
 
       if ($scope.firstTimeSort) {
@@ -255,7 +315,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   };
 
   $scope.sortBy = function(sort_str) {
-    //console.log('SORTY BY ' + sort_str)
     var double_sort = sort_str === $scope.sort_key;
     if (double_sort) {
       $scope.double_sort *= -1;
@@ -263,23 +322,24 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.double_sort = -1;
     }
     $scope.sort_key = sort_str;
-    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_unit' || sort_str === 'purchase_cost' || sort_str === 'deposit' || sort_str === 'count' || sort_str === 'inventory');
+    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_unit' || sort_str === 'purchase_cost' || sort_str === 'deposit' || sort_str === 'count' || sort_str === 'inventory' || sort_str === 'price_per_volume');
+    
     $scope.inventory_items.sort(function(a, b) {
       var keyA = a[sort_str];
       var keyB = b[sort_str];
       if ($scope.double_sort > 0) {
         if (isNum)
         {
-          return keyA > keyB;
+          return parseFloat(keyA) - parseFloat(keyB);
         }
         return -keyA.localeCompare(keyB);
       }
       if (isNum)
       {
-        return keyA < keyB;
+        return parseFloat(keyB) - parseFloat(keyA);
       }
       return keyA.localeCompare(keyB);
-    })
+    });
   };
 
   $scope.addSaleRow = function(unit) {
@@ -312,15 +372,47 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     modalEditInstance.result.then(
       // success status
       function( result ) {
-        // the only time the modal calls success status is to pass that 
-        // a beverage has been deleted.  result is the id of the deleted bev
-        console.log('Deleting beverage id: ' + result);
-        for (var i = $scope.inventory_items.length-1; i >= 0; i--) {
-          var bev = $scope.inventory_items[i];
-          if (bev.id === result) {
-            $scope.inventory_items.splice(i, 1);
-            break;
+        // result is a list, first item is string for status, e.g.,
+        // 'save' or 'delete'
+        // second item is beverage id
+        var status = result[0];
+        var bev_id = result[1];
+        if (status === 'delete') {
+          var bev_name;
+          for (var i = $scope.inventory_items.length-1; i >= 0; i--) {
+            var bev = $scope.inventory_items[i];
+            if (bev.id === bev_id) {
+              bev_name = bev.product;
+              $scope.inventory_items.splice(i, 1);
+              break;
+            }
           }
+          swal({
+            title: "Beverage Deleted!",
+            text: "<b>" + bev_name + "</b> has been removed from the system.",
+            type: "success",
+            timer: 4000,
+            allowOutsideClick: true,
+            html: true});
+        }
+        // after a save, we want to re-calculate cost per mL, for instance
+        else if (status === 'save') {
+          var bev_name;
+          for (var i=0; i < $scope.inventory_items.length; i++) {
+            var bev = $scope.inventory_items[i];
+            if (bev.id === bev_id) {
+              $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(bev.purchase_volume, bev.purchase_unit, bev.purchase_cost);
+              bev_name = bev.product;
+              break;
+            }
+          }
+          swal({
+            title: "Beverage Updated!",
+            text: "<b>" + bev_name + "</b> has been updated with your changes.",
+            type: "success",
+            timer: 4000,
+            allowOutsideClick: true,
+            html: true});
         }
       }, 
       // error status
@@ -523,7 +615,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       }
     }
     if (changedKeys.length == 0) {
-      $modalInstance.dismiss('save');
+      $modalInstance.dismiss();
       return;
     }
 
@@ -548,7 +640,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       change_keys:changedKeys
     });
 
-    $modalInstance.dismiss('save');
+    $modalInstance.close(['save', $scope.beverage.id]);
   };
 
   $scope.deleteItem = function() {
@@ -556,12 +648,13 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
     swal({
       title: "Delete Beverage?",
-      text: "This will remove " + $scope.original_beverage.product + " from the DB, and from all inventory locations which carry it.  This cannot be undone.",
+      text: "This will remove <b>" + $scope.original_beverage.product + "</b> from the DB, and from all inventory locations which carry it.  This cannot be undone.",
       type: "warning",
       showCancelButton: true,
+      html: true,
       confirmButtonColor: "#DD6B55",
       confirmButtonText: "Yes, remove it!",
-      closeOnConfirm: true },
+      closeOnConfirm: false },
       function() {
         $http.delete('/inv', {
           params: {
@@ -570,7 +663,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       }).
       success(function(data, status, headers, config) {
         // communicate with ViewAllInvCtrl to delete its entry
-        $modalInstance.close(bev_id);
+        $modalInstance.close(['delete', bev_id]);
       }).
       error(function(data, status, headers, config) {
         console.log(data);

@@ -63,7 +63,7 @@ body {
 
 /* The bottom black bar to close out the outline of the all inv area */
 .all_inv_bottom {
-  width:1610; 
+  width:1840; 
   border-bottom: solid 1px #dddddd;
 }
 
@@ -78,14 +78,13 @@ body {
 .sort_div {
   display:block;
   padding: 8px 6px;
-  height:100%;
-  width:100%;
   text-decoration: none;
   cursor: pointer;
 }
 
 .sort_div:hover {
   background-color:#d0e5fc;
+  z-index:0;
 }
 
 .sort_carat {
@@ -445,5 +444,8 @@ li a:hover {
         box-shadow: 0 4px 4px -3px #bbbbbb;
 }
 
+.abold {
+  font-weight: bold !important;
+}
 
 

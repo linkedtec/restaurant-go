@@ -233,16 +233,22 @@
         <span ng-show="sort_key === 'purchase_cost'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
       </div>
     </div
-    ><div class="all_inv_label_span noselect" style="width:110px;">
-      <div class="sort_div" ng-click="sortBy('deposit')">
-        <span>Keg Deposit</span>
-        <span ng-show="sort_key === 'deposit'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+    ><div class="all_inv_label_span noselect" style="width:120px;">
+      <div class="sort_div" ng-click="sortBy('price_per_volume')">
+        <span>{{selected_cost_unit}}</span>
+        <span ng-show="sort_key === 'price_per_volume'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
       </div>
     </div
-    ><div class="all_inv_label_span noselect" style="width:120px;">
-      <div class="sort_div" ng-click="sortBy('flavor_profile')">
-        <span>Flavor Profile</span>
-        <span ng-show="sort_key === 'flavor_profile'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+    ><div style="margin-left:-44px; z-index:99; position:relative">
+      <div class="btn-group" dropdown>
+        <button dropdown-toggle type="button" class="btn btn-md" style="margin-top:-4px; padding:3px; background-color:#f0faff; border-color:#aaddbb;">
+          <span class="glyphicon glyphicon-cog" style="color:#65a9e0"></span>
+        </button>
+        <ul class="dropdown-menu" role="menu">
+          <li ng-repeat="cu in cost_units">
+            <a ng-click="selectCostUnit(cu)" ng-class="{abold: selected_cost_unit === cu}" class="noselect">{{cu}}</a>
+          </li>
+        </ul>
       </div>
     </div
     ><div class="all_inv_span" style="width:100px;">Serving Size</div
@@ -257,6 +263,18 @@
       <div class="sort_div" ng-click="sortBy('inventory')">
         <span>Inventory</span>
         <span ng-show="sort_key === 'inventory'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+    </div
+    ><div class="all_inv_label_span noselect" style="width:110px;">
+      <div class="sort_div" ng-click="sortBy('deposit')">
+        <span>Keg Deposit</span>
+        <span ng-show="sort_key === 'deposit'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+    </div
+    ><div class="all_inv_label_span noselect" style="width:120px;">
+      <div class="sort_div" ng-click="sortBy('flavor_profile')">
+        <span>Flavor Profile</span>
+        <span ng-show="sort_key === 'flavor_profile'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
       </div>
     </div
   ></div>
@@ -274,17 +292,18 @@
       ><div class="all_inv_span" style="width:80px;">{{inv.abv}}</div
       ><div class="all_inv_span" style="width:120px;">{{inv.purchase_volume}}</div
       ><div class="all_inv_span" style="width:70;">{{inv.purchase_unit}}</div
-      ><div class="all_inv_span" style="width:80px;">$ {{inv.purchase_cost}}</div
-      ><div class="all_inv_span" style="width:110px;">$ {{inv.deposit}}</div
-      ><div class="all_inv_span" style="width:120px;">{{inv.flavor_profile}}</div
+      ><div class="all_inv_span" style="width:80px;">$ {{inv.purchase_cost | number:2}}</div
+      ><div class="all_inv_span" style="width:120px;">$ {{inv.price_per_volume | number:4}}</div
       ><div class="all_inv_span" style="width:100px;">
         <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">{{sp.volume}} {{sp.unit}}</div
       ></div
       ><div class="all_inv_span" style="width:100px;">
-        <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">$ {{sp.price}}</div
+        <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">$ {{sp.price | number:2}}</div
       ></div
       ><div class="all_inv_span" style="width:100px;">{{inv.count}}</div
-      ><div class="all_inv_span" style="width:100px;">$ {{inv.inventory}}</div
+      ><div class="all_inv_span" style="width:100px;">$ {{inv.inventory | number:2}}</div
+      ><div class="all_inv_span" style="width:110px;">$ {{inv.deposit | number:2}}</div
+      ><div class="all_inv_span" style="width:120px;">{{inv.flavor_profile}}</div
     ></div>
   </div>
   <div class="all_inv_bottom"></div>

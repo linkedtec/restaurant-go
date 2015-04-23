@@ -39,7 +39,7 @@
     <div class="row">
       <div class="col-xs-7">
         <span style="float:left">
-          <div class="btn-group" dropdown is-open="loc_dropdown_open">
+          <div class="btn-group" dropdown>
             <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.3em">
               <span ng-show="selected_loc !== null" style="float:left; text-align:left; width:90%">
                 {{selected_loc}} 
@@ -64,7 +64,7 @@
         <!--span style="font-size:1.6em; float:left;">{{selected_loc}}</span-->
       </div>
       <div ng-show="last_update !== null" class="col-xs-5" style="text-align:right; margin-top:0px;">
-        <div style="font-size:1.1em">Total Inventory: ${{total_inventory}}</div>
+        <div style="font-size:1.1em">Total Inventory: ${{total_inventory | number:2}}</div>
         <div class="hint_text">Last Counted: {{last_update}}</div>
       </div>
     </div>
@@ -288,8 +288,8 @@
           </div>
         </div>
         <div ng-show="inv_started===false" class="min_padding col-xs-2">
-          <div style="padding-left:18px; padding-top:6px">
-            $ {{inv.purchase_cost * inv.quantity}}
+          <div style="padding-left:4px; padding-top:6px">
+            $ {{inv.purchase_cost * inv.quantity | number:2}}
           </div>
         </div>
         <div class="col-xs-1 min_padding" ng-show="inv_started===false">

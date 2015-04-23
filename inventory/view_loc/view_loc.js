@@ -289,8 +289,9 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     var item = $scope.inv_items[index];
     swal({
       title: "Remove Item?",
-      text: "This will remove " + item.product + " from " + $scope.selected_loc + ".  It will not affect other locations which carry the item, or its entry in the Beverage DB.",
+      text: "This will remove <b>" + item.product + "</b> from " + $scope.selected_loc + ".<br/><br/>It will not affect other locations which carry the item, or its entry in the Beverage DB.",
       type: "warning",
+      html: true,
       showCancelButton: true,
       confirmButtonColor: "#DD6B55",
       confirmButtonText: "Yes, remove it!",
@@ -666,7 +667,8 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
   $scope.showInvHelp = function() {
     swal({
         title:"How is Inventory Calculated?", 
-        text: "Inventory = Product's Quantity * Purchase Cost.\nThe Purchase Cost can be found in the All Beverage DB."
+        text: "<b>Inventory = Product's Quantity * Purchase Cost</b>.<br/><br/>The Purchase Cost can be found in the All Beverages DB.",
+        html: true
       });
       return;
   }
