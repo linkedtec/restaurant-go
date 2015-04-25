@@ -15,7 +15,6 @@ body {
 
 .menu {
   list-style: none;
-  padding-top: 12px;
   margin-left:0;
   padding-left:0;
   /*padding: 1.2em 0em;*/
@@ -33,24 +32,6 @@ body {
 .all_inv_main {
   overflow: visible;
   margin-left: 20px;
-  min-width:560px;
-}
-
-.label_row {
-  display:table;
-  table-layout:fixed;
-  font-weight: bold;
-  background-color: #e0f0ff;
-  padding: 0px 0px;
-  margin-bottom: 2px;
-  margin-top:0px;
-  margin-bottom:0px;
-  overflow:visible;
-  white-space: nowrap;
-  margin-right: 20px;
-  border-top: solid 1px #dddddd;
-  border-left: solid 1px #dddddd;
-  width:1400px;
 }
 
 .label_row_container {
@@ -60,19 +41,8 @@ body {
   font-size:1.1em;
 }
 
-
-/* The bottom black bar to close out the outline of the all inv area */
-.all_inv_bottom {
-  width:1840; 
-  border-bottom: solid 1px #dddddd;
-}
-
 .inv_row {
-  display: table;
-  table-layout:fixed;
   border-left: solid 1px #dddddd;
-  white-space: nowrap;
-  width:1400px;
 }
 
 .sort_div {
@@ -95,11 +65,8 @@ body {
 }
 
 .all_inv_label_span {
-  display: table-cell;
   padding: 0;
   border-right: solid 1px #dddddd;
-  position:relative;
-  height:100%;
   color:#4488cc;
 }
 
@@ -169,12 +136,11 @@ body {
 }
 
 .menu > li {
-  display: inline;
+  display: inline-block;
 }
 
 .menu > li:before {
   content: "";
-  padding-right: 30px;
 }
 
 .menu > li:nth-child(1):before {
@@ -250,18 +216,19 @@ body {
   outline: none;
 }
 
-li.active a {
+.nav li.active a {
+  color:#2288cc !important;
+  text-decoration: none;
+  background-color: #f8f8f8 !important;
+  border-bottom: 1px solid #88ccff;
+}
+
+.nav li a {
   font-size:1.1em;
-  color:#0066aa;
   text-decoration: none;
 }
 
-li a {
-  color:#66aadd;
-  text-decoration: none;
-}
-
-li a:hover {
+.nav li a:hover {
   text-decoration:none;
 }
 
@@ -325,6 +292,20 @@ li a:hover {
   width:120px;
   padding-right: 8px;
   margin-top:6px;
+}
+
+.col_highlight {
+  background-color:#ffe8d0 !important;
+
+}
+
+.col_highlight_row_even {
+  background-color:#fffae8 !important;
+}
+
+
+.col_comp:hover {
+  background-color:#f0f0f0 !important;
 }
 
 .control-label {
@@ -447,5 +428,4 @@ li a:hover {
 .abold {
   font-weight: bold !important;
 }
-
 

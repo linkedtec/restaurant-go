@@ -1,6 +1,6 @@
-<div class="all_inv_main">
+<div class="all_inv_main" style="width:1800">
 
-  <div style="margin-top:20px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
+  <div style="margin-top:10px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
     All Beverages Database
   </div>
 
@@ -16,11 +16,11 @@
       Add New Beverage
     </div>
     
-    <div style="font-size:1.1em; color:#88bb99; margin-top:16px">
+    <div style="font-size:1.1em; color:#88bb99; margin-top:8px">
       Basic Info
     </div>
     <hr class="add_hr"/>
-    <div style="padding-left:12px; padding-right:24px; margin-top:12px">
+    <div style="padding-left:12px; padding-right:24px; margin-top:8px">
       <div class="row">
         <div class="col-xs-4">
           <div class="form-group" ng-class="{'has-error': form_ver.error_product===true}">
@@ -31,13 +31,13 @@
         <div class="col-xs-4">
           <div class="form-group" ng-class="{'has-error': form_ver.error_distributor===true}">
             <label class="control-label"> Distributor </label>
-            <input ng-model="new_distributor" class="form-control input_add" placeholder="e.g., California Beer & Beverage">
+            <input ng-model="new_distributor" class="form-control input_add" placeholder="e.g., California Beer & Beverage" typeahead="distr for distr in all_distributors | filter:$viewValue">
           </div>
         </div>
         <div class="col-xs-4">
           <div class="form-group" ng-class="{'has-error': form_ver.error_brewery===true}">
             <label class="control-label"> Brewery </label>
-            <input ng-model="new_brewery" class="form-control input_add" placeholder="e.g., Lagunitas Brewing Company">
+            <input ng-model="new_brewery" class="form-control input_add" placeholder="e.g., Lagunitas Brewing Company" typeahead="brew for brew in all_breweries | filter:$viewValue">
           </div>
         </div>
       </div>
@@ -53,7 +53,7 @@
           <div class="form-group" ng-class="{'has-error': form_ver.error_abv===true}">
             <label class="control-label"> 
               % AbV 
-              <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;" ng-click="showAbVHelp()"></span>
+              <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;"  popover="Percent Alcohol by Volume (% AbV) indicates the alcoholic content of your beverage" popover-trigger="mouseenter" popover-append-to-body="true"></span>
             </label>
             <div class="input-group">
               <input ng-model="new_abv" type="number" min="0" max="100" class="form-control input_add" placeholder="" style="width:100px">
@@ -66,10 +66,10 @@
 
     <div style="font-size:1.1em; color:#88bb99; margin-top:8px">
       Purchase / Order Info
-      <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd" ng-click="showPurchaseHelp()"></span>
+      <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd" popover="When you order new stock from your supplier, what is the volume of an individual order item, and how much does it cost?" popover-trigger="mouseenter" popover-append-to-body="true"></span>
     </div>
     <hr class="add_hr"/>
-    <div style="padding-left:12px; padding-right:24px; margin-top:12px">
+    <div style="padding-left:12px; padding-right:24px; margin-top:8px">
       <div class="row">
         <div class="col-xs-4">
           <div class="form-group" ng-class="{'has-error': form_ver.error_pvolume===true || form_ver.error_punit===true}">
@@ -99,7 +99,7 @@
           <div class="form-group">
             <label class="control-label">
               Keg Deposit (optional)
-              <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;" ng-click="showKegHelp()"></span>
+              <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;" popover="Bars that serve Draft Beer from kegs often pay deposits per keg to their distributor.  If this doesn't apply to you, leave it blank." popover-trigger="mouseenter" popover-append-to-body="true"></span>
             </label>
             <div class="input-group" style="float:left; width:170px">
               <span class="input-group-addon">$</span>
@@ -112,10 +112,10 @@
 
     <div style="font-size:1.1em; color:#88bb99; margin-top:8px">
       Sales & Pricing
-      <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd" ng-click="showSalesHelp()"></span>
+      <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd" popover="When selling to customers, what are your retail sizes and prices?  If you have multiple sale points, use the 'Add More Pricing' button." popover-trigger="mouseenter" popover-append-to-body="true"></span>
     </div>
     <hr class="add_hr"/>
-    <div style="padding-left:12px; padding-right:24px; margin-top:12px">
+    <div style="padding-left:12px; padding-right:24px; margin-top:8px; margin-bottom:6px">
       <div class="row" style="margin-bottom:4px">
         <div class="col-xs-4">
           Serving Size
@@ -146,13 +146,12 @@
             <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
           </button>
           <button ng-show="$index===add_sales.length-1" ng-click="addSaleRow(add_sales[$index].unit)" type="button" class="btn btn-default btn-sm add_transparent_btn" style="font-size:14px; margin-left:6px">
-            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Row
+            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add More Pricing
           </button>
         </div>
       </div>
     </div>
 
-    <div style="margin-bottom:32px"></div>
     <div ng-show="new_success_msg !== null" class="add_row" style="padding-left:12px; margin-bottom:0px">
       <div class="alert alert-success alert-dismissible" role="alert">
         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -160,7 +159,7 @@
         {{new_success_msg}}</div>
     </div>
     <div ng-show="new_failure_msg !== null" class="add_row" style="padding-left:12px; margin-bottom:0px">
-      <div class="alert alert-danger" role="alert">
+      <div class="alert alert-danger" data-html="true" role="alert">
         {{new_failure_msg}}</div>
     </div>
     <div class="add_row" style="padding-left:12px;">
@@ -170,144 +169,175 @@
     </div>
   </div>
 
-  <div style="margin-bottom:6px; margin-top:24px; float:left">
-    <div style="float:left; min-width:140px">
+  <div style="margin-top:24px; margin-bottom:8px; overflow:hidden">
+    <div style="display:inline-block; float:left; min-width:140px;">
       <button ng-show="show_add_ui===false" ng-click="showAddInv()" type="button" class="btn btn-success btn-sm" style="font-size:14px;">
         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> New Beverage
       </button>
     </div>
-    <div style="float:left; width:200px;">
+    <div style="display:inline-block; width:200px; float:left">
       <input ng-model="all_inv_query" class="form-control input-md" placeholder="Search Inventory...">
+    </div>
+    <div style="display:inline-block; margin-left:10px;float:left"  popover="Show / hide columns" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+      <button ng-click="showColumnsCtrl()" type="button" class="btn btn-default btn-md" style="height:34px">
+        <span class="glyphicon glyphicon-th-list" aria-hidden="true" style="color:#888888"></span>
+      </button>
     </div>
   </div>
 
-  <div class="label_row">
-    <div class="all_inv_label_span noselect" style="width:60px;">
-      <span style="margin-left:6px; font-weight:normal"> </span>
-    </div
-    ><div class="all_inv_label_span noselect" style="width:200px;">
-      <div class="sort_div" ng-click="sortBy('product')">
-        <span>Product</span>
-        <span ng-show="sort_key === 'product'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+  <div ng-show="show_col_ctrl===true" style="margin-top:10px;margin-bottom:8px; max-width:880px">
+    <div style="border:solid 1px #e8e8e8; background-color:#fafafa; border-radius:4px; margin-right:12px; padding: 8px 12px">
+      <div style="display:inline-block; font-weight:bold;">
+        Show / Hide Columns
       </div>
-    </div
-    ><div class="all_inv_label_span noselect" style="width:200px;">
-      <div class="sort_div" ng-click="sortBy('distributor')">
-        <span>Distributor</span>
-        <span ng-show="sort_key === 'distributor'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      <div style="display:inline-block; margin-left:24px">
+        <div style="display:inline-block;" class="btn-group">
+          <label class="btn btn-default btn-sm col_comp" ng-model="col_comps.supplier" btn-checkbox ng-mouseover="highlightCols('supplier')" ng-mouseleave="unhighlightCols()">Supplier</label>
+          <label class="btn btn-default btn-sm col_comp" ng-model="col_comps.purchase" btn-checkbox ng-mouseover="highlightCols('purchase')" ng-mouseleave="unhighlightCols()">Purchase</label>
+          <label class="btn btn-default btn-sm col_comp" ng-model="col_comps.retail" btn-checkbox ng-mouseover="highlightCols('retail')" ng-mouseleave="unhighlightCols()">Retail</label>
+          <label class="btn btn-default btn-sm col_comp" ng-model="col_comps.inventory" btn-checkbox ng-mouseover="highlightCols('inventory')" ng-mouseleave="unhighlightCols()">Inventory</label>
+          <label class="btn btn-default btn-sm col_comp" ng-model="col_comps.misc" btn-checkbox ng-mouseover="highlightCols('misc')" ng-mouseleave="unhighlightCols()">Misc.</label>
+        </div>
+        <div style="display:inline-block; margin-left:6px">
+          <button ng-click="showAllColumns()" type="button" class="btn btn-default btn-sm">
+            <span class="glyphicon glyphicon-eye-open" aria-hidden="true"></span> Show All
+          </button>
+        </div>
       </div>
-    </div
-    ><div class="all_inv_label_span noselect" style="width:200px;">
-      <div class="sort_div" ng-click="sortBy('brewery')">
-        <span>Brewery</span>
-        <span ng-show="sort_key === 'brewery'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
-      </div>
-    </div
-    ><div class="all_inv_label_span noselect" style="width:80px;">
-      <div class="sort_div" ng-click="sortBy('alcohol_type')">
-        <span>Type</span>
-        <span ng-show="sort_key === 'alcohol_type'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
-      </div>
-    </div
-    ><div class="all_inv_label_span noselect" style="width:80px;">
-      <div class="sort_div" ng-click="sortBy('abv')">
-        <span>% AbV</span>
-        <span ng-show="sort_key === 'abv'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
-      </div>
-    </div
-    ><div class="all_inv_label_span noselect" style="width:120px;">
-      <div class="sort_div" ng-click="sortBy('purchase_volume')">
-        <span>Purchase Vol.</span>
-        <span ng-show="sort_key === 'purchase_volume'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
-      </div>
-    </div
-    ><div class="all_inv_label_span noselect" style="width:70px;">
-      <div class="sort_div" ng-click="sortBy('purchase_unit')">
-        <span>P. Unit</span>
-        <span ng-show="sort_key === 'purchase_unit'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
-      </div>
-    </div
-    ><div class="all_inv_label_span noselect" style="width:80px;">
-      <div class="sort_div" ng-click="sortBy('purchase_cost')">
-        <span>P. Cost</span>
-        <span ng-show="sort_key === 'purchase_cost'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
-      </div>
-    </div
-    ><div class="all_inv_label_span noselect" style="width:120px;">
-      <div class="sort_div" ng-click="sortBy('price_per_volume')">
-        <span>{{selected_cost_unit}}</span>
-        <span ng-show="sort_key === 'price_per_volume'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
-      </div>
-    </div
-    ><div style="margin-left:-44px; z-index:99; position:relative">
-      <div class="btn-group" dropdown>
-        <button dropdown-toggle type="button" class="btn btn-md" style="margin-top:-4px; padding:3px; background-color:#f0faff; border-color:#aaddbb;">
-          <span class="glyphicon glyphicon-cog" style="color:#65a9e0"></span>
+      <div style="float:right">
+        <button ng-click="showColumnsCtrl()" type="button" class="btn btn-default btn-sm" style="height:28px; color:#999999">
+          <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
         </button>
-        <ul class="dropdown-menu" role="menu">
-          <li ng-repeat="cu in cost_units">
-            <a ng-click="selectCostUnit(cu)" ng-class="{abold: selected_cost_unit === cu}" class="noselect">{{cu}}</a>
-          </li>
-        </ul>
       </div>
-    </div
-    ><div class="all_inv_span" style="width:100px;">Serving Size</div
-    ><div class="all_inv_span" style="width:100px;">Retail Price</div
-    ><div class="all_inv_label_span noselect" style="width:100px;">
-      <div class="sort_div" ng-click="sortBy('count')">
-        <span>Inv. Count</span>
-        <span ng-show="sort_key === 'count'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
-      </div>
-    </div
-    ><div class="all_inv_label_span noselect" style="width:100px;">
-      <div class="sort_div" ng-click="sortBy('inventory')">
-        <span>Inventory</span>
-        <span ng-show="sort_key === 'inventory'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
-      </div>
-    </div
-    ><div class="all_inv_label_span noselect" style="width:110px;">
-      <div class="sort_div" ng-click="sortBy('deposit')">
-        <span>Keg Deposit</span>
-        <span ng-show="sort_key === 'deposit'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
-      </div>
-    </div
-    ><div class="all_inv_label_span noselect" style="width:120px;">
-      <div class="sort_div" ng-click="sortBy('flavor_profile')">
-        <span>Flavor Profile</span>
-        <span ng-show="sort_key === 'flavor_profile'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
-      </div>
-    </div
-  ></div>
-  <div ng-repeat="inv in inventory_items | filter:all_inv_query">
-    <div ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row'">
-      <div class="all_inv_span" style="width:60px; text-align:center;">
+    </div>
+  </div>
+
+  <table style="table-layout:fixed; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd">
+    <tr style="font-size:14px; font-weight:bold;background-color: #e0f0ff;">
+      <td class="all_inv_label_span noselect" style="width:60px; border-left: 1px solid #dddddd">
+      </td>
+      <td class="all_inv_label_span noselect" style="width:160px; overflow:auto">
+        <div class="sort_div" ng-click="sortBy('product')">
+          <span>Product</span>
+          <span ng-show="sort_key === 'product'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:80px;">
+        <div class="sort_div" ng-click="sortBy('alcohol_type')" popover="Alcohol Type" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+          <span>Type</span>
+          <span ng-show="sort_key === 'alcohol_type'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:160px;" ng-show="col_comps.supplier === true" ng-class="{'col_highlight': highlight_cols==='supplier'}">
+        <div class="sort_div" ng-click="sortBy('distributor')">
+          <span>Distributor</span>
+          <span ng-show="sort_key === 'distributor'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:160px;" ng-show="col_comps.supplier === true" ng-class="{'col_highlight': highlight_cols==='supplier'}">
+        <div class="sort_div" ng-click="sortBy('brewery')">
+          <span>Brewery</span>
+          <span ng-show="sort_key === 'brewery'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:60px;" ng-show="col_comps.misc === true" ng-class="{'col_highlight': highlight_cols==='misc'}">
+        <div class="sort_div" ng-click="sortBy('abv')" popover="% Alcohol by Volume" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+          <span>AbV</span>
+          <span ng-show="sort_key === 'abv'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:70px;" ng-show="col_comps.purchase === true" ng-class="{'col_highlight': highlight_cols==='purchase'}">
+        <div class="sort_div" ng-click="sortBy('purchase_volume')" popover="Purchase Volume" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+          <span>P. Vol</span>
+          <span ng-show="sort_key === 'purchase_volume'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:70px;" ng-show="col_comps.purchase === true" ng-class="{'col_highlight': highlight_cols==='purchase'}">
+        <div class="sort_div" ng-click="sortBy('purchase_unit')" popover="Purchase Unit" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+          <span>P. Unit</span>
+          <span ng-show="sort_key === 'purchase_unit'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:80px;" ng-show="col_comps.purchase === true" ng-class="{'col_highlight': highlight_cols==='purchase'}">
+        <div class="sort_div" ng-click="sortBy('purchase_cost')" popover="Purchase Cost" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+          <span>P. Cost</span>
+          <span ng-show="sort_key === 'purchase_cost'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:120px;" ng-show="col_comps.purchase === true" ng-class="{'col_highlight': highlight_cols==='purchase'}">
+        <div class="sort_div" ng-click="sortBy('price_per_volume')" popover="Cost per Volume, can toggle between mL and oZ" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+          <span>{{selected_cost_unit}}</span>
+          <span style="z-index:99;">
+            <div class="btn-group" dropdown>
+              <button dropdown-toggle type="button" class="btn btn-md" style="margin-top:-4px; padding:3px; background-color:#f0faff; border-color:#aaddbb;" onclick="event.preventDefault(); event.stopPropagation();">
+                <span class="glyphicon glyphicon-cog" style="color:#65a9e0"></span>
+              </button>
+              <ul class="dropdown-menu" role="menu">
+                <li ng-repeat="cu in cost_units">
+                  <a ng-click="selectCostUnit(cu)" onclick="event.preventDefault(); event.stopPropagation();" ng-class="{abold: selected_cost_unit === cu}" class="noselect">{{cu}}</a>
+                </li>
+              </ul>
+            </div>
+          </span>
+          <span ng-show="sort_key === 'price_per_volume'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_span" style="width:100px;" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">Serving Size</td>
+      <td class="all_inv_span" style="width:100px;" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">Retail Price</td>
+      <td class="all_inv_label_span noselect" style="width:60px;" ng-show="col_comps.inventory === true" ng-class="{'col_highlight': highlight_cols==='inventory'}">
+        <div class="sort_div" ng-click="sortBy('count')" popover="Quantity in Inventory" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+          <span>Qty</span>
+          <span ng-show="sort_key === 'count'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:100px;" ng-show="col_comps.inventory === true" ng-class="{'col_highlight': highlight_cols==='inventory'}">
+        <div class="sort_div" ng-click="sortBy('inventory')"  popover="Inventory = Purchase Cost * Quantity" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+          <span>Inventory</span>
+          <span ng-show="sort_key === 'inventory'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:90px;" ng-show="col_comps.misc === true" ng-class="{'col_highlight': highlight_cols==='misc'}">
+        <div class="sort_div" ng-click="sortBy('deposit')" popover="Keg Deposit" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+          <span>Keg Dep</span>
+          <span ng-show="sort_key === 'deposit'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:120px;" ng-show="col_comps.misc === true" ng-class="{'col_highlight': highlight_cols==='misc'}">
+        <div class="sort_div" ng-click="sortBy('flavor_profile')">
+          <span>Flavor Profile</span>
+          <span ng-show="sort_key === 'flavor_profile'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+    </tr>
+    <tr ng-repeat="inv in inventory_items | filter:all_inv_query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row'" style="font-size:14px">
+      <td class="all_inv_span" style="width:60px; text-align:center;">
         <button ng-click="editBeverage($index)" type="button" class="btn btn-md" style="font-size:14px; background-color:#ecfddf; border-color:#aaddbb">
           <span class="glyphicon glyphicon-pencil" style="font-size:16px; color:#888888"></span>
         </button>
-      </div
-      ><div class="all_inv_span" style="width:200px;">{{inv.product}}</div
-      ><div class="all_inv_span" style="width:200px;">{{inv.distributor}}</div
-      ><div class="all_inv_span" style="width:200px;">{{inv.brewery}}</div
-      ><div class="all_inv_span" style="width:80px;">{{inv.alcohol_type}}</div
-      ><div class="all_inv_span" style="width:80px;">{{inv.abv}}</div
-      ><div class="all_inv_span" style="width:120px;">{{inv.purchase_volume}}</div
-      ><div class="all_inv_span" style="width:70;">{{inv.purchase_unit}}</div
-      ><div class="all_inv_span" style="width:80px;">$ {{inv.purchase_cost | number:2}}</div
-      ><div class="all_inv_span" style="width:120px;">$ {{inv.price_per_volume | number:4}}</div
-      ><div class="all_inv_span" style="width:100px;">
-        <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">{{sp.volume}} {{sp.unit}}</div
-      ></div
-      ><div class="all_inv_span" style="width:100px;">
-        <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">$ {{sp.price | number:2}}</div
-      ></div
-      ><div class="all_inv_span" style="width:100px;">{{inv.count}}</div
-      ><div class="all_inv_span" style="width:100px;">$ {{inv.inventory | number:2}}</div
-      ><div class="all_inv_span" style="width:110px;">$ {{inv.deposit | number:2}}</div
-      ><div class="all_inv_span" style="width:120px;">{{inv.flavor_profile}}</div
-    ></div>
-  </div>
-  <div class="all_inv_bottom"></div>
-
+      </td>
+      <td class="all_inv_span" style="width:160px;">{{inv.product}}</td>
+      <td class="all_inv_span" style="width:80px;">{{inv.alcohol_type}}</td>
+      <td class="all_inv_span" style="width:160px;" ng-show="col_comps.supplier === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='supplier'}">{{inv.distributor}}</td>
+      <td class="all_inv_span" style="width:160px;" ng-show="col_comps.supplier === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='supplier'}">{{inv.brewery}}</td>
+      <td class="all_inv_span" style="width:60px;" ng-show="col_comps.misc === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='misc'}">{{inv.abv}}</td>
+      <td class="all_inv_span" style="width:70px;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}">{{inv.purchase_volume}}</td>
+      <td class="all_inv_span" style="width:70;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}">{{inv.purchase_unit}}</td>
+      <td class="all_inv_span" style="width:80px;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}">$ {{inv.purchase_cost | number:2}}</td>
+      <td class="all_inv_span" style="width:120px;" ng-show="inv.price_per_volume >= 0 && col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}">$ {{inv.price_per_volume | number:4}}</td>
+      <td class="all_inv_span" style="width:120px;" ng-show="inv.price_per_volume < 0 && col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}"> N/A </td>
+      <td class="all_inv_span" style="width:100px;" ng-show="col_comps.retail === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='retail'}">
+        <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">{{sp.volume}} {{sp.unit}}</div>
+      </td>
+      <td class="all_inv_span" style="width:100px;" ng-show="col_comps.retail === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='retail'}">
+        <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">$ {{sp.price | number:2}}</div>
+      </td>
+      <td class="all_inv_span" style="width:60px;" ng-show="col_comps.inventory === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='inventory'}">{{inv.count}}</td>
+      <td class="all_inv_span" style="width:100px;" ng-show="col_comps.inventory === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='inventory'}">$ {{inv.inventory | number:2}}</td>
+      <td class="all_inv_span" style="width:90px;" ng-show="col_comps.misc === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='misc'}">$ {{inv.deposit | number:2}}</td>
+      <td class="all_inv_span" style="width:120px;" ng-show="col_comps.misc === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='misc'}">{{inv.flavor_profile}}</td>
+    </tr>
+  </table>
+  <br/>
 </div>
 
 <div ng-include src="'./view_all/edit_inv_modal.html'">

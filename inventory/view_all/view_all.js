@@ -12,6 +12,8 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 .controller('ViewAllInvCtrl', function($scope, $modal, $http) {
 
   $scope.show_add_ui = false;
+  $scope.all_distributors = [];
+  $scope.all_breweries = [];
   $scope.alcohol_types = ["Draft Beer", "Bottle Beer", "Wine", "Bar Consumables", "N/A Bev"];
   $scope.volume_units = ["L", "mL", "oz", "pt", "qt", "gal"];
   $scope.new_success_msg = null;
@@ -22,6 +24,17 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   $scope.sort_key = null;
   $scope.double_sort = -1;
   $scope.firstTimeSort = true;
+
+  $scope.show_col_ctrl = false;
+  $scope.highlight_cols = null;
+
+  $scope.col_comps = {
+    supplier: true,
+    purchase: true,
+    retail: true,
+    inventory: true,
+    misc: true
+  }
 
   $http.get('/volume_units').
   success(function(data, status, headers, config) {
@@ -70,30 +83,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   $scope.clearNewForm();
   $scope.new_type = $scope.alcohol_types[0];
 
-  $scope.showAbVHelp = function() {
-    swal({
-        title:"What is %AbV?", 
-        text: "Percent Alcohol by Volume indicates the alcoholic content of your beverage."
-      });
-      return;
-  };
-
-  $scope.showKegHelp = function() {
-    swal({
-        title:"What is a Keg Deposit?", 
-        text: "Bars that serve Draft Beer from kegs often pay deposits per keg to their distributor.  If this doesn't apply to you, leave it blank."
-      });
-      return;
-  };
-
-  $scope.showPurchaseHelp = function() {
-    swal({
-        title:"Purchase Info", 
-        text: "When you order new stock from your distributor / supplier, what is the volume of an individual order item, and how much does it cost?"
-      });
-      return;
-  };
-
   $scope.selectCostUnit = function(cost_unit) {
     $scope.selected_cost_unit = cost_unit;
 
@@ -106,6 +95,11 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   };
 
   $scope.getPricePerVolume = function(vol, unit, cost) {
+
+    // if volume is 0, return negative number
+    if (vol == 0) {
+      return -1;
+    }
 
     var in_liters = 0;
     for (var i=0; i < $scope.volume_units_full.length; i++){
@@ -128,8 +122,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     else {
       return cost_per_mL * 29.5735;
     }
-
-    
   };
 
   // Shows the add new inventory item UI box
@@ -239,7 +231,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     }
 
     if (!all_clear) {
-      $scope.new_failure_msg = "Please correct missing or invalid fields and try again!";
+      $scope.new_failure_msg = "Whoops!  Some fields are missing or incorrect, please fix them and try again.  If you don't know the value for a field, put 0 for numeric fields, or 'Unknown' for text fields.";
       return;
     }
 
@@ -278,7 +270,23 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
         //$scope.inventory_items.push({name:item, quantity:0, last_update:''})
         $scope.new_success_msg = $scope.new_product + " has been added to your inventory!";
         //$scope.getAllInv();
-        $scope.inventory_items.push(data)
+        $scope.inventory_items.push(data);
+        // if distributor or brewery is a new entry, add them to the typeahead 
+        // arrays
+        if ($scope.all_distributors.indexOf($scope.new_distributor) < 0) {
+          $scope.all_distributors.push($scope.new_distributor);
+        }
+        if ($scope.all_breweries.indexOf($scope.new_brewery) < 0) {
+          $scope.all_breweries.push($scope.new_brewery);
+        }
+        // calculate new price per volume for added item
+        for (var i = 0; i < $scope.inventory_items.length; i++) {
+          $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(
+            $scope.inventory_items[i]['purchase_volume'],
+            $scope.inventory_items[i]['purchase_unit'],
+            $scope.inventory_items[i]['purchase_cost']);
+        }
+
         $scope.clearNewForm();
       }).
       error(function(data, status, headers, config) {
@@ -295,13 +303,28 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
       for (var i = 0; i < $scope.inventory_items.length; i++) {
         var inv = $scope.inventory_items[i];
+
+        // calculate inventory
         var value = inv['purchase_cost'] * inv['count'];
         $scope.inventory_items[i]['inventory'] = value;
 
+        // calculate price per volume
         $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(
           $scope.inventory_items[i]['purchase_volume'],
           $scope.inventory_items[i]['purchase_unit'],
           $scope.inventory_items[i]['purchase_cost']);
+
+        // add breweries and distributors to all_breweries and all_distributors
+        // for typeahead convenience when adding new beverages, which might
+        // come from same distributor / brewery
+        var exists = $scope.all_distributors.indexOf(inv['distributor']) >= 0;
+        if (!exists) {
+          $scope.all_distributors.push(inv['distributor']);
+        }
+        exists = $scope.all_breweries.indexOf(inv['brewery']) >= 0;
+        if (!exists) {
+          $scope.all_breweries.push(inv['brewery']);
+        }
       }
 
       if ($scope.firstTimeSort) {
@@ -322,7 +345,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.double_sort = -1;
     }
     $scope.sort_key = sort_str;
-    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_unit' || sort_str === 'purchase_cost' || sort_str === 'deposit' || sort_str === 'count' || sort_str === 'inventory' || sort_str === 'price_per_volume');
+    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_cost' || sort_str === 'deposit' || sort_str === 'count' || sort_str === 'inventory' || sort_str === 'price_per_volume');
     
     $scope.inventory_items.sort(function(a, b) {
       var keyA = a[sort_str];
@@ -365,6 +388,12 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
         },
         alcohol_types: function() {
           return $scope.alcohol_types;
+        },
+        all_distributors: function() {
+          return $scope.all_distributors;
+        },
+        all_breweries: function() {
+          return $scope.all_breweries;
         }
       }
     });
@@ -403,6 +432,15 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
             if (bev.id === bev_id) {
               $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(bev.purchase_volume, bev.purchase_unit, bev.purchase_cost);
               bev_name = bev.product;
+
+              // If brewery or distributor is a new entry, add to typeahead arr
+              if ($scope.all_distributors.indexOf(bev.distributor) < 0) {
+                $scope.all_distributors.push(bev.distributor);
+              }
+              if ($scope.all_breweries.indexOf(bev.brewery) < 0) {
+                $scope.all_breweries.push(bev.brewery);
+              }
+
               break;
             }
           }
@@ -421,10 +459,32 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       })
   };
 
+  $scope.showColumnsCtrl = function() {
+    if (!$scope.show_col_ctrl) {
+      $scope.show_col_ctrl = true;
+    } else {
+      $scope.show_col_ctrl = false;
+    }
+  };
+
+  $scope.showAllColumns = function() {
+    for (var comp in $scope.col_comps) {
+      $scope.col_comps[comp] = true;
+    }
+  };
+
+  $scope.unhighlightCols = function() {
+    $scope.highlight_cols = null;
+  };
+
+  $scope.highlightCols = function(comp) {
+    $scope.highlight_cols = comp;
+  }
+
   $scope.getAllInv();
 })
 
-.controller('editInvModalCtrl', function($scope, $modalInstance, $http, beverage, volume_units, alcohol_types) {
+.controller('editInvModalCtrl', function($scope, $modalInstance, $http, beverage, volume_units, alcohol_types, all_distributors, all_breweries) {
 
   // original_beverage is a pointer back to the inventory object instance
   // and should be written to on save.
@@ -434,6 +494,8 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   $scope.beverage = JSON.parse( JSON.stringify( beverage ) );
   $scope.volume_units = volume_units;
   $scope.alcohol_types = alcohol_types;
+  $scope.all_distributors = all_distributors;
+  $scope.all_breweries = all_breweries;
 
   // form verification
   $scope.form_ver = {};
@@ -458,14 +520,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
   $scope.removeSaleRow = function(index) {
     $scope.beverage.size_prices.splice(index, 1);
-  };
-
-  $scope.showAbVHelp = function() {
-    swal({
-        title:"What is %AbV?", 
-        text: "Percent Alcohol by Volume indicates the alcoholic content of your beverage."
-      });
-      return;
   };
 
   $scope.showKegHelp = function() {
@@ -578,7 +632,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     }
 
     if (!all_clear) {
-      $scope.new_failure_msg = "Please correct missing or invalid fields and try again!";
+      $scope.new_failure_msg = "Whoops!  Some fields are missing or incorrect, please fix them and try again.  If you don't know the value for a field, put 0 for numeric fields, or 'Unknown' for text fields.";
       return;
     }
 
