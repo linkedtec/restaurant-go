@@ -13,6 +13,11 @@ body {
   margin-bottom:10px;
 }
 
+.subtoolbar {
+  background-color:#f8f8f8;
+  /*border-bottom: solid 1px #eeeeee;*/
+}
+
 .menu {
   list-style: none;
   margin-left:0;
@@ -21,7 +26,31 @@ body {
   /*border-bottom: 0.1em solid #dddddd;*/
   color: #333333;
   min-width:560px;
-  font-size:1.1em;
+  font-size:1.0em;
+  text-decoration: none;
+  margin-bottom:0;
+}
+
+.menu li a {
+  text-decoration: none;
+  padding-top:0;
+  padding-left:0;
+  color:#999999;
+}
+
+.menu li {
+  padding: 8px 16px
+}
+
+.menu li.active {
+  border-bottom: 2px solid #88ccff;
+}
+
+.menu li.active a{
+  padding-top:0;
+  padding-bottom:0;
+  margin:0;
+  color:#2288cc;
 }
 
 .full_divider {
@@ -182,7 +211,7 @@ body {
 }
 
 .loc_dropdown {
-  min-width:240px;
+  min-width:220px;
 }
 
 .loc_li a {
@@ -216,16 +245,21 @@ body {
   outline: none;
 }
 
+.navbar {
+  border-bottom:solid 1px #dddddd;
+}
+
 .nav li.active a {
   color:#2288cc !important;
   text-decoration: none;
-  background-color: #f8f8f8 !important;
-  border-bottom: 1px solid #88ccff;
+  background-color: #ffffff !important;
+  border-bottom: 2px solid #88ccff;
 }
 
 .nav li a {
   font-size:1.1em;
   text-decoration: none;
+  color:#999999 !important;
 }
 
 .nav li a:hover {
@@ -329,7 +363,7 @@ body {
   padding-right:8px;
   margin-top: -8px;
   padding-top: 8px;
-  padding-bottom: 12px;
+  padding-bottom: 8px;
 }
 
 .add_inv {
@@ -421,8 +455,8 @@ body {
 
 .box-shadow {
   -webkit-box-shadow: 0 4px 4px -3px #bbbbbb;
-   -moz-box-shadow: 0 4px 4px -3px #bbbbbb;
-        box-shadow: 0 4px 4px -3px #bbbbbb;
+  -moz-box-shadow: 0 4px 4px -3px #bbbbbb;
+  box-shadow: 0 4px 4px -3px #bbbbbb;
 }
 
 .abold {

@@ -14,7 +14,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   $scope.show_add_ui = false;
   $scope.all_distributors = [];
   $scope.all_breweries = [];
-  $scope.alcohol_types = ["Draft Beer", "Bottle Beer", "Wine", "Bar Consumables", "N/A Bev"];
+  $scope.alcohol_types = ["Draft Beer", "Bottle Beer", "Wine", "Draft Cider", "Bottle Cider", "Bar Consumables", "N/A Bev"];
   $scope.volume_units = ["L", "mL", "oz", "pt", "qt", "gal"];
   $scope.new_success_msg = null;
   $scope.new_failure_msg = null;
@@ -60,7 +60,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     //$scope.new_type = $scope.alcohol_types[0];
     $scope.new_abv = null;
     $scope.new_purchase_volume = null;
-    $scope.new_purchase_unit = $scope.volume_units[0];
+    $scope.new_purchase_unit = "L";
     $scope.new_purchase_cost = null;
     $scope.new_deposit = null;
     $scope.new_flavor_profile = null;

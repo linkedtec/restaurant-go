@@ -1,6 +1,6 @@
-<div class="all_inv_main" style="width:1800">
+<div class="container" style="width:1800">
 
-  <div style="margin-top:10px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
+  <div style="margin-top:24px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd;">
     All Beverages Database
   </div>
 
@@ -285,7 +285,7 @@
       <td class="all_inv_span" style="width:100px;" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">Serving Size</td>
       <td class="all_inv_span" style="width:100px;" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">Retail Price</td>
       <td class="all_inv_label_span noselect" style="width:60px;" ng-show="col_comps.inventory === true" ng-class="{'col_highlight': highlight_cols==='inventory'}">
-        <div class="sort_div" ng-click="sortBy('count')" popover="Quantity in Inventory" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+        <div class="sort_div" ng-click="sortBy('count')" popover="Quantity in Inventory (in all locations)" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>Qty</span>
           <span ng-show="sort_key === 'count'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
@@ -326,7 +326,14 @@
       <td class="all_inv_span" style="width:120px;" ng-show="inv.price_per_volume >= 0 && col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}">$ {{inv.price_per_volume | number:4}}</td>
       <td class="all_inv_span" style="width:120px;" ng-show="inv.price_per_volume < 0 && col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}"> N/A </td>
       <td class="all_inv_span" style="width:100px;" ng-show="col_comps.retail === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='retail'}">
-        <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">{{sp.volume}} {{sp.unit}}</div>
+        <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">
+          <span style="display:inline-block; min-width:50%">
+            {{sp.volume}} 
+          </span>
+          <span style="color:#999999">
+            {{sp.unit}}
+          </span>
+        </div>
       </td>
       <td class="all_inv_span" style="width:100px;" ng-show="col_comps.retail === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='retail'}">
         <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">$ {{sp.price | number:2}}</div>

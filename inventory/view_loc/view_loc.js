@@ -57,7 +57,9 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         if (years_since_update > 50) {
           ;
         } else {
-          pretty_time = $scope.getPrettyTime(mins_since_update);
+          pretty_time = $scope.getPrettyTime(mins_since_update, loc.last_update);
+          //pretty_time = loc.last_update;
+          //pretty_time = $scope.getDateFromUTCTimeStamp(loc.last_update, true).toLocaleString();
         }
         $scope.locations[loc_i]['last_update_pretty'] = pretty_time;
       }
@@ -431,7 +433,9 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
           if (years_since_update > 50) {
             ;
           } else {
-            pretty_time = $scope.getPrettyTime(mins_since_update);
+            pretty_time = $scope.getPrettyTime(mins_since_update, data['last_update']);
+            //pretty_time = data['last_update'];
+            //pretty_time = $scope.getDateFromUTCTimeStamp(data['last_update'], true).toLocaleString();
           }
           $scope.locations[i]['last_update_pretty'] = pretty_time;
           $scope.last_update = pretty_time;
@@ -620,8 +624,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     });
   };
 
-  // helper function to get the number of minutes since a time stamp
-  $scope.getMinutesSinceTime = function(timestamp) {
+  $scope.getDateFromUTCTimeStamp = function(timestamp, local) {
     // e.g., 2015-03-16
     var date_str = timestamp.substring(0,timestamp.indexOf('T'));
     // e.g., 07:43:49
@@ -641,19 +644,36 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       end_index);
     var date_comps = date_str.split('-');
     var time_comps = time_str.split(':');
-    var last_update = Date.UTC(
+
+    var utc_date = Date.UTC(
       date_comps[0], parseInt(date_comps[1])-1, date_comps[2],
       time_comps[0], time_comps[1], time_comps[2]);
+
+    if (local === true) {
+      return new Date(utc_date);
+    } else {
+      return utc_date;
+    }
+  };
+
+  // helper function to get the number of minutes since a time stamp
+  $scope.getMinutesSinceTime = function(timestamp) {
+    
+    var last_update = $scope.getDateFromUTCTimeStamp(timestamp, false);
     var dt_sec = (Date.now() - last_update) / 1000.0;
     return parseInt(dt_sec / 60.0);
   };
 
-  $scope.getPrettyTime = function(mins) {
+  $scope.getPrettyTime = function(mins, timestamp) {
     var pretty_time = null;
     if (mins < 5) {
       pretty_time = 'Moments ago';
     } else if (mins < 60) {
       pretty_time = parseInt(mins).toString() + ' minutes ago';
+    } else {
+      return $scope.getDateFromUTCTimeStamp(timestamp, true).toLocaleString();
+    }
+      /*
     } else if (mins < 24*60) {
       pretty_time = parseInt(mins / 60).toString() + ' hours ago';
     } else if (mins < 24*60*2) {
@@ -661,6 +681,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     } else {
       pretty_time = parseInt(mins/24/60).toString() + ' days ago';
     }
+    */
     return pretty_time;
   };
 
