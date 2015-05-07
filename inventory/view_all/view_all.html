@@ -382,8 +382,8 @@
       <td class="all_inv_span" style="width:160px;" ng-show="col_comps.supplier === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='supplier'}">{{inv.distributor}}</td>
       <td class="all_inv_span" style="width:160px;" ng-show="col_comps.supplier === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='supplier'}">{{inv.brewery}}</td>
       <td class="all_inv_span" style="width:60px;" ng-show="col_comps.misc === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='misc'}">
-        <span ng-if="inv.abv !== null">{{inv.abv}} <span class="inv_symbol">%</span></span<</td>
-      <td class="all_inv_span" style="width:70px;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}">{{inv.purchase_volume}}</td>
+        <span ng-if="inv.abv !== null">{{inv.abv | number:2}} <span class="inv_symbol">%</span></span<</td>
+      <td class="all_inv_span" style="width:70px;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}">{{inv.purchase_volume | number:2}}</td>
       <td class="all_inv_span" style="width:70;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}">{{inv.purchase_unit}}</td>
       <td class="all_inv_span" style="width:80px;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}"><span class="inv_symbol">$</span> {{inv.purchase_cost | number:2}}</td>
       <td class="all_inv_span" style="width:90px;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}">{{inv.purchase_count}}</td>
