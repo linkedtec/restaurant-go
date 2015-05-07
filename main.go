@@ -23,16 +23,19 @@ type VolumeUnit struct {
 
 type Beverage struct {
 	ID             int         `json:"id"`
-	Distributor    string      `json:"distributor"`
+	ContainerType  string      `json:"container_type"`
+	ServeType      int         `json:"serve_type"`
 	Product        string      `json:"product"`
-	Brewery        string      `json:"brewery"`
+	Distributor    NullString  `json:"distributor"`
+	Brewery        NullString  `json:"brewery"`
 	AlcoholType    string      `json:"alcohol_type"`
-	ABV            float32     `json:"abv"`
-	PurchaseVolume float32     `json:"purchase_volume"`
-	PurchaseUnit   string      `json:"purchase_unit"`
+	ABV            NullFloat64 `json:"abv"`
+	PurchaseVolume NullFloat64 `json:"purchase_volume"`
+	PurchaseUnit   NullString  `json:"purchase_unit"`
 	PurchaseCost   float32     `json:"purchase_cost"`
-	Deposit        float32     `json:"deposit"`
-	FlavorProfile  string      `json:"flavor_profile"`
+	PurchaseCount  int         `json:"purchase_count"`
+	Deposit        NullFloat64 `json:"deposit"`
+	FlavorProfile  NullString  `json:"flavor_profile"`
 	SalePrices     []SalePrice `json:"size_prices"`
 	Count          int         `json:"count"`
 }
@@ -43,10 +46,10 @@ type BeverageUpdate struct {
 }
 
 type SalePrice struct {
-	ID     int     `json:"id"`
-	Volume float32 `json:"volume"`
-	Unit   string  `json:"unit"`
-	Price  float32 `json:"price"`
+	ID     int         `json:"id"`
+	Volume NullFloat64 `json:"volume"`
+	Unit   string      `json:"unit"`
+	Price  NullFloat64 `json:"price"`
 }
 
 // This is the LocBeverage struct that is used internally on the server
@@ -561,7 +564,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		var beverages []Beverage
 
-		rows, err := db.Query("SELECT id, distributor, product, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, deposit, flavor_profile FROM beverages WHERE user_id=$1", test_user_id)
+		rows, err := db.Query("SELECT id, container_type, serve_type, distributor, product, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, purchase_count, deposit, flavor_profile FROM beverages WHERE user_id=$1", test_user_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -572,6 +575,8 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			var bev Beverage
 			if err := rows.Scan(
 				&bev.ID,
+				&bev.ContainerType,
+				&bev.ServeType,
 				&bev.Distributor,
 				&bev.Product,
 				&bev.Brewery,
@@ -580,8 +585,10 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				&bev.PurchaseVolume,
 				&bev.PurchaseUnit,
 				&bev.PurchaseCost,
+				&bev.PurchaseCount,
 				&bev.Deposit,
 				&bev.FlavorProfile); err != nil {
+				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
 			}
@@ -633,6 +640,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
 		w.Write(js)
 
 	case "POST":
@@ -646,8 +654,8 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		log.Println(bev)
-		_, err = db.Exec("INSERT INTO beverages(product, distributor, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, deposit, flavor_profile, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);",
-			bev.Product, bev.Distributor, bev.Brewery, bev.AlcoholType, bev.ABV, bev.PurchaseVolume, bev.PurchaseUnit, bev.PurchaseCost, bev.Deposit, bev.FlavorProfile, test_user_id)
+		_, err = db.Exec("INSERT INTO beverages(product, container_type, serve_type, distributor, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, purchase_count, deposit, flavor_profile, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14);",
+			bev.Product, bev.ContainerType, bev.ServeType, bev.Distributor, bev.Brewery, bev.AlcoholType, bev.ABV, bev.PurchaseVolume, bev.PurchaseUnit, bev.PurchaseCost, bev.PurchaseCount, bev.Deposit, bev.FlavorProfile, test_user_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -663,21 +671,32 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		bev.ID = bev_id
+		bev.Count = 0
+		var validSalePrices []SalePrice // collect only valid sale price entries
 
 		// For each of the SalePrice items, insert entry into size_prices
 		for i := range bev.SalePrices {
 			salePrice := bev.SalePrices[i]
+			// if both Volume and Price are empty, don't add an entry -- it means the
+			// user left this blank
+			if !salePrice.Volume.Valid && !salePrice.Price.Valid {
+				// remove bev.SalePrices[i]
+				continue
+			}
 			_, err = db.Exec("INSERT INTO size_prices(serving_size, serving_unit, serving_price, beverage_id) VALUES($1, $2, $3, $4);", salePrice.Volume, salePrice.Unit, salePrice.Price, bev_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
 			}
+			validSalePrices = append(validSalePrices, salePrice)
 		}
+
+		bev.SalePrices = validSalePrices
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		js, err := json.Marshal(bev)
+		js, err := json.Marshal(&bev)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -723,9 +742,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println("Do sale prices ")
 
 			// First delete any size_prices entries with the beverage ID
-			query := fmt.Sprintf("DELETE FROM size_prices WHERE beverage_id=%d;", bev_id)
-			log.Println(query)
-			_, err = db.Exec(query)
+			_, err = db.Exec("DELETE FROM size_prices WHERE beverage_id=$1;", bev_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -734,9 +751,14 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 			// Now insert fresh entries for the sale prices
 			for _, sp := range sps {
-				query := fmt.Sprintf("INSERT INTO size_prices(serving_size, serving_unit, serving_price, beverage_id) VALUES (%f, '%s', %f, %d);", sp.Volume, sp.Unit, sp.Price, bev_id)
-				log.Println(query)
-				_, err = db.Exec(query)
+				log.Println(sp.Price.Value)
+				// if both Volume and Price are empty, don't add an entry -- it means the
+				// user left this blank
+				if !sp.Volume.Valid && !sp.Price.Valid {
+					// remove bev.SalePrices[i]
+					continue
+				}
+				_, err = db.Exec("INSERT INTO size_prices(serving_size, serving_unit, serving_price, beverage_id) VALUES ($1, $2, $3, $4);", sp.Volume, sp.Unit, sp.Price, bev_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -754,24 +776,30 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				keys = append(keys, key)
 				if key == "product" {
 					values = append(values, "'"+bev_update.Bev.Product+"'")
+				} else if key == "container_type" {
+					values = append(values, "'"+bev_update.Bev.ContainerType+"'")
+				} else if key == "serve_type" {
+					values = append(values, fmt.Sprintf("%d", bev_update.Bev.ServeType))
 				} else if key == "distributor" {
-					values = append(values, "'"+bev_update.Bev.Distributor+"'")
+					values = append(values, "'"+bev_update.Bev.Distributor.String+"'")
 				} else if key == "brewery" {
-					values = append(values, "'"+bev_update.Bev.Brewery+"'")
+					values = append(values, "'"+bev_update.Bev.Brewery.String+"'")
 				} else if key == "alcohol_type" {
 					values = append(values, "'"+bev_update.Bev.AlcoholType+"'")
 				} else if key == "abv" {
-					values = append(values, fmt.Sprintf("%f", bev_update.Bev.ABV))
+					values = append(values, fmt.Sprintf("%f", bev_update.Bev.ABV.Float64))
 				} else if key == "purchase_volume" {
-					values = append(values, fmt.Sprintf("%f", bev_update.Bev.PurchaseVolume))
+					values = append(values, fmt.Sprintf("%f", bev_update.Bev.PurchaseVolume.Float64))
 				} else if key == "purchase_unit" {
-					values = append(values, "'"+bev_update.Bev.PurchaseUnit+"'")
+					values = append(values, "'"+bev_update.Bev.PurchaseUnit.String+"'")
 				} else if key == "purchase_cost" {
 					values = append(values, fmt.Sprintf("%f", bev_update.Bev.PurchaseCost))
+				} else if key == "purchase_count" {
+					values = append(values, fmt.Sprintf("%d", bev_update.Bev.PurchaseCount))
 				} else if key == "deposit" {
-					values = append(values, fmt.Sprintf("%f", bev_update.Bev.Deposit))
+					values = append(values, fmt.Sprintf("%f", bev_update.Bev.Deposit.Float64))
 				} else if key == "flavor_profile" {
-					values = append(values, "'"+bev_update.Bev.FlavorProfile+"'")
+					values = append(values, "'"+bev_update.Bev.FlavorProfile.String+"'")
 				}
 			}
 

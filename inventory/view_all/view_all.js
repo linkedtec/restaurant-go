@@ -14,12 +14,25 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   $scope.show_add_ui = false;
   $scope.all_distributors = [];
   $scope.all_breweries = [];
+  $scope.container_types = ["-- Select One --", "Keg", "Bottle", "Can"];
+  $scope.serve_types = ["-- Select One --", "Single Serve", "Multiple Pours"];
+  $scope.beverage_types = ["Beer", "Cider", "Wine", "Liquor", "Non Alcoholic"];
   $scope.alcohol_types = ["Draft Beer", "Bottle Beer", "Wine", "Draft Cider", "Bottle Cider", "Bar Consumables", "N/A Bev"];
   $scope.volume_units = ["L", "mL", "oz", "pt", "qt", "gal"];
+  //$scope.add_type = $scope.beverage_types[0];
   $scope.new_success_msg = null;
   $scope.new_failure_msg = null;
   $scope.cost_units = ['Cost / mL', 'Cost / oz'];
   $scope.selected_cost_unit = 'Cost / mL';
+
+  $scope.new_beverage = {};
+  $scope.new_beverage['container_type'] = $scope.container_types[0];
+  $scope.new_beverage['serve_type'] = $scope.serve_types[0];
+  $scope.new_beverage['alcohol_type'] = $scope.beverage_types[0];
+
+  //$scope.new_container_type = $scope.container_types[0];
+  //$scope.new_serve_type = $scope.serve_types[0];
+
   // sorting
   $scope.sort_key = null;
   $scope.double_sort = -1;
@@ -53,35 +66,42 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   });
 
   $scope.clearNewForm = function() {
-    $scope.new_product = null;
-    $scope.new_brewery = null;
-    $scope.new_distributor = null;
+    //$scope.new_container_type = $scope.container_types[0];
+    //$scope.new_serve_type = $scope.serve_types[0];
+    $scope.new_beverage['product'] = null;
+    $scope.new_beverage['brewery'] = null;
+    $scope.new_beverage['distributor'] = null;
     // don't clear type, user might want to preserve for next entry
-    //$scope.new_type = $scope.alcohol_types[0];
-    $scope.new_abv = null;
-    $scope.new_purchase_volume = null;
-    $scope.new_purchase_unit = "L";
-    $scope.new_purchase_cost = null;
-    $scope.new_deposit = null;
-    $scope.new_flavor_profile = null;
-    $scope.add_sales = [{volume:null, unit:"L", price:null}];
+    $scope.new_beverage['abv'] = null;
+    $scope.new_beverage['purchase_volume'] = null;
+    $scope.new_beverage['purchase_unit'] = "L";
+    $scope.new_beverage['purchase_cost'] = null;
+    $scope.new_beverage['purchase_count'] = 1;
+    $scope.new_beverage['deposit'] = null;
+    $scope.new_beverage['flavor_profile'] = null;
+    $scope.new_beverage['size_prices'] = [{volume:null, unit:"L", price:null}];
+    $scope.new_unit_sale = null;
 
     // form verification
     $scope.form_ver = {};
+    $scope.form_ver.error_container = false;
+    $scope.form_ver.error_serve_type = false;
     $scope.form_ver.error_product = false;
-    $scope.form_ver.error_distributor = false;
-    $scope.form_ver.error_brewery = false;
+    //$scope.form_ver.error_distributor = false;
+    //$scope.form_ver.error_brewery = false;
     $scope.form_ver.error_type = false;
     $scope.form_ver.error_abv = false;
     $scope.form_ver.error_pvolume = false;
     $scope.form_ver.error_punit = false;
     $scope.form_ver.error_pcost = false;
+    $scope.form_ver.error_keg_deposit = false;
+    $scope.form_ver.error_pcount = false;
+    $scope.form_ver.error_unit_sale = false;
     $scope.form_ver.errors_sale_volume = [];
     $scope.form_ver.errors_sale_price = [];
   };
 
   $scope.clearNewForm();
-  $scope.new_type = $scope.alcohol_types[0];
 
   $scope.selectCostUnit = function(cost_unit) {
     $scope.selected_cost_unit = cost_unit;
@@ -90,11 +110,22 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(
         $scope.inventory_items[i]['purchase_volume'],
         $scope.inventory_items[i]['purchase_unit'],
-        $scope.inventory_items[i]['purchase_cost']);
+        $scope.inventory_items[i]['purchase_cost'],
+        $scope.inventory_items[i]['purchase_count']);
     }
   };
 
-  $scope.getPricePerVolume = function(vol, unit, cost) {
+  $scope.numIsInvalid = function(num) {
+    return isNaN(num) || num < 0;
+  };
+
+  $scope.getPricePerVolume = function(vol, unit, cost, count) {
+
+    // returning -1 means invalid
+
+    if (vol === null || cost === null) {
+      return -1;
+    }
 
     // if volume is 0, return negative number
     if (vol == 0) {
@@ -112,7 +143,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
     var vol_in_liters = in_liters * vol;
 
-    var cost_per_mL = cost / vol_in_liters / 1000.0;
+    var cost_per_mL = cost / count / vol_in_liters / 1000.0;
 
     // if display is cost / mL
     if ($scope.selected_cost_unit.indexOf('mL') >= 0) {
@@ -137,6 +168,54 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     $scope.clearNewForm();
   };
 
+  $scope.selectAddType = function(type) {
+    $scope.new_beverage['alcohol_type'] = type;
+    if ($scope.new_beverage['alcohol_type'] === 'Beer' || $scope.new_beverage['alcohol_type'] === 'Cider') {
+      $scope.container_types = ["-- Select One --", "Keg", "Bottle", "Can"];
+    } else {
+      $scope.container_types = ["-- Select One --", "Bottle", "Can"];
+      if ($scope.new_beverage['container_type'] === 'Keg') {
+        $scope.new_beverage['container_type'] = 'Bottle';
+      }
+    }
+
+    // when switching to beer, if already have a container and serve type
+    // set, automatically change serve type to single serve, unless container
+    // is keg
+    if (($scope.new_beverage['alcohol_type'] === 'Beer' || $scope.new_beverage['alcohol_type'] === 'Cider') && $scope.new_beverage['container_type'] !== $scope.container_types[0] && $scope.new_beverage['serve_type'] !== $scope.serve_types[0] && $scope.new_beverage['container_type'] !== "Keg") {
+      $scope.new_beverage['serve_type'] = $scope.serve_types[1];
+      return;
+    }
+
+    // when switching to wine / liquor, if already have a container and serve type
+    // set, automatically change serve type to multiple pours, unless it's a can
+    if (($scope.new_beverage['alcohol_type'] === 'Wine' || $scope.new_beverage['alcohol_type'] === 'Liquor') && $scope.new_beverage['container_type'] !== $scope.container_types[0] && $scope.new_beverage['serve_type'] !== $scope.serve_types[0] && $scope.new_beverage['container_type'] !== "Can") {
+      $scope.new_beverage['serve_type'] = $scope.serve_types[2];
+      return;
+    }
+
+    // when switching to non alcoholic, if already have a container and serve type
+    // set, automatically change serve type to single serve
+    if ($scope.new_beverage['alcohol_type'] === 'Non Alcoholic' && $scope.new_beverage['container_type'] !== $scope.container_types[0] && $scope.new_beverage['serve_type'] !== $scope.serve_types[0]) {
+      $scope.new_beverage['serve_type'] = $scope.serve_types[1];
+      return;
+    }
+  };
+
+  $scope.addContainerChanged = function() {
+    if ($scope.new_beverage['container_type'] === 'Keg') {
+      $scope.new_beverage['serve_type'] = $scope.serve_types[2];
+      $scope.new_unit_sale = null;
+      $scope.new_beverage['purchase_count'] = 1;
+    } else if ($scope.new_beverage['container_type'] === 'Can' && $scope.new_beverage['serve_type'] !== $scope.serve_types[0]) {
+      $scope.new_beverage['serve_type'] = $scope.serve_types[1];
+    } else if (($scope.new_beverage['alcohol_type'] === 'Beer' || $scope.new_beverage['alcohol_type'] === 'Cider') && $scope.new_beverage['serve_type'] !== $scope.serve_types[0]) {
+      $scope.new_beverage['serve_type'] = $scope.serve_types[1];
+    } else if (($scope.new_beverage['alcohol_type'] === 'Wine' || $scope.new_beverage['alcohol_type'] === 'Liquor') && $scope.new_beverage['serve_type'] !== $scope.serve_types[0] && $scope.new_beverage['container_type'] === 'Bottle') {
+      $scope.new_beverage['serve_type'] = $scope.serve_types[2];
+    }
+  };
+
   $scope.addNewItem = function() {
     
     $scope.new_success_msg = null;
@@ -145,7 +224,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     var all_clear = true;
 
     // check all necessary fields are present
-    if ($scope.new_product === null || $scope.new_product === '' )
+    if ($scope.new_beverage['product'] === null || $scope.new_beverage['product'] === '' )
     {
       $scope.form_ver.error_product = true;
       all_clear = false;
@@ -153,31 +232,23 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.form_ver.error_product = false;
     }
 
-    if ($scope.new_distributor === null || $scope.new_distributor === '' )
+    if ($scope.new_beverage['container_type'] === null || $scope.new_beverage['container_type'] === '' || $scope.new_beverage['container_type'] === $scope.container_types[0] )
     {
-      $scope.form_ver.error_distributor=true;
+      $scope.form_ver.error_container=true;
       all_clear = false;
     } else {
-      $scope.form_ver.error_distributor=false;
+      $scope.form_ver.error_container=false;
     }
 
-    if ($scope.new_brewery === null || $scope.new_brewery === '' )
+    if ($scope.new_beverage['serve_type'] === null || $scope.new_beverage['serve_type'] === '' || $scope.new_beverage['serve_type'] === $scope.serve_types[0] )
     {
-      $scope.form_ver.error_brewery=true;
+      $scope.form_ver.error_serve_type=true;
       all_clear = false;
     } else {
-      $scope.form_ver.error_brewery=false;
+      $scope.form_ver.error_serve_type=false;
     }
 
-    if ($scope.new_type === null || $scope.new_type === '' )
-    {
-      $scope.form_ver.error_type=true;
-      all_clear = false;
-    } else {
-      $scope.form_ver.error_type=false;
-    }
-
-    if ($scope.new_abv === null || $scope.new_abv === '' || isNaN($scope.new_abv))
+    if ( $scope.numIsInvalid($scope.new_beverage['abv']) )
     {
       $scope.form_ver.error_abv=true;
       all_clear = false;
@@ -185,7 +256,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.form_ver.error_abv=false;
     }
 
-    if ($scope.new_purchase_volume === null || $scope.new_purchase_volume === '' || isNaN($scope.new_purchase_volume))
+    if ( $scope.new_beverage['purchase_volume'] !== null && $scope.new_beverage['purchase_volume'] !== '' && $scope.numIsInvalid($scope.new_beverage['purchase_volume']) )
     {
       $scope.form_ver.error_pvolume=true;
       all_clear = false;
@@ -193,7 +264,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.form_ver.error_pvolume=false;
     }
 
-    if ($scope.new_purchase_unit === null || $scope.new_purchase_unit === '' )
+    if ($scope.new_beverage['purchase_unit'] === null || $scope.new_beverage['purchase_unit'] === '' )
     {
       $scope.form_ver.error_punit=true;
       all_clear = false;
@@ -201,7 +272,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.form_ver.error_punit=false;
     }
 
-    if ($scope.new_purchase_cost === null || $scope.new_purchase_cost === '' )
+    if ($scope.new_beverage['purchase_cost'] === null || $scope.new_beverage['purchase_cost'] === '' || $scope.numIsInvalid($scope.new_beverage['purchase_cost']) )
     {
       $scope.form_ver.error_pcost=true;
       all_clear = false;
@@ -209,20 +280,58 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.form_ver.error_pcost=false;
     }
 
-    // For validating sales & pricing, need:
-    // at least 1 row with complete information
-    // rows with partial information are incorrect
-    for (var sale_i in $scope.add_sales)
+    if ( $scope.new_beverage['purchase_count'] === null || $scope.numIsInvalid($scope.new_beverage['purchase_count']) )
     {
-      var sale = $scope.add_sales[sale_i];
-      if (sale.volume == null || sale.volume == '' || isNaN(sale.volume)
+      $scope.form_ver.error_pcount=true;
+      all_clear = false;
+    } else {
+      $scope.form_ver.error_pcount=false;
+    }
+
+    if ($scope.new_unit_sale !== null && $scope.new_unit_sale !== '' && $scope.numIsInvalid($scope.new_unit_sale) )
+    {
+      $scope.form_ver.error_unit_sale=true;
+      all_clear=false;
+    } else {
+      $scope.form_ver.error_unit_sale=false;
+    }
+
+    // the unit sale is a special entry we need to push into size_prices,
+    // with volume 1, unit "Unit", and price of new_unit_sale
+    //
+    // Should add when:
+    // For Multi Pour, only if not keg
+    // For Single Serve, always
+    if ($scope.form_ver.error_unit_sale === false) 
+    {
+      // always add for single serve
+      if ($scope.new_beverage['serve_type'] === $scope.serve_types[1] || $scope.new_beverage['container_type'] !== "Keg") {
+        // unshift places the entry at head of array
+        $scope.new_beverage['size_prices'].unshift({'volume':1, 'unit':'Unit', 'price':$scope.new_unit_sale})
+      }
+    }
+
+    // Collect the final list of size prices.  Careful to do the following:
+    // 1. If serve_type is single, discard any size_prices not of Unit type
+    var final_size_prices = []
+    for (var sale_i in $scope.new_beverage['size_prices'])
+    {
+      var sale = $scope.new_beverage['size_prices'][sale_i];
+      var serve_type = $scope.new_beverage['serve_type'];
+      if ( serve_type === $scope.serve_types[2] || (serve_type === $scope.serve_types[1] && sale['unit'] === 'Unit') )
+      {
+        final_size_prices.push(sale);
+      }
+    }
+
+    for (var sale_i in final_size_prices)
+    {
+      var sale = final_size_prices[sale_i];
+      if (sale.volume !== null && sale.volume !== '' && $scope.numIsInvalid(sale.volume)
         || sale.unit == null || sale.unit == '' ) {
         $scope.form_ver.errors_sale_volume[sale_i] = true;
         all_clear = false;
-      } else {
-        $scope.form_ver.errors_sale_volume[sale_i] = false;
-      }
-      if (sale.price == null || sale.price == '' || isNaN(sale.price)) {
+      } else if (sale.price !== null && sale.price !== '' && $scope.numIsInvalid(sale.price)) {
         $scope.form_ver.errors_sale_price[sale_i] = true;
         all_clear = false;
       } else {
@@ -230,8 +339,10 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       }
     }
 
+    $scope.new_beverage['size_prices'] = final_size_prices;
+
     if (!all_clear) {
-      $scope.new_failure_msg = "Whoops!  Some fields are missing or incorrect, please fix them and try again.  If you don't know the value for a field, put 0 for numeric fields, or 'Unknown' for text fields.";
+      $scope.new_failure_msg = "Whoops!  Some fields are missing or incorrect, please fix them and try again.  If you don't know the numeric value for a field, set it to '0'.";
       return;
     }
 
@@ -248,46 +359,68 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       }
     }
     */
+
+    // serve_type is an int on the server, not a string.  Need to convert
+    // $scope.new_serve_type to an int
+    var serve_type_int = 0;   // default to single serve, which is 0 on server
+    // multi serve is 1 on server
+    if ($scope.new_beverage['serve_type'] === $scope.serve_types[2]) {
+      serve_type_int = 1;
+    }
+
     $http.post('/inv', {
-      product:$scope.new_product,
-      brewery:$scope.new_brewery,
-      distributor:$scope.new_distributor,
-      alcohol_type:$scope.new_type,
-      abv:$scope.new_abv,
-      purchase_volume:$scope.new_purchase_volume,
-      purchase_unit:$scope.new_purchase_unit,
-      purchase_cost:$scope.new_purchase_cost,
-      deposit:$scope.new_deposit,
-      flavor_profile:$scope.new_flavor_profile,
-      size_prices:$scope.add_sales
+      container_type:$scope.new_beverage['container_type'],
+      serve_type:serve_type_int,
+      product:$scope.new_beverage['product'],
+      brewery:$scope.new_beverage['brewery'],
+      distributor:$scope.new_beverage['distributor'],
+      alcohol_type:$scope.new_beverage['alcohol_type'],
+      abv:$scope.new_beverage['abv'],
+      purchase_volume:$scope.new_beverage['purchase_volume'],
+      purchase_unit:$scope.new_beverage['purchase_unit'],
+      purchase_count:$scope.new_beverage['purchase_count'],
+      purchase_cost:$scope.new_beverage['purchase_cost'],
+      deposit:$scope.new_beverage['deposit'],
+      flavor_profile:$scope.new_beverage['flavor_profile'],
+      size_prices:$scope.new_beverage['size_prices']
     }).
       success(function(data, status, headers, config) {
+        console.log('post return')
+        console.log(data)
         // this callback will be called asynchronously when the response
         // is available
         //console.log(data);
         // XXX if success, add returned item to $scope.inventory_items
         // otherwise, notify of failure and don't add
         //$scope.inventory_items.push({name:item, quantity:0, last_update:''})
-        $scope.new_success_msg = $scope.new_product + " has been added to your inventory!";
+        $scope.new_success_msg = $scope.new_beverage['product'] + " has been added to your inventory!";
         //$scope.getAllInv();
+
+        data['count'] = 0;
+        data['inventory'] = 0;
         $scope.inventory_items.push(data);
         // if distributor or brewery is a new entry, add them to the typeahead 
         // arrays
-        if ($scope.all_distributors.indexOf($scope.new_distributor) < 0) {
-          $scope.all_distributors.push($scope.new_distributor);
+        if ($scope.all_distributors.indexOf($scope.new_beverage['distributor']) < 0) {
+          $scope.all_distributors.push($scope.new_beverage['distributor']);
         }
-        if ($scope.all_breweries.indexOf($scope.new_brewery) < 0) {
-          $scope.all_breweries.push($scope.new_brewery);
+        if ($scope.all_breweries.indexOf($scope.new_beverage['brewery']) < 0) {
+          $scope.all_breweries.push($scope.new_beverage['brewery']);
         }
         // calculate new price per volume for added item
         for (var i = 0; i < $scope.inventory_items.length; i++) {
           $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(
             $scope.inventory_items[i]['purchase_volume'],
             $scope.inventory_items[i]['purchase_unit'],
-            $scope.inventory_items[i]['purchase_cost']);
+            $scope.inventory_items[i]['purchase_cost'],
+            $scope.inventory_items[i]['purchase_count']);
         }
 
         $scope.clearNewForm();
+
+        // finally, reapply sort twice to sort with newly added entry included
+        $scope.sortBy($scope.sort_key);
+        $scope.sortBy($scope.sort_key);
       }).
       error(function(data, status, headers, config) {
     });
@@ -304,6 +437,11 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       for (var i = 0; i < $scope.inventory_items.length; i++) {
         var inv = $scope.inventory_items[i];
 
+        // if size_prices is null, make them empty array
+        if (inv.size_prices === null) {
+          $scope.inventory_items[i].size_prices = [];
+        }
+
         // calculate inventory
         var value = inv['purchase_cost'] * inv['count'];
         $scope.inventory_items[i]['inventory'] = value;
@@ -312,7 +450,8 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
         $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(
           $scope.inventory_items[i]['purchase_volume'],
           $scope.inventory_items[i]['purchase_unit'],
-          $scope.inventory_items[i]['purchase_cost']);
+          $scope.inventory_items[i]['purchase_cost'],
+          $scope.inventory_items[i]['purchase_count']);
 
         // add breweries and distributors to all_breweries and all_distributors
         // for typeahead convenience when adding new beverages, which might
@@ -345,32 +484,44 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.double_sort = -1;
     }
     $scope.sort_key = sort_str;
-    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_cost' || sort_str === 'deposit' || sort_str === 'count' || sort_str === 'inventory' || sort_str === 'price_per_volume');
+    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_cost' || sort_str === 'purchase_count' || sort_str === 'deposit' || sort_str === 'count' || sort_str === 'inventory' || sort_str === 'price_per_volume' || sort_str === 'serve_type');
     
     $scope.inventory_items.sort(function(a, b) {
       var keyA = a[sort_str];
       var keyB = b[sort_str];
       if ($scope.double_sort > 0) {
+        if (keyA === null) {
+          return -1;
+        } else if (keyB === null) {
+          return 1;
+        }
         if (isNum)
         {
           return parseFloat(keyA) - parseFloat(keyB);
+        } else {
+          return -keyA.localeCompare(keyB);
         }
-        return -keyA.localeCompare(keyB);
+      }
+      if (keyA === null) {
+        return 1;
+      } else if (keyB === null) {
+        return -1;
       }
       if (isNum)
       {
         return parseFloat(keyB) - parseFloat(keyA);
+      } else {
+        return keyA.localeCompare(keyB);
       }
-      return keyA.localeCompare(keyB);
     });
   };
 
   $scope.addSaleRow = function(unit) {
-    $scope.add_sales.push({volume:null, unit:unit, price:null});
+    $scope.new_beverage['size_prices'].push({volume:null, unit:unit, price:null});
   };
 
   $scope.removeSaleRow = function(index) {
-    $scope.add_sales.splice(index, 1);
+    $scope.new_beverage['size_prices'].splice(index, 1);
   };
 
   $scope.editBeverage = function(index) {
@@ -382,6 +533,15 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       resolve: {
         beverage: function() {
           return $scope.inventory_items[index];
+        },
+        beverage_types: function() {
+          return $scope.beverage_types;
+        },
+        container_types: function() {
+          return $scope.container_types;
+        },
+        serve_types: function() {
+          return $scope.serve_types;
         },
         volume_units: function() {
           return $scope.volume_units;
@@ -430,7 +590,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
           for (var i=0; i < $scope.inventory_items.length; i++) {
             var bev = $scope.inventory_items[i];
             if (bev.id === bev_id) {
-              $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(bev.purchase_volume, bev.purchase_unit, bev.purchase_cost);
+              $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(bev.purchase_volume, bev.purchase_unit, bev.purchase_cost, bev.purchase_count);
               bev_name = bev.product;
 
               // If brewery or distributor is a new entry, add to typeahead arr
@@ -484,34 +644,58 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   $scope.getAllInv();
 })
 
-.controller('editInvModalCtrl', function($scope, $modalInstance, $http, beverage, volume_units, alcohol_types, all_distributors, all_breweries) {
+.controller('editInvModalCtrl', function($scope, $modalInstance, $http, beverage, beverage_types, container_types, serve_types, volume_units, alcohol_types, all_distributors, all_breweries) {
 
+  $scope.beverage_types = beverage_types;
+  $scope.container_types = container_types;
+  $scope.serve_types = serve_types;
+  $scope.tab_beverage_types = [];
   // original_beverage is a pointer back to the inventory object instance
   // and should be written to on save.
   // beverage is a clone of the original beverage so edits do not affect existing
   // beverage object until user saves
   $scope.original_beverage = beverage;
   $scope.beverage = JSON.parse( JSON.stringify( beverage ) );
+
   $scope.volume_units = volume_units;
   $scope.alcohol_types = alcohol_types;
   $scope.all_distributors = all_distributors;
   $scope.all_breweries = all_breweries;
+  $scope.unit_sale = null;
 
   // form verification
   $scope.form_ver = {};
+  $scope.form_ver.error_container = false;
+  $scope.form_ver.error_serve_type = false;
   $scope.form_ver.error_product = false;
-  $scope.form_ver.error_distributor = false;
-  $scope.form_ver.error_brewery = false;
   $scope.form_ver.error_type = false;
   $scope.form_ver.error_abv = false;
   $scope.form_ver.error_pvolume = false;
   $scope.form_ver.error_punit = false;
   $scope.form_ver.error_pcost = false;
+  $scope.form_ver.error_pcount = false;
+  $scope.form_ver.error_keg_deposit = false;
   $scope.form_ver.errors_sale_volume = [];
   $scope.form_ver.errors_sale_price = [];
 
-  $scope.cancel = function() {
-    $modalInstance.dismiss('cancel');
+  // Need to convert beverage.serve_type, which is an int, to a string
+  if ($scope.beverage.serve_type === 0) {
+    $scope.beverage.serve_type = $scope.serve_types[1];
+  } else {
+    $scope.beverage.serve_type = $scope.serve_types[2];
+  }
+
+  // need to handle unit sale price separate from other sale prices
+  if ($scope.beverage['size_prices'] !== null) {
+    for (var i = 0; i < $scope.beverage.size_prices.length; i++)
+    {
+      var sp = $scope.beverage.size_prices[i];
+      if (sp.unit === 'Unit') {
+        $scope.unit_sale = sp.price;
+        $scope.beverage.size_prices.splice(i,1);
+        break;
+      }
+    }
   };
 
   $scope.addSaleRow = function(unit) {
@@ -520,6 +704,76 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
   $scope.removeSaleRow = function(index) {
     $scope.beverage.size_prices.splice(index, 1);
+  };
+
+  if ($scope.beverage['size_prices'] === null || $scope.beverage['size_prices'].length == 0) {
+    $scope.beverage['size_prices'] = [];
+    $scope.addSaleRow('L');
+  }
+
+  for (var i=0; i < $scope.beverage_types.length; i++) {
+    $scope.tab_beverage_types.push(
+      {
+        name: $scope.beverage_types[i], 
+        active: false });
+    if ($scope.beverage.alcohol_type === $scope.tab_beverage_types[i].name) {
+      $scope.tab_beverage_types[i].active = true;
+    }
+  }
+  
+  console.log($scope.beverage);
+  
+  $scope.selectAddType = function(type) {
+    $scope.beverage.alcohol_type = type;
+    console.log(type);
+    if ($scope.beverage.alcohol_type === 'Beer' || $scope.beverage.alcohol_type === 'Cider') {
+      $scope.container_types = ["-- Select One --", "Keg", "Bottle", "Can"];
+    } else {
+      $scope.container_types = ["-- Select One --", "Bottle", "Can"];
+      if ($scope.beverage.container_type === 'Keg') {
+        $scope.beverage.container_type = 'Bottle';
+      }
+    }
+
+    // when switching to beer, if already have a container and serve type
+    // set, automatically change serve type to single serve, unless container
+    // is keg
+    if (($scope.beverage.alcohol_type === 'Beer' || $scope.beverage.alcohol_type === 'Cider') && $scope.beverage.container_type !== $scope.container_types[0] && $scope.beverage.serve_type !== $scope.serve_types[0] && $scope.beverage.container_type !== "Keg") {
+      $scope.beverage.serve_type = $scope.serve_types[1];
+      return;
+    }
+
+    // when switching to wine / liquor, if already have a container and serve type
+    // set, automatically change serve type to multiple pours, unless it's a can
+    if (($scope.beverage.alcohol_type === 'Wine' || $scope.beverage.alcohol_type === 'Liquor') && $scope.beverage.container_type !== $scope.container_types[0] && $scope.beverage.serve_type !== $scope.serve_types[0] && $scope.beverage.container_type !== "Can") {
+      $scope.beverage.serve_type = $scope.serve_types[2];
+      return;
+    }
+
+    // when switching to non alcoholic, if already have a container and serve type
+    // set, automatically change serve type to single serve
+    if ($scope.beverage.alcohol_type === 'Non Alcoholic' && $scope.beverage.container_type !== $scope.container_types[0] && $scope.beverage.serve_type !== $scope.serve_types[0]) {
+      $scope.beverage.serve_type = $scope.serve_types[1];
+      return;
+    }
+  };
+
+  $scope.addContainerChanged = function() {
+    if ($scope.beverage['container_type'] === 'Keg') {
+      $scope.beverage['serve_type'] = $scope.serve_types[2];
+      $scope.unit_sale = null;
+      $scope.new_beverage['purchase_count'] = 1;
+    } else if ($scope.beverage['container_type'] === 'Can' && $scope.beverage['serve_type'] !== $scope.serve_types[0]) {
+      $scope.beverage['serve_type'] = $scope.serve_types[1];
+    } else if (($scope.beverage['alcohol_type'] === 'Beer' || $scope.beverage['alcohol_type'] === 'Cider') && $scope.beverage['serve_type'] !== $scope.serve_types[0]) {
+      $scope.beverage['serve_type'] = $scope.serve_types[1];
+    } else if (($scope.beverage['alcohol_type'] === 'Wine' || $scope.beverage['alcohol_type'] === 'Liquor') && $scope.beverage['serve_type'] !== $scope.serve_types[0] && $scope.beverage['container_type'] === 'Bottle') {
+      $scope.beverage['serve_type'] = $scope.serve_types[2];
+    }
+  };
+
+  $scope.cancel = function() {
+    $modalInstance.dismiss('cancel');
   };
 
   $scope.showKegHelp = function() {
@@ -546,7 +800,8 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     var all_clear = true;
 
     // check all necessary fields are present
-    if ($scope.beverage.product === null || $scope.beverage.product === '' )
+    // check all necessary fields are present
+    if ($scope.beverage['product'] === null || $scope.beverage['product'] === '' )
     {
       $scope.form_ver.error_product = true;
       all_clear = false;
@@ -554,31 +809,23 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.form_ver.error_product = false;
     }
 
-    if ($scope.beverage.distributor === null || $scope.beverage.distributor === '' )
+    if ($scope.beverage['container_type'] === null || $scope.beverage['container_type'] === '' || $scope.beverage['container_type'] === $scope.container_types[0] )
     {
-      $scope.form_ver.error_distributor=true;
+      $scope.form_ver.error_container=true;
       all_clear = false;
     } else {
-      $scope.form_ver.error_distributor=false;
+      $scope.form_ver.error_container=false;
     }
 
-    if ($scope.beverage.brewery === null || $scope.beverage.brewery === '' )
+    if ($scope.beverage['serve_type'] === null || $scope.beverage['serve_type'] === '' || $scope.beverage['serve_type'] === $scope.serve_types[0] )
     {
-      $scope.form_ver.error_brewery=true;
+      $scope.form_ver.error_serve_type=true;
       all_clear = false;
     } else {
-      $scope.form_ver.error_brewery=false;
+      $scope.form_ver.error_serve_type=false;
     }
 
-    if ($scope.beverage.alcohol_type === null || $scope.beverage.alcohol_type === '' )
-    {
-      $scope.form_ver.error_type=true;
-      all_clear = false;
-    } else {
-      $scope.form_ver.error_type=false;
-    }
-
-    if ($scope.beverage.abv === null || $scope.beverage.abv === '' || isNaN($scope.beverage.abv))
+    if ( $scope.numIsInvalid($scope.beverage['abv']) )
     {
       $scope.form_ver.error_abv=true;
       all_clear = false;
@@ -586,7 +833,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.form_ver.error_abv=false;
     }
 
-    if ($scope.beverage.purchase_volume === null || $scope.beverage.purchase_volume === '' || isNaN($scope.beverage.purchase_volume))
+    if ( $scope.beverage['purchase_volume'] !== null && $scope.beverage['purchase_volume'] !== '' && $scope.numIsInvalid($scope.beverage['purchase_volume']) )
     {
       $scope.form_ver.error_pvolume=true;
       all_clear = false;
@@ -594,7 +841,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.form_ver.error_pvolume=false;
     }
 
-    if ($scope.beverage.purchase_unit === null || $scope.beverage.purchase_unit === '' )
+    if ($scope.beverage['purchase_unit'] === null || $scope.beverage['purchase_unit'] === '' )
     {
       $scope.form_ver.error_punit=true;
       all_clear = false;
@@ -602,7 +849,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.form_ver.error_punit=false;
     }
 
-    if ($scope.beverage.purchase_cost === null || $scope.beverage.purchase_cost === '' )
+    if ($scope.beverage['purchase_cost'] === null || $scope.beverage['purchase_cost'] === '' || $scope.numIsInvalid($scope.beverage['purchase_cost']) )
     {
       $scope.form_ver.error_pcost=true;
       all_clear = false;
@@ -610,20 +857,58 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.form_ver.error_pcost=false;
     }
 
-    // For validating sales & pricing, need:
-    // at least 1 row with complete information
-    // rows with partial information are incorrect
-    for (var sale_i in $scope.beverage.size_prices)
+    if ( $scope.beverage['purchase_count'] === null || $scope.numIsInvalid($scope.beverage['purchase_count']) )
     {
-      var sale = $scope.beverage.size_prices[sale_i];
-      if (sale.volume == null || sale.volume == '' || isNaN(sale.volume)
+      $scope.form_ver.error_pcount=true;
+      all_clear = false;
+    } else {
+      $scope.form_ver.error_pcount=false;
+    }
+
+    if ($scope.unit_sale !== null && $scope.unit_sale !== '' && $scope.numIsInvalid($scope.unit_sale) )
+    {
+      $scope.form_ver.error_unit_sale=true;
+      all_clear=false;
+    } else {
+      $scope.form_ver.error_unit_sale=false;
+    }
+
+    if ($scope.form_ver.error_unit_sale === false) 
+    {
+      // always add for single serve
+      if ($scope.beverage['serve_type'] === $scope.serve_types[1] || $scope.beverage['container_type'] !== "Keg") {
+        // unshift places the entry at head of array
+        $scope.beverage['size_prices'].unshift({'volume':1, 'unit':'Unit', 'price':$scope.unit_sale})
+      }
+    }
+
+    // Collect the final list of size prices.  Careful to do the following:
+    // 1. If serve_type is multi and volume and price both null, discard
+    // 2. If serve_type is single, discard any size_prices not of Unit type
+    var final_size_prices = []
+    for (var sale_i in $scope.beverage['size_prices'])
+    {
+      var sale = $scope.beverage['size_prices'][sale_i];
+      var serve_type = $scope.beverage['serve_type'];
+      // if multi and both volume and price null, is empty entry; discard
+      if (serve_type === $scope.serve_types[2] && sale['price'] === null && sale['volume'] === null) {
+        continue;
+      }
+      // if single and not Unit entry, discard
+      if (serve_type === $scope.serve_types[1] && sale['unit'] !== 'Unit') {
+        continue;
+      }
+      final_size_prices.push(sale);
+    }
+
+    for (var sale_i in final_size_prices)
+    {
+      var sale = final_size_prices[sale_i];
+      if (sale.volume !== null && sale.volume !== '' && $scope.numIsInvalid(sale.volume)
         || sale.unit == null || sale.unit == '' ) {
         $scope.form_ver.errors_sale_volume[sale_i] = true;
         all_clear = false;
-      } else {
-        $scope.form_ver.errors_sale_volume[sale_i] = false;
-      }
-      if (sale.price == null || sale.price == '' || isNaN(sale.price)) {
+      } else if (sale.price !== null && sale.price !== '' && $scope.numIsInvalid(sale.price)) {
         $scope.form_ver.errors_sale_price[sale_i] = true;
         all_clear = false;
       } else {
@@ -631,9 +916,19 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       }
     }
 
+    $scope.beverage['size_prices'] = final_size_prices;
+
     if (!all_clear) {
-      $scope.new_failure_msg = "Whoops!  Some fields are missing or incorrect, please fix them and try again.  If you don't know the value for a field, put 0 for numeric fields, or 'Unknown' for text fields.";
+      $scope.new_failure_msg = "Whoops!  Some fields are missing or incorrect, please fix them and try again.  If you don't know the value for a field, set it to '0'.";
       return;
+    }
+
+    // Need to convert serve_type back to an int
+    // Need to convert beverage.serve_type, which is an int, to a string
+    if ($scope.beverage.serve_type === $scope.serve_types[1]) {
+      $scope.beverage.serve_type = 0;
+    } else {
+      $scope.beverage.serve_type = 1;
     }
 
     // Find any diffs between the original and the modified object.
@@ -643,11 +938,11 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     var changedKeys = [];     // store which keys changed
     for (var key in $scope.beverage) {
       if ($scope.original_beverage.hasOwnProperty(key)) {
-        if (key == '__proto__' || key == '$$hashKey') {
+        if (key === '__proto__' || key === '$$hashKey') {
           continue;
         }
         // handle known special cases such as size_prices
-        else if (key=='size_prices') {
+        else if (key==='size_prices') {
           var isSame = true;
           if ($scope.original_beverage.size_prices.length != $scope.beverage.size_prices.length)
           {
@@ -695,6 +990,10 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     });
 
     $modalInstance.close(['save', $scope.beverage.id]);
+  };
+
+  $scope.numIsInvalid = function(num) {
+    return isNaN(num) || num < 0;
   };
 
   $scope.deleteItem = function() {

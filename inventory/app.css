@@ -249,20 +249,20 @@ body {
   border-bottom:solid 1px #dddddd;
 }
 
-.nav li.active a {
+.main_nav li.active a {
   color:#2288cc !important;
   text-decoration: none;
   background-color: #ffffff !important;
   border-bottom: 2px solid #88ccff;
 }
 
-.nav li a {
+.main_nav li a {
   font-size:1.1em;
   text-decoration: none;
   color:#999999 !important;
 }
 
-.nav li a:hover {
+.main_nav li a:hover {
   text-decoration:none;
 }
 
@@ -298,11 +298,27 @@ body {
 .add_inv_all {
   border-radius: 4px;
   border:1px solid #aaddbb;
-  background-color: #fcfffa;
+  background-color: #effae4;
   padding: 16px 10px;
   width:800px;
   margin-top: -11px;
   margin-bottom:0px;
+}
+
+.nav-tabs > li > a {
+  padding:4px 12px;
+  color:#899979;
+  font-size:1.1em;
+}
+
+.nav-tabs > li.active > a:focus{
+  background-color:#ffffff;
+  font-weight: bold;
+}
+
+.nav-tabs > li.active > a{
+  background-color:#ffffff;
+  font-weight: bold;
 }
 
 .add_row {
@@ -315,7 +331,7 @@ body {
 .add_hr {
   padding:0;
   margin:0;
-  border-color:#d5e8e0;
+  border-color:#c0d8d0;
 }
 
 .add_label {
@@ -348,7 +364,7 @@ body {
 }
 
 .add_transparent_btn {
-  background-color: #fcfffa;
+  background-color: #effae4;
   border: 1px solid #aaddbb;
   color: #55aa55;
 }
@@ -369,7 +385,7 @@ body {
 .add_inv {
   border-radius:6px;
   border:1px solid #aaddbb;
-  background-color: #fcfffa;
+  background-color: #effae4;
   margin-left:-8px;
   margin-right:-8px;
   padding-left: 8px;
@@ -459,7 +475,15 @@ body {
   box-shadow: 0 4px 4px -3px #bbbbbb;
 }
 
-.abold {
+.bold {
   font-weight: bold !important;
 }
 
+.optional {
+  color:#444444;
+}
+
+.inv_symbol {
+  color:#cccccc;
+  display:none;
+}
