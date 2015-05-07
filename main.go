@@ -751,7 +751,6 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 			// Now insert fresh entries for the sale prices
 			for _, sp := range sps {
-				log.Println(sp.Price.Value)
 				// if both Volume and Price are empty, don't add an entry -- it means the
 				// user left this blank
 				if !sp.Volume.Valid && !sp.Price.Valid {

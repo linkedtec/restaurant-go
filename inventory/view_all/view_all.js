@@ -49,22 +49,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     misc: true
   }
 
-  $http.get('/volume_units').
-  success(function(data, status, headers, config) {
-    // this callback will be called asynchronously when the response
-    // is available
-    console.log(data);
-    $scope.volume_units_full = data;
-    $scope.volume_units = [];
-    for (var i=0; i < data.length; i++)
-    {
-      $scope.volume_units.push(data[i].abbr_name);
-    }
-  }).
-  error(function(data, status, headers, config) {
-
-  });
-
   $scope.clearNewForm = function() {
     //$scope.new_container_type = $scope.container_types[0];
     //$scope.new_serve_type = $scope.serve_types[0];
@@ -639,9 +623,29 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
   $scope.highlightCols = function(comp) {
     $scope.highlight_cols = comp;
+  };
+
+  $scope.getVolUnits = function() {
+    $http.get('/volume_units').
+    success(function(data, status, headers, config) {
+      // this callback will be called asynchronously when the response
+      // is available
+      console.log(data);
+      $scope.volume_units_full = data;
+      $scope.volume_units = [];
+      for (var i=0; i < data.length; i++)
+      {
+        $scope.volume_units.push(data[i].abbr_name);
+      }
+      // need to first load vol units before getting all inv
+      $scope.getAllInv();
+    }).
+    error(function(data, status, headers, config) {
+
+    });
   }
 
-  $scope.getAllInv();
+  $scope.getVolUnits();
 })
 
 .controller('editInvModalCtrl', function($scope, $modalInstance, $http, beverage, beverage_types, container_types, serve_types, volume_units, alcohol_types, all_distributors, all_breweries) {
