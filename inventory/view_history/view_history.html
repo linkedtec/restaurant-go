@@ -1,0 +1,40 @@
+<div ng-include src="'./inv_subnav.html'"></div>
+<div class="container" style="min-width:620px; max-width:880px">
+
+  <div style="margin-top:24px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
+    Inventory Records & History
+  </div>
+  <div class="hint_text" style="margin-top:6px;">
+    View weekly inventory and historical data.
+  </div>
+
+  <div style="margin-top:24px; margin-bottom:24px">
+    <div class="row">
+      <div class="col-xs-6">
+        <span style="float:left">
+          <div class="btn-group" dropdown>
+            <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.3em">
+              <span style="float:left; text-align:left; width:90%">
+                {{sort_type}} 
+              </span>
+              <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:6px; font-size:14px; color:#888888"></span>
+            </button>
+            <ul class="loc_dropdown dropdown-menu" role="menu">
+              <li class="loc_li" ng-repeat="type in sort_types">
+                <a ng-click="selectSortType(type)" class="noselect">{{type}}</a>
+              </li>
+            </ul>
+          </div>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <svg id="d3viz" width="880" height="500"></svg>
+  </div>
+
+  <script src="/lib/d3/d3.min.js"></script>
+  <link rel="stylesheet" href="/inventory/chart.css">
+
+</div>

@@ -53,6 +53,18 @@ body {
   color:#2288cc;
 }
 
+.menu li.sub_active {
+  border-bottom: 1px solid #e3e3e3;
+}
+
+.menu li.sub_active a{
+  padding-top:0;
+  padding-bottom:0;
+  margin:0;
+  color:#888888;
+  font-weight:bold;
+}
+
 .full_divider {
   width:100%;
   border-bottom: 1px solid #dddddd;
@@ -152,7 +164,7 @@ body {
 
 .mainpanel {
   /*padding: 0px 20px;*/
-  overflow: scroll;
+  /*overflow: scroll;*/
   min-height: 800px;
 }
 
