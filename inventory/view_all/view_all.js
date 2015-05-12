@@ -427,7 +427,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
         }
 
         // calculate inventory
-        var value = inv['purchase_cost'] * inv['count'];
+        var value = inv['purchase_cost'] / inv['purchase_count'] * inv['count'];
         $scope.inventory_items[i]['inventory'] = value;
 
         // calculate price per volume

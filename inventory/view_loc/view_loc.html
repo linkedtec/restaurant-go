@@ -260,7 +260,7 @@
           {{inv.brewery}}
         </div>
         <div class="col-xs-2 min_padding" style="padding-top:6px; padding-left:12px !important" ng-show="inv_started===false">
-          ${{inv.purchase_cost}}
+          ${{inv.purchase_cost / inv.purchase_count | number:2}}
         </div>
         <div class="min_padding" ng-class="{'col-xs-1': inv_started===false, 'col-xs-6': inv_started===true}">
 
@@ -289,16 +289,13 @@
         </div>
         <div ng-show="inv_started===false" class="min_padding col-xs-2">
           <div style="padding-left:4px; padding-top:6px">
-            $ {{inv.purchase_cost * inv.quantity | number:2}}
+            $ {{inv.purchase_cost / inv.purchase_count * inv.quantity | number:2}}
           </div>
         </div>
         <div class="col-xs-1 min_padding" ng-show="inv_started===false">
           <button ng-click="removeInvItem($index)" type="button" class="btn btn-default btn-sm btn-right" style="font-size:14px; min-height:32px; color:#888888">
             <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
           </button>
-        </div>
-        <!--div class="col-xs-2 col-sm-2 min_padding" style="text-align:right;">
-          <button ng-click="updateInvItem($index)" type="button" class="btn btn-default btn-sm" style="font-size:14px; width:100%; max-width:100px">Update</button-->
         </div>
       </div>
     </div>

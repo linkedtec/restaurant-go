@@ -10,14 +10,14 @@
 
   <div style="margin-top:24px; margin-bottom:24px">
     <div class="row">
-      <div class="col-xs-6">
+      <div class="col-xs-12">
         <span style="float:left">
           <div class="btn-group" dropdown>
-            <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.3em">
+            <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.1em">
               <span style="float:left; text-align:left; width:90%">
                 {{sort_type}} 
               </span>
-              <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:6px; font-size:14px; color:#888888"></span>
+              <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:14px; color:#888888"></span>
             </button>
             <ul class="loc_dropdown dropdown-menu" role="menu">
               <li class="loc_li" ng-repeat="type in sort_types">
@@ -26,8 +26,32 @@
             </ul>
           </div>
         </span>
+
+        <span ng-if="sort_type===sort_types[2]" style="margin-left:10px">
+          <div class="btn-group" dropdown>
+            <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.1em;">
+              <span style="float:left; text-align:left; width:90%; color:#888888">
+                Add Beverage...
+              </span>
+              <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:14px; color:#888888"></span>
+            </button>
+            <ul class="loc_dropdown dropdown-menu" role="menu" style="min-width:280px">
+              <li class="loc_li" ng-repeat="item in all_items">
+                <a ng-click="addItem(item)" class="noselect">{{item.product}} <span style="color:#aaaaaa; float:right">({{item.container_type}})</span></a>
+              </li>
+            </ul>
+          </div>
+        </span>
       </div>
     </div>
+
+    <div ng-if="added_items.length > 0" class="row" ng-if="sort_type===sort_types[2]" style="padding-left:12px; margin-top:12px">
+      <div ng-repeat="added_item in added_items" class="a_item" id="a_item_{{$index}}">
+        <span style="float:left">{{added_item.product}}</span>
+        <span class="glyphicon glyphicon-remove add_x" aria-hidden="true" ng-click="removeAddedItem(added_item)"></span>
+      </div>
+    </div>
+
   </div>
 
   <div>

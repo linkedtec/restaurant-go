@@ -241,51 +241,6 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     });
   };
 
-  $scope.updateInvItem = function(index) {
-    console.log(index);
-    var item = $scope.inv_items[index];
-
-    if (item.quantity=="" || item.quantity == null)
-    {
-      swal({
-        title:"Empty Quantity", 
-        text: "Please enter a Quantity for " + item.name + "!"});
-      return;
-    }
-    if (item.unit_price=="" || item.unit_price == null)
-    {
-      swal({
-        title:"Empty Unit Price", 
-        text: "Please enter a Unit Price for " + item.name + "!"});
-      return;
-    }
-
-    if (isNaN(item.quantity))
-    {
-      swal({
-        title:"Invalid Quantity: " + item.quantity, 
-        text: "Please check that " + item.name + "'s Quantity is a valid number!"});
-      return;
-    }
-    if (isNaN(item.unit_price))
-    {
-      swal({
-        title:"Invalid Unit Price: " + item.unit_price, 
-        text: "Please check that " + item.name + "'s Unit Price is a valid number!"});
-      return;
-    }
-
-    $http.put('/inv/loc', {
-      name:item.name,
-      unit:item.unit,
-      location:$scope.selected_loc,
-      quantity:item.quantity,
-      unit_price:item.unit_price
-    });
-    $scope.inv_items[index]["updated_today"] = true;
-
-  };
-
   $scope.removeInvItem = function(index) {
     console.log(index);
     var item = $scope.inv_items[index];
@@ -409,7 +364,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       post_item_quantities.push({id:inv.id, quantity:parseFloat(inv.quantity)})
       $scope.inv_items[inv_i]['invalid_quantity'] = false;
       $scope.inv_items[inv_i]['add_q'] = null;
-      var value = inv['purchase_cost'] * inv['quantity'];
+      var value = inv['purchase_cost'] / inv['purchase_count'] * inv['quantity'];
       $scope.total_inventory += value;
     };
 
@@ -581,7 +536,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       for (var i = 0; i < $scope.inv_items.length; i++)
       {
         var inv = $scope.inv_items[i];
-        var value = inv['purchase_cost'] * inv['quantity'];
+        var value = inv['purchase_cost'] / inv['purchase_count'] * inv['quantity'];
         $scope.total_inventory += value;
       }
 

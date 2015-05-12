@@ -21,6 +21,12 @@ type VolumeUnit struct {
 	InLiters float32 `json:"in_liters"`
 }
 
+type BeverageLight struct {
+	ID            int    `json:"id"`
+	ContainerType string `json:"container_type"`
+	Product       string `json:"product"`
+}
+
 type Beverage struct {
 	ID             int         `json:"id"`
 	ContainerType  string      `json:"container_type"`
@@ -70,6 +76,7 @@ type LocBeverageApp struct {
 	PurchaseVolume NullFloat64 `json:"purchase_volume"`
 	PurchaseUnit   NullString  `json:"purchase_unit"`
 	PurchaseCost   float32     `json:"purchase_cost"`
+	PurchaseCount  int         `json:"purchase_count"`
 	Quantity       float32     `json:"quantity"`
 	Update         time.Time   `json:"update"`
 	Location       string      `json:"location"`
@@ -81,6 +88,7 @@ type LocBeverageAppBatch struct {
 }
 
 type Location struct {
+	ID         int       `json:"id"`
 	Name       string    `json:"name"`
 	LastUpdate time.Time `json:"last_update"`
 }

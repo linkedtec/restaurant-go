@@ -16,6 +16,11 @@ type InvSumHistory struct {
 	Date         time.Time `json:"update"`
 }
 
+type InvLocSumHistory struct {
+	Location  string          `json:"location"`
+	Histories []InvSumHistory `json:"histories"`
+}
+
 func setupInvHandlers() {
 	invHandler := http.FileServer(http.Dir("inventory"))
 	http.Handle("/inventory/", http.StripPrefix("/inventory/", invHandler))
@@ -33,7 +38,39 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 		history_type := r.URL.Query().Get("type")
 		log.Println(history_type)
 
-		if history_type == "all" {
+		if history_type == "item" {
+
+			item_id := r.URL.Query().Get("id")
+			log.Println(item_id)
+
+			var histories []InvSumHistory
+			rows, err := db.Query("SELECT SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity), location_beverages.update::date FROM beverages, location_beverages WHERE beverages.id=$1 AND beverages.id=location_beverages.beverage_id GROUP BY location_beverages.update::date ORDER BY location_beverages.update::date;", item_id)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			defer rows.Close()
+			for rows.Next() {
+				var history InvSumHistory
+				if err := rows.Scan(
+					&history.InventorySum,
+					&history.Date); err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+				histories = append(histories, history)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			js, err := json.Marshal(histories)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Write(js)
+
+		} else if history_type == "all" {
 			// Because location_beverages only stores one entry per DAY per beverage
 			// at each location, summing across all locations on the same day would
 			// yield total quantity on that day
@@ -43,7 +80,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 			var histories []InvSumHistory
 
-			rows, err := db.Query("SELECT SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity), DATE(location_beverages.update) AS update_day FROM beverages,location_beverages WHERE beverages.id=location_beverages.beverage_id AND location_beverages.update > (now() - '1 month'::interval) GROUP BY update_day;")
+			rows, err := db.Query("SELECT SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity), location_beverages.update::date FROM beverages,location_beverages WHERE beverages.id=location_beverages.beverage_id AND location_beverages.update > (now() - '1 month'::interval) GROUP BY location_beverages.update::date;")
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -70,6 +107,71 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			w.Write(js)
+		} else if history_type == "locations" {
+
+			var histories []InvLocSumHistory
+
+			//
+			// Get all distinct dates which have loc bev data
+			/*
+				date_rows, err := db.Query("SELECT DISTINCT location_beverages.update::date FROM location_beverages, locations WHERE locations.user_id=$1 AND location_beverages.location_id=locations.id ORDER BY location_beverages.update::date;", test_user_id)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			*/
+			// First get all locations
+			loc_rows, err := db.Query("SELECT DISTINCT locations.id, locations.name FROM location_beverages, locations WHERE locations.user_id=$1 AND location_beverages.location_id=locations.id;", test_user_id)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			defer loc_rows.Close()
+			for loc_rows.Next() {
+				var loc Location
+				if err := loc_rows.Scan(
+					&loc.ID,
+					&loc.Name); err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+				var sumHistories []InvSumHistory
+				var locSumHistory InvLocSumHistory
+				locSumHistory.Location = loc.Name
+
+				rows, err := db.Query("SELECT SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity), DATE(location_beverages.update) AS update_day FROM beverages,location_beverages,locations WHERE beverages.id=location_beverages.beverage_id AND location_beverages.update > (now() - '1 month'::interval) AND locations.id=location_beverages.location_id AND locations.id=$1 GROUP BY update_day ORDER BY update_day;", loc.ID)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				defer rows.Close()
+				for rows.Next() {
+					var history InvSumHistory
+					if err := rows.Scan(
+						&history.InventorySum,
+						&history.Date); err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+
+					sumHistories = append(sumHistories, history)
+				}
+				locSumHistory.Histories = sumHistories
+				histories = append(histories, locSumHistory)
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			js, err := json.Marshal(histories)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Write(js)
 		}
 
 	default:
@@ -82,36 +184,66 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
-		var beverages []Beverage
 
-		rows, err := db.Query("SELECT id, container_type, serve_type, distributor, product, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, purchase_count, deposit, flavor_profile FROM beverages WHERE user_id=$1", test_user_id)
+		get_type := r.URL.Query().Get("type")
+		// if type is "names", only return the names, ids, and container types
+		names_only := get_type == "names"
+
+		var beverages []Beverage
+		var beverages_light []BeverageLight
+
+		query := "SELECT id, container_type, serve_type, distributor, product, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, purchase_count, deposit, flavor_profile FROM beverages WHERE user_id=" + test_user_id
+		if names_only {
+			query = "SELECT id, container_type, product FROM beverages WHERE user_id=" + test_user_id
+		}
+
+		rows, err := db.Query(query)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
 		defer rows.Close()
 		for rows.Next() {
+			var bev_light BeverageLight
 			var bev Beverage
-			if err := rows.Scan(
-				&bev.ID,
-				&bev.ContainerType,
-				&bev.ServeType,
-				&bev.Distributor,
-				&bev.Product,
-				&bev.Brewery,
-				&bev.AlcoholType,
-				&bev.ABV,
-				&bev.PurchaseVolume,
-				&bev.PurchaseUnit,
-				&bev.PurchaseCost,
-				&bev.PurchaseCount,
-				&bev.Deposit,
-				&bev.FlavorProfile); err != nil {
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+			if names_only {
+				if err := rows.Scan(
+					&bev_light.ID,
+					&bev_light.ContainerType,
+					&bev_light.Product); err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+			} else {
+				if err := rows.Scan(
+					&bev.ID,
+					&bev.ContainerType,
+					&bev.ServeType,
+					&bev.Distributor,
+					&bev.Product,
+					&bev.Brewery,
+					&bev.AlcoholType,
+					&bev.ABV,
+					&bev.PurchaseVolume,
+					&bev.PurchaseUnit,
+					&bev.PurchaseCost,
+					&bev.PurchaseCount,
+					&bev.Deposit,
+					&bev.FlavorProfile); err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+			}
+
+			if names_only {
+				beverages_light = append(beverages_light, bev_light)
 				continue
 			}
+
 			var exists bool
 			err := db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages, locations WHERE location_beverages.beverage_id=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update);", bev.ID).Scan(&exists)
 			if err != nil {
@@ -135,33 +267,45 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 			beverages = append(beverages, bev)
 		}
-		// for each beverage want to include the list of sale volume:prices
-		for i := range beverages {
-			bev := beverages[i]
-			rows, err := db.Query("SELECT id, serving_size, serving_unit, serving_price FROM size_prices WHERE beverage_id=$1;", bev.ID)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				continue
-			}
-			for rows.Next() {
-				var sp SalePrice
-				if err := rows.Scan(
-					&sp.ID, &sp.Volume, &sp.Unit, &sp.Price); err != nil {
+
+		if !names_only {
+			// for each beverage want to include the list of sale volume:prices
+			for i := range beverages {
+				bev := beverages[i]
+				rows, err := db.Query("SELECT id, serving_size, serving_unit, serving_price FROM size_prices WHERE beverage_id=$1;", bev.ID)
+				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					continue
 				}
-				beverages[i].SalePrices = append(beverages[i].SalePrices, sp)
+				for rows.Next() {
+					var sp SalePrice
+					if err := rows.Scan(
+						&sp.ID, &sp.Volume, &sp.Unit, &sp.Price); err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+					beverages[i].SalePrices = append(beverages[i].SalePrices, sp)
+				}
 			}
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		js, err := json.Marshal(beverages)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
 
-		w.Write(js)
+		if names_only {
+			js, err := json.Marshal(beverages_light)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Write(js)
+		} else {
+			js, err := json.Marshal(beverages)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Write(js)
+		}
 
 	case "POST":
 		log.Println("GOT POST INV")
@@ -459,10 +603,11 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		// if same day, delete old entries of duplicated beverages, but not the
-		// deleted beverage, of course
+		// if same day, delete old entries of beverages, which are from
+		// last_update.  This will remove today's entry of the deleted beverage
+		// as well, which is correct
 		if same_day == true {
-			_, err = db.Exec("DELETE FROM location_beverages WHERE location_id=$1 AND update=$2 AND beverage_id!=$3;", loc_id, last_update, existing_item_id)
+			_, err = db.Exec("DELETE FROM location_beverages WHERE location_id=$1 AND update=$2;", loc_id, last_update)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -504,7 +649,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		rows, err := db.Query("SELECT beverages.id, beverages.product, beverages.brewery, beverages.alcohol_type, beverages.purchase_volume, beverages.purchase_unit, beverages.purchase_cost, location_beverages.quantity, location_beverages.update FROM beverages, location_beverages WHERE beverages.id=location_beverages.beverage_id AND location_beverages.location_id=$1 AND location_beverages.update=$2 ORDER BY beverages.product ASC;", loc_id, last_update)
+		rows, err := db.Query("SELECT beverages.id, beverages.product, beverages.brewery, beverages.alcohol_type, beverages.purchase_volume, beverages.purchase_unit, beverages.purchase_cost, beverages.purchase_count, location_beverages.quantity, location_beverages.update FROM beverages, location_beverages WHERE beverages.id=location_beverages.beverage_id AND location_beverages.location_id=$1 AND location_beverages.update=$2 ORDER BY beverages.product ASC;", loc_id, last_update)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -512,7 +657,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		defer rows.Close()
 		for rows.Next() {
 			var locBev LocBeverageApp
-			if err := rows.Scan(&locBev.ID, &locBev.Product, &locBev.Brewery, &locBev.AlcoholType, &locBev.PurchaseVolume, &locBev.PurchaseUnit, &locBev.PurchaseCost, &locBev.Quantity, &locBev.Update); err != nil {
+			if err := rows.Scan(&locBev.ID, &locBev.Product, &locBev.Brewery, &locBev.AlcoholType, &locBev.PurchaseVolume, &locBev.PurchaseUnit, &locBev.PurchaseCost, &locBev.PurchaseCount, &locBev.Quantity, &locBev.Update); err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return

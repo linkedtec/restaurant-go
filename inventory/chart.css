@@ -7,6 +7,36 @@
 
 .line {
   fill: none;
-  stroke: #4488bb;
+  stroke: #c8e8ff;
   stroke-width: 1.5px;
+}
+
+.focus circle {
+  fill: none;
+  stroke: #33aa00;
+}
+
+.overlay {
+  fill: none;
+  pointer-events: all;
+}
+
+.a_item {
+  display:inline-block;
+  padding: 4px 10px;
+  margin-left:4px;
+  margin-right:4px;
+  border-radius: 4px;
+  background-color:#33aacc;
+  color:white;
+}
+
+.add_x {
+  float:left;
+  margin-top:2px;
+  margin-left:8px;
+}
+
+.add_x:hover {
+  color:#ff9955;
 }
