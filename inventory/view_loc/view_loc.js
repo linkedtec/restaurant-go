@@ -9,7 +9,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
   });
 }])
 
-.controller('ViewInvByLocCtrl', function($scope, $http) {
+.controller('ViewInvByLocCtrl', function($scope, $modal, $http) {
 
   $scope.add_loc = false;       // add new location mode
   $scope.edit_loc = false;      // edit location mode
@@ -316,7 +316,66 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     });
   };
 
-  $scope.startInv = function() {
+  $scope.promptStartInv = function() {
+    /*
+    swal({
+      title: "Start From Scratch?",
+      text: "Would you like to count starting <b>from scratch</b> (all beverage quantities start at 0) or resume from the existing quantities?",
+      showCancelButton: true,
+      html: true,
+      confirmButtonColor: "#88BB44",
+      confirmButtonText: "From scratch!",
+      cancelButtonText: "Resume existing",
+      closeOnConfirm: true,
+      allowOutsideClick: true },
+      function(isConfirm) {
+        });
+    */
+
+    // XXX If all quantities are 0, directly go to startInv starting from scratch
+    // without prompting
+    var total_qty = 0;
+    for (var i in $scope.inv_items) {
+      total_qty += $scope.inv_items[i]['quantity'];
+    }
+    if (total_qty <= 0) {
+      $scope.startInv(true);
+      return;
+    }
+
+
+    var modalStartInstance = $modal.open({
+      templateUrl: 'startCountModal.html',
+      controller: 'startCountModalCtrl',
+      windowClass: 'start-count-modal',
+      backdropClass: 'start-count-modal-backdrop',
+      size: 'md',
+      resolve: {
+        
+      }
+    });
+
+    modalStartInstance.result.then(
+      // success status
+      function( mode ) {
+        // result is a list, first item is string for status, e.g.,
+        // 'save' or 'delete'
+        // second item is beverage id
+        if (mode === 'scratch') {
+          $scope.startInv(true);
+        }
+        // after a save, we want to re-calculate cost per mL, for instance
+        else if (mode === 'edit') {
+          $scope.startInv(false);
+        }
+      }, 
+      // error status
+      function() {
+        ;
+      });
+  };
+
+  $scope.startInv = function(from_scratch) {
     $scope.inv_started = true;
 
     // Create a backup of all quantities of inventory items with object
@@ -326,6 +385,10 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     for (var inv_i in $scope.inv_items) {
       var inv = $scope.inv_items[inv_i];
       $scope.inv_quantity_backup[inv.id] = inv.quantity;
+
+      if (from_scratch) {
+        $scope.inv_items[inv_i]['quantity'] = 0; 
+      }
     };
     console.log($scope.inv_quantity_backup);
   };
@@ -640,13 +703,25 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     return pretty_time;
   };
 
-  $scope.showInvHelp = function() {
-    swal({
-        title:"How is Inventory Calculated?", 
-        text: "<b>Inventory = Product's Quantity * Purchase Cost</b>.<br/><br/>The Purchase Cost can be found in the All Beverages DB.",
-        html: true
-      });
-      return;
+})
+
+
+.controller('startCountModalCtrl', function($scope, $modalInstance) {
+
+  $scope.show_help = false;
+
+  $scope.showHelp = function() {
+    $scope.show_help = true;
   }
+
+  $scope.cancel = function() {
+    $modalInstance.dismiss('cancel');
+  };
+
+  $scope.pickMode = function(mode) {
+
+    // mode should be 'scratch' or 'edit'
+    $modalInstance.close(mode);
+  };
 
 });

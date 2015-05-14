@@ -512,8 +512,8 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     var modalEditInstance = $modal.open({
       templateUrl: 'editInvModal.html',
       controller: 'editInvModalCtrl',
-      size: 'lg',
-      windowClass: 'app-modal-window',
+      windowClass: 'edit-inv-modal',
+      backdropClass: 'edit-inv-modal-backdrop',
       resolve: {
         beverage: function() {
           return $scope.inventory_items[index];
@@ -600,7 +600,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       // error status
       function() {
         ;
-      })
+      });
   };
 
   $scope.showColumnsCtrl = function() {
@@ -1017,14 +1017,14 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
           params: {
             id:bev_id
         }
-      }).
-      success(function(data, status, headers, config) {
-        // communicate with ViewAllInvCtrl to delete its entry
-        $modalInstance.close(['delete', bev_id]);
-      }).
-      error(function(data, status, headers, config) {
-        console.log(data);
-      });
+        }).
+        success(function(data, status, headers, config) {
+          // communicate with ViewAllInvCtrl to delete its entry
+          $modalInstance.close(['delete', bev_id]);
+        }).
+        error(function(data, status, headers, config) {
+          console.log(data);
+        });
     });
   };
 

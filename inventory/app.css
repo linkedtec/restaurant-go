@@ -473,12 +473,28 @@ body {
   user-select: none;
 }
 
-.app-modal-window .modal-dialog {
+.edit-inv-modal .modal-dialog {
   min-width: 800px;
 }
 
-.modal-backdrop {
-  background-color: #ecf5ea;
+.edit-inv-modal-backdrop {
+  background-color: #eef5e5;
+  /*background-color:#f5faff;*/
+}
+
+.start-count-modal .modal-dialog{
+  margin-top: 100px;
+}
+
+.start-count-modal-backdrop {
+  background-color: #888888;
+}
+
+
+
+.modal-backdrop.in{
+  opacity:0.75;
+  filter: alpha(opacity=75);
 }
 
 .box-shadow {
@@ -498,4 +514,8 @@ body {
 .inv_symbol {
   color:#cccccc;
   display:none;
+}
+
+.help_link {
+  color:#5599cc;
 }
