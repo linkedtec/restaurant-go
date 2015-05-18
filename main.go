@@ -40,6 +40,7 @@ type Beverage struct {
 	PurchaseUnit   NullString  `json:"purchase_unit"`
 	PurchaseCost   float32     `json:"purchase_cost"`
 	PurchaseCount  int         `json:"purchase_count"`
+	EmptyKegs      NullInt64   `json:"empty_kegs"`
 	Deposit        NullFloat64 `json:"deposit"`
 	FlavorProfile  NullString  `json:"flavor_profile"`
 	SalePrices     []SalePrice `json:"size_prices"`
@@ -71,31 +72,38 @@ type LocBeverage struct {
 type LocBeverageApp struct {
 	ID             int         `json:"id"`
 	Product        string      `json:"product"`
+	ContainerType  string      `json:"container_type"`
 	Brewery        NullString  `json:"brewery"`
+	Distributor    NullString  `json:"distributor"`
 	AlcoholType    string      `json:"alcohol_type"`
 	PurchaseVolume NullFloat64 `json:"purchase_volume"`
 	PurchaseUnit   NullString  `json:"purchase_unit"`
 	PurchaseCost   float32     `json:"purchase_cost"`
 	PurchaseCount  int         `json:"purchase_count"`
+	Deposit        NullFloat64 `json:"deposit"`
 	Quantity       float32     `json:"quantity"`
 	Update         time.Time   `json:"update"`
 	Location       string      `json:"location"`
+	Type           string      `json:"type"`
 }
 
 type LocBeverageAppBatch struct {
 	Items    []LocBeverageApp `json:"items"`
 	Location string           `json:"location"`
+	Type     string           `json:"type"`
 }
 
 type Location struct {
 	ID         int       `json:"id"`
 	Name       string    `json:"name"`
 	LastUpdate time.Time `json:"last_update"`
+	Type       string    `json:"type"`
 }
 
 type RenameTuple struct {
 	Name    string `json:"name"`
 	NewName string `json:"new_name"`
+	Type    string `json:"type"`
 }
 
 func main() {

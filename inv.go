@@ -44,7 +44,15 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(item_id)
 
 			var histories []InvSumHistory
-			rows, err := db.Query("SELECT SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity), location_beverages.update::date FROM beverages, location_beverages WHERE beverages.id=$1 AND beverages.id=location_beverages.beverage_id GROUP BY location_beverages.update::date ORDER BY location_beverages.update::date;", item_id)
+			rows, err := db.Query(
+				`SELECT SUM(res.inv), res.update FROM (
+          SELECT 
+            CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity) 
+            ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity) 
+            END AS inv, location_beverages.update::date AS update
+            FROM beverages, location_beverages, locations 
+            WHERE beverages.id=$1 AND beverages.id=location_beverages.beverage_id AND locations.id=location_beverages.location_id GROUP BY update, locations.type
+          ) AS res GROUP BY res.update ORDER BY res.update;`, item_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -80,7 +88,15 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 			var histories []InvSumHistory
 
-			rows, err := db.Query("SELECT SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity), location_beverages.update::date FROM beverages,location_beverages WHERE beverages.id=location_beverages.beverage_id AND location_beverages.update > (now() - '1 month'::interval) GROUP BY location_beverages.update::date;")
+			rows, err := db.Query(
+				`SELECT SUM(res.inv), res.update FROM (
+          SELECT 
+            CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity) 
+            ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity) 
+            END AS inv, location_beverages.update::date AS update 
+            FROM beverages, location_beverages, locations 
+            WHERE beverages.id=location_beverages.beverage_id AND location_beverages.update > (now() - '1 month'::interval) AND locations.id=location_beverages.location_id GROUP BY update, locations.type
+          ) AS res GROUP BY res.update ORDER BY res.update;`)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -142,7 +158,15 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				var locSumHistory InvLocSumHistory
 				locSumHistory.Location = loc.Name
 
-				rows, err := db.Query("SELECT SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity), DATE(location_beverages.update) AS update_day FROM beverages,location_beverages,locations WHERE beverages.id=location_beverages.beverage_id AND location_beverages.update > (now() - '1 month'::interval) AND locations.id=location_beverages.location_id AND locations.id=$1 GROUP BY update_day ORDER BY update_day;", loc.ID)
+				rows, err := db.Query(
+					`SELECT SUM(res.inv), res.update FROM (
+            SELECT 
+              CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity) 
+              ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity)
+              END AS inv, location_beverages.update::date AS update 
+              FROM beverages,location_beverages,locations 
+              WHERE beverages.id=location_beverages.beverage_id AND location_beverages.update > (now() - '1 month'::interval) AND locations.id=location_beverages.location_id AND locations.id=$1 GROUP BY update, locations.type
+          ) AS res GROUP BY res.update ORDER BY res.update;`, loc.ID)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -188,6 +212,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		get_type := r.URL.Query().Get("type")
 		// if type is "names", only return the names, ids, and container types
 		names_only := get_type == "names"
+		container_type := r.URL.Query().Get("container_type")
 
 		var beverages []Beverage
 		var beverages_light []BeverageLight
@@ -195,6 +220,9 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		query := "SELECT id, container_type, serve_type, distributor, product, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, purchase_count, deposit, flavor_profile FROM beverages WHERE user_id=" + test_user_id
 		if names_only {
 			query = "SELECT id, container_type, product FROM beverages WHERE user_id=" + test_user_id
+		}
+		if len(container_type) != 0 {
+			query += " AND container_type='" + container_type + "'"
 		}
 
 		rows, err := db.Query(query)
@@ -244,8 +272,9 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
+			// get count of inventory in all (non empty-keg) locations
 			var exists bool
-			err := db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages, locations WHERE location_beverages.beverage_id=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update);", bev.ID).Scan(&exists)
+			err := db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages, locations WHERE locations.type!='kegs' AND location_beverages.beverage_id=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update);", bev.ID).Scan(&exists)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -254,10 +283,32 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				bev.Count = 0
 			} else {
 				// Now get the total count of this beverage
-				err = db.QueryRow("SELECT SUM(location_beverages.quantity) FROM location_beverages, locations WHERE location_beverages.beverage_id=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update;", bev.ID).Scan(&bev.Count)
+				err = db.QueryRow("SELECT SUM(location_beverages.quantity) FROM location_beverages, locations WHERE locations.type!='kegs' AND location_beverages.beverage_id=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update;", bev.ID).Scan(&bev.Count)
 				switch {
 				case err == sql.ErrNoRows:
 					bev.Count = 0
+				case err != nil:
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			}
+
+			// get count of empty kegs in all empty keg locations
+			err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages, locations WHERE locations.type='kegs' AND location_beverages.beverage_id=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update);", bev.ID).Scan(&exists)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.Println(err.Error())
+				return
+			}
+			if !exists {
+				//bev.EmptyKegs = 0
+			} else {
+				// Now get the total count of this beverage
+				err = db.QueryRow("SELECT SUM(location_beverages.quantity) FROM location_beverages, locations WHERE locations.type='kegs' AND location_beverages.beverage_id=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update;", bev.ID).Scan(&bev.EmptyKegs)
+				switch {
+				case err == sql.ErrNoRows:
+					bev.EmptyKegs.Int64 = 0
 				case err != nil:
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -536,12 +587,13 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 	case "DELETE":
 		loc_name := r.URL.Query().Get("location")
 		item_id := r.URL.Query().Get("id")
+		loc_type := r.URL.Query().Get("type")
 
 		post_time := time.Now().UTC()
 
 		// Verify Location exists or quit
 		var loc_id int
-		err := db.QueryRow("SELECT id FROM locations WHERE user_id=$1 and name=$2;", test_user_id, loc_name).Scan(&loc_id)
+		err := db.QueryRow("SELECT id FROM locations WHERE user_id=$1 AND name=$2 AND type=$3;", test_user_id, loc_name, loc_type).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -623,18 +675,19 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	case "GET":
 		loc_name := r.URL.Query().Get("name")
+		loc_type := r.URL.Query().Get("type")
 
 		var locBevs []LocBeverageApp
 		log.Println(loc_name)
 
-		if loc_name == "" {
+		if loc_name == "" || loc_type == "" {
 			http.Error(w, "Invalid request", http.StatusBadRequest)
 			return
 		}
 
 		// Verify Location exists or quit
 		var loc_id int
-		err := db.QueryRow("SELECT id FROM locations WHERE user_id=$1 and name=$2;", test_user_id, loc_name).Scan(&loc_id)
+		err := db.QueryRow("SELECT id FROM locations WHERE user_id=$1 AND name=$2 AND type=$3;", test_user_id, loc_name, loc_type).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -649,7 +702,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		rows, err := db.Query("SELECT beverages.id, beverages.product, beverages.brewery, beverages.alcohol_type, beverages.purchase_volume, beverages.purchase_unit, beverages.purchase_cost, beverages.purchase_count, location_beverages.quantity, location_beverages.update FROM beverages, location_beverages WHERE beverages.id=location_beverages.beverage_id AND location_beverages.location_id=$1 AND location_beverages.update=$2 ORDER BY beverages.product ASC;", loc_id, last_update)
+		rows, err := db.Query("SELECT beverages.id, beverages.product, beverages.container_type, beverages.brewery, beverages.distributor, beverages.alcohol_type, beverages.purchase_volume, beverages.purchase_unit, beverages.purchase_cost, beverages.purchase_count, beverages.deposit, location_beverages.quantity, location_beverages.update FROM beverages, location_beverages WHERE beverages.id=location_beverages.beverage_id AND location_beverages.location_id=$1 AND location_beverages.update=$2 ORDER BY beverages.product ASC;", loc_id, last_update)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -657,7 +710,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		defer rows.Close()
 		for rows.Next() {
 			var locBev LocBeverageApp
-			if err := rows.Scan(&locBev.ID, &locBev.Product, &locBev.Brewery, &locBev.AlcoholType, &locBev.PurchaseVolume, &locBev.PurchaseUnit, &locBev.PurchaseCost, &locBev.PurchaseCount, &locBev.Quantity, &locBev.Update); err != nil {
+			if err := rows.Scan(&locBev.ID, &locBev.Product, &locBev.ContainerType, &locBev.Brewery, &locBev.Distributor, &locBev.AlcoholType, &locBev.PurchaseVolume, &locBev.PurchaseUnit, &locBev.PurchaseCost, &locBev.PurchaseCount, &locBev.Deposit, &locBev.Quantity, &locBev.Update); err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -707,7 +760,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		*/
 		// Verify Location exists or quit
 		var loc_id int
-		err = db.QueryRow("SELECT id FROM locations WHERE user_id=$1 and name=$2;", test_user_id, locBev.Location).Scan(&loc_id)
+		err = db.QueryRow("SELECT id FROM locations WHERE user_id=$1 AND name=$2 AND type=$3;", test_user_id, locBev.Location, locBev.Type).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
 			log.Println(err.Error())
@@ -823,7 +876,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		// check location exists
 		var loc_id int
-		err = db.QueryRow("SELECT id FROM locations WHERE user_id=$1 AND name=$2;", test_user_id, batch.Location).Scan(&loc_id)
+		err = db.QueryRow("SELECT id FROM locations WHERE user_id=$1 AND name=$2 AND type=$3;", test_user_id, batch.Location, batch.Type).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -911,10 +964,13 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
+
+		loc_type := r.URL.Query().Get("type")
+
 		var locations []Location
 
 		log.Println(test_user_id)
-		rows, err := db.Query("SELECT name, last_update FROM locations WHERE user_id=" + string(test_user_id))
+		rows, err := db.Query("SELECT name, last_update FROM locations WHERE user_id=$1 AND type=$2;", test_user_id, loc_type)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -947,7 +1003,7 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		log.Println(newLoc.Name)
-		_, err = db.Exec("INSERT INTO locations(name, last_update, user_id) VALUES ($1, $2, $3);", newLoc.Name, time.Time{}, test_user_id)
+		_, err = db.Exec("INSERT INTO locations(name, last_update, user_id, type) VALUES ($1, $2, $3, $4);", newLoc.Name, time.Time{}, test_user_id, newLoc.Type)
 		if err != nil {
 			log.Println(err.Error())
 		}
@@ -963,7 +1019,7 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Verify Location exists or quit
 		var loc_id int
-		err = db.QueryRow("SELECT id FROM locations WHERE user_id=$1 and name=$2;", test_user_id, rename.Name).Scan(&loc_id)
+		err = db.QueryRow("SELECT id FROM locations WHERE user_id=$1 AND name=$2 AND type=$3;", test_user_id, rename.Name, rename.Type).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
 			log.Println(err.Error())
@@ -981,10 +1037,11 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// XXX first check user is authenticated to do this
 
 		loc_name := r.URL.Query().Get("location")
+		loc_type := r.URL.Query().Get("type")
 
 		// Verify Location exists or quit
 		var loc_id int
-		err := db.QueryRow("SELECT id FROM locations WHERE user_id=$1 and name=$2;", test_user_id, loc_name).Scan(&loc_id)
+		err := db.QueryRow("SELECT id FROM locations WHERE user_id=$1 AND name=$2 AND type=$3;", test_user_id, loc_name, loc_type).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
 			http.Error(w, err.Error(), http.StatusInternalServerError)

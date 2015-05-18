@@ -1,9 +1,27 @@
 <nav class="subtoolbar">
   <div class="container" style="max-width:880px">
     <ul class="menu" ng-controller="myAppCtrl">
-      <li ng-class="{ sub_active: isActive('/viewInvByLoc')}"><a href="#/viewInvByLoc">In Storage</a></li>
-      <li ng-class="{ sub_active: isActive('/viewOnTap')}"><a href="#/viewOnTap">On-Tap</a></li>
-      <li ng-class="{ sub_active: isActive('/viewHistory')}"><a href="#/viewHistory">Records & History</a></li>
+      <li ng-class="{ sub_active: isActive('/viewInvByLoc')}">
+        <a href="#/viewInvByLoc">
+          <div style="text-align:center"><img src="images/inv_box.png" height="24" width="24"></div>
+          <div>In Storage</div>
+        </a>
+      </li>
+      <li ng-class="{ sub_active: isActive('/viewOnTap')}">
+        <a href="#/viewOnTap">
+          <div style="text-align:center"><img src="images/inv_on_tap.png" height="24" width="24"></div>
+          <div>On-Tap</div>
+        </a></li>
+      <li ng-class="{ sub_active: isActive('/viewEmptyKegs')}">
+        <a href="#/viewEmptyKegs">
+          <div style="text-align:center"><img src="images/inv_keg.png" height="24" width="24"></div>
+          <div>Empty Kegs</div>
+        </a></li>
+      <li ng-class="{ sub_active: isActive('/viewHistory')}">
+        <a href="#/viewHistory">
+          <div style="text-align:center"><img src="images/inv_history.png" height="24" width="24"></div>
+          <div>Records</div>
+        </a></li>
     </ul>
   </div>
 </nav>

@@ -1,10 +1,10 @@
-<div class="container" style="width:1800">
+<div class="container" style="width:2000">
 
-  <div style="margin-top:24px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd;">
-    All Beverages Database
+  <div style="margin-top:24px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_all.png" height="36" width="36" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:6px; margin-left:2px">All Beverages Database</div>
   </div>
-
-  <div class="hint_text" style="margin-top:6px;">
+  <div class="hint_text" style="width:100%; padding-top:4px;">
     Details & Pricing of all beverages your restaurant carries.
   </div>
 
@@ -365,6 +365,12 @@
           <span ng-show="sort_key === 'deposit'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
+      <td class="all_inv_label_span noselect" style="width:110px;" ng-show="col_comps.misc === true" ng-class="{'col_highlight': highlight_cols==='misc'}">
+        <div class="sort_div" ng-click="sortBy('empty_kegs')" popover="Empty Kegs in Inventory" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+          <span>Empty Kegs</span>
+          <span ng-show="sort_key === 'empty_kegs'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
     </tr>
     <tr ng-repeat="inv in inventory_items | filter:all_inv_query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row'" style="font-size:14px">
       <td class="all_inv_span" style="width:60px; text-align:center;">
@@ -409,6 +415,9 @@
       <td class="all_inv_span" style="width:100px;" ng-show="col_comps.inventory === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='inventory'}"><span class="inv_symbol">$</span> {{inv.inventory | number:2}}</td>
       <td class="all_inv_span" style="width:90px;" ng-show="col_comps.misc === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='misc'}">
         <span ng-if="inv.deposit !== null"><span class="inv_symbol">$</span> {{inv.deposit | number:2}}</span>
+      </td>
+      <td class="all_inv_span" style="width:110px;" ng-show="col_comps.misc === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='misc'}">
+        <span ng-if="inv.empty_kegs !== null"> {{inv.empty_kegs}}</span>
       </td>
     </tr>
   </table>

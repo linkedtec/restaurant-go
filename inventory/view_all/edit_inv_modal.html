@@ -106,7 +106,7 @@
               </div>
             </div>
           </div>
-          <div class="col-xs-4" ng-show="(add_type==='Beer' || add_type==='Cider') && beverage.container_type ==='Keg'">
+          <div class="col-xs-4" ng-show="(beverage.alcohol_type==='Beer' || beverage.alcohol_type==='Cider') && beverage.container_type ==='Keg'">
             <div class="form-group" ng-class="{'has-error': form_ver.error_keg_deposit===true}">
               <label class="control-label optional">
                 Keg Deposit

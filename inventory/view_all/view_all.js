@@ -428,6 +428,14 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
         // calculate inventory
         var value = inv['purchase_cost'] / inv['purchase_count'] * inv['count'];
+        if (inv['deposit'] !== null) {
+          // first add full kegs deposit to inventory
+          value += inv['deposit'] * inv['count'];
+          // then add empty kegs deposit to inventory
+          if (inv['empty_kegs'] !== null) {
+            value += inv['deposit'] * inv['empty_kegs'];
+          }
+        }
         $scope.inventory_items[i]['inventory'] = value;
 
         // calculate price per volume
@@ -468,7 +476,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.double_sort = -1;
     }
     $scope.sort_key = sort_str;
-    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_cost' || sort_str === 'purchase_count' || sort_str === 'deposit' || sort_str === 'count' || sort_str === 'inventory' || sort_str === 'price_per_volume' || sort_str === 'serve_type');
+    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_cost' || sort_str === 'purchase_count' || sort_str === 'deposit' || sort_str === 'count' || sort_str === 'inventory' || sort_str === 'price_per_volume' || sort_str === 'serve_type' || sort_str === 'empty_kegs');
     
     $scope.inventory_items.sort(function(a, b) {
       var keyA = a[sort_str];

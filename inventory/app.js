@@ -6,6 +6,7 @@ angular.module('myApp', [
   'myApp.viewAllInv',
   'myApp.viewInvByLoc',
   'myApp.viewOnTap',
+  'myApp.viewEmptyKegs',
   'myApp.viewHistory'
 ]).
 config(['$routeProvider', function($routeProvider) {

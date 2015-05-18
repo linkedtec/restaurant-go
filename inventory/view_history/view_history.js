@@ -110,34 +110,10 @@ angular.module('myApp.viewHistory', ['ngRoute'])
   };
 
   $scope.getLocalD3DateFromUTCTimeStamp = function(timestamp) {
+
     var parseDate = d3.time.format("%Y-%m-%d").parse;
-
     var date_str = timestamp.substring(0,timestamp.indexOf('T'));
-    // e.g., 07:43:49
-    // sometimes the timestamp doesn't have a . in it, in which case look
-    // to end at the Z, e.g., 0001-01-01T00:00:00Z
-    var dot_index = timestamp.indexOf('.');
-    if (dot_index < 0) {
-      dot_index = 99999;
-    }
-    var z_index = timestamp.indexOf('Z');
-    if (z_index < 0) {
-      z_index = 99999;
-    }
-    var end_index = Math.min(dot_index, z_index);
-    var time_str = timestamp.substring(
-      timestamp.indexOf('T')+1,
-      end_index);
-    var date_comps = date_str.split('-');
-    var time_comps = time_str.split(':');
-
-    var utc_date = Date.UTC(
-      date_comps[0], parseInt(date_comps[1])-1, date_comps[2],
-      time_comps[0], time_comps[1], time_comps[2]);
-
-    var localDate = new Date(utc_date);
-
-    return parseDate(localDate.getFullYear() + "-" + (localDate.getMonth()+1) + "-" + localDate.getDate());
+    return parseDate(date_str);
   };
 
   $scope.getItemData = function(item) {

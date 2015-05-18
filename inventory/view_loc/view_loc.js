@@ -3,13 +3,25 @@
 angular.module('myApp.viewInvByLoc', ['ngRoute'])
 
 .config(['$routeProvider', function($routeProvider) {
-  $routeProvider.when('/viewInvByLoc', {
-    templateUrl: 'view_loc/view_loc.html',
-    controller: 'ViewInvByLocCtrl'
-  });
+  $routeProvider.
+    when('/viewInvByLoc', {
+      templateUrl: 'view_loc/view_loc.html',
+      controller: 'ViewInvByLocCtrl',
+      resolve: {
+        locType: function() {
+          // location type can be "bev" for beverage storage locations
+          // or "kegs" for empty kegs storage locations
+          return "bev";
+        }
+      }
+    });
 }])
 
-.controller('ViewInvByLocCtrl', function($scope, $modal, $http) {
+.controller('ViewInvByLocCtrl', function($scope, $modal, $http, locType) {
+
+  // XXX DO NOT REASSIGN VALUE OF k_loc_type, it is determined by route
+  // to be "bev" or "keg" and is a CONSTANT
+  $scope.k_loc_type = locType;
 
   $scope.add_loc = false;       // add new location mode
   $scope.edit_loc = false;      // edit location mode
@@ -29,7 +41,11 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
   $scope.update_failure_msg = "";
 
   // get locations, if empty, set $scope.empty_locs = true
-  $http.get('/loc').
+  $http.get('/loc', {
+      params: {
+        type:$scope.k_loc_type
+      }
+  }).
     success(function(data, status, headers, config) {
       // this callback will be called asynchronously when the response
       // is available
@@ -166,7 +182,11 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         return;
       }
     }
-    $http.post('/loc', {name:loc}).
+    $http.post('/loc', 
+      {
+        name:loc,
+        type:$scope.k_loc_type
+      }).
       success(function(data, status, headers, config) {
         // this callback will be called asynchronously when the response
         // is available
@@ -219,7 +239,8 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
 
     $http.post('/inv/loc', {
       id:item.id, 
-      location: $scope.selected_loc}).
+      location: $scope.selected_loc,
+      type:$scope.k_loc_type}).
       success(function(data, status, headers, config) {
         console.log(data);
         // XXX push new item onto location's inventory items
@@ -257,7 +278,8 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         $http.delete('/inv/loc', {
           params: {
             id:item.id,
-            location:$scope.selected_loc
+            location:$scope.selected_loc,
+            type:$scope.k_loc_type
           }
         }).
         success(function(data, status, headers, config) {
@@ -294,10 +316,13 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
   };
 
   $scope.getExistingInv = function() {
+    var getParams = {name:$scope.selected_loc};
+    // if this is empty kegs storage, filter on server for container_type "keg"
+    if ($scope.k_loc_type === "kegs") {
+      getParams["container_type"] = "Keg";
+    }
     $http.get('/inv', {
-      params: {
-        name:$scope.selected_loc
-      }
+      params: getParams
     }).
     success(function(data, status, headers, config) {
       // this callback will be called asynchronously when the response
@@ -365,7 +390,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
           $scope.startInv(true);
         }
         // after a save, we want to re-calculate cost per mL, for instance
-        else if (mode === 'edit') {
+        else if (mode === 'previous') {
           $scope.startInv(false);
         }
       }, 
@@ -427,13 +452,23 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       post_item_quantities.push({id:inv.id, quantity:parseFloat(inv.quantity)})
       $scope.inv_items[inv_i]['invalid_quantity'] = false;
       $scope.inv_items[inv_i]['add_q'] = null;
-      var value = inv['purchase_cost'] / inv['purchase_count'] * inv['quantity'];
+
+      var value = 0;
+      if ($scope.k_loc_type === "bev") {
+        value = inv['purchase_cost'] / inv['purchase_count'] * inv['quantity'];
+      }
+      // always include deposits in value
+      if (inv['deposit'] != null) {
+        value += inv['deposit'] * inv['quantity'];
+      }
+      
       $scope.total_inventory += value;
     };
 
     $http.put('/inv/loc', {
       items:post_item_quantities,
-      location:$scope.selected_loc
+      location:$scope.selected_loc,
+      type:$scope.k_loc_type
     }).
     success(function(data, status, headers, config) {
       console.log(data)
@@ -506,32 +541,34 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     }
   };
 
-  $scope.saveLocName = function() {
+  $scope.saveLocName = function(new_name) {
+
     // First verify new name does not overlap with other locations
     for (var i = 0; i < $scope.locations.length; i++) {
       var loc = $scope.locations[i];
-      if ($scope.edit_loc_name == loc.name) {
+      if (new_name === loc.name) {
         swal({
           type: "warning",
           title:"Name Exists", 
-          text: "There is already a location named " + $scope.edit_loc_name + ", please choose another name!"});
+          text: "There is already a location named " + new_name + ", please choose another name!"});
         return;
       }
     }
 
     $http.put('/loc', {
       name:$scope.selected_loc,
-      new_name:$scope.edit_loc_name
+      type:$scope.k_loc_type,
+      new_name:new_name
     }).
     success(function(data, status, headers, config) {
       // update the local location with the new name
       for (var i = 0; i < $scope.locations.length; i++) {
         var loc = $scope.locations[i];
         if (loc.name == $scope.selected_loc) {
-          loc.name = $scope.edit_loc_name;
+          loc.name = new_name;
         }
       }
-      $scope.selected_loc = $scope.edit_loc_name
+      $scope.selected_loc = new_name;
     }).
     error(function(data, status, headers, config) {
 
@@ -550,7 +587,8 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       function() {
         $http.delete('/loc', {
           params: {
-          location:$scope.selected_loc
+          location:$scope.selected_loc,
+          type:$scope.k_loc_type
         }
       }).
       success(function(data, status, headers, config) {
@@ -572,7 +610,8 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
   $scope.getLocInv = function() {
     $http.get('/inv/loc', {
       params: {
-        name:$scope.selected_loc
+        name:$scope.selected_loc,
+        type:$scope.k_loc_type
       }
     }).
     success(function(data, status, headers, config) {
@@ -599,7 +638,16 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       for (var i = 0; i < $scope.inv_items.length; i++)
       {
         var inv = $scope.inv_items[i];
-        var value = inv['purchase_cost'] / inv['purchase_count'] * inv['quantity'];
+
+        var value = 0;
+        if ($scope.k_loc_type === "bev") {
+          value = inv['purchase_cost'] / inv['purchase_count'] * inv['quantity'];
+        }
+        // always include deposits in value
+        if (inv['deposit'] != null) {
+          value += inv['deposit'] * inv['quantity'];
+        }
+
         $scope.total_inventory += value;
       }
 
