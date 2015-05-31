@@ -326,7 +326,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 			// get total inventory of beverage
 			var total_inv float32
-			err = db.QueryRow("SELECT SUM(res.inv) FROM (SELECT CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity) WHEN locations.type='tap' THEN SUM(CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume*beverages.purchase_cost/beverages.purchase_count+COALESCE(beverages.deposit,0) ELSE COALESCE(beverages.deposit,0) END) ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity) END AS inv FROM beverages, location_beverages, locations WHERE beverages.id=$1 AND beverages.id=location_beverages.beverage_id AND locations.id=location_beverages.location_id AND locations.last_update=location_beverages.update GROUP BY locations.type) AS res;", bev.ID).Scan(&total_inv)
+			err = db.QueryRow("SELECT COALESCE(SUM(res.inv),0) FROM (SELECT CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity) WHEN locations.type='tap' THEN SUM(CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume*beverages.purchase_cost/beverages.purchase_count+COALESCE(beverages.deposit,0) ELSE COALESCE(beverages.deposit,0) END) ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity) END AS inv FROM beverages, location_beverages, locations WHERE beverages.id=$1 AND beverages.id=location_beverages.beverage_id AND locations.id=location_beverages.location_id AND locations.last_update=location_beverages.update GROUP BY locations.type) AS res;", bev.ID).Scan(&total_inv)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				log.Println(err.Error())
@@ -334,7 +334,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			bev.Inventory = total_inv
 			/*
-						SELECT SUM(res.inv) FROM (
+						SELECT COALESCE(SUM(res.inv),0) FROM (
 							SELECT CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity)
 							            WHEN locations.type='tap' THEN SUM(
 				                      	CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume*beverages.purchase_cost/beverages.purchase_count+COALESCE(beverages.deposit,0)
