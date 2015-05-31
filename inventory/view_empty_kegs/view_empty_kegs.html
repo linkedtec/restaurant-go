@@ -252,7 +252,7 @@
           {{inv.distributor}}
         </div>
         <div class="col-xs-2 min_padding" style="padding-top:6px; padding-left:12px !important" ng-if="inv_started===false">
-          ${{inv.deposit | number:2}}
+          <span ng-if="inv.deposit!==null">$ {{inv.deposit | number:2}}</span>
         </div>
         <div class="min_padding" ng-class="{'col-xs-1': inv_started===false, 'col-xs-6': inv_started===true}">
 
@@ -286,7 +286,7 @@
         </div>
         <div class="col-xs-1 min_padding" ng-if="inv_started===false">
           <button ng-click="removeInvItem($index)" type="button" class="btn btn-default btn-sm btn-right" style="font-size:14px; min-height:32px; color:#888888">
-            <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+            <span class="glyphicon glyphicon-trash" aria-hidden="true" style="color:#aaaaaa"></span>
           </button>
         </div>
       </div>

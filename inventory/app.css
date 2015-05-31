@@ -127,7 +127,7 @@ body {
 
 .all_inv_span {
   display: table-cell;
-  padding: 8px 6px;
+  padding: 6px 6px;
   border-right: solid 1px #dddddd;
   position:relative;
   height:100%;
@@ -169,6 +169,17 @@ body {
   color:#44aa11;
   border: 1px solid #aae0a0;
   background-color: #f5fff0;
+}
+
+.do_tap_btn {
+  color:#336655;
+  border: 1px solid #a0d895;
+  background-color: #fafff2;
+}
+
+.do_tap_btn:hover {
+  color:#447766;
+  background-color: #f0ffe0;
 }
 
 .inv_xl_btn {
@@ -234,7 +245,12 @@ body {
 }
 
 .inv_row_even {
-  background-color: #f7f7f7;
+  background-color: #fafafa;
+}
+
+.tap_full_row {
+  background-color: #fafff8;
+  /*background-color: #fafafa;*/
 }
 
 .add_inv_scroll_area {
@@ -324,10 +340,9 @@ body {
 
 .add_tap_btn {
   border: none;
-  color: #66aadd;
+  color: #5599cc;
   background-color: #e8f5ff;
-  width: 120px;
-  height:52px;
+  padding: 10px;
 }
 
 .add_tap_btn:hover {
@@ -495,6 +510,7 @@ body {
 
 .input_error {
   background-color:#fff5f5;
+  border-color: #aa2200;
 }
 
 .alert-danger {
@@ -564,6 +580,10 @@ body {
 .start_count_btn_yellow:hover {
   background-color:#f8f0e0 !important;
   cursor:pointer;
+}
+
+.my_error {
+  border-color: #aa0000;
 }
 
 

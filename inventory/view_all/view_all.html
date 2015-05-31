@@ -1,4 +1,4 @@
-<div class="container" style="width:2000">
+<div style="width:2000; padding-left:20px;">
 
   <div style="margin-top:24px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
     <img src="images/inv_all.png" height="36" width="36" style="vertical-align:top"/>
@@ -257,7 +257,7 @@
     </div>
   </div>
 
-  <table style="table-layout:fixed; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd">
+  <table style="width: 100%; table-layout:fixed; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd">
     <tr style="font-size:14px; font-weight:bold;background-color: #e0f0ff;">
       <td class="all_inv_label_span noselect" style="width:60px; border-left: 1px solid #dddddd">
       </td>
@@ -331,8 +331,8 @@
         <div class="sort_div" ng-click="sortBy('price_per_volume')" popover="Cost per Volume, can toggle between mL and oZ" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>{{selected_cost_unit}}</span>
           <span style="z-index:99;">
-            <div class="btn-group" dropdown>
-              <button dropdown-toggle type="button" class="btn btn-md" style="margin-top:-4px; padding:3px; background-color:#f0faff; border-color:#aaddbb;" onclick="event.preventDefault(); event.stopPropagation();">
+            <span class="dropdown" dropdown>
+              <button dropdown-toggle type="button" class="btn btn-md" style="margin-top:-4px; padding:3px; padding-bottom:0px; background-color:#f0faff; border-color:#aaddbb; width:24px" onclick="event.preventDefault(); event.stopPropagation();">
                 <span class="glyphicon glyphicon-cog" style="color:#65a9e0"></span>
               </button>
               <ul class="dropdown-menu" role="menu">
@@ -340,13 +340,13 @@
                   <a ng-click="selectCostUnit(cu)" onclick="event.preventDefault(); event.stopPropagation();" ng-class="{bold: selected_cost_unit === cu}" class="noselect">{{cu}}</a>
                 </li>
               </ul>
-            </div>
+            </span>
           </span>
           <span ng-show="sort_key === 'price_per_volume'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
-      <td class="all_inv_span" style="width:100px;" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">Serving Size</td>
-      <td class="all_inv_span" style="width:100px;" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">Retail Price</td>
+      <td class="all_inv_span" style="width:100px;" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">Serv. Size</td>
+      <td class="all_inv_span" style="width:100px;" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">Ret. Price</td>
       <td class="all_inv_label_span noselect" style="width:60px;" ng-show="col_comps.inventory === true" ng-class="{'col_highlight': highlight_cols==='inventory'}">
         <div class="sort_div" ng-click="sortBy('count')" popover="Quantity in Inventory (in all locations)" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>Qty</span>
@@ -375,7 +375,7 @@
     <tr ng-repeat="inv in inventory_items | filter:all_inv_query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row'" style="font-size:14px">
       <td class="all_inv_span" style="width:60px; text-align:center;">
         <button ng-click="editBeverage($index)" type="button" class="btn btn-md" style="font-size:14px; background-color:#ecfddf; border-color:#aaddbb">
-          <span class="glyphicon glyphicon-pencil" style="font-size:16px; color:#888888"></span>
+          <span class="glyphicon glyphicon-pencil" style="color:#888888"></span>
         </button>
       </td>
       <td class="all_inv_span" style="width:160px;">{{inv.product}}</td>

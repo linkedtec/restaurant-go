@@ -3,10 +3,10 @@
 
   <div style="width:100%; margin-top:24px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
     <img src="images/inv_box.png" height="36" width="36" style="vertical-align:top"/>
-    <div style="display: inline-block; vertical-align:top; margin-top:2px; margin-left:2px">Take Storage Inventory</div>
+    <div style="display: inline-block; vertical-align:top; margin-top:2px; margin-left:2px">In-Storage Inventory</div>
   </div>
   <div class="hint_text" style="width:100%; padding-top:4px;">
-    Do inventory by physical storage locations.
+    Record inventory by physical storage locations.
   </div>
 
   <!-- ADD LOCATION UI -->
@@ -194,15 +194,9 @@
         </button>
       </div>
     </div>
-
-    <div class="row" style="margin-top:12px; min-height:16px">
-      <div ng-if="update_failure_msg.length > 0" class="col-xs-12 center-block alert alert-danger" role="alert">
-        {{update_failure_msg}}
-      </div>
-    </div>
   </div>
 
-  <div ng-if="empty_inv===false && selected_loc !== null" style="margin-top:0px">
+  <div ng-if="empty_inv===false && selected_loc !== null" style="margin-top:24px">
 
     <div ng-if="inv_started===false" class="row" style="font-size:1.1em">
       <div class="col-xs-12">
@@ -217,6 +211,11 @@
         <div class="col-xs-12" style="text-align:center; font-size:1.3em">
           When you finish counting inventory in this location, don't forget to 
           <b>Finish & Save</b>!
+        </div>
+      </div>
+      <div ng-if="update_failure_msg.length > 0" class="row" style="margin-top:12px; min-height:16px">
+        <div class="col-xs-12 center-block alert alert-danger" style="margin-bottom:0px" role="alert">
+          {{update_failure_msg}}
         </div>
       </div>
     </div>
@@ -278,8 +277,8 @@
             <button ng-click="addQuantity(inv,inv.add_q, true)" type="button" class="btn btn-default inv_plus_btn" style="margin-left:16px">
               <b>Add:</b>
             </button>
-            <div class="form" ng-class="{'has-error': inv.invalid_quantity===true}">
-              <input ng-model="inv.add_q" ng-class="{'input_error': inv.invalid_quantity===true}" class="form-control" style="display:inline-block; float:left; text-align:center; max-width:56px; height:38px; font-size:1.3em;" placeholder="">
+            <div class="form">
+              <input ng-model="inv.add_q" class="form-control" style="display:inline-block; float:left; text-align:center; max-width:56px; height:38px; font-size:1.3em;" placeholder="">
             </div>
           </div>
         </div>
@@ -290,7 +289,7 @@
         </div>
         <div class="col-xs-1 min_padding" ng-if="inv_started===false">
           <button ng-click="removeInvItem($index)" type="button" class="btn btn-default btn-sm btn-right" style="font-size:14px; min-height:32px; color:#888888">
-            <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+            <span class="glyphicon glyphicon-trash" aria-hidden="true" style="color:#aaaaaa"></span>
           </button>
         </div>
       </div>

@@ -83,21 +83,22 @@ type LocBeverageApp struct {
 	Deposit        NullFloat64 `json:"deposit"`
 	Quantity       float32     `json:"quantity"`
 	Update         time.Time   `json:"update"`
-	Location       string      `json:"location"`
+	Location       NullString  `json:"location"`
+	LocationID     int         `json:"location_id"`
 	Type           string      `json:"type"`
 }
 
 type LocBeverageAppBatch struct {
 	Items    []LocBeverageApp `json:"items"`
-	Location string           `json:"location"`
+	Location NullString       `json:"location"`
 	Type     string           `json:"type"`
 }
 
 type Location struct {
-	ID         int       `json:"id"`
-	Name       string    `json:"name"`
-	LastUpdate time.Time `json:"last_update"`
-	Type       string    `json:"type"`
+	ID         int        `json:"id"`
+	Name       NullString `json:"name"`
+	LastUpdate time.Time  `json:"last_update"`
+	Type       string     `json:"type"`
 }
 
 type RenameTuple struct {
@@ -139,6 +140,7 @@ func main() {
 
 	// handle inventory pages
 	setupInvHandlers()
+	setupTapsHandlers()
 
 	log.Printf("Listening on port 8080...")
 	log.Print("Current time is: " + getCurrentTime())

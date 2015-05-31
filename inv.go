@@ -17,7 +17,7 @@ type InvSumHistory struct {
 }
 
 type InvLocSumHistory struct {
-	Location  string          `json:"location"`
+	Location  NullString      `json:"location"`
 	Histories []InvSumHistory `json:"histories"`
 }
 
@@ -46,13 +46,16 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			var histories []InvSumHistory
 			rows, err := db.Query(
 				`SELECT SUM(res.inv), res.update FROM (
-          SELECT 
-            CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity) 
-            ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity) 
-            END AS inv, location_beverages.update::date AS update
-            FROM beverages, location_beverages, locations 
-            WHERE beverages.id=$1 AND beverages.id=location_beverages.beverage_id AND locations.id=location_beverages.location_id GROUP BY update, locations.type
-          ) AS res GROUP BY res.update ORDER BY res.update;`, item_id)
+          SELECT CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity) 
+                      WHEN locations.type='tap' THEN SUM(
+                      	CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume*beverages.purchase_cost/beverages.purchase_count+COALESCE(beverages.deposit,0) 
+				              	     ELSE COALESCE(beverages.deposit,0) 
+				              	END) 
+                      ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity) 
+                    END AS inv, location_beverages.update::date AS update
+                    FROM beverages, location_beverages, locations WHERE beverages.id=$1 AND beverages.id=location_beverages.beverage_id AND locations.id=location_beverages.location_id GROUP BY update, locations.type 
+        ) AS res GROUP BY res.update ORDER BY res.update;`, item_id)
+
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -87,17 +90,19 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// in all locations, sum quantity * p_cost / p_count
 
 			var histories []InvSumHistory
-
 			rows, err := db.Query(
 				`SELECT SUM(res.inv), res.update FROM (
-          SELECT 
-            CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity) 
-            ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity) 
-            END AS inv, location_beverages.update::date AS update 
-            FROM beverages, location_beverages, locations 
-            WHERE beverages.id=location_beverages.beverage_id AND location_beverages.update > (now() - '1 month'::interval) AND locations.id=location_beverages.location_id GROUP BY update, locations.type
-          ) AS res GROUP BY res.update ORDER BY res.update;`)
+				  SELECT CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity)
+				              WHEN locations.type='tap' THEN SUM(
+				              	CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume*beverages.purchase_cost/beverages.purchase_count+COALESCE(beverages.deposit,0) 
+				              	     ELSE COALESCE(beverages.deposit,0) 
+				              	END) 
+				              ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity) 
+				         END AS inv, location_beverages.update::date AS update
+				         FROM location_beverages, beverages, locations WHERE location_beverages.beverage_id=beverages.id AND locations.id=location_beverages.location_id AND location_beverages.update > (now() - '1 month'::interval) GROUP BY update, locations.type 
+				) AS res GROUP BY res.update ORDER BY res.update;`)
 			if err != nil {
+				log.Println("hi")
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -137,8 +142,8 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 			*/
-			// First get all locations
-			loc_rows, err := db.Query("SELECT DISTINCT locations.id, locations.name FROM location_beverages, locations WHERE locations.user_id=$1 AND location_beverages.location_id=locations.id;", test_user_id)
+			// First get all locations, but omit taps
+			loc_rows, err := db.Query("SELECT DISTINCT locations.id, locations.name FROM location_beverages, locations WHERE locations.user_id=$1 AND location_beverages.location_id=locations.id AND locations.type!='tap';", test_user_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -225,6 +230,9 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			query += " AND container_type='" + container_type + "'"
 		}
 
+		query += " ORDER BY product"
+
+		log.Println(query)
 		rows, err := db.Query(query)
 		if err != nil {
 			log.Println(err.Error())
@@ -274,7 +282,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 			// get count of inventory in all (non empty-keg) locations
 			var exists bool
-			err := db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages, locations WHERE locations.type!='kegs' AND location_beverages.beverage_id=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update);", bev.ID).Scan(&exists)
+			err := db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages, locations WHERE locations.type='bev' AND location_beverages.beverage_id=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update);", bev.ID).Scan(&exists)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -283,7 +291,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				bev.Count = 0
 			} else {
 				// Now get the total count of this beverage
-				err = db.QueryRow("SELECT SUM(location_beverages.quantity) FROM location_beverages, locations WHERE locations.type!='kegs' AND location_beverages.beverage_id=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update;", bev.ID).Scan(&bev.Count)
+				err = db.QueryRow("SELECT SUM(location_beverages.quantity) FROM location_beverages, locations WHERE locations.type='bev' AND location_beverages.beverage_id=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update;", bev.ID).Scan(&bev.Count)
 				switch {
 				case err == sql.ErrNoRows:
 					bev.Count = 0
@@ -674,6 +682,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case "GET":
+		log.Println(r.URL.Query())
 		loc_name := r.URL.Query().Get("name")
 		loc_type := r.URL.Query().Get("type")
 
@@ -970,14 +979,14 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 		var locations []Location
 
 		log.Println(test_user_id)
-		rows, err := db.Query("SELECT name, last_update FROM locations WHERE user_id=$1 AND type=$2;", test_user_id, loc_type)
+		rows, err := db.Query("SELECT id, name, last_update FROM locations WHERE user_id=$1 AND type=$2 AND active ORDER BY id;", test_user_id, loc_type)
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer rows.Close()
 		for rows.Next() {
 			var loc Location
-			if err := rows.Scan(&loc.Name, &loc.LastUpdate); err != nil {
+			if err := rows.Scan(&loc.ID, &loc.Name, &loc.LastUpdate); err != nil {
 				log.Fatal(err)
 			}
 			locations = append(locations, loc)
@@ -1002,8 +1011,8 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		log.Println(newLoc.Name)
-		_, err = db.Exec("INSERT INTO locations(name, last_update, user_id, type) VALUES ($1, $2, $3, $4);", newLoc.Name, time.Time{}, test_user_id, newLoc.Type)
+
+		_, err = db.Exec("INSERT INTO locations(name, last_update, user_id, type, active) VALUES ($1, $2, $3, $4, TRUE);", newLoc.Name, time.Time{}, test_user_id, newLoc.Type)
 		if err != nil {
 			log.Println(err.Error())
 		}

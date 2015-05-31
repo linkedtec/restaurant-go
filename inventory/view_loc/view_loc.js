@@ -17,7 +17,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     });
 }])
 
-.controller('ViewInvByLocCtrl', function($scope, $modal, $http, locType) {
+.controller('ViewInvByLocCtrl', function($scope, $modal, $http, DateService, locType) {
 
   // XXX DO NOT REASSIGN VALUE OF k_loc_type, it is determined by route
   // to be "bev" or "keg" and is a CONSTANT
@@ -64,19 +64,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       for (var loc_i in $scope.locations) {
         var loc = $scope.locations[loc_i];
         console.log(loc.last_update);
-        var mins_since_update = $scope.getMinutesSinceTime(loc.last_update);
-        var years_since_update = mins_since_update / 60 / 24 / 365;
-
-        // if years_since_update is greater than 50, we know this is 
-        // a bogus timestamp
-        var pretty_time = null;
-        if (years_since_update > 50) {
-          ;
-        } else {
-          pretty_time = $scope.getPrettyTime(mins_since_update, loc.last_update);
-          //pretty_time = loc.last_update;
-          //pretty_time = $scope.getDateFromUTCTimeStamp(loc.last_update, true).toLocaleString();
-        }
+        var pretty_time = DateService.getPrettyTime(loc.last_update);
         $scope.locations[loc_i]['last_update_pretty'] = pretty_time;
       }
 
@@ -96,7 +84,14 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         // add new location helper
         $scope.empty_locs = true;
       } else {
-        //$scope.selected_loc = $scope.locations[0].name;
+        // if there's only 1 location, automatically select it
+        // XXX Disabled for now as I don't know if I like it... I like the user
+        // having to manually select the location to know what they're doing.
+        /*
+        if ($scope.locations.length == 2) {
+          $scope.selectLoc($scope.locations[0]);
+        }
+        */
       }
       
     }).
@@ -342,20 +337,6 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
   };
 
   $scope.promptStartInv = function() {
-    /*
-    swal({
-      title: "Start From Scratch?",
-      text: "Would you like to count starting <b>from scratch</b> (all beverage quantities start at 0) or resume from the existing quantities?",
-      showCancelButton: true,
-      html: true,
-      confirmButtonColor: "#88BB44",
-      confirmButtonText: "From scratch!",
-      cancelButtonText: "Resume existing",
-      closeOnConfirm: true,
-      allowOutsideClick: true },
-      function(isConfirm) {
-        });
-    */
 
     // XXX If all quantities are 0, directly go to startInv starting from scratch
     // without prompting
@@ -367,7 +348,6 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       $scope.startInv(true);
       return;
     }
-
 
     var modalStartInstance = $modal.open({
       templateUrl: 'startCountModal.html',
@@ -439,7 +419,6 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
 
     $scope.update_failure_msg = "";
 
-
     // inv_started shows the quantity adjustment UI
     $scope.inv_started = false;
 
@@ -471,25 +450,20 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       type:$scope.k_loc_type
     }).
     success(function(data, status, headers, config) {
-      console.log(data)
+      console.log(data);
+      swal({
+        title: "Inventory Saved!",
+        text: "Well done, another inventory location down!",
+        type: "success",
+        timer: 3000,
+        allowOutsideClick: true,
+        html: true});
       // for the selected location, set last_update locally to just now
       for (var i = 0; i < $scope.locations.length; i++) {
         var loc = $scope.locations[i];
         if (loc.name === $scope.selected_loc){
           $scope.locations[i].last_update = data['last_update'];
-          var mins_since_update = $scope.getMinutesSinceTime($scope.locations[i].last_update);
-          var years_since_update = mins_since_update / 60 / 24 / 365;
-
-          // if years_since_update is greater than 50, we know this is 
-          // a bogus timestamp
-          var pretty_time = null;
-          if (years_since_update > 50) {
-            ;
-          } else {
-            pretty_time = $scope.getPrettyTime(mins_since_update, data['last_update']);
-            //pretty_time = data['last_update'];
-            //pretty_time = $scope.getDateFromUTCTimeStamp(data['last_update'], true).toLocaleString();
-          }
+          var pretty_time = DateService.getPrettyTime(data['last_update']);
           $scope.locations[i]['last_update_pretty'] = pretty_time;
           $scope.last_update = pretty_time;
           break;
@@ -689,68 +663,6 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
 
     });
   };
-
-  $scope.getDateFromUTCTimeStamp = function(timestamp, local) {
-    // e.g., 2015-03-16
-    var date_str = timestamp.substring(0,timestamp.indexOf('T'));
-    // e.g., 07:43:49
-    // sometimes the timestamp doesn't have a . in it, in which case look
-    // to end at the Z, e.g., 0001-01-01T00:00:00Z
-    var dot_index = timestamp.indexOf('.');
-    if (dot_index < 0) {
-      dot_index = 99999;
-    }
-    var z_index = timestamp.indexOf('Z');
-    if (z_index < 0) {
-      z_index = 99999;
-    }
-    var end_index = Math.min(dot_index, z_index);
-    var time_str = timestamp.substring(
-      timestamp.indexOf('T')+1,
-      end_index);
-    var date_comps = date_str.split('-');
-    var time_comps = time_str.split(':');
-
-    var utc_date = Date.UTC(
-      date_comps[0], parseInt(date_comps[1])-1, date_comps[2],
-      time_comps[0], time_comps[1], time_comps[2]);
-
-    if (local === true) {
-      return new Date(utc_date);
-    } else {
-      return utc_date;
-    }
-  };
-
-  // helper function to get the number of minutes since a time stamp
-  $scope.getMinutesSinceTime = function(timestamp) {
-    
-    var last_update = $scope.getDateFromUTCTimeStamp(timestamp, false);
-    var dt_sec = (Date.now() - last_update) / 1000.0;
-    return parseInt(dt_sec / 60.0);
-  };
-
-  $scope.getPrettyTime = function(mins, timestamp) {
-    var pretty_time = null;
-    if (mins < 5) {
-      pretty_time = 'Moments ago';
-    } else if (mins < 60) {
-      pretty_time = parseInt(mins).toString() + ' minutes ago';
-    } else {
-      return $scope.getDateFromUTCTimeStamp(timestamp, true).toLocaleString();
-    }
-      /*
-    } else if (mins < 24*60) {
-      pretty_time = parseInt(mins / 60).toString() + ' hours ago';
-    } else if (mins < 24*60*2) {
-      pretty_time = 'Yesterday'
-    } else {
-      pretty_time = parseInt(mins/24/60).toString() + ' days ago';
-    }
-    */
-    return pretty_time;
-  };
-
 })
 
 
