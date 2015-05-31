@@ -293,22 +293,23 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
       success(function(data, status, headers, config) {
         console.log(data);
 
+        var tap_num = $scope.taps.length + 1;
+        var tap_name = "Tap #" + tap_num.toString();
+        $scope.taps.push(
+        {
+          id:data['id'],
+          name: tap_name,
+          display_name: tap_name,
+          beverage: null,
+          tap_time: null,
+          display_time: 'Last tapped: --',
+          is_tapped: false,
+          inv_volume: null,
+          inv_unit: null
+        });
+
       }).
       error(function(data, status, headers, config) {
-    });
-
-    var tap_num = $scope.taps.length + 1;
-    var tap_name = "Tap #" + tap_num.toString();
-    $scope.taps.push(
-    {
-      name: tap_name,
-      display_name: tap_name,
-      beverage: null,
-      tap_time: null,
-      display_time: 'Last tapped: --',
-      is_tapped: false,
-      inv_volume: null,
-      inv_unit: null
     });
   };
 
@@ -332,7 +333,13 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
           }
         }).
         success(function(data, status, headers, config) {
-          swal("Removed!", tap.display_name + " has been removed.", "success");
+          swal({
+            title: "Tap Removed!",
+            text: "<b>"+tap.display_name + "</b> has been removed.",
+            type: "success",
+            timer: 4000,
+            allowOutsideClick: true,
+            html: true});
           $scope.taps.splice(index, 1);
           // fix temp tap names
           for (var tap_i in $scope.taps) {

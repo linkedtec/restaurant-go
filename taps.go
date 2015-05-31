@@ -673,6 +673,16 @@ func tapsAPIHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err.Error())
 		}
 
+		var ret_tap Tap
+		ret_tap.ID = tap_id
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(ret_tap)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+
 	// DELETE has its own /taps API because it checks other tables such as
 	// tap_beverages
 	case "DELETE":
@@ -696,6 +706,9 @@ func tapsAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// If there are entries in tap_beverages with tap_id, then just set its
 		// active status to false
 		// otherwise, delete it entirely since we don't need to preserve its history
+		// note that checking if it's been tapped also checks if inventory was ever
+		// potentially run (can't run inv without tapping), so don't need to do
+		// check in location_beverages
 		var has_history bool
 		err = db.QueryRow("SELECT EXISTS (SELECT * FROM tap_beverages WHERE tap_id=$1);", tap_id).Scan(&has_history)
 		if err != nil {
@@ -704,12 +717,12 @@ func tapsAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if !has_history {
-			_, err = db.Exec("DELETE FROM locations WHERE id=$1", tap_id)
+			_, err = db.Exec("DELETE FROM taps_last_update WHERE tap_id=$1;", tap_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
-			_, err = db.Exec("DELETE FROM taps_last_update WHERE tap_id=$1", tap_id)
+			_, err = db.Exec("DELETE FROM locations WHERE id=$1;", tap_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
