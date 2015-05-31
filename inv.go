@@ -285,7 +285,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			err := db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages, locations WHERE locations.type='bev' AND location_beverages.beverage_id=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update);", bev.ID).Scan(&exists)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
+				continue
 			}
 			if !exists {
 				bev.Count = 0
@@ -298,7 +298,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				case err != nil:
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
+					continue
 				}
 			}
 
@@ -307,7 +307,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				log.Println(err.Error())
-				return
+				continue
 			}
 			if !exists {
 				//bev.EmptyKegs = 0
@@ -320,9 +320,30 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				case err != nil:
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
+					continue
 				}
 			}
+
+			// get total inventory of beverage
+			var total_inv float32
+			err = db.QueryRow("SELECT SUM(res.inv) FROM (SELECT CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity) WHEN locations.type='tap' THEN SUM(CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume*beverages.purchase_cost/beverages.purchase_count+COALESCE(beverages.deposit,0) ELSE COALESCE(beverages.deposit,0) END) ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity) END AS inv FROM beverages, location_beverages, locations WHERE beverages.id=$1 AND beverages.id=location_beverages.beverage_id AND locations.id=location_beverages.location_id AND locations.last_update=location_beverages.update GROUP BY locations.type) AS res;", bev.ID).Scan(&total_inv)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.Println(err.Error())
+				continue
+			}
+			bev.Inventory = total_inv
+			/*
+						SELECT SUM(res.inv) FROM (
+							SELECT CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity)
+							            WHEN locations.type='tap' THEN SUM(
+				                      	CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume*beverages.purchase_cost/beverages.purchase_count+COALESCE(beverages.deposit,0)
+								              	     ELSE COALESCE(beverages.deposit,0)
+								              	END)
+							            ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity)
+				             END AS inv FROM beverages, location_beverages, locations WHERE beverages.id=$1 AND beverages.id=location_beverages.beverage_id AND locations.id=location_beverages.location_id AND locations.last_update=location_beverages.update GROUP BY locations.type
+				    ) AS res
+			*/
 
 			beverages = append(beverages, bev)
 		}

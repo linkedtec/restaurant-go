@@ -45,6 +45,7 @@ type Beverage struct {
 	FlavorProfile  NullString  `json:"flavor_profile"`
 	SalePrices     []SalePrice `json:"size_prices"`
 	Count          int         `json:"count"`
+	Inventory      float32     `json:"inventory"`
 }
 
 type BeverageUpdate struct {

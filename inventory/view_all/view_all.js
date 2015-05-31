@@ -425,19 +425,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
         if (inv.size_prices === null) {
           $scope.inventory_items[i].size_prices = [];
         }
-
-        // calculate inventory
-        var value = inv['purchase_cost'] / inv['purchase_count'] * inv['count'];
-        if (inv['deposit'] !== null) {
-          // first add full kegs deposit to inventory
-          value += inv['deposit'] * inv['count'];
-          // then add empty kegs deposit to inventory
-          if (inv['empty_kegs'] !== null) {
-            value += inv['deposit'] * inv['empty_kegs'];
-          }
-        }
-        $scope.inventory_items[i]['inventory'] = value;
-
+        
         // calculate price per volume
         $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(
           $scope.inventory_items[i]['purchase_volume'],
