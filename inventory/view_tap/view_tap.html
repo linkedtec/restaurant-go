@@ -94,10 +94,10 @@
     <div class="row label_row_container" style="padding:8px 0px">
       <div class="col-xs-1 min_padding"></div>
       <div class="col-xs-3 min_padding">Tap Name</div>
-      <div class="col-xs-4 min_padding">Beverage on Tap</div>
+      <div class="min_padding" ng-class="{'col-xs-4': use_mode===0, 'col-xs-3': use_mode===1}">Beverage on Tap</div>
       <div class="col-xs-3 min_padding" ng-if="use_mode===0">Tap / Untap</div>
-      <div class="col-xs-3 min_padding" ng-if="use_mode===1">Inventory Volume</div>
-      <!--div class="col-xs-3" style="text-align:right">Update Item</div-->
+      <div class="col-xs-3 min_padding" ng-if="use_mode===1">Remaining Vol.</div>
+      <div class="col-xs-2 min_padding" ng-if="use_mode===1 && !inv_started">Inventory</div>
     </div>
     <div ng-repeat="tap in taps">
       <div class="row inv_row_container inv_row_odd" ng-class="{'tap_full_row': tap.is_tapped}" style="padding-bottom:12px; border-bottom:1px solid #eaeaea">
@@ -111,7 +111,7 @@
             {{tap.display_name}}
           </div>
         </div>
-        <div class="col-xs-4 min_padding">
+        <div class="min_padding" ng-class="{'col-xs-4': use_mode===0, 'col-xs-3': use_mode===1}">
           <div style="padding-top: 0px; width:100%; font-size:1.2em">
             <div ng-if="tap.beverage === null" style="color:#999999">
               Empty
@@ -120,18 +120,23 @@
               {{tap.beverage}}
             </div>
           </div>
-          <div class="hint_text" style="width:100%; font-size:0.9em">
+          <div ng-if="use_mode===0" class="hint_text" style="width:100%; font-size:0.9em">
             {{tap.display_time}}
           </div>
+          <div ng-if="use_mode===1 && tap.is_tapped" class="hint_text" style="width:100%; font-size:0.9em">
+            <span>${{tap.inv_cost | number:2}} /keg</span>
+            <span ng-if="tap.inv_deposit !== null" style="margin-left:8px">${{tap.inv_deposit | number:2}} dpst.</span>
+          </div>
         </div>
-        <div class="col-xs-4 min_padding" ng-if="use_mode===1" >
+        <div class="min_padding" ng-if="use_mode===1" ng-class="{'col-xs-4': inv_started===true, 'col-xs-3': inv_started===false}">
           <div ng-if="inv_started===false && tap.inv_volume !== null" style="font-size:1.2em; padding-top:8px;">
-            {{tap.inv_volume}} {{tap.inv_unit}}
+            <span>{{tap.inv_volume | number:1}} {{tap.inv_unit}}</span>
+            <span style="color:#aaaaaa; font-size:0.9em"> /{{tap.purchase_volume | number:1}} {{tap.inv_unit}}</span>
           </div>
           <div ng-if="inv_started===true && tap.is_tapped">
             <input ng-model="tap.inv_volume" ng-class="{'input_error': tap.invalid_volume===true}" class="form-control" style="display:inline-block; text-align:center; max-width:72px; height:38px; font-size:1.3em;">
             <span style="padding-top:12px; padding-left:6px; font-size:1.2em"> {{tap.inv_unit}}</span>
-            <span style="padding-top:12px; padding-left:16px; font-size:1.2em; color:#aaaaaa"> / {{tap.purchase_volume}} {{tap.inv_unit}}</span>
+            <span style="padding-top:12px; padding-left:16px; font-size:1.2em; color:#aaaaaa"> / {{tap.purchase_volume | number:1}} {{tap.inv_unit}}</span>
           </div>
         </div>
         <div class="col-xs-3 min_padding" ng-if="use_mode===0">
@@ -146,6 +151,9 @@
           <button ng-click="removeTap($index)" type="button" class="btn btn-default btn-sm btn-right" style="font-size:14px; min-height:32px; color:#888888; margin-top:4px">
             <span class="glyphicon glyphicon-trash" aria-hidden="true" style="color:#aaaaaa"></span>
           </button>
+        </div>
+        <div class="col-xs-2 min_padding" style="padding-top:8px; font-size:1.2em" ng-if="use_mode===1 && !inv_started && tap.inv_inventory!==null && tap.is_tapped">
+          $ {{tap.inv_inventory | number:2}}
         </div>
       </div>
     </div>

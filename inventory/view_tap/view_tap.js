@@ -64,6 +64,8 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
         tap['inv_volume'] = null;
         tap['inv_unit'] = null;
         tap['invalid_volume'] = false;
+        tap['inv_deposit'] = null;
+        tap['inv_inventory'] = null;
       }
 
       $scope.getTapBevs(null);
@@ -112,12 +114,16 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
               $scope.taps[tap_j]['beverage'] = tap_bev['product'];
               $scope.taps[tap_j]['inv_unit'] = tap_bev['purchase_unit'];
               $scope.taps[tap_j]['purchase_volume'] = tap_bev['purchase_volume'];
+              $scope.taps[tap_j]['inv_cost'] = tap_bev['purchase_cost'];
+              $scope.taps[tap_j]['inv_deposit'] = tap_bev['deposit'];
               $scope.taps[tap_j]['display_time'] = "Tapped: " + $scope.getDisplayTime(tap_bev['tap_time'], null);
             } else {
               $scope.taps[tap_j]['beverage'] = null;
               $scope.taps[tap_j]['inv_unit'] = null;
               $scope.taps[tap_j]['purchase_volume'] = null;
               $scope.taps[tap_j]['display_time'] = "Untapped: " + $scope.getDisplayTime(tap_bev['tap_time'], null);
+              $scope.taps[tap_j]['inv_cost'] = null;
+              $scope.taps[tap_j]['inv_deposit'] = null;
             }
             
             break;
@@ -160,6 +166,9 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
             }
             $scope.taps[tap_j]['inv_volume'] = tap['quantity'];
             $scope.taps[tap_j]['inv_unit'] = tap['purchase_unit'];
+            $scope.taps[tap_j]['inv_cost'] = tap['purchase_cost'];
+            $scope.taps[tap_j]['inv_deposit'] = tap['deposit'];
+            $scope.taps[tap_j]['inv_inventory'] = tap['inventory'];
             break;
           }
         }
@@ -231,6 +240,21 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
 
         $scope.last_update=DateService.getPrettyTime(data['last_update']);
         $scope.total_inventory=data['total_inventory'];
+
+        // update the line items' inventory values returned by the server
+        var tap_invs = data['taps_inventory'];
+        for (var tap_i in tap_invs) {
+          var tap = tap_invs[tap_i];
+          var tap_id = tap['location_id']; // tap id is returned as location_id
+          // since behind the scenes taps are locations
+          for (var tap_j in $scope.taps) {
+            var existing_tap = $scope.taps[tap_j];
+            if (existing_tap.id === tap_id) {
+              $scope.taps[tap_j]['inv_inventory'] = tap['inventory'];
+              break;
+            }
+          }
+        }
 
       }).
       error(function(data, status, headers, config) {
@@ -390,6 +414,12 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
           tap['tap_time'] = result[1];
           tap['display_time'] = "Untapped: " + $scope.getDisplayTime(null, result[1]);
           $scope.num_tapped -= 1;
+          tap['inv_volume'] = null;
+          tap['purchase_volume'] = null;
+          tap['inv_unit'] = null;
+          tap['inv_cost'] = null;
+          tap['inv_deposit'] = null;
+          tap['inv_inventory'] = null;
         }
 
         $scope.getTapBevs(tap.id);

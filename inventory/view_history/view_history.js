@@ -123,7 +123,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
         id: item.id }
     }).
     success(function(data, status, headers, config) {
-      //console.log(data);
+      console.log(data);
 
       var item_histories = {
         "product": item.product,

@@ -23,12 +23,14 @@ type VolumeUnit struct {
 
 type BeverageLight struct {
 	ID            int    `json:"id"`
+	VersionID     int    `json:"version_id"`
 	ContainerType string `json:"container_type"`
 	Product       string `json:"product"`
 }
 
 type Beverage struct {
 	ID             int         `json:"id"`
+	VersionID      int         `json:"version_id"`
 	ContainerType  string      `json:"container_type"`
 	ServeType      int         `json:"serve_type"`
 	Product        string      `json:"product"`
@@ -61,17 +63,21 @@ type SalePrice struct {
 }
 
 // This is the LocBeverage struct that is used internally on the server
-// and corresponds to the DB design
+// and corresponds to the DB design.
+// XXX I believe this is deprecated, commenting out june 3, 2015
+/*
 type LocBeverage struct {
 	BevID    int       `json:"beverage_id"`
 	LocID    int       `json:"location_id"`
 	Quantity float32   `json:"quantity"`
 	Update   time.Time `json:"update"`
 }
+*/
 
 // This is the LocBeverage struct that is communicated to and from the app
 type LocBeverageApp struct {
 	ID             int         `json:"id"`
+	VersionID      int         `json:"version_id"`
 	Product        string      `json:"product"`
 	ContainerType  string      `json:"container_type"`
 	Brewery        NullString  `json:"brewery"`
@@ -83,10 +89,12 @@ type LocBeverageApp struct {
 	PurchaseCount  int         `json:"purchase_count"`
 	Deposit        NullFloat64 `json:"deposit"`
 	Quantity       float32     `json:"quantity"`
+	Inventory      NullFloat64 `json:"inventory"`
 	Update         time.Time   `json:"update"`
 	Location       NullString  `json:"location"`
 	LocationID     int         `json:"location_id"`
 	Type           string      `json:"type"`
+	OutOfDate      NullBool    `json:"out_of_date"`
 }
 
 type LocBeverageAppBatch struct {
@@ -100,6 +108,7 @@ type Location struct {
 	Name       NullString `json:"name"`
 	LastUpdate time.Time  `json:"last_update"`
 	Type       string     `json:"type"`
+	TotalInv   float32    `json:"total_inventory"`
 }
 
 type RenameTuple struct {

@@ -297,7 +297,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       var test_item = $scope.add_inv_all_items[i];
       for (var j=0; j < $scope.inv_items.length; j++) {
         var check_item = $scope.inv_items[j];
-        if (test_item.id == check_item.id)
+        if (test_item['version_id'] == check_item['version_id'])
         {
           is_clean = false;
           break;
@@ -433,6 +433,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       $scope.inv_items[inv_i]['add_q'] = null;
 
       var value = 0;
+      // We locally calculate the new inventory without polling the server
       if ($scope.k_loc_type === "bev") {
         value = inv['purchase_cost'] / inv['purchase_count'] * inv['quantity'];
       }
@@ -440,7 +441,8 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       if (inv['deposit'] != null) {
         value += inv['deposit'] * inv['quantity'];
       }
-      
+      $scope.inv_items[inv_i]['inventory'] = value;
+      $scope.inv_items[inv_i]['out_of_date'] = null;
       $scope.total_inventory += value;
     };
 
@@ -458,6 +460,8 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         timer: 3000,
         allowOutsideClick: true,
         html: true});
+      // server redundantly returns total inventory, set it just in case
+      $scope.total_inventory = data['total_inventory'];
       // for the selected location, set last_update locally to just now
       for (var i = 0; i < $scope.locations.length; i++) {
         var loc = $scope.locations[i];
@@ -468,7 +472,10 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
           $scope.last_update = pretty_time;
           break;
         }
-      }
+      };
+
+      // Call get loc inv to guarantee correct values for line items
+      $scope.getLocInv()
     }).
     error(function(data, status, headers, config) {
 
@@ -609,19 +616,26 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
 
       // calculate total inventory
       $scope.total_inventory = 0;
-      for (var i = 0; i < $scope.inv_items.length; i++)
+      for (var inv_i = 0; inv_i < $scope.inv_items.length; inv_i++)
       {
-        var inv = $scope.inv_items[i];
+        var inv = $scope.inv_items[inv_i];
 
         var value = 0;
-        if ($scope.k_loc_type === "bev") {
-          value = inv['purchase_cost'] / inv['purchase_count'] * inv['quantity'];
+        // server has been updated to return inventory value
+        if (inv['inventory'] !== null) {
+          value = inv['inventory'];
+        } else {
+          // for old entries which might lack inventory value, do some potentially
+          // inaccurate calculations here
+          if ($scope.k_loc_type === "bev") {
+            value = inv['purchase_cost'] / inv['purchase_count'] * inv['quantity'];
+          }
+          // always include deposits in value
+          if (inv['deposit'] != null) {
+            value += inv['deposit'] * inv['quantity'];
+          }
         }
-        // always include deposits in value
-        if (inv['deposit'] != null) {
-          value += inv['deposit'] * inv['quantity'];
-        }
-
+        $scope.inv_items[inv_i]['inventory'] = value;
         $scope.total_inventory += value;
       }
 
