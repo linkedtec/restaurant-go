@@ -12,7 +12,7 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
 .controller('ViewOnTapCtrl', function($scope, $modal, $http, DateService) {
 
   $scope.k_loc_type = 'tap';
-  $scope.use_modes = ['Track Taps', 'Take Inventory'];
+  $scope.use_modes = ['Manage Taps', 'Take Inventory'];
   $scope.use_mode = 0;
 
   $scope.empty_taps = true;
@@ -566,14 +566,7 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
 
     // First convert the local time to UTC time
     var year, month, day, hour, minute;
-    var date_obj;   // time obj for date
-
-    if (typeof $scope.dt === 'string')
-    {
-      date_obj = $scope.today;
-    } else if (typeof $scope.dt === 'object') {
-      date_obj = $scope.dt;
-    }
+    var date_obj = $scope.dt;  // time obj for date
 
     if (date_obj === undefined || typeof date_obj !== 'object') {
       $scope.form_ver.error_date = true;
@@ -622,7 +615,7 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
   //=====================================
   // Date picker
   $scope.minDate = null;
-  $scope.dt = null
+  $scope.dt = null;
 
   $scope.selected_bev = null;
 
@@ -631,7 +624,7 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
 
   $scope.today = function() {
     var today = new Date();
-    $scope.dt = today.toDateString();
+    $scope.dt = new Date();
     $scope.today = today;
   };
   $scope.today();
@@ -649,12 +642,13 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
     $event.preventDefault();
     $event.stopPropagation();
 
-    $scope.opened = true;
+    $scope.opened = !$scope.opened;
   };
 
   $scope.dateOptions = {
     formatYear: 'yy',
-    startingDay: 1
+    startingDay: 1,
+    showWeeks:false
   };
 
   $scope.getDayClass = function(date, mode) {

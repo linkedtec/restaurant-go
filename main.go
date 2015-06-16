@@ -28,6 +28,13 @@ type BeverageLight struct {
 	Product       string `json:"product"`
 }
 
+type BeverageInv struct {
+	ID        int         `json:"id"`
+	Product   string      `json:"product"`
+	Quantity  float32     `json:"quantity"`
+	Inventory NullFloat64 `json:"inventory"`
+}
+
 type Beverage struct {
 	ID             int         `json:"id"`
 	VersionID      int         `json:"version_id"`
@@ -47,7 +54,7 @@ type Beverage struct {
 	FlavorProfile  NullString  `json:"flavor_profile"`
 	SalePrices     []SalePrice `json:"size_prices"`
 	Count          int         `json:"count"`
-	Inventory      float32     `json:"inventory"`
+	Inventory      NullFloat64 `json:"inventory"`
 }
 
 type BeverageUpdate struct {

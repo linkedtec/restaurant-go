@@ -1,62 +1,152 @@
 <div ng-include src="'./inv_subnav.html'"></div>
 <div class="container" style="min-width:620px; max-width:880px">
 
-  <div style="width:100%; margin-top:24px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
+  <div style="width:100%; margin-top:24px; padding-bottom:6px; font-size:1.6em;">
     <img src="images/inv_history.png" height="36" width="36" style="vertical-align:top"/>
     <div style="display: inline-block; vertical-align:top; margin-top:2px; margin-left:2px">Inventory Records & History</div>
   </div>
-  <div class="hint_text" style="width:100%; padding-top:4px;">
+  <!--div class="hint_text" style="width:100%; padding-top:4px;">
     View weekly inventory and historical data.
-  </div>
+  </div-->
 
-  <div style="margin-top:24px; margin-bottom:24px">
-    <div class="row">
-      <div class="col-xs-12">
-        <span style="float:left">
-          <div class="btn-group" dropdown>
-            <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.1em">
-              <span style="float:left; text-align:left; width:90%">
-                {{sort_type}} 
-              </span>
-              <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:14px; color:#888888"></span>
-            </button>
-            <ul class="loc_dropdown dropdown-menu" role="menu">
-              <li class="loc_li" ng-repeat="type in sort_types">
-                <a ng-click="selectSortType(type)" class="noselect">{{type}}</a>
-              </li>
-            </ul>
-          </div>
-        </span>
+  <tabset style="margin-top:4px; font-size:1.1em;">
+    <tab ng-repeat="mode in use_modes" heading="{{mode}}" ng-click="selectUseMode(mode)">
+    </tab>
+  </tabset>
 
-        <span ng-if="sort_type===sort_types[2]" style="margin-left:10px">
-          <div class="btn-group" dropdown>
-            <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.1em;">
-              <span style="float:left; text-align:left; width:90%; color:#888888">
-                Add Beverage...
-              </span>
-              <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:14px; color:#888888"></span>
-            </button>
-            <ul class="loc_dropdown dropdown-menu" role="menu" style="min-width:280px">
-              <li class="loc_li" ng-repeat="item in all_items">
-                <a ng-click="addItem(item)" class="noselect">{{item.product}} <span style="color:#aaaaaa; float:right">({{item.container_type}})</span></a>
-              </li>
-            </ul>
-          </div>
-        </span>
-      </div>
+  <div class="row" style="margin-top:6px">
+    <div class="col-xs-12 hint_text" style="font-size:1.1em">
+      View / edit historical inventory data.<br/>
     </div>
-
-    <div ng-if="added_items.length > 0" class="row" ng-if="sort_type===sort_types[2]" style="padding-left:12px; margin-top:12px">
-      <div ng-repeat="added_item in added_items" class="a_item" id="a_item_{{$index}}">
-        <span style="float:left">{{added_item.product}}</span>
-        <span class="glyphicon glyphicon-remove add_x" aria-hidden="true" ng-click="removeAddedItem(added_item)"></span>
-      </div>
-    </div>
-
   </div>
-
   <div>
-    <svg id="d3viz" width="880" height="500"></svg>
+    <div class="row" style="margin-top:2px">
+      <div class="col-xs-12" style="text-align:right">
+        <div style="display:inline-block;">
+          <div class="input-group input-group-sm" style="max-width:150px;">
+            <input type="text" ng-class="{'my_error': form_ver.error_date_start===true}" class="form-control" datepicker-popup="{{format}}" ng-model="dates.start" is-open="opened.start" min-date="minDate" datepicker-options="dateOptions" ng-required="true" close-text="Close" ng-change="startDateChanged()">
+            <span class="input-group-btn">
+              <button type="button" class="btn btn-default" ng-click="openDateStart($event)"><span class="glyphicon glyphicon-calendar"></span></button>
+            </span>
+          </div>
+        </div>
+        <div style="margin-left: 4px; padding-top:6px; margin-right:4px; display:inline-block; vertical-align:top">to</div>
+        <div style="display:inline-block;">
+          <div class="input-group input-group-sm" style="max-width:150px;">
+            <input type="text" ng-class="{'my_error': form_ver.error_date_end===true}" class="form-control" datepicker-popup="{{format}}" ng-model="dates.end" is-open="opened.end" min-date="minDate" datepicker-options="dateOptions" ng-required="true" close-text="Close" ng-change="endDateChanged()">
+            <span class="input-group-btn">
+              <button type="button" class="btn btn-default" ng-click="openDateEnd($event)"><span class="glyphicon glyphicon-calendar"></span></button>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <div class="col-xs-12">
+      <span>
+        <div class="btn-group" dropdown>
+          <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.1em;">
+            <span style="float:left; text-align:left; width:90%">
+              {{sort_type}} 
+            </span>
+            <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:14px; color:#888888"></span>
+          </button>
+          <ul class="loc_dropdown dropdown-menu" role="menu">
+            <li class="loc_li" ng-repeat="type in sort_types">
+               <a ng-click="selectSortType(type)" class="noselect">{{type}}</a>
+            </li>
+          </ul>
+        </div>
+      </span>
+      <span ng-if="sort_type===sort_types[2]" style="margin-left:4px">
+        <div class="btn-group" dropdown>
+          <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.1em;">
+            <span style="float:left; text-align:left; width:90%; color:#888888">
+              Add Beverage...
+            </span>
+            <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:14px; color:#888888"></span>
+          </button>
+          <ul class="loc_dropdown dropdown-menu" role="menu" style="min-width:280px">
+            <li class="loc_li" ng-repeat="item in all_items">
+              <a ng-click="addItem(item)" class="noselect">{{item.product}} <span style="color:#aaaaaa; float:right">({{item.container_type}})</span></a>
+            </li>
+          </ul>
+        </div>
+      </span>
+    </div>
+  </div>
+
+  <div ng-if="sort_type===sort_types[2] && added_items.length>0" class="row" ng-if="sort_type===sort_types[2]" style="padding-left:12px; margin-top:12px" id="inv_items">
+    <div ng-repeat="added_item in added_items" class="a_item" id="a_item_{{$index}}">
+      <span style="float:left">{{added_item.product}}</span>
+      <span class="glyphicon glyphicon-remove add_x" aria-hidden="true" ng-click="removeAddedItem(added_item)"></span>
+    </div>
+  </div>
+
+  <div ng-if="use_mode===1">
+
+    <div style="margin-top:32px; margin-bottom:64px">
+      <div ng-if="display_items!==null && display_items.length > 0" class="row" style="padding: 4px 0px; border-bottom: 1px solid #e0e0e0; color: #aaaaaa; margin-bottom:0px">
+        <div class="col-xs-4 min_padding">Product</div>
+        <div class="col-xs-2 min_padding">Qty</div>
+        <div class="col-xs-2 min_padding">Inventory</div>
+      </div>
+      <div class="row" ng-if="display_items===null || display_items.length===0">
+        <div class="col-xs-12 hint_text" style="font-size:1.5em; margin-top:64px; text-align:center">
+          No data for selected time period.
+        </div> 
+      </div>
+      <div ng-repeat="inv in display_items">
+        <div class="row inv_date_row">
+          <div class="col-xs-12 min_padding">
+            {{inv.pretty_date}}
+          </div>
+        </div>
+        <div ng-if="sort_type===sort_types[1]" ng-repeat="loc in inv.loc_histories">
+          <div class="row inv_loc_row">
+            <div class="col-xs-12 min_padding">
+              {{loc.location}}
+            </div>
+          </div>
+          <div ng-class-even="'row inv_row_container inv_row_even'" ng-class-odd="'row inv_row_container'" ng-repeat="item in loc.histories">
+            <div class="col-xs-4 min_padding" style="padding-left:12px">
+              {{item.product}}
+            </div>
+            <div class="col-xs-2 min_padding">
+              {{item.quantity | number:2}}
+            </div>
+            <div ng-if="item.inventory===0" class="col-xs-2 min_padding" style="color:#aaaaaa">
+              $ {{item.inventory | number:2}}
+            </div>
+            <div ng-if="item.inventory!==0" class="col-xs-2 min_padding">
+              $ {{item.inventory | number:2}}
+            </div>
+          </div>
+        </div>
+        <div ng-if="sort_type!==sort_types[1]" ng-class-even="'row inv_row_container inv_row_even'" ng-class-odd="'row inv_row_container'" ng-repeat="dinv in inv.date_inv">
+          <div class="col-xs-4 min_padding" style="padding-left:12px">
+            {{dinv.product}}
+          </div>
+          <div class="col-xs-2 min_padding">
+            {{dinv.quantity | number:2}}
+          </div>
+          <div ng-if="dinv.inventory===0" class="col-xs-2 min_padding" style="color:#aaaaaa">
+            $ {{dinv.inventory | number:2}}
+          </div>
+          <div ng-if="dinv.inventory!==0" class="col-xs-2 min_padding">
+            $ {{dinv.inventory | number:2}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div ng-show="use_mode===0">
+    <div style="margin-top:16px; margin-bottom:64px">
+      <svg id="d3viz" width="880" height="500"></svg>
+    </div>
   </div>
 
   <script src="/lib/d3/d3.min.js"></script>

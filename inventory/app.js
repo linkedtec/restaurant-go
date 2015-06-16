@@ -12,7 +12,16 @@ angular.module('myApp', [
 config(['$routeProvider', function($routeProvider) {
   $routeProvider.otherwise({redirectTo: '/viewAllInv'});
 }])
-
+.directive('datepickerPopup', function (){
+    return {
+        restrict: 'EAC',
+        require: 'ngModel',
+        link: function(scope, element, attr, controller) {
+      //remove the default formatter from the input directive to prevent conflict
+      controller.$formatters.shift();
+  }
+}
+})
 .controller('myAppCtrl', function($scope, $location) {
 
   $scope.isActive = function (viewLocation) {
