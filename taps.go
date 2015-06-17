@@ -429,7 +429,9 @@ func tapsBevsAPIHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(last_update)
 
 			var tapBev TapBeverageApp
-			err = db.QueryRow("SELECT tap_beverages.beverage_id, tap_beverages.tap_id, beverages.product, beverages.purchase_volume, beverages.purchase_unit, beverages.purchase_cost, beverages.deposit, tap_beverages.tap_time, tap_beverages.tap_or_untap FROM tap_beverages, beverages WHERE tap_beverages.tap_id=$1 AND tap_beverages.tap_time=$2 AND beverages.id=tap_beverages.beverage_id;", tap_id, last_update).Scan(&tapBev.BevID, &tapBev.TapID, &tapBev.Product, &tapBev.PurchaseVolume, &tapBev.PurchaseUnit, &tapBev.PurchaseCost, &tapBev.Deposit, &tapBev.TapTime, &tapBev.TapOrUntap)
+			// A note about this query, we order by tap_or_untap ASC so that if
+			// there is both an untap and a tap recorded, the tap will be returned
+			err = db.QueryRow("SELECT tap_beverages.beverage_id, tap_beverages.tap_id, beverages.product, beverages.purchase_volume, beverages.purchase_unit, beverages.purchase_cost, beverages.deposit, tap_beverages.tap_time, tap_beverages.tap_or_untap FROM tap_beverages, beverages WHERE tap_beverages.tap_id=$1 AND tap_beverages.tap_time=$2 AND beverages.id=tap_beverages.beverage_id ORDER BY tap_or_untap ASC LIMIT 1;", tap_id, last_update).Scan(&tapBev.BevID, &tapBev.TapID, &tapBev.Product, &tapBev.PurchaseVolume, &tapBev.PurchaseUnit, &tapBev.PurchaseCost, &tapBev.Deposit, &tapBev.TapTime, &tapBev.TapOrUntap)
 			switch {
 			case err == sql.ErrNoRows:
 				continue
@@ -545,16 +547,38 @@ func tapsBevsAPIHandler(w http.ResponseWriter, r *http.Request) {
 		//log.Println(post_time)
 		//log.Println(tapBev.TapTime)
 
+		// Special case: If untapping, check if there is a tap record with the same
+		// beverage on the same tap at the same time.  If there is, delete that
+		// tap record and don't record the untapping
+		if tapBev.TapOrUntap == "untap" {
+			var bev_tapped bool
+			err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM tap_beverages WHERE tap_id=$1 AND beverage_id=$2 AND tap_time=$3 AND tap_or_untap='tap');", tapBev.TapID, tapBev.BevID, tapBev.TapTime).Scan(&bev_tapped)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if bev_tapped {
+				_, err = db.Exec("DELETE FROM tap_beverages WHERE tap_id=$1 AND beverage_id=$2 AND tap_time=$3 AND tap_or_untap='tap';", tapBev.TapID, tapBev.BevID, tapBev.TapTime)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				// we undid the previous tapping, now quit
+				return
+			}
+		}
+
 		// Add an entry into tap_beverages
-		// IF tapBev.TapTime is more recent than taps.last_update, update taps.last_update
-		_, err = db.Exec("INSERT INTO tap_beverages (beverage_id, tap_id, tap_time, tap_or_untap, tapper_id) VALUES ($1, $2, $3, $4, $5);", tapBev.BevID, tapBev.TapID, tapBev.TapTime, tapBev.TapOrUntap, test_user_id)
+		_, err = db.Exec("INSERT INTO tap_beverages (tap_id, beverage_id, tap_time, tap_or_untap, tapper_id) VALUES ($1, $2, $3, $4, $5);", tapBev.TapID, tapBev.BevID, tapBev.TapTime, tapBev.TapOrUntap, test_user_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// Now check if tapBev.Time is more recent than taps_last_update.last_update
+		// Finally, if tapBev.TapTime is more recent than taps.last_update, update taps.last_update
 		var last_update time.Time
 		err = db.QueryRow("SELECT last_update FROM taps_last_update WHERE tap_id=$1;", tapBev.TapID).Scan(&last_update)
 		if err != nil {

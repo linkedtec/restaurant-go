@@ -1295,24 +1295,42 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Does LocationBeverage from last_update exist already and is active?
-		err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages WHERE location_id=$1 AND beverage_id=$2 AND update=$3 AND active);", loc_id, locBev.ID, last_update).Scan(&exists)
+		//   Does LocationBeverage from last_update exist already?
+		//     If it does exist:
+		//       If it's not active (deleted), restore active status
+		//       If it is active, return, it already is in the location
+		//   Else:
+		//     Add as normal
+		err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages WHERE location_id=$1 AND beverage_id=$2 AND update=$3);", loc_id, locBev.ID, last_update).Scan(&exists)
 		if err != nil {
 			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
-		// doesn't exist yet, means good to add.
-		// Set the new location_beverage entry's update time to last_update so it
-		// appears with the other entries in this location.
-		if !exists {
+		if exists {
+			var active bool
+			err = db.QueryRow("SELECT active FROM location_beverages WHERE location_id=$1 AND beverage_id=$2 AND update=$3;", loc_id, locBev.ID, last_update).Scan(&active)
+			if active {
+				http.Error(w, "Posted beverage exists in location.", http.StatusInternalServerError)
+				return
+			} else {
+				_, err = db.Exec("UPDATE location_beverages SET active=TRUE WHERE location_id=$1 AND beverage_id=$2 AND update=$3;;", loc_id, locBev.ID, last_update)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			}
+		} else {
+			// doesn't exist yet, means good to add.
+			// Set the new location_beverage entry's update time to last_update so it
+			// appears with the other entries in this location.
 			_, err = db.Exec("INSERT INTO location_beverages (beverage_id, location_id, quantity, update, inventory, active) VALUES ($1, $2, 0, $3, 0, TRUE);", locBev.ID, loc_id, last_update)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-		} else {
-			http.Error(w, "Posted beverage exists in location.", http.StatusInternalServerError)
-			return
 		}
 
 	case "PUT":
