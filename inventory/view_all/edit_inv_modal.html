@@ -1,17 +1,18 @@
 <!-- EDIT INVENTORY ITEM MODAL -->
 <script type="text/ng-template" id="editInvModal.html">
   <div class="modal-header">
-    <span style="font-size:1.6em;margin-left:6px">Edit Beverage Details</span>
+    <span style="font-size:1.4em;margin-left:6px">Edit Beverage Details</span>
   </div>
   <div class="modal-body">
 
-    <tabset style="margin-top:20px; font-size:1.1em">
+    <!--tabset style="margin-top:20px; font-size:1.1em">
       <tab ng-repeat="type in tab_beverage_types" heading="{{type.name}}" ng-click="selectAddType(type.name)" active="type.active">
       </tab>
-    </tabset>
-    <div style="padding:0px 12px; margin-top:0px; background-color:#fffffe; border-right: 1px solid #dddddd; border-left: 1px solid #dddddd; border-bottom: 1px solid #dddddd">
-      <div style="padding-top:12px">
-        <span style="font-size:1.2em; color:#77b088;"><b>New {{beverage.alcohol_type}}</b></span>
+    </tabset-->
+    <div style="padding:0px 12px; margin-top:0px; background-color:#fffffe;">
+      <!--" border-right: 1px solid #dddddd; border-left: 1px solid #dddddd; border-bottom: 1px solid #dddddd"-->
+      <div>
+        <span style="font-size:1.2em; color:#77b088;"><b>Edit {{beverage.alcohol_type}}</b></span>
         <span class="hint_text" style="margin-right:24px; float:right"> <b>bold</b> fields are required </span>
       </div>
       <hr class="add_hr"/>

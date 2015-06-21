@@ -1320,6 +1320,24 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
+				// Return the previous quantity and inventory of the now restored bev
+				//var test []BeverageInv
+				var bevInv BeverageInv
+				err = db.QueryRow("SELECT quantity, inventory FROM location_beverages WHERE location_id=$1 AND beverage_id=$2 AND update=$3 AND active;", loc_id, locBev.ID, last_update).Scan(
+					&bevInv.Quantity,
+					&bevInv.Inventory)
+				bevInv.ID = locBev.ID
+				//test = append(test, bevInv)
+
+				w.Header().Set("Content-Type", "application/json")
+				// need to marshal pointer to struct or custom marshal interface of
+				// NullFloat64 is never called
+				js, err := json.Marshal(&bevInv)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				w.Write(js)
 			}
 		} else {
 			// doesn't exist yet, means good to add.

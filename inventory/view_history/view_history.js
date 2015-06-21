@@ -109,13 +109,20 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     var items_arr = [];
     for (var date in items_by_date) {
       var date_item = items_by_date[date];
+      // gather sum of inventory in date_item
+      var inv_sum = 0;
+      for (var j in date_item) {
+        var item = date_item[j];
+        inv_sum += item['inventory'];
+      }
       var pretty_tokens = date.split(" ");  
       var pretty_date = pretty_tokens[0] + ", " + pretty_tokens[1] + " " + pretty_tokens[2] + " " + pretty_tokens[3];
       items_arr.push(
       {
         'update': date,
         'pretty_date': pretty_date,
-        'date_inv': date_item
+        'date_inv': date_item,
+        'inv_sum': inv_sum
       });
     }
 
@@ -363,10 +370,15 @@ angular.module('myApp.viewHistory', ['ngRoute'])
         
         var pretty_date = pretty_tokens[0] + ", " + pretty_tokens[1] + " " + pretty_tokens[2] + " " + pretty_tokens[3];
 
+        var inv_sum = 0;
+        for (var j in data[date_key]) {
+          inv_sum += data[date_key][j]['inventory'];
+        }
         $scope.invData['all_itemized'].push(
           {'date': date_key,
           'pretty_date': pretty_date,
-          'date_inv': data[date_key]
+          'date_inv': data[date_key],
+          'inv_sum': inv_sum
         });
       }
 
@@ -495,7 +507,18 @@ angular.module('myApp.viewHistory', ['ngRoute'])
         
         var pretty_date = pretty_tokens[0] + ", " + pretty_tokens[1] + " " + pretty_tokens[2] + " " + pretty_tokens[3];
 
+        var inv_sum = 0;
+        for (var loc_i in data[date_i]['loc_histories']) {
+          var loc_sum = 0;
+          for (var item_i in data[date_i]['loc_histories'][loc_i]['histories']) {
+            loc_sum += data[date_i]['loc_histories'][loc_i]['histories'][item_i]['inventory'];
+          }
+          data[date_i]['loc_histories'][loc_i]['inv_sum'] = loc_sum;
+          inv_sum += loc_sum;
+        }
+
         date_entry["pretty_date"] = pretty_date;
+        date_entry["inv_sum"] = inv_sum;
       }
 
       /*

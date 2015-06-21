@@ -99,14 +99,22 @@
       </div>
       <div ng-repeat="inv in display_items">
         <div class="row inv_date_row">
-          <div class="col-xs-12 min_padding">
+          <div class="col-xs-6 min_padding">
             {{inv.pretty_date}}
+          </div>
+          <div class="col-xs-2 min_padding">
+            <span ng-if="inv.inv_sum!==null && sort_type!==sort_types[2]">
+              <b>$ {{inv.inv_sum | number:2}}</b>
+            </span>
           </div>
         </div>
         <div ng-if="sort_type===sort_types[1]" ng-repeat="loc in inv.loc_histories">
           <div class="row inv_loc_row">
-            <div class="col-xs-12 min_padding">
+            <div class="col-xs-6 min_padding">
               {{loc.location}}
+            </div>
+            <div class="col-xs-6 min_padding">
+              $ {{loc.inv_sum | number:2}}
             </div>
           </div>
           <div ng-class-even="'row inv_row_container inv_row_even'" ng-class-odd="'row inv_row_container'" ng-repeat="item in loc.histories">

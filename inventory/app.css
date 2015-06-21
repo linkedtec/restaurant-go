@@ -92,7 +92,7 @@ body {
 .label_row_container {
   font-weight:bold;
   background-color: #e0f0ff;
-  padding: 6px 4px;
+  padding: 0px 4px;
   font-size:1.1em;
 }
 
@@ -103,9 +103,10 @@ body {
 .inv_date_row {
   font-style: italic;
   font-size:0.9em;
-  color:#999999;
+  color:#aaaaaa;
+  /*color:#66b5d0;*/
   border-bottom: solid 2px #e0e0e0;
-  padding-top:16px;
+  padding-top:20px;
   padding-bottom:2px;
 }
 
@@ -127,6 +128,20 @@ body {
   z-index:0;
 }
 
+.inv_sort_div {
+  display:block;
+  padding: 6px 0px;
+  text-decoration: none;
+  cursor: pointer;
+  margin:0px;
+}
+
+.inv_sort_div:hover {
+  background-color:#d0e5fc;
+  z-index:0;
+}
+
+/* sort carat in all bev DB */
 .sort_carat {
   font-size:10px;
   float:right;
@@ -134,9 +149,23 @@ body {
   margin-top:4px;
 }
 
+/* sort carat in inv loc pages */
+.inv_sort_carat {
+  font-size:10px;
+  margin-left:6px;
+  padding-top:6px;
+  color:#55aacc;
+}
+
 .all_inv_label_span {
   padding: 0;
   border-right: solid 1px #dddddd;
+  color:#4488cc;
+}
+
+.inv_loc_label_span {
+  padding-top:6px;
+  padding-bottom:6px;
   color:#4488cc;
 }
 
@@ -268,21 +297,53 @@ body {
   /*background-color: #fafafa;*/
 }
 
+.add_label_row_container {
+  font-weight:bold;
+  background-color: #c0e5ba;
+  padding: 0px 4px;
+  font-size:1.1em;
+  margin: 0px 28px;
+}
+
+.add_inv_sort_div {
+  display:block;
+  padding: 6px 4px;
+  text-decoration: none;
+  cursor: pointer;
+  margin:0px;
+}
+
+.add_inv_sort_div:hover {
+  background-color:#b0daaa;
+  z-index:0;
+}
+
+.add_inv_label_span {
+  padding:6px 6px;
+  color:#448800;
+}
+
 .add_inv_scroll_area {
   height:300px;
   overflow: auto;
   background-color: #ffffff;
-  border-radius: 6px;
+  /*border-radius: 6px;*/
   border: 1px solid #dddddd;
   margin: 0px 28px;
 }
 
 .add_inv_scroll_cell {
   margin: auto;
-  padding-left: 16px;
-  padding-top:10px;
-  padding-bottom:12px;
+  padding-left: 8px;
+  padding-top:7px;
+  padding-bottom:7px;
   border-bottom: 1px solid #dddddd;
+}
+
+.add_inv_scroll_col {
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 .add_inv_msg {
@@ -384,7 +445,7 @@ body {
 .add_inv_all {
   border-radius: 4px;
   border:1px solid #aaddbb;
-  background-color: #effae4;
+  background-color: #f5fdea;
   padding: 16px 10px;
   width:800px;
   margin-top: -11px;
@@ -458,7 +519,7 @@ body {
 }
 
 .add_transparent_btn {
-  background-color: #effae4;
+  background-color: #f5fdea;
   border: 1px solid #aaddbb;
   color: #55aa55;
 }
@@ -479,7 +540,7 @@ body {
 .add_inv {
   border-radius:6px;
   border:1px solid #aaddbb;
-  background-color: #effae4;
+  background-color: #f5fdea;
   margin-left:-8px;
   margin-right:-8px;
   padding-left: 8px;
@@ -490,7 +551,7 @@ body {
 }
 
 .add_inv_divider {
-  margin: 16px -10px;
+  margin: 12px -8px;
   border-bottom: 1px solid #aaddbb;
 }
 
@@ -508,7 +569,7 @@ body {
 .btn_right {
   margin-right: 4px;
   float: right;
-  min-height:32px;
+  min-height:28px;
 }
 
 .btn_clear {

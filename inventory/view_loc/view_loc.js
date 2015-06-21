@@ -40,6 +40,14 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
   $scope.inv_started = false;
   $scope.update_failure_msg = "";
 
+  // sorting
+  $scope.sort_key = null;
+  $scope.double_sort = -1;
+  $scope.firstTimeSort = true;
+  // sorting add inv area
+  $scope.sort_add_key = null;
+  $scope.add_double_sort = -1;
+
   // get locations, if empty, set $scope.empty_locs = true
   $http.get('/loc', {
       params: {
@@ -222,6 +230,9 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     } else {
       $scope.cleanUpExistingInv();
     }
+
+    $scope.add_double_sort = null;
+    $scope.sortAddBy('product');
   };
 
   $scope.hideAddInv = function() {
@@ -237,16 +248,31 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       location: $scope.selected_loc,
       type:$scope.k_loc_type}).
       success(function(data, status, headers, config) {
+
         console.log(data);
+
+        var item_clone = JSON.parse( JSON.stringify( item ) );
+
         // XXX push new item onto location's inventory items
         // XXX if new item not in all inventory, push into
-        $scope.new_success_msg = item.product + " has been added to " + $scope.selected_loc + "!";
-        item.quantity = 0;
-        $scope.inv_items.push(item);
+        $scope.new_success_msg = item_clone.product + " has been added to " + $scope.selected_loc + "!";
+        item_clone['quantity'] = 0;
+        item_clone['inventory'] = 0;
+
+        if (data !== null && typeof data === 'object') {
+          if ('quantity' in data) {
+            item_clone.quantity = data['quantity'];
+          }
+          if ('inventory' in data) {
+            item_clone.inventory = data['inventory'];
+          }
+        }
+
+        $scope.inv_items.push(item_clone);
         //$scope.getLocInv();
         // XXX remove added item from $scope.add_inv_existing_items manually
         for ( var i=$scope.add_inv_existing_items.length-1; i >= 0; i--) {
-          if ( $scope.add_inv_existing_items[i].id == item.id) {
+          if ( $scope.add_inv_existing_items[i].id === item.id) {
             $scope.add_inv_existing_items.splice(i, 1);
           }
         }
@@ -280,6 +306,14 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         success(function(data, status, headers, config) {
           $scope.getLocInv();
           swal("Removed!", item.name + " has been removed.", "success");
+
+          // push item back into add_inv_existing_items
+          item['inventory'] = 0;
+          item['quantity'] = 0;
+          $scope.add_inv_existing_items.push(item);
+          // re-sort the added items twice to refresh sorting
+          $scope.sortAddBy($scope.sort_add_key);
+          $scope.sortAddBy($scope.sort_add_key);
         }).
         error(function(data, status, headers, config) {
 
@@ -325,6 +359,10 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       console.log(data);
       if (data != null) {
         $scope.add_inv_all_items = data;
+        for (var i in $scope.add_inv_all_items) {
+          $scope.add_inv_all_items['inventory'] = 0;
+          $scope.add_inv_all_items['quantity'] = 0;
+        }
       }
       else {
         $scope.add_inv_all_items = [];
@@ -444,6 +482,25 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       $scope.inv_items[inv_i]['inventory'] = value;
       $scope.inv_items[inv_i]['out_of_date'] = null;
       $scope.total_inventory += value;
+
+      // locally calculate unit_cost for sorting purposes
+      var purchase_cost = 0;
+      var purchase_count = 1;
+      var deposit = 0;
+      if (inv['purchase_cost'] !== null) {
+        purchase_cost = inv['purchase_cost'];
+      }
+      if (inv['purchase_count'] !== null) {
+        purchase_count = inv['purchase_count'];
+      }
+      if (inv['deposit'] !== null) {
+        deposit = inv['deposit'];
+      }
+      if ($scope.k_loc_type === "bev") {
+        $scope.inv_items[inv_i]['unit_cost'] = purchase_cost / purchase_count + deposit;
+      } else {
+        $scope.inv_items[inv_i]['unit_cost'] = deposit;
+      }
     };
 
     $http.put('/inv/loc', {
@@ -614,7 +671,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         $scope.inv_items[i]['add_q'] = null;
       }
 
-      // calculate total inventory
+      // calculate total inventory and unit_cost
       $scope.total_inventory = 0;
       for (var inv_i = 0; inv_i < $scope.inv_items.length; inv_i++)
       {
@@ -637,6 +694,25 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         }
         $scope.inv_items[inv_i]['inventory'] = value;
         $scope.total_inventory += value;
+
+        // locally calculate unit_cost for sorting purposes
+        var purchase_cost = 0;
+        var purchase_count = 1;
+        var deposit = 0;
+        if (inv['purchase_cost'] !== null) {
+          purchase_cost = inv['purchase_cost'];
+        }
+        if (inv['purchase_count'] !== null) {
+          purchase_count = inv['purchase_count'];
+        }
+        if (inv['deposit'] !== null) {
+          deposit = inv['deposit'];
+        }
+        if ($scope.k_loc_type === "bev") {
+          $scope.inv_items[inv_i]['unit_cost'] = purchase_cost / purchase_count + deposit;
+        } else {
+          $scope.inv_items[inv_i]['unit_cost'] = deposit;
+        }
       }
 
       // check update in each inventory item and if updated within 24
@@ -672,9 +748,95 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         $scope.empty_inv = false;
       }
       console.log($scope.empty_inv);
+
+      if ($scope.firstTimeSort) {
+        $scope.firstTimeSort = false;
+        $scope.sortBy('product');
+      }
     }).
     error(function(data, status, headers, config) {
 
+    });
+  };
+
+  $scope.sortAddBy = function(sort_str) {
+    var double_sort = sort_str === $scope.sort_add_key;
+    if (double_sort) {
+      $scope.add_double_sort *= -1;
+    } else {
+      $scope.add_double_sort = -1;
+    }
+    $scope.sort_add_key = sort_str;
+    //var isNum = (sort_str === 'unit_cost' || sort_str === 'quantity' || sort_str === 'inventory' || sort_str === 'deposit');
+    var isNum = false;
+
+    $scope.add_inv_existing_items.sort(function(a, b) {
+      var keyA = a[sort_str];
+      var keyB = b[sort_str];
+      if ($scope.add_double_sort > 0) {
+        if (keyA === null) {
+          return -1;
+        } else if (keyB === null) {
+          return 1;
+        }
+        if (isNum)
+        {
+          return parseFloat(keyA) - parseFloat(keyB);
+        } else {
+          return -keyA.localeCompare(keyB);
+        }
+      }
+      if (keyA === null) {
+        return 1;
+      } else if (keyB === null) {
+        return -1;
+      }
+      if (isNum)
+      {
+        return parseFloat(keyB) - parseFloat(keyA);
+      } else {
+        return keyA.localeCompare(keyB);
+      }
+    });
+  };
+
+  $scope.sortBy = function(sort_str) {
+    var double_sort = sort_str === $scope.sort_key;
+    if (double_sort) {
+      $scope.double_sort *= -1;
+    } else {
+      $scope.double_sort = -1;
+    }
+    $scope.sort_key = sort_str;
+    var isNum = (sort_str === 'unit_cost' || sort_str === 'quantity' || sort_str === 'inventory' || sort_str === 'deposit');
+    
+    $scope.inv_items.sort(function(a, b) {
+      var keyA = a[sort_str];
+      var keyB = b[sort_str];
+      if ($scope.double_sort > 0) {
+        if (keyA === null) {
+          return -1;
+        } else if (keyB === null) {
+          return 1;
+        }
+        if (isNum)
+        {
+          return parseFloat(keyA) - parseFloat(keyB);
+        } else {
+          return -keyA.localeCompare(keyB);
+        }
+      }
+      if (keyA === null) {
+        return 1;
+      } else if (keyB === null) {
+        return -1;
+      }
+      if (isNum)
+      {
+        return parseFloat(keyB) - parseFloat(keyA);
+      } else {
+        return keyA.localeCompare(keyB);
+      }
     });
   };
 })
