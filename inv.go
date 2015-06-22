@@ -141,6 +141,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			var exists bool
 			err := db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update);", bev.VersionID).Scan(&exists)
 			if err != nil {
+				log.Println("Error 1")
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
 			}
@@ -156,6 +157,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				case err == sql.ErrNoRows:
 					bev.Count = 0
 				case err != nil:
+					log.Println("Error 2")
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					continue
@@ -165,6 +167,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// get count of empty kegs in all empty keg locations
 			err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages, locations WHERE locations.type='kegs' AND locations.active AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update);", bev.VersionID).Scan(&exists)
 			if err != nil {
+				log.Println("Error 3")
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				log.Println(err.Error())
 				continue
@@ -178,6 +181,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				case err == sql.ErrNoRows:
 					bev.EmptyKegs.Int64 = 0
 				case err != nil:
+					log.Println("Error 4")
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					continue
@@ -190,6 +194,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// recent location_beverages.inventory values
 			err = db.QueryRow("SELECT COALESCE(SUM(COALESCE(location_beverages.inventory,0)),0) FROM location_beverages, beverages, locations WHERE beverages.version_id=$1 AND beverages.id=location_beverages.beverage_id AND location_beverages.active AND location_beverages.location_id=locations.id AND locations.active AND location_beverages.update=locations.last_update;", bev.VersionID).Scan(&total_inv)
 			if err != nil {
+				log.Println("Error 5")
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				log.Println(err.Error())
 				continue
@@ -218,6 +223,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				bev := beverages[i]
 				rows, err := db.Query("SELECT id, serving_size, serving_unit, serving_price FROM size_prices WHERE beverage_id=$1;", bev.ID)
 				if err != nil {
+					log.Println("Error 6")
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					continue
 				}
@@ -225,6 +231,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 					var sp SalePrice
 					if err := rows.Scan(
 						&sp.ID, &sp.Volume, &sp.Unit, &sp.Price); err != nil {
+						log.Println("Error 7")
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						continue
 					}
