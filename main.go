@@ -53,7 +53,7 @@ type Beverage struct {
 	Deposit        NullFloat64 `json:"deposit"`
 	FlavorProfile  NullString  `json:"flavor_profile"`
 	SalePrices     []SalePrice `json:"size_prices"`
-	Count          int         `json:"count"`
+	Count          float32     `json:"count"`
 	Inventory      NullFloat64 `json:"inventory"`
 }
 
