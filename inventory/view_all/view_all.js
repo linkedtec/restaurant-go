@@ -280,32 +280,23 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.form_ver.error_unit_sale=false;
     }
 
-    // the unit sale is a special entry we need to push into size_prices,
-    // with volume 1, unit "Unit", and price of new_unit_sale
-    //
-    // Should add when:
-    // For Multi Pour, only if not keg
-    // For Single Serve, always
-    if ($scope.form_ver.error_unit_sale === false) 
-    {
-      // always add for single serve
-      if ($scope.new_beverage['serve_type'] === $scope.serve_types[1] || $scope.new_beverage['container_type'] !== "Keg") {
-        // unshift places the entry at head of array
-        $scope.new_beverage['size_prices'].unshift({'volume':1, 'unit':'Unit', 'price':$scope.new_unit_sale})
-      }
-    }
-
     // Collect the final list of size prices.  Careful to do the following:
-    // 1. If serve_type is single, discard any size_prices not of Unit type
+    // 1. If serve_type is multi and volume and price both null, discard
+    // 2. If serve_type is single, discard any size_prices not of Unit type
     var final_size_prices = []
     for (var sale_i in $scope.new_beverage['size_prices'])
     {
       var sale = $scope.new_beverage['size_prices'][sale_i];
       var serve_type = $scope.new_beverage['serve_type'];
-      if ( serve_type === $scope.serve_types[2] || (serve_type === $scope.serve_types[1] && sale['unit'] === 'Unit') )
-      {
-        final_size_prices.push(sale);
+      // if multi and both volume and price null, is empty entry; discard
+      if (serve_type === $scope.serve_types[2] && sale['price'] === null && sale['volume'] === null) {
+        continue;
       }
+      // if single and not Unit entry, discard
+      if (serve_type === $scope.serve_types[1] && sale['unit'] !== 'Unit') {
+        continue;
+      }
+      final_size_prices.push(sale);
     }
 
     for (var sale_i in final_size_prices)
@@ -327,7 +318,24 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
     if (!all_clear) {
       $scope.new_failure_msg = "Whoops!  Some fields are missing or incorrect, please fix them and try again.  If you don't know the numeric value for a field, set it to '0'.";
+      // if ended up with size_prices having length 0, if not single serve, push null row
+      if ($scope.new_beverage['size_prices'].length === 0) {
+        $scope.new_beverage['size_prices'] = [{volume:null, unit:"L", price:null}];
+      }
       return;
+    }
+
+    // the unit sale is a special entry we need to push into size_prices,
+    // with volume 1, unit "Unit", and price of new_unit_sale.  Note we do this
+    // after there are no form validation errors and are ready to commit.
+    //
+    // Should add when:
+    // For Multi Pour, only if not keg
+    // For Single Serve, always
+    // always add for single serve
+    if ($scope.new_beverage['serve_type'] === $scope.serve_types[1] || $scope.new_beverage['container_type'] !== "Keg") {
+      // unshift places the entry at head of array
+      $scope.new_beverage['size_prices'].unshift({'volume':1, 'unit':'Unit', 'price':$scope.new_unit_sale})
     }
 
     // check if item is already in $scope.inventory_items
@@ -504,7 +512,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     $scope.new_beverage['size_prices'].splice(index, 1);
   };
 
-  $scope.editBeverage = function(index) {
+  $scope.editBeverage = function(inv) {
     var modalEditInstance = $modal.open({
       templateUrl: 'editInvModal.html',
       controller: 'editInvModalCtrl',
@@ -512,7 +520,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       backdropClass: 'edit-inv-modal-backdrop',
       resolve: {
         beverage: function() {
-          return $scope.inventory_items[index];
+          return inv;
         },
         beverage_types: function() {
           return $scope.beverage_types;
@@ -543,9 +551,11 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       function( result ) {
         // result is a list, first item is string for status, e.g.,
         // 'save' or 'delete'
-        // second item is beverage id
+        // second item is old beverage id
+        // third item is new beverage id
         var status = result[0];
         var bev_id = result[1];
+        var new_bev_id = result[2];
         if (status === 'delete') {
           var bev_name;
           for (var i = $scope.inventory_items.length-1; i >= 0; i--) {
@@ -573,6 +583,11 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
               $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(bev.purchase_volume, bev.purchase_unit, bev.purchase_cost, bev.purchase_count);
               bev_name = bev.product;
 
+              // update the bev id with the new id
+              if (new_bev_id !== null) {
+                $scope.inventory_items[i]['id'] = new_bev_id;
+              }
+
               // If brewery or distributor is a new entry, add to typeahead arr
               if ($scope.all_distributors.indexOf(bev.distributor) < 0) {
                 $scope.all_distributors.push(bev.distributor);
@@ -580,6 +595,9 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
               if ($scope.all_breweries.indexOf(bev.brewery) < 0) {
                 $scope.all_breweries.push(bev.brewery);
               }
+
+              console.log('new bev');
+              console.log($scope.inventory_items[i]);
 
               break;
             }
@@ -644,7 +662,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   $scope.getVolUnits();
 })
 
-.controller('editInvModalCtrl', function($scope, $modalInstance, $http, beverage, beverage_types, container_types, serve_types, volume_units, alcohol_types, all_distributors, all_breweries) {
+.controller('editInvModalCtrl', function($scope, $modalInstance, $http, $filter, beverage, beverage_types, container_types, serve_types, volume_units, alcohol_types, all_distributors, all_breweries) {
 
   $scope.beverage_types = beverage_types;
   $scope.container_types = container_types;
@@ -654,6 +672,30 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   // and should be written to on save.
   // beverage is a clone of the original beverage so edits do not affect existing
   // beverage object until user saves
+  // Before cloning, convert float params to floats to avoid small rounding 
+  // annoyances such as 0.06 showing up as 0.0599999999999934123912399
+  if (beverage.abv !== null) {
+    beverage.abv = parseFloat(beverage.abv.toFixed(2));
+  }
+  if (beverage.deposit !== null) {
+    beverage.deposit = parseFloat(beverage.deposit.toFixed(2));
+  }
+  if (beverage.purchase_volume !== null) {
+    beverage.purchase_volume = parseFloat(beverage.purchase_volume.toFixed(2));
+  }
+  if (beverage.purchase_cost !== null) {
+    beverage.purchase_cost = parseFloat(beverage.purchase_cost.toFixed(2));
+  }
+  if (beverage.size_prices !== null) {
+    for (var i in beverage.size_prices) {
+      if (beverage.size_prices[i]['price'] !== null) {
+        beverage.size_prices[i]['price'] = parseFloat(beverage.size_prices[i]['price'].toFixed(2));
+      }
+      if (beverage.size_prices[i]['volume'] !== null) {
+        beverage.size_prices[i]['volume'] = parseFloat(beverage.size_prices[i]['volume'].toFixed(2));
+      }
+    }
+  }
   $scope.original_beverage = beverage;
   $scope.beverage = JSON.parse( JSON.stringify( beverage ) );
 
@@ -697,6 +739,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       }
     }
   };
+  
 
   $scope.addSaleRow = function(unit) {
     $scope.beverage.size_prices.push({volume:null, unit:unit, price:null});
@@ -873,15 +916,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.form_ver.error_unit_sale=false;
     }
 
-    if ($scope.form_ver.error_unit_sale === false) 
-    {
-      // always add for single serve
-      if ($scope.beverage['serve_type'] === $scope.serve_types[1] || $scope.beverage['container_type'] !== "Keg") {
-        // unshift places the entry at head of array
-        $scope.beverage['size_prices'].unshift({'volume':1, 'unit':'Unit', 'price':$scope.unit_sale})
-      }
-    }
-
     // Collect the final list of size prices.  Careful to do the following:
     // 1. If serve_type is multi and volume and price both null, discard
     // 2. If serve_type is single, discard any size_prices not of Unit type
@@ -920,7 +954,16 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
     if (!all_clear) {
       $scope.new_failure_msg = "Whoops!  Some fields are missing or incorrect, please fix them and try again.  If you don't know the value for a field, set it to '0'.";
+      if ($scope.beverage['size_prices'].length === 0) {
+        $scope.beverage['size_prices'] = [{volume:null, unit:"L", price:null}];
+      }
       return;
+    }
+
+    // always add for single serve
+    if ($scope.beverage['serve_type'] === $scope.serve_types[1] || $scope.beverage['container_type'] !== "Keg") {
+      // unshift places the entry at head of array
+      $scope.beverage['size_prices'].unshift({'volume':1, 'unit':'Unit', 'price':$scope.unit_sale})
     }
 
     // Need to convert serve_type back to an int
@@ -984,12 +1027,21 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     }
     putObj.id = $scope.beverage.id;
 
+    var new_bev_id = null;
     $http.put('/inv', {
       beverage:putObj,
       change_keys:changedKeys
+    }).
+    success(function(data, status, headers, config) {
+      // put will return the updated id of the beverage, since saving after
+      // editing actually creates a new entry on the server
+      console.log(data);
+      new_bev_id = data['id'];
+      $modalInstance.close(['save', $scope.beverage.id, new_bev_id]);
+    }).
+    error(function(data, status, headers, config) {
+      console.log(data);
     });
-
-    $modalInstance.close(['save', $scope.beverage.id]);
   };
 
   $scope.numIsInvalid = function(num) {

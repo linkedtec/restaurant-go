@@ -80,7 +80,7 @@
                 <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;"  popover="Percent Alcohol by Volume (% AbV) indicates the alcoholic content of your beverage" popover-trigger="mouseenter" popover-append-to-body="false"></span>
               </label>
               <div class="input-group">
-                <input ng-model="new_beverage.abv" type="number" min="0" max="100" class="form-control input_add" placeholder="" style="width:100px">
+                <input ng-model="new_beverage.abv" type="number" step="0.01" min="0" max="100" class="form-control input_add" placeholder="" style="width:100px">
                 <span class="input-group-addon" style="width:30px; text-align:left;">%</span>
               </div>
             </div>
@@ -374,7 +374,7 @@
     </tr>
     <tr ng-repeat="inv in inventory_items | filter:all_inv_query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row'" style="font-size:14px">
       <td class="all_inv_span" style="width:60px; text-align:center;">
-        <button ng-click="editBeverage($index)" type="button" class="btn btn-md" style="font-size:14px; background-color:#ecfddf; border-color:#aaddbb">
+        <button ng-click="editBeverage(inv)" type="button" class="btn btn-md" style="font-size:14px; background-color:#ecfddf; border-color:#aaddbb">
           <span class="glyphicon glyphicon-pencil" style="color:#888888"></span>
         </button>
       </td>

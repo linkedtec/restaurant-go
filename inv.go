@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
+	//"fmt"
 	"log"
 	"net/http"
 	"sort"
@@ -367,7 +367,14 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		old_bev_id := bev_update.Bev.ID
+		var old_bev_id int
+		err = db.QueryRow("SELECT id FROM beverages WHERE current=TRUE AND version_id=(SELECT version_id FROM beverages WHERE id=$1);", bev_update.Bev.ID).Scan(&old_bev_id)
+		if err != nil {
+			log.Println("Error 0.5")
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 		// XXX New beverageChanged procedure:
 		// Duplicate the existing beverages.id entry into a new beverages.id entry
@@ -379,10 +386,13 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// If beverageChanged, update the new entry with the changed keys from beverageUpdateKeys
 		_, err = db.Exec("INSERT INTO beverages (distributor, product, brewery, alcohol_type, abv, purchase_volume, purchase_cost, purchase_unit, deposit, flavor_profile, user_id, container_type, serve_type, purchase_count, version_id) SELECT distributor, product, brewery, alcohol_type, abv, purchase_volume, purchase_cost, purchase_unit, deposit, flavor_profile, user_id, container_type, serve_type, purchase_count, version_id FROM beverages WHERE id=$1;", old_bev_id)
 		if err != nil {
+			log.Println("Error 1")
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		log.Println("Old bev id:")
+		log.Println(old_bev_id)
 
 		var new_bev_id int
 		err = db.QueryRow("SELECT last_value FROM beverages_id_seq;").Scan(&new_bev_id)
@@ -391,6 +401,9 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		log.Println("New bev id:")
+		log.Println(new_bev_id)
+
 		cur_time := time.Now().UTC()
 		_, err = db.Exec("UPDATE beverages SET end_date=$1, current=FALSE where id=$2", cur_time, old_bev_id)
 		if err != nil {
@@ -407,65 +420,100 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		if beverageChanged {
 			log.Println("Do beverage")
-			var keys []string
-			var values []string
 
 			for _, key := range beverageUpdateKeys {
-				keys = append(keys, key)
 				if key == "product" {
-					values = append(values, "'"+bev_update.Bev.Product+"'")
+					_, err = db.Exec("UPDATE beverages SET product=$1 WHERE id=$2", bev_update.Bev.Product, new_bev_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
 				} else if key == "container_type" {
-					values = append(values, "'"+bev_update.Bev.ContainerType+"'")
+					_, err = db.Exec("UPDATE beverages SET container_type=$1 WHERE id=$2", bev_update.Bev.ContainerType, new_bev_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
 				} else if key == "serve_type" {
-					values = append(values, fmt.Sprintf("%d", bev_update.Bev.ServeType))
+					_, err = db.Exec("UPDATE beverages SET serve_type=$1 WHERE id=$2", bev_update.Bev.ServeType, new_bev_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
 				} else if key == "distributor" {
-					values = append(values, "'"+bev_update.Bev.Distributor.String+"'")
+					_, err = db.Exec("UPDATE beverages SET distributor=$1 WHERE id=$2", bev_update.Bev.Distributor, new_bev_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
 				} else if key == "brewery" {
-					values = append(values, "'"+bev_update.Bev.Brewery.String+"'")
+					_, err = db.Exec("UPDATE beverages SET brewery=$1 WHERE id=$2", bev_update.Bev.Brewery, new_bev_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
 				} else if key == "alcohol_type" {
-					values = append(values, "'"+bev_update.Bev.AlcoholType+"'")
+					_, err = db.Exec("UPDATE beverages SET alcohol_type=$1 WHERE id=$2", bev_update.Bev.AlcoholType, new_bev_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
 				} else if key == "abv" {
-					values = append(values, fmt.Sprintf("%f", bev_update.Bev.ABV.Float64))
+					_, err = db.Exec("UPDATE beverages SET abv=$1 WHERE id=$2", bev_update.Bev.ABV, new_bev_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
 				} else if key == "purchase_volume" {
-					values = append(values, fmt.Sprintf("%f", bev_update.Bev.PurchaseVolume.Float64))
+					_, err = db.Exec("UPDATE beverages SET purchase_volume=$1 WHERE id=$2", bev_update.Bev.PurchaseVolume, new_bev_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
 				} else if key == "purchase_unit" {
-					values = append(values, "'"+bev_update.Bev.PurchaseUnit.String+"'")
+					_, err = db.Exec("UPDATE beverages SET purchase_unit=$1 WHERE id=$2", bev_update.Bev.PurchaseUnit, new_bev_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
 				} else if key == "purchase_cost" {
-					values = append(values, fmt.Sprintf("%f", bev_update.Bev.PurchaseCost))
+					_, err = db.Exec("UPDATE beverages SET purchase_cost=$1 WHERE id=$2", bev_update.Bev.PurchaseCost, new_bev_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
 				} else if key == "purchase_count" {
-					values = append(values, fmt.Sprintf("%d", bev_update.Bev.PurchaseCount))
+					_, err = db.Exec("UPDATE beverages SET purchase_count=$1 WHERE id=$2", bev_update.Bev.PurchaseCount, new_bev_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
 				} else if key == "deposit" {
-					values = append(values, fmt.Sprintf("%f", bev_update.Bev.Deposit.Float64))
+					_, err = db.Exec("UPDATE beverages SET deposit=$1 WHERE id=$2", bev_update.Bev.Deposit, new_bev_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
 				} else if key == "flavor_profile" {
-					values = append(values, "'"+bev_update.Bev.FlavorProfile.String+"'")
+					_, err = db.Exec("UPDATE flavor_profile SET serve_type=$1 WHERE id=$2", bev_update.Bev.FlavorProfile, new_bev_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
 				}
-			}
-
-			i := 0
-			var keys_string string
-			var values_string string
-			for _, key := range keys {
-				if i > 0 {
-					keys_string += ", "
-				}
-				keys_string += key
-				i++
-			}
-			i = 0
-			for _, value := range values {
-				if i > 0 {
-					values_string += ", "
-				}
-				values_string += value
-				i++
-			}
-			query := fmt.Sprintf("UPDATE beverages SET (%s) = (%s) WHERE id=%d;", keys_string, values_string, new_bev_id)
-			log.Println(query)
-			_, err = db.Exec(query)
-			if err != nil {
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
 			}
 		}
 
@@ -521,6 +569,16 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+
+		w.Header().Set("Content-Type", "application/json")
+		var bev BeverageLight
+		bev.ID = new_bev_id
+		js, err := json.Marshal(&bev)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
 
 	case "DELETE":
 		// XXX verify user is authorized
