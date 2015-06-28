@@ -15,7 +15,7 @@ import (
 	"time"
 
 	//"github.com/lib/pq"
-	"github.com/lib/xlsx"
+	"github.com/tealeg/xlsx"
 )
 
 type InvSumHistory struct {
