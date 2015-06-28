@@ -9,12 +9,12 @@ angular.module('myApp.viewHistory', ['ngRoute'])
   });
 }])
 
-.controller('ViewHistoryCtrl', function($scope, $http, $timeout) {
+.controller('ViewHistoryCtrl', function($scope, $http, $timeout) { 
 
   $scope.use_modes = ['Graphs', 'History Tables'];
   $scope.use_mode = 0;
 
-  $scope.sort_types = ["All Inventory", "By Location", "Individual Items"/*", By Beverage Type"*/ ];
+  $scope.sort_types = ["All Inventory", "By Location", "Beverage Type", "Individual Items"];
   $scope.sort_type = $scope.sort_types[0];
 
   $scope.invData = {
@@ -22,6 +22,8 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     'all_itemized' : [],
     'loc_sum' : [],
     'loc_itemized' : [],
+    'type_sum' : [],
+    'type_itemized' : [],
     'items' : []
   };
 
@@ -62,7 +64,13 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       }
       
 
-    } else {
+    } else if ($scope.sort_type === $scope.sort_types[2]) {
+      if ($scope.use_mode === 0) {
+        $scope.getBevTypesSum();
+      } else {
+        $scope.getBevTypesItemized();
+      }
+    } else if ($scope.sort_type === $scope.sort_types[3]) {
       if ($scope.all_items.length === 0 && $scope.added_items.length === 0) {
         $scope.getAllBeverageNames();
       }
@@ -73,6 +81,11 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     }
   };
 
+  /*
+     The server returns individual items data ordered first order by 
+     beverage id.  To display individual items data in table, need to
+     reorganize data into organized first order by date.
+  */
   $scope.constructItemsByDate = function() {
     var items_by_date = {};
 
@@ -145,7 +158,9 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     if ($scope.sort_type === $scope.sort_types[0]) {
       $scope.plotAll();
     } else if ($scope.sort_type === $scope.sort_types[1]) {
-      $scope.plotLocations();
+      $scope.plotLocations("loc");
+    } else if ($scope.sort_type === $scope.sort_types[2]) {
+      $scope.plotLocations("type");
     } else {
       $scope.plotIndividuals();
     }
@@ -250,88 +265,6 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     return parseDate(date_str);
   };
 
-  $scope.getItemsData = function(items) {
-    
-    var all_ids = [];
-    var all_products = [];
-    for (var i in items) {
-      all_ids.push(items[i]['id']);
-      all_products.push(items[i]['product']);
-    }
-
-    $http.get('/inv/history', {
-      params: { 
-        type: 'items',
-        ids: all_ids,
-        start_date: $scope.startDateUTC(),
-        end_date: $scope.endDateUTC() }
-    }).
-    success(function(data, status, headers, config) {
-      console.log(data);
-
-      // first remove existing product entry from invData.items
-      var new_items = [];
-      for (var i in $scope.invData['items']) {
-        var item = $scope.invData['items'][i];
-        if (all_products.indexOf(item['product']) < 0) {
-          new_items.push(item);
-        }
-      }
-      $scope.invData['items'] = new_items;
-      console.log("new inv data");
-      console.log($scope.invData['items']);
-
-      for (var i in data) {
-        item = data[i];
-        for (var h_i in item.histories) {
-          data[i].histories[h_i]['update'] = $scope.getLocalD3DateFromUTCTimeStamp(item.histories[h_i]['update']);
-        }
-        $scope.invData['items'].push(data[i]);
-      }
-
-      /*
-      var item_histories = {
-        "product": item.product,
-        "histories": []
-      }
-
-      var histories = [];
-
-      if (data !== null) {
-        histories = data;
-      }
-
-      for (var his_i in histories) {
-        var update = histories[his_i].update;
-        
-        item_histories.histories.push({
-          'date':$scope.getLocalD3DateFromUTCTimeStamp(update),
-          'quantity':histories[his_i].quantity,
-          'inventory':histories[his_i].inventory});
-        item_histories.histories.sort(function(a,b) {
-          return a.date - b.date;
-        });
-      }
-      $scope.invData['items'].push(item_histories);
-      */
-      
-      $scope.display_items = $scope.invData['items'];
-
-      if ($scope.use_mode===1) {
-        console.log("about to construct by date");
-        console.log($scope.display_items);
-        $scope.constructItemsByDate();
-      } else {
-        $scope.plotInvData();
-      }
-      
-
-    }).
-    error(function(data, status, headers, config) {
-
-    });
-  };
-
   $scope.startDateUTC = function() {
     return new Date(
       $scope.dates.start.getUTCFullYear(), 
@@ -346,52 +279,62 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       $scope.dates.end.getUTCDate());
   };
 
-  $scope.getAllInventoryItemized = function() {
+  $scope.exportSpreadsheet = function() {
+
+    console.log("export spreadsheet");
+
+    var history_type;
+    if ($scope.sort_type === $scope.sort_types[0]) {
+      history_type = "all_itemized";
+    } else if ($scope.sort_type === $scope.sort_types[1]) {
+      history_type = "loc_itemized";
+    } else if ($scope.sort_type === $scope.sort_types[2]) {
+      history_type = "type_itemized";
+    } else {
+      history_type = "items";
+    }
+
+    var all_ids = [];
+    for (var i in $scope.added_items) {
+      all_ids.push($scope.added_items[i]['id']);
+    }
 
     $http.get('/inv/history', {
       params: { 
-        type: 'all_itemized',
+        type: history_type,
+        ids: all_ids,
         start_date: $scope.startDateUTC(),
-        end_date: $scope.endDateUTC() }
+        end_date: $scope.endDateUTC(),
+        export:'xlsx' }
     }).
     success(function(data, status, headers, config) {
       console.log(data);
-
-      $scope.invData['all_itemized'] = [];
-      // data is an object whose keys are the inventory date, and whose
-      // values are an array of objects with {id, inventory, product, quantity}
-      for (var date_key in data) {
-
-        var date_str = date_key.split(" ")[0];
-        var date_tokens = date_str.split("-");
-
-        date_str = new Date(parseInt(date_tokens[0]), parseInt(date_tokens[1])-1, parseInt(date_tokens[2])).toString();
-        var pretty_tokens = date_str.split(" ");
-        
-        var pretty_date = pretty_tokens[0] + ", " + pretty_tokens[1] + " " + pretty_tokens[2] + " " + pretty_tokens[3];
-
-        var inv_sum = 0;
-        for (var j in data[date_key]) {
-          inv_sum += data[date_key][j]['inventory'];
-        }
-        $scope.invData['all_itemized'].push(
-          {'date': date_key,
-          'pretty_date': pretty_date,
-          'date_inv': data[date_key],
-          'inv_sum': inv_sum
-        });
-      }
-
-      if ($scope.invData['all_itemized'].length === 0) {
-        $scope.invData['all_itemized'] = null;
-      };
-
-      $scope.display_items = $scope.invData['all_itemized'];
-      console.log($scope.display_items);
+      var URL = data['url'];
+      // create an iframe to download the file at the url
+      var iframe = document.createElement("iframe");
+      iframe.setAttribute("src", URL);
+      iframe.setAttribute("style", "display: none");
+      document.body.appendChild(iframe);
     }).
     error(function(data, status, headers, config) {
 
     });
+
+  };
+
+  $scope.getPrettyDate = function (date_str) {
+    if (date_str.indexOf("T") >= 0) {
+      date_str = date_str.split("T")[0];
+    } else {
+      date_str = date_str.split(" ")[0];
+    }
+    
+    var date_tokens = date_str.split("-");
+    date_str = new Date(parseInt(date_tokens[0]), parseInt(date_tokens[1])-1, parseInt(date_tokens[2])).toString();
+    var pretty_tokens = date_str.split(" ");    
+    var pretty_date = pretty_tokens[0] + ", " + pretty_tokens[1] + " " + pretty_tokens[2] + " " + pretty_tokens[3];
+
+    return pretty_date;
   }
 
   $scope.getAllInventorySum = function() {
@@ -399,7 +342,8 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       params: { 
         type: 'all_sum',
         start_date: $scope.startDateUTC(),
-        end_date: $scope.endDateUTC()
+        end_date: $scope.endDateUTC(),
+        xport:'xlsx'
       }
     }).
     success(function(data, status, headers, config) {
@@ -422,6 +366,49 @@ angular.module('myApp.viewHistory', ['ngRoute'])
 
       $scope.plotInvData();
 
+    }).
+    error(function(data, status, headers, config) {
+
+    });
+  };
+
+  $scope.getAllInventoryItemized = function() {
+
+    $http.get('/inv/history', {
+      params: { 
+        type: 'all_itemized',
+        start_date: $scope.startDateUTC(),
+        end_date: $scope.endDateUTC() }
+    }).
+    success(function(data, status, headers, config) {
+      console.log(data);
+
+      $scope.invData['all_itemized'] = [];
+
+      for (var date_i in data) {
+        var date_obj = data[date_i];
+        var date_key = date_obj['update'];
+        var pretty_date = $scope.getPrettyDate(date_key);
+
+        var inv_sum = 0;
+        for (var history_i in date_obj['histories']) {
+          var history = date_obj['histories'][history_i];
+          inv_sum += history['inventory'];
+        }
+        $scope.invData['all_itemized'].push(
+          {'date': date_key,
+          'pretty_date': pretty_date,
+          'date_inv': date_obj['histories'],
+          'inv_sum': inv_sum
+        });
+      }
+
+      if ($scope.invData['all_itemized'].length === 0) {
+        $scope.invData['all_itemized'] = null;
+      };
+
+      $scope.display_items = $scope.invData['all_itemized'];
+      console.log($scope.display_items);
     }).
     error(function(data, status, headers, config) {
 
@@ -498,14 +485,8 @@ angular.module('myApp.viewHistory', ['ngRoute'])
 
       for (var date_i in data) {
         var date_entry = data[date_i];
-        var date = date_entry["update"];
-
-        var date_tokens = date.split("-");
-
-        var date_str = new Date(parseInt(date_tokens[0]), parseInt(date_tokens[1])-1, parseInt(date_tokens[2])).toString();
-        var pretty_tokens = date_str.split(" ");
-        
-        var pretty_date = pretty_tokens[0] + ", " + pretty_tokens[1] + " " + pretty_tokens[2] + " " + pretty_tokens[3];
+        var date_key = date_entry["update"];
+        var pretty_date = $scope.getPrettyDate(date_key);
 
         var inv_sum = 0;
         for (var loc_i in data[date_i]['loc_histories']) {
@@ -521,38 +502,162 @@ angular.module('myApp.viewHistory', ['ngRoute'])
         date_entry["inv_sum"] = inv_sum;
       }
 
-      /*
-      for (var date_i in data)
-      {
-        var date_entry = data[date_i];
-        var date_locs = {
-          "update": date_entry.update,
-          "loc_histories": []
-        }
-
-        var loc_histories = [];
-        for (var loc_i in date_entry.loc_histories) {
-          var loc_entry = date_entry.loc_histories[loc_i];
-
-          var loc_inv = {
-            "name": loc_entry.location,
-            "histories": loc_entry.
-          }
-
-          var histories = [];
-          for (var item_i in loc_entry.histories) {
-            var item_entry = loc_entry.histories[item_i];
-            histories.push()
-          }
-        }
-
-
-        $scope.invData['loc_sum'].push(loc_histories);
-      }
-      //console.log($scope.invData['loc_sum']);
-      */
-
       $scope.display_items = $scope.invData['loc_itemized'];
+    }).
+    error(function(data, status, headers, config) {
+
+    });
+  };
+
+  $scope.getBevTypesSum = function() {
+    $http.get('/inv/history', {
+      params: { 
+        type: 'type_sum',
+        start_date: $scope.startDateUTC(),
+        end_date: $scope.endDateUTC()
+      }
+    }).
+    success(function(data, status, headers, config) {
+      // this callback will be called asynchronously when the response
+      // is available
+      console.log(data);
+
+      $scope.invData['type_sum'] = [];
+
+      for (var type_i in data)
+      {
+        var type_name = data[type_i].location;
+        var histories = data[type_i].histories;
+        if (histories == null) {
+          continue;
+        }
+
+        var type_histories = {
+          "type": type_name,
+          "histories": []
+        }
+
+        for (var his_i in histories) {
+          var update = histories[his_i].update;
+
+          type_histories.histories.push({
+            'update':$scope.getLocalD3DateFromUTCTimeStamp(update),
+            'inventory':histories[his_i].inventory});
+          type_histories.histories.sort(function(a,b) {
+            return a.update - b.update;
+          });
+        }
+
+        $scope.invData['type_sum'].push(type_histories);
+      }
+      //console.log($scope.invData['type_sum']);
+
+      $scope.plotInvData();
+    }).
+    error(function(data, status, headers, config) {
+
+    });
+  };
+
+  $scope.getBevTypesItemized = function() {
+    $http.get('/inv/history', {
+      params: { 
+        type: 'type_itemized',
+        start_date: $scope.startDateUTC(),
+        end_date: $scope.endDateUTC()
+      }
+    }).
+    success(function(data, status, headers, config) {
+      // We want to have the first order key be dates, and the second order
+      // key be locations.  This way the user can view single location inventory
+      // by date if they single out a single location with location filter
+      // buttons (XXX future implementation), whereas the other ordering
+      // would not have that possibility
+      console.log(data);
+
+      $scope.invData['type_itemized'] = data;
+
+      for (var date_i in data) {
+        var date_entry = data[date_i];
+        var date_key = date_entry["update"];
+        var pretty_date = $scope.getPrettyDate(date_key);
+
+        // Note, although second order key is 'loc_histories', we're piggy
+        // backing off the loc data struct and using it as 'type'
+        var inv_sum = 0;
+        for (var type_i in data[date_i]['loc_histories']) {
+          var type_sum = 0;
+          for (var item_i in data[date_i]['loc_histories'][type_i]['histories']) {
+            type_sum += data[date_i]['loc_histories'][type_i]['histories'][item_i]['inventory'];
+          }
+          data[date_i]['loc_histories'][type_i]['inv_sum'] = type_sum;
+          inv_sum += type_sum;
+        }
+
+        date_entry["pretty_date"] = pretty_date;
+        date_entry["inv_sum"] = inv_sum;
+      }
+
+      $scope.display_items = $scope.invData['type_itemized'];
+    }).
+    error(function(data, status, headers, config) {
+
+    });
+  };
+
+  $scope.getItemsData = function(items) {
+    
+    var all_ids = [];
+    var all_products = [];
+    for (var i in items) {
+      all_ids.push(items[i]['id']);
+      all_products.push(items[i]['product']);
+    }
+
+    if (all_ids.length === 0) {
+      return;
+    }
+
+    $http.get('/inv/history', {
+      params: { 
+        type: 'items',
+        ids: all_ids,
+        start_date: $scope.startDateUTC(),
+        end_date: $scope.endDateUTC() }
+    }).
+    success(function(data, status, headers, config) {
+      console.log(data);
+
+      // first remove existing product entries of the products we just
+      // queried from invData.items
+      var new_items = [];
+      for (var i in $scope.invData['items']) {
+        var item = $scope.invData['items'][i];
+        if (all_products.indexOf(item['product']) < 0) {
+          new_items.push(item);
+        }
+      }
+      $scope.invData['items'] = new_items;
+      console.log("new inv data");
+      console.log($scope.invData['items']);
+
+      for (var i in data) {
+        item = data[i];
+        for (var h_i in item.histories) {
+          data[i].histories[h_i]['update'] = $scope.getLocalD3DateFromUTCTimeStamp(item.histories[h_i]['update']);
+        }
+        $scope.invData['items'].push(data[i]);
+      }
+
+      $scope.display_items = $scope.invData['items'];
+
+      if ($scope.use_mode===1) {
+        console.log("about to construct by date");
+        console.log($scope.display_items);
+        $scope.constructItemsByDate();
+      } else {
+        $scope.plotInvData();
+      }
     }).
     error(function(data, status, headers, config) {
 
@@ -720,7 +825,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     }
   };
 
-  $scope.plotLocations = function() {
+  $scope.plotLocations = function(loc_or_type) {
     var margin = {top:20,right:80,bottom:30,left:50};
     var width = 800 - margin.left - margin.right;
     var height = 500 - margin.top - margin.bottom;
@@ -731,8 +836,15 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     var x = d3.time.scale().range([0, width]);
     var y = d3.scale.linear().range([height, 0]);
 
+    var data_name = 'loc_sum';
+    var key_name = 'location';
+    if (loc_or_type === 'type') {
+      data_name = 'type_sum';
+      key_name = 'type';
+    }
+
     var color = d3.scale.category10();
-    if ($scope.invData['loc_sum'].length > 10) {
+    if ($scope.invData[data_name].length > 10) {
       color = d3.scale.category20();
     }
 
@@ -755,8 +867,8 @@ angular.module('myApp.viewHistory', ['ngRoute'])
 
     var min_time = null, max_time = null;
     var max_inv_sum = 0;
-    for (var i in $scope.invData['loc_sum']) {
-      var loc_histories = $scope.invData['loc_sum'][i].histories;
+    for (var i in $scope.invData[data_name]) {
+      var loc_histories = $scope.invData[data_name][i].histories;
       for (var j in loc_histories) {
         var his = loc_histories[j];
         if (min_time === null) {
@@ -822,8 +934,8 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       .attr("dy", ".35em")
       .style("fill", "#aaaaaa");
 
-    for (var loc_i in $scope.invData['loc_sum']) {
-      var d = $scope.invData['loc_sum'][loc_i].histories;
+    for (var loc_i in $scope.invData[data_name]) {
+      var d = $scope.invData[data_name][loc_i].histories;
       //console.log(d);
       svg.append("path")
         .datum(d)
@@ -856,7 +968,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
         .attr("y", y(d[d.length-1].inventory) - 10 )
         .attr("dy", ".35em")
         .attr("font-size", "0.8em")
-        .text($scope.invData['loc_sum'][loc_i].location)
+        .text($scope.invData[data_name][loc_i][key_name])
         .style("fill", color(loc_i));
     }
 

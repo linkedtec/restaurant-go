@@ -43,7 +43,7 @@
     </div>
   </div>
   <div class="row" style="margin-top:8px">
-    <div class="col-xs-12">
+    <div class="col-xs-9">
       <span>
         <div class="btn-group" dropdown>
           <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.1em;">
@@ -59,7 +59,7 @@
           </ul>
         </div>
       </span>
-      <span ng-if="sort_type===sort_types[2]" style="margin-left:4px">
+      <span ng-if="sort_type===sort_types[3]" style="margin-left:4px">
         <div class="btn-group" dropdown>
           <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.1em;">
             <span style="float:left; text-align:left; width:90%; color:#888888">
@@ -75,9 +75,18 @@
         </div>
       </span>
     </div>
+    <div class="col-xs-3" ng-if="use_mode===1">
+      <!-- this hidden link is just a dummy placeholder for exporting to excel-->
+      <a id="excel_export"  style="display:none;"></a>
+      <!-- the below commented export button uses client-side AJAX to export to excel-->
+      <!-- we are opting out of it for the time being as it doesn't work for IE or Safari-->
+      <!-- and are instead using a server-side file for exporting spreadsheets -->
+      <!--button type="button" class="btn btn-default btn-md btn-primary" style="font-size:1.0em; float:right; margin-top:2px" onclick="tableToExcel('inventoryTable', 'W3C Example Table', 'inventory.xls')">Export to Excel</button-->
+      <button type="button" class="btn btn-default btn-md btn-primary" style="font-size:1.0em; float:right; margin-top:2px" ng-click="exportSpreadsheet()" ng-disabled="display_items===null || display_items.length===0">Download Excel</button>
+    </div>
   </div>
 
-  <div ng-if="sort_type===sort_types[2] && added_items.length>0" class="row" ng-if="sort_type===sort_types[2]" style="padding-left:12px; margin-top:12px" id="inv_items">
+  <div ng-if="sort_type===sort_types[3] && added_items.length>0" class="row" ng-if="sort_type===sort_types[3]" style="padding-left:12px; margin-top:12px" id="inv_items">
     <div ng-repeat="added_item in added_items" class="a_item" id="a_item_{{$index}}">
       <span style="float:left">{{added_item.product}}</span>
       <span class="glyphicon glyphicon-remove add_x" aria-hidden="true" ng-click="removeAddedItem(added_item)"></span>
@@ -85,70 +94,64 @@
   </div>
 
   <div ng-if="use_mode===1">
+    <table id="inventoryTable" summary="Data table for inventory history." rules="groups" frame="hsides" border="2" style="width:100%; margin-top:32px; margin-bottom:64px">
+      <tr>
+        <td></td>
+        <td>Product</td>
+        <td>Quantity</td>
+        <td>Inventory ($)</td>
+      </tr>
+      <tbody ng-if="sort_type===sort_types[0] || sort_type===sort_types[3]" ng-repeat="inv in display_items">
+        <tr style="font-weight:bold; font-style:italic">
+          <td>{{inv.pretty_date}}</td>
+          <td></td>
+          <td></td>
+          <td>{{inv.inv_sum | number:2}}</td>
+        </tr>
+        <tr ng-repeat="dinv in inv.date_inv" ng-class-even="'inv_row_even'">
+          <td></td>
+          <td>{{dinv.product}}</td>
+          <td>{{dinv.quantity | number:2}}</td>
+          <td>{{dinv.inventory | number:2}}</td>
+          <td></td>
+        </tr>
+        <tr><td colspan="4"></td></tr>
+      </tbody>
+      <tbody ng-if="sort_type===sort_types[1] || sort_type===sort_types[2]" ng-repeat="inv in display_items">
+        <tr style="font-weight:bold; font-style:italic">
+          <td>{{inv.pretty_date}}</td>
+          <td></td>
+          <td></td>
+          <td>{{inv.inv_sum | number:2}}</td>
+        </tr>
+        <tr ng-repeat-start="loc in inv.loc_histories" class="inv_loc_row">
+          <td>{{loc.location}}</td>
+          <td></td>
+          <td></td>
+          <td style="font-weight:bold">{{loc.inv_sum | number:2}}</td>
+        </tr>
+        <tr ng-repeat-start="item in loc.histories" ng-class-even="'inv_row_even'">
+          <td></td>
+          <td>{{item.product}}</td>
+          <td>{{item.quantity | number:2}}</td>
+          <td>{{item.inventory | number:2}}</td>
+        </tr>
+        <tr ng-repeat-end ng-if="false"><td colspan="0"></td></tr>
+        <tr ng-repeat-end ng-if="false"><td colspan="0"></td></tr>
+        <tr><td colspan="4"></td></tr>
+      </tbody>
+    </table>
 
-    <div style="margin-top:32px; margin-bottom:64px">
-      <div ng-if="display_items!==null && display_items.length > 0" class="row" style="padding: 4px 0px; border-bottom: 1px solid #e0e0e0; color: #aaaaaa; margin-bottom:0px">
-        <div class="col-xs-4 min_padding">Product</div>
-        <div class="col-xs-2 min_padding">Qty</div>
-        <div class="col-xs-2 min_padding">Inventory</div>
-      </div>
-      <div class="row" ng-if="display_items===null || display_items.length===0">
-        <div class="col-xs-12 hint_text" style="font-size:1.5em; margin-top:64px; text-align:center">
+    <div class="row" ng-if="display_items===null || display_items.length===0" style="margin-top:32px; margin-bottom:64px">
+      <div class="col-xs-12 hint_text" style="font-size:1.5em; margin-top:48px; text-align:center">
+        <span ng-if="sort_type===sort_types[3] && added_items.length===0">
+          Add a beverage with the "Add Beverage" dropdown.
+        </span>
+        <span ng-if="sort_type!==sort_types[3] || added_items.length>0">
           No data for selected time period.
-        </div> 
-      </div>
-      <div ng-repeat="inv in display_items">
-        <div class="row inv_date_row">
-          <div class="col-xs-6 min_padding">
-            {{inv.pretty_date}}
-          </div>
-          <div class="col-xs-2 min_padding">
-            <span ng-if="inv.inv_sum!==null && sort_type!==sort_types[2]">
-              <b>$ {{inv.inv_sum | number:2}}</b>
-            </span>
-          </div>
-        </div>
-        <div ng-if="sort_type===sort_types[1]" ng-repeat="loc in inv.loc_histories">
-          <div class="row inv_loc_row">
-            <div class="col-xs-6 min_padding">
-              {{loc.location}}
-            </div>
-            <div class="col-xs-6 min_padding">
-              $ {{loc.inv_sum | number:2}}
-            </div>
-          </div>
-          <div ng-class-even="'row inv_row_container inv_row_even'" ng-class-odd="'row inv_row_container'" ng-repeat="item in loc.histories">
-            <div class="col-xs-4 min_padding" style="padding-left:12px">
-              {{item.product}}
-            </div>
-            <div class="col-xs-2 min_padding">
-              {{item.quantity | number:2}}
-            </div>
-            <div ng-if="item.inventory===0" class="col-xs-2 min_padding" style="color:#aaaaaa">
-              $ {{item.inventory | number:2}}
-            </div>
-            <div ng-if="item.inventory!==0" class="col-xs-2 min_padding">
-              $ {{item.inventory | number:2}}
-            </div>
-          </div>
-        </div>
-        <div ng-if="sort_type!==sort_types[1]" ng-class-even="'row inv_row_container inv_row_even'" ng-class-odd="'row inv_row_container'" ng-repeat="dinv in inv.date_inv">
-          <div class="col-xs-4 min_padding" style="padding-left:12px">
-            {{dinv.product}}
-          </div>
-          <div class="col-xs-2 min_padding">
-            {{dinv.quantity | number:2}}
-          </div>
-          <div ng-if="dinv.inventory===0" class="col-xs-2 min_padding" style="color:#aaaaaa">
-            $ {{dinv.inventory | number:2}}
-          </div>
-          <div ng-if="dinv.inventory!==0" class="col-xs-2 min_padding">
-            $ {{dinv.inventory | number:2}}
-          </div>
-        </div>
-      </div>
+        </span>
+      </div> 
     </div>
-
   </div>
 
   <div ng-show="use_mode===0">

@@ -1,21 +1,32 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
-	//"fmt"
+	"fmt"
+	"hash/fnv"
 	"log"
 	"net/http"
+	"os"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	//"github.com/lib/pq"
+	"github.com/lib/xlsx"
 )
 
 type InvSumHistory struct {
 	Inventory NullFloat64 `json:"inventory"`
 	Quantity  float32     `json:"quantity"`
 	Date      time.Time   `json:"update"`
+}
+
+type InvDateItemHistory struct {
+	Date      time.Time     `json:"update"`
+	Histories []BeverageInv `json:"histories"`
 }
 
 type InvItemSumHistory struct {
@@ -28,10 +39,14 @@ type InvLocSumHistory struct {
 	Histories []InvSumHistory `json:"histories"`
 }
 
+type ExportFile struct {
+	URL string `json:"url"`
+}
+
 type BeverageInvs []BeverageInv
 
 // ===================================================
-// itemized location inventory
+// itemized location inventory (also used for type inventory)
 type InvLocSumsByDate struct {
 	Date         time.Time           `json:"update"`
 	LocHistories []InvLocItemHistory `json:"loc_histories"`
@@ -54,6 +69,22 @@ func (slice BeverageInvs) Swap(i, j int) {
 	slice[i], slice[j] = slice[j], slice[i]
 }
 
+// ===================================================
+// sorting by time.Time
+type timeArr []time.Time
+
+func (t timeArr) Len() int {
+	return len(t)
+}
+
+func (t timeArr) Less(i, j int) bool {
+	return t[i].Before(t[j])
+}
+
+func (t timeArr) Swap(i, j int) {
+	t[i], t[j] = t[j], t[i]
+}
+
 func setupInvHandlers() {
 	invHandler := http.FileServer(http.Dir("inventory"))
 	http.Handle("/inventory/", http.StripPrefix("/inventory/", invHandler))
@@ -62,6 +93,7 @@ func setupInvHandlers() {
 	http.HandleFunc("/loc", locAPIHandler)
 	http.HandleFunc("/inv/loc", invLocAPIHandler)
 	http.HandleFunc("/inv/history", invHistoryAPIHandler)
+	http.HandleFunc("/export/", exportAPIHandler)
 }
 
 func invAPIHandler(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +119,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		query += " ORDER BY product;"
 
-		log.Println(query)
+		//log.Println(query)
 		rows, err := db.Query(query)
 		if err != nil {
 			log.Println(err.Error())
@@ -145,7 +177,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
 			}
-			log.Println(bev.Product)
+			//log.Println(bev.Product)
 			if !exists {
 				bev.Count = 0
 			} else {
@@ -808,6 +840,177 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// responsible for serving exported downloadable files (such as spreadsheets)
+// to user.  Expects r.URL to contain the filename, e.g., /export/myfile.txt
+func exportAPIHandler(w http.ResponseWriter, r *http.Request) {
+	filename := r.URL.Path[len("/export/"):]
+	http.ServeFile(w, r, "export/"+filename)
+}
+
+func createXlsxFile(data []byte, sorted_keys []string, history_type string, suffix string, user_id string, w http.ResponseWriter, r *http.Request) {
+
+	export_dir := "./export/"
+	if os.MkdirAll(export_dir, 0755) != nil {
+		http.Error(w, "Unable to find or create export directory!", http.StatusInternalServerError)
+		return
+	}
+
+	// create a hash from user id as the filename extension
+	h := fnv.New32a()
+	h.Write([]byte(test_user_id))
+	hash := strconv.FormatUint(uint64(h.Sum32()), 10)
+	filename := export_dir + "history_" + suffix + hash + ".xlsx"
+	filename = strings.Replace(filename, " ", "_", -1)
+
+	xfile := xlsx.NewFile()
+	sheet := xfile.AddSheet("Sheet1")
+	// create headers
+	row := sheet.AddRow()
+	cell := row.AddCell()
+	cell = row.AddCell()
+	cell.Value = "Product"
+	cell = row.AddCell()
+	cell.Value = "Quantity"
+	cell = row.AddCell()
+	cell.Value = "Inventory"
+
+	nr := bytes.NewReader(data)
+	decoder := json.NewDecoder(nr)
+
+	/* //xlsx style support currently not working, issue tracked on github:
+	//https://github.com/tealeg/xlsx/issues/84
+	boldFont := xlsx.DefaulFont()
+	boldFont.Bold = true
+	boldStyle := xlsx.NewStyle()
+	boldStyle.Font = *boldFont
+	*/
+
+	switch history_type {
+	case "all_itemized":
+		var itemsByDate []InvDateItemHistory
+		//var dateInvMap map[string][]BeverageInv
+		err := decoder.Decode(&itemsByDate)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		//log.Println(dateInvMap)
+		//log.Println(sorted_keys)
+
+		for _, key := range sorted_keys {
+			// each key is a date
+			daterow := sheet.AddRow()
+			cell = daterow.AddCell()
+			//cell.SetStyle(boldStyle)
+			key_date := strings.Split(key, " ")[0]
+			cell.Value = key_date // the date, e.g., 2015-01-01
+			daterow.AddCell()
+			daterow.AddCell()
+			date_sum_cell := daterow.AddCell()
+
+			var dateItem InvDateItemHistory
+			for _, item := range itemsByDate {
+				item_date := strings.Split(item.Date.String(), " ")[0]
+				if item_date == key_date {
+					dateItem = item
+					break
+				}
+			}
+			date_inv_sum := 0.0
+
+			for _, bevInv := range dateItem.Histories {
+				bevrow := sheet.AddRow()
+				cell = bevrow.AddCell()
+				cell = bevrow.AddCell()
+				cell.Value = bevInv.Product
+				cell = bevrow.AddCell()
+				cell.Value = fmt.Sprintf("%.2f", bevInv.Quantity)
+				cell = bevrow.AddCell()
+				cell.Value = fmt.Sprintf("%.2f", bevInv.Inventory.Float64)
+				date_inv_sum += bevInv.Inventory.Float64
+			}
+
+			date_sum_cell.Value = fmt.Sprintf("%.2f", date_inv_sum)
+			sheet.AddRow() // add empty row to separate dates
+		}
+	case "loc_itemized", "type_itemized":
+		var allDateInvs []InvLocSumsByDate
+		err := decoder.Decode(&allDateInvs)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		//log.Println(allDateInvs)
+		//log.Println(sorted_keys)
+
+		for _, key := range sorted_keys {
+			// each key is a date string
+			daterow := sheet.AddRow()
+			cell = daterow.AddCell()
+			//cell.SetStyle(boldStyle)
+			key_date := strings.Split(key, " ")[0]
+			cell.Value = key_date // the date, e.g., 2015-01-01
+			daterow.AddCell()
+			daterow.AddCell()
+			date_sum_cell := daterow.AddCell()
+
+			var aDateInv InvLocSumsByDate
+			for _, ainv := range allDateInvs {
+				ainv_date := strings.Split(ainv.Date.String(), " ")[0]
+				if ainv_date == key_date {
+					aDateInv = ainv
+					break
+				}
+			}
+			date_inv_sum := 0.0
+			for _, locHistory := range aDateInv.LocHistories {
+				locrow := sheet.AddRow()
+				cell = locrow.AddCell()
+				cell.Value = locHistory.Location.String
+				cell = locrow.AddCell()
+				cell = locrow.AddCell()
+				loc_inv_sum_cell := locrow.AddCell()
+				loc_inv_sum := 0.0
+				for _, itemHistory := range locHistory.Histories {
+					itemrow := sheet.AddRow()
+					cell = itemrow.AddCell()
+					cell = itemrow.AddCell()
+					cell.Value = itemHistory.Product
+					cell = itemrow.AddCell()
+					cell.Value = fmt.Sprintf("%.2f", itemHistory.Quantity)
+					cell = itemrow.AddCell()
+					cell.Value = fmt.Sprintf("%.2f", itemHistory.Inventory.Float64)
+					loc_inv_sum += itemHistory.Inventory.Float64
+				}
+				loc_inv_sum_cell.Value = fmt.Sprintf("%.2f", loc_inv_sum)
+				date_inv_sum += loc_inv_sum
+			}
+			date_sum_cell.Value = fmt.Sprintf("%.2f", date_inv_sum)
+			sheet.AddRow() // add empty row to separate dates
+		}
+	}
+
+	err := xfile.Save(filename)
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	var retfile ExportFile
+	retfile.URL = filename[1:] // remove the . at the beginning
+	js, err := json.Marshal(retfile)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(js)
+}
+
 func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
@@ -815,6 +1018,8 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 		history_type := r.URL.Query().Get("type")
 		start_date := r.URL.Query().Get("start_date")
 		end_date := r.URL.Query().Get("end_date")
+		// if export is set, that means return a save-able file instead of JSON
+		export := r.URL.Query().Get("export")
 		log.Println(history_type)
 
 		// if no dates were provided, set start date to 1 month ago and end date
@@ -879,20 +1084,11 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			w.Write(js)
+
 		} else if history_type == "loc_sum" {
 
 			var histories []InvLocSumHistory
 
-			//
-			// Get all distinct dates which have loc bev data
-			/*
-				date_rows, err := db.Query("SELECT DISTINCT location_beverages.update::date FROM location_beverages, locations WHERE locations.user_id=$1 AND location_beverages.location_id=locations.id ORDER BY location_beverages.update::date;", test_user_id)
-				if err != nil {
-					log.Println(err.Error())
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-			*/
 			// First get all locations, but omit taps
 			loc_rows, err := db.Query("SELECT DISTINCT locations.id, locations.name FROM location_beverages, locations WHERE locations.user_id=$1 AND location_beverages.location_id=locations.id AND locations.type!='tap';", test_user_id)
 			if err != nil {
@@ -948,6 +1144,35 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				histories = append(histories, locSumHistory)
 			}
 
+			// ------------------------ TAPS --------------------------
+			// now treat all taps as a single location
+			var sumHistories []InvSumHistory
+			var locSumHistory InvLocSumHistory
+			locSumHistory.Location.String = "All Taps"
+			locSumHistory.Location.Valid = true
+
+			rows, err := db.Query("SELECT SUM(COALESCE(location_beverages.inventory,0)), location_beverages.update::date FROM locations, location_beverages WHERE locations.type='tap' AND location_beverages.location_id=locations.id AND location_beverages.update >= $1::date AND location_beverages.update <= $2::date AND locations.user_id=$3 GROUP BY location_beverages.update::date ORDER BY location_beverages.update::date;", start_date, end_date, test_user_id)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			defer rows.Close()
+			for rows.Next() {
+				var history InvSumHistory
+				if err := rows.Scan(
+					&history.Inventory,
+					&history.Date); err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+
+				sumHistories = append(sumHistories, history)
+			}
+			locSumHistory.Histories = sumHistories
+			histories = append(histories, locSumHistory)
+
 			w.Header().Set("Content-Type", "application/json")
 			js, err := json.Marshal(histories)
 			if err != nil {
@@ -955,43 +1180,44 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			w.Write(js)
-		} else if history_type == "items" {
+		} else if history_type == "type_sum" {
 
-			item_ids := r.URL.Query()["ids"]
-			var item_histories []InvItemSumHistory
+			// piggy back off the loc struct, use Location as Type
+			var histories []InvLocSumHistory
 
-			for _, item_id := range item_ids {
-
-				var item InvItemSumHistory
-
-				var product NullString
-				err := db.QueryRow("SELECT product FROM beverages WHERE id=$1;", item_id).Scan(&product)
-				if err != nil {
+			// First get all locations, but omit taps
+			type_rows, err := db.Query("SELECT DISTINCT beverages.alcohol_type FROM beverages, location_beverages, locations WHERE location_beverages.update>=$1::date AND location_beverages.update<=$2::date AND locations.id=location_beverages.location_id AND locations.user_id=$3 AND beverages.id=location_beverages.beverage_id ORDER BY beverages.alcohol_type ASC;", start_date, end_date, test_user_id)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			defer type_rows.Close()
+			for type_rows.Next() {
+				var atype string
+				if err := type_rows.Scan(
+					&atype); err != nil {
 					log.Println(err.Error())
-					// if query failed will exit here, so loc_id is guaranteed below
 					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
+					continue
 				}
-				item.Product = product
-				log.Println(item)
+				var sumHistories []InvSumHistory
+				var locSumHistory InvLocSumHistory
+				locSumHistory.Location.String = atype
+				locSumHistory.Location.Valid = true
 
-				var histories []InvSumHistory
-				//SELECT SUM(COALESCE(location_beverages.inventory,0)), location_beverages.update::date FROM locations, location_beverages WHERE location_beverages.location_id=locations.id AND location_beverages.update > (now() - '1 month'::interval) GROUP BY location_beverages.update::date ORDER BY location_beverages.update::date;
 				/*
-								rows, err := db.Query(
-									`SELECT SUM(res.inv), res.update FROM (
-					          SELECT CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity)
-					                      WHEN locations.type='tap' THEN SUM(
-					                      	CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume*beverages.purchase_cost/beverages.purchase_count+COALESCE(beverages.deposit,0)
-									              	     ELSE COALESCE(beverages.deposit,0)
-									              	END)
-					                      ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity)
-					                    END AS inv, location_beverages.update::date AS update
-					                    FROM beverages, location_beverages, locations WHERE beverages.id=$1 AND beverages.id=location_beverages.beverage_id AND locations.id=location_beverages.location_id GROUP BY update, locations.type
-					        ) AS res GROUP BY res.update ORDER BY res.update;`, item_id)
+									rows, err := db.Query(
+										`SELECT SUM(res.inv), res.update FROM (
+					            SELECT
+					              CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity)
+					              ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity)
+					              END AS inv, location_beverages.update::date AS update
+					              FROM beverages,location_beverages,locations
+					              WHERE beverages.id=location_beverages.beverage_id AND location_beverages.update > (now() - '1 month'::interval) AND locations.id=location_beverages.location_id AND locations.id=$1 GROUP BY update, locations.type
+					          ) AS res GROUP BY res.update ORDER BY res.update;`, loc.ID)
 				*/
-
-				rows, err := db.Query("SELECT SUM(COALESCE(location_beverages.inventory,0)), COALESCE(SUM(CASE WHEN locations.type='tap' THEN CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END ELSE location_beverages.quantity END),0), location_beverages.update::date FROM location_beverages, locations, beverages WHERE location_beverages.location_id=locations.id AND location_beverages.beverage_id=beverages.id AND location_beverages.update >= $1::date AND location_beverages.update <= $2::date AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$3) AND locations.user_id=$4 GROUP BY location_beverages.update::date ORDER BY location_beverages.update::date;", start_date, end_date, item_id, test_user_id)
+				rows, err := db.Query("SELECT SUM(COALESCE(location_beverages.inventory,0)), location_beverages.update::date FROM beverages, location_beverages WHERE beverages.alcohol_type=$1 AND location_beverages.beverage_id=beverages.id AND location_beverages.update>=$2::date AND location_beverages.update<=$3::date GROUP BY location_beverages.update::date ORDER BY location_beverages.update::date;", atype, start_date, end_date)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1002,25 +1228,197 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					var history InvSumHistory
 					if err := rows.Scan(
 						&history.Inventory,
-						&history.Quantity,
 						&history.Date); err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						continue
 					}
-					histories = append(histories, history)
+
+					sumHistories = append(sumHistories, history)
 				}
-				item.Histories = histories
-				item_histories = append(item_histories, item)
+				locSumHistory.Histories = sumHistories
+				histories = append(histories, locSumHistory)
 			}
-			log.Println(item_histories)
+
 			w.Header().Set("Content-Type", "application/json")
-			js, err := json.Marshal(item_histories)
+			js, err := json.Marshal(histories)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 			w.Write(js)
+
+		} else if history_type == "items" {
+
+			// XXX A note here:
+			// It is much easier for the client application to return the data sorted
+			// first order by beverage using InvItemSumHistory.
+			// However, for creating a spreadsheet, it is much easier for the server
+			// createXlsxFile function to have the data sorted first order by date.
+			// Hence, depending on whether 'export' is specified by the user,
+			// the following code will implement different data results.
+
+			item_ids := r.URL.Query()["ids"]
+
+			if len(export) > 0 {
+				// XXX can't just append to string, need to check ids are valid integers
+				// or subject to injection attack.  Fix in future.
+				var id_ints []int
+				for _, id := range item_ids {
+					id64, _ := strconv.ParseInt(id, 10, 0)
+					idi := int(id64)
+					id_ints = append(id_ints, idi)
+				}
+
+				var dates timeArr
+				var sorted_keys []string
+
+				for _, id := range id_ints {
+					rows, err := db.Query("SELECT DISTINCT location_beverages.update::date FROM location_beverages, locations WHERE location_beverages.update>=$1::date AND location_beverages.update<=$2::date AND locations.id=location_beverages.location_id AND locations.user_id=$3 AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$4) ORDER BY update::date ASC;", start_date, end_date, test_user_id, id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+					defer rows.Close()
+					for rows.Next() {
+						var adate time.Time
+						if err := rows.Scan(&adate); err != nil {
+							log.Println(err.Error())
+							http.Error(w, err.Error(), http.StatusInternalServerError)
+							continue
+						}
+						date_exists := false
+						for _, existing_date := range dates {
+							if existing_date == adate {
+								date_exists = true
+								break
+							}
+						}
+						if !date_exists {
+							dates = append(dates, adate)
+						}
+					}
+				}
+				sort.Sort(dates)
+				for _, adate := range dates {
+					sorted_keys = append(sorted_keys, adate.String())
+				}
+
+				log.Println(sorted_keys)
+
+				var itemsByDate []InvDateItemHistory
+
+				for _, a_date := range dates {
+					var itemInv InvDateItemHistory
+					itemInv.Date = a_date
+					for _, id := range id_ints {
+						rows, err := db.Query("SELECT beverages.id, beverages.product, COALESCE(SUM(CASE WHEN locations.type='tap' THEN CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END ELSE location_beverages.quantity END),0), COALESCE(SUM(location_beverages.inventory),0) FROM beverages, location_beverages, locations WHERE location_beverages.update::date=$1::date AND location_beverages.beverage_id=beverages.id AND location_beverages.location_id=locations.id AND locations.user_id=$2 AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$3) GROUP BY beverages.id ORDER BY beverages.product ASC;", a_date, test_user_id, id)
+						if err != nil {
+							log.Println(err.Error())
+							http.Error(w, err.Error(), http.StatusInternalServerError)
+							return
+						}
+
+						defer rows.Close()
+						for rows.Next() {
+							var bevInv BeverageInv
+							if err := rows.Scan(
+								&bevInv.ID,
+								&bevInv.Product,
+								&bevInv.Quantity,
+								&bevInv.Inventory); err != nil {
+								log.Println(err.Error())
+								http.Error(w, err.Error(), http.StatusInternalServerError)
+								continue
+							}
+							log.Println(bevInv)
+							itemInv.Histories = append(itemInv.Histories, bevInv)
+						}
+					}
+					itemsByDate = append(itemsByDate, itemInv)
+				}
+				log.Println(itemsByDate)
+
+				js, err := json.Marshal(itemsByDate)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+
+				switch export {
+				case "xlsx":
+					log.Println("create xlsx")
+					createXlsxFile(js, sorted_keys, "all_itemized", "items_", test_user_id, w, r)
+				}
+
+			} else {
+				var item_histories []InvItemSumHistory
+
+				for _, item_id := range item_ids {
+
+					var item InvItemSumHistory
+
+					var product NullString
+					err := db.QueryRow("SELECT product FROM beverages WHERE id=$1;", item_id).Scan(&product)
+					if err != nil {
+						log.Println(err.Error())
+						// if query failed will exit here, so loc_id is guaranteed below
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
+					item.Product = product
+					log.Println(item)
+
+					var histories []InvSumHistory
+					//SELECT SUM(COALESCE(location_beverages.inventory,0)), location_beverages.update::date FROM locations, location_beverages WHERE location_beverages.location_id=locations.id AND location_beverages.update > (now() - '1 month'::interval) GROUP BY location_beverages.update::date ORDER BY location_beverages.update::date;
+					/*
+									rows, err := db.Query(
+										`SELECT SUM(res.inv), res.update FROM (
+						          SELECT CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity)
+						                      WHEN locations.type='tap' THEN SUM(
+						                      	CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume*beverages.purchase_cost/beverages.purchase_count+COALESCE(beverages.deposit,0)
+										              	     ELSE COALESCE(beverages.deposit,0)
+										              	END)
+						                      ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity)
+						                    END AS inv, location_beverages.update::date AS update
+						                    FROM beverages, location_beverages, locations WHERE beverages.id=$1 AND beverages.id=location_beverages.beverage_id AND locations.id=location_beverages.location_id GROUP BY update, locations.type
+						        ) AS res GROUP BY res.update ORDER BY res.update;`, item_id)
+					*/
+
+					rows, err := db.Query("SELECT SUM(COALESCE(location_beverages.inventory,0)), COALESCE(SUM(CASE WHEN locations.type='tap' THEN CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END ELSE location_beverages.quantity END),0), location_beverages.update::date FROM location_beverages, locations, beverages WHERE location_beverages.location_id=locations.id AND location_beverages.beverage_id=beverages.id AND location_beverages.update >= $1::date AND location_beverages.update <= $2::date AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$3) AND locations.user_id=$4 GROUP BY beverages.id, location_beverages.update::date ORDER BY location_beverages.update::date;", start_date, end_date, item_id, test_user_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
+					defer rows.Close()
+					for rows.Next() {
+						var history InvSumHistory
+						if err := rows.Scan(
+							&history.Inventory,
+							&history.Quantity,
+							&history.Date); err != nil {
+							log.Println(err.Error())
+							http.Error(w, err.Error(), http.StatusInternalServerError)
+							continue
+						}
+						histories = append(histories, history)
+					}
+					item.Histories = histories
+					item_histories = append(item_histories, item)
+				}
+				log.Println(item_histories)
+
+				js, err := json.Marshal(item_histories)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(js)
+			}
+
 		} else if history_type == "all_itemized" {
 			// Select itemized inventory list from a given date (range)
 			// Create a map with beverage id as key
@@ -1032,6 +1430,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(end_date)
 
 			var dates []time.Time
+			var sorted_keys []string
 			rows, err := db.Query("SELECT DISTINCT location_beverages.update::date FROM location_beverages, locations WHERE location_beverages.update>=$1::date AND location_beverages.update<=$2::date AND locations.id=location_beverages.location_id AND locations.user_id=$3 ORDER BY update::date ASC;", start_date, end_date, test_user_id)
 			if err != nil {
 				log.Println(err.Error())
@@ -1047,12 +1446,10 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					continue
 				}
 				dates = append(dates, adate)
+				sorted_keys = append(sorted_keys, adate.String())
 			}
-			// XXX gather dates
-			//var dates []string
-			//dates = append(dates, start_date)
 
-			dateInvMap := make(map[string][]BeverageInv)
+			var itemsByDate []InvDateItemHistory
 
 			for _, a_date := range dates {
 				rows, err = db.Query("SELECT beverages.id, beverages.product, COALESCE(SUM(CASE WHEN locations.type='tap' THEN CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END ELSE location_beverages.quantity END),0), COALESCE(SUM(location_beverages.inventory),0) FROM beverages, location_beverages, locations WHERE location_beverages.update::date=$1::date AND location_beverages.beverage_id=beverages.id AND location_beverages.location_id=locations.id AND locations.user_id=$2 GROUP BY beverages.id ORDER BY beverages.product ASC;", a_date, test_user_id)
@@ -1062,7 +1459,8 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 
-				bevInvMap := make(map[int]*BeverageInv)
+				var itemInv InvDateItemHistory
+				itemInv.Date = a_date
 
 				defer rows.Close()
 				for rows.Next() {
@@ -1077,39 +1475,29 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						continue
 					}
 					log.Println(bevInv)
-					_, exists := bevInvMap[bevInv.ID]
-					if !exists {
-						bevInvMap[bevInv.ID] = &bevInv
-					} else {
-						bevInvMap[bevInv.ID].Inventory.Float64 += bevInv.Inventory.Float64
-						bevInvMap[bevInv.ID].Quantity += bevInv.Quantity
-					}
+					itemInv.Histories = append(itemInv.Histories, bevInv)
 				}
-
-				var bevInvs BeverageInvs
-				for _, val := range bevInvMap {
-					bevInvs = append(bevInvs, *val)
-					/*
-						if (*val).Inventory > 0 {
-							bevInvs = append(bevInvs, *val)
-						}
-					*/
-				}
-
-				if len(bevInvs) > 0 {
-					sort.Sort(bevInvs)
-					dateInvMap[a_date.String()] = bevInvs
-				}
+				itemsByDate = append(itemsByDate, itemInv)
 			}
+			log.Println(itemsByDate)
 
-			log.Println(dateInvMap)
-			w.Header().Set("Content-Type", "application/json")
-			js, err := json.Marshal(dateInvMap)
+			js, err := json.Marshal(itemsByDate)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			w.Write(js)
+
+			if len(export) > 0 {
+				switch export {
+				case "xlsx":
+					log.Println("create xlsx")
+					createXlsxFile(js, sorted_keys, history_type, "all_", test_user_id, w, r)
+				}
+			} else {
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(js)
+			}
+
 		} else if history_type == "loc_itemized" {
 			// We want to have the first order key be dates, and the second order
 			// key be locations.  This way the user can view single location inventory
@@ -1120,12 +1508,14 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// Dates:
 			//   Locations (OMIT TAPS):
 			//     Item Inventories (ordered alphabetically)
+			//   XXX Add taps back in as location
 
 			var allDateInvs []InvLocSumsByDate
 
-			// Step 1: Gather all unique dates
+			// Step 1: Gather all unique dates.  This includes tap locations
 			var dates []time.Time
-			rows, err := db.Query("SELECT DISTINCT location_beverages.update::date FROM location_beverages, locations WHERE location_beverages.update>=$1::date AND location_beverages.update<=$2::date AND locations.id=location_beverages.location_id AND locations.user_id=$3 AND locations.type!='tap' ORDER BY location_beverages.update::date ASC;", start_date, end_date, test_user_id)
+			var sorted_keys []string
+			rows, err := db.Query("SELECT DISTINCT location_beverages.update::date FROM location_beverages, locations WHERE location_beverages.update>=$1::date AND location_beverages.update<=$2::date AND locations.id=location_beverages.location_id AND locations.user_id=$3 ORDER BY location_beverages.update::date ASC;", start_date, end_date, test_user_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1140,12 +1530,16 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					continue
 				}
 				dates = append(dates, adate)
+				sorted_keys = append(sorted_keys, adate.String())
 			}
 
-			// Step 2: For each date, gather unique locations
+			// Step 2: For each date, gather unique locations.
+			// First, we gather while omitting tap locations
+			// Then, we gather tap locations
 			for _, a_date := range dates {
 				var aDateInv InvLocSumsByDate
 				aDateInv.Date = a_date
+				// -------------------- Non Taps --------------------
 				rows, err = db.Query("SELECT DISTINCT location_beverages.location_id FROM location_beverages, locations WHERE location_beverages.update::date=$1 AND locations.id=location_beverages.location_id AND locations.user_id=$2 AND locations.type!='tap' ORDER BY location_beverages.location_id ASC;", a_date, test_user_id)
 				if err != nil {
 					log.Println(err.Error())
@@ -1193,18 +1587,152 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 					aDateInv.LocHistories = append(aDateInv.LocHistories, invLocSum)
 				}
+				// ---------------------- Taps ----------------------
+				var invLocSum InvLocItemHistory
+				loc_name := "All Taps"
+				invLocSum.Location.String = loc_name
+				invLocSum.Location.Valid = true
+
+				inv_rows, err := db.Query("SELECT beverages.id, beverages.product, COALESCE(SUM(CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END),0), COALESCE(location_beverages.inventory,0) FROM beverages, location_beverages, locations WHERE location_beverages.update::date=$1 AND location_beverages.beverage_id=beverages.id AND location_beverages.location_id=locations.id AND locations.user_id=$2 AND locations.type='tap' GROUP BY beverages.id, location_beverages.inventory ORDER BY beverages.product ASC;", a_date, test_user_id)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+				defer inv_rows.Close()
+				for inv_rows.Next() {
+					var bevInv BeverageInv
+					if err := inv_rows.Scan(
+						&bevInv.ID,
+						&bevInv.Product,
+						&bevInv.Quantity,
+						&bevInv.Inventory); err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+					invLocSum.Histories = append(invLocSum.Histories, bevInv)
+				}
+				if len(invLocSum.Histories) > 0 {
+					aDateInv.LocHistories = append(aDateInv.LocHistories, invLocSum)
+				}
+
 				allDateInvs = append(allDateInvs, aDateInv)
 			}
 
-			//log.Println(allDateInvs)
-			w.Header().Set("Content-Type", "application/json")
+			log.Println(allDateInvs)
 			js, err := json.Marshal(allDateInvs)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			w.Write(js)
 
+			if len(export) > 0 {
+				switch export {
+				case "xlsx":
+					log.Println("create xlsx")
+					createXlsxFile(js, sorted_keys, history_type, "loc_", test_user_id, w, r)
+				}
+			} else {
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(js)
+			}
+
+		} else if history_type == "type_itemized" {
+			// Same ordering as loc_itemized, first order by dates, second order
+			// by type.
+			// We piggy back off the InvLocSum* structs which, though they have
+			// second order name "Location", we're just using as "Type" here
+
+			var allDateInvs []InvLocSumsByDate
+
+			// Step 1: Gather all unique dates
+			var dates []time.Time
+			var sorted_keys []string
+			rows, err := db.Query("SELECT DISTINCT location_beverages.update::date FROM location_beverages, locations WHERE location_beverages.update>=$1::date AND location_beverages.update<=$2::date AND locations.id=location_beverages.location_id AND locations.user_id=$3 ORDER BY location_beverages.update::date ASC;", start_date, end_date, test_user_id)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			defer rows.Close()
+			for rows.Next() {
+				var adate time.Time
+				if err := rows.Scan(&adate); err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+				dates = append(dates, adate)
+				sorted_keys = append(sorted_keys, adate.String())
+			}
+
+			// Step 2: For each date, gather unique types
+			for _, a_date := range dates {
+				var aDateInv InvLocSumsByDate
+				aDateInv.Date = a_date
+
+				rows, err = db.Query("SELECT DISTINCT beverages.alcohol_type FROM beverages, location_beverages, locations WHERE location_beverages.update::date=$1 AND locations.id=location_beverages.location_id AND locations.user_id=$2 AND beverages.id=location_beverages.beverage_id ORDER BY beverages.alcohol_type ASC;", a_date, test_user_id)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+				defer rows.Close()
+				for rows.Next() {
+					var invTypeSum InvLocItemHistory
+					var type_name string
+					if err := rows.Scan(&type_name); err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+					invTypeSum.Location.String = type_name
+					invTypeSum.Location.Valid = true
+
+					inv_rows, err := db.Query("SELECT beverages.id, beverages.product, COALESCE(SUM(CASE WHEN locations.type='tap' THEN CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END ELSE location_beverages.quantity END),0), COALESCE(location_beverages.inventory,0) FROM beverages, location_beverages, locations WHERE location_beverages.update::date=$1 AND location_beverages.beverage_id=beverages.id AND location_beverages.location_id=locations.id AND beverages.alcohol_type=$2 GROUP BY beverages.id, location_beverages.inventory ORDER BY beverages.product ASC;", a_date, type_name)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+					defer inv_rows.Close()
+					for inv_rows.Next() {
+						var bevInv BeverageInv
+						if err := inv_rows.Scan(
+							&bevInv.ID,
+							&bevInv.Product,
+							&bevInv.Quantity,
+							&bevInv.Inventory); err != nil {
+							log.Println(err.Error())
+							http.Error(w, err.Error(), http.StatusInternalServerError)
+							continue
+						}
+						invTypeSum.Histories = append(invTypeSum.Histories, bevInv)
+					}
+
+					aDateInv.LocHistories = append(aDateInv.LocHistories, invTypeSum)
+				}
+				allDateInvs = append(allDateInvs, aDateInv)
+			}
+
+			log.Println(allDateInvs)
+			js, err := json.Marshal(allDateInvs)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			if len(export) > 0 {
+				switch export {
+				case "xlsx":
+					log.Println("create xlsx")
+					createXlsxFile(js, sorted_keys, history_type, "type_", test_user_id, w, r)
+				}
+			} else {
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(js)
+			}
 		}
 
 	default:
