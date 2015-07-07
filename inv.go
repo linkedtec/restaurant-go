@@ -1690,7 +1690,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					invTypeSum.Location.String = type_name
 					invTypeSum.Location.Valid = true
 
-					inv_rows, err := db.Query("SELECT beverages.id, beverages.product, COALESCE(SUM(CASE WHEN locations.type='tap' THEN CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END ELSE location_beverages.quantity END),0), COALESCE(location_beverages.inventory,0) FROM beverages, location_beverages, locations WHERE location_beverages.update::date=$1 AND location_beverages.beverage_id=beverages.id AND location_beverages.location_id=locations.id AND beverages.alcohol_type=$2 GROUP BY beverages.id, location_beverages.inventory ORDER BY beverages.product ASC;", a_date, type_name)
+					inv_rows, err := db.Query("SELECT beverages.id, beverages.product, COALESCE(SUM(CASE WHEN locations.type='tap' THEN CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END ELSE location_beverages.quantity END),0), COALESCE(SUM(location_beverages.inventory),0) FROM beverages, location_beverages, locations WHERE location_beverages.update::date=$1 AND location_beverages.beverage_id=beverages.id AND location_beverages.location_id=locations.id AND beverages.alcohol_type=$2 GROUP BY beverages.id, location_beverages.inventory ORDER BY beverages.product ASC;", a_date, type_name)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
