@@ -1,0 +1,128 @@
+<div ng-include src="'./bev_subnav.html'"></div>
+<div class="container" style="min-width:620px; max-width:880px">
+
+  <div style="width:100%; margin-top:24px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_box.png" height="36" width="36" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:2px; margin-left:2px">Distributors and Kegs</div>
+  </div>
+  <div class="hint_text" style="width:100%; padding-top:4px;">
+    Manage Beverage Distributors and any associated Beer Kegs and Deposits
+  </div>
+
+
+  <div ng-show="show_add_ui===true" class="add_inv_new" style="margin-top:16px; max-width:620px;">
+    <div class="add_title_bar">
+      <button ng-click="hideAddDistributor()" type="button" class="btn btn-default btn_x" style="float:left">
+        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+      </button>
+      <div class="add_inv_title">
+        <span style="font-size:1.0em;"> Add New Distributor</span>
+      </div>
+      <div class="add_inv_hint"> <b>bold</b> fields are required </div>
+      <br/>
+    </div>
+    <new-distributor distributors="distributors" close-on-save="newDistributorCloseOnSave(new_distributor)" control="newDistControl"></new-distributor>
+  </div>
+
+  <!-- No existing distributors, show first time hint -->
+  <div ng-if="distributors.length===0 && show_add_ui===false" style="margin-top:24px; margin-bottom:36px">
+    <div class="row">
+      <div class="col-xs-3" style="margin-top:4px">
+        <button ng-click="showAddDistributor()" type="button" class="btn btn-success btn-md" style="font-size:16px">
+          <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Distributor
+        </button>
+      </div>
+      <div class="col-xs-9" style="font-size:1.1em">
+        Adding Distributors allows you to associate distributor information with 
+        your beverages, and to track deliveries and keg deposits.
+      </div>
+    </div>
+  </div>
+
+  <!-- Existing distributors, show normal New and Search -->
+  <div ng-if="distributors.length > 0" style="margin-top:24px; margin-bottom:8px; overflow:hidden">
+    <div style="display:inline-block; float:left; min-width:140px;">
+      <button ng-show="show_add_ui===false" ng-click="showAddDistributor()" type="button" class="btn btn-success btn-md">
+        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> New Distributor
+      </button>
+    </div>
+    <div style="display:inline-block; width:200px; float:left; margin-left:6px">
+      <input ng-model="all_dist_query.query" class="form-control input-md" placeholder="Search Distributors...">
+    </div>
+  </div>
+
+
+  <table style="width: 100%; table-layout:fixed; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-top:6px">
+    <tr style="font-size:14px; background-color: #e0f0ff;">
+      <td class="all_inv_label_span noselect" style="width:35px; border-left: 1px solid #dddddd">
+      </td>
+      <td class="all_inv_label_span noselect" style="width:175px; overflow:auto">
+        <div class="sort_div" ng-click="sortBy('name')">
+          <span>Distributor</span>
+          <span ng-show="sort_key === 'name'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:75px; overflow:auto">
+        <div class="sort_div" ng-click="sortBy('bev_count')">
+          <span>Beverages</span>
+          <span ng-show="sort_key === 'bev_count'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:100px; overflow:auto">
+        <div class="sort_div">
+          <span>Keg Volume</span>
+          <span ng-show="sort_key === 'volume'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:75px; overflow:auto">
+        <div class="sort_div">
+          <span>Keg Deposit</span>
+          <span ng-show="sort_key === 'deposit'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+    </tr>
+    <tbody ng-repeat="dist in distributors | filter:all_dist_query.query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row'">
+      <tr>
+        <td class="all_inv_span" style="border-left: 1px solid #dddddd; text-align:center">
+          <button ng-click="editDistributor(dist)" type="button" class="btn btn-sm btn_edit">
+            <span class="glyphicon glyphicon-pencil"></span>
+          </button>
+        </td>
+        <td class="all_inv_span">{{dist.name}}</td>
+        <td class="all_inv_span">{{dist.bev_count}}</td>
+        <td class="all_inv_span">
+          <div ng-if="dist.kegs!==null && dist.kegs.length>0">
+            <div style="width:40%; display:inline-block">{{dist.kegs[0].volume | number:2}}</div>
+            <div style="display:inline-block; color:#999999">{{dist.kegs[0].unit}}</div>
+          </div>
+        </td>
+        <td class="all_inv_span">
+          <span ng-if="dist.kegs!==null && dist.kegs.length>0">{{dist.kegs[0].deposit | number:2}}</span>
+        </td>
+      </tr>
+      <tr class="inv_row" ng-if="dist.kegs!==null && dist.kegs.length > 0 && $index>0" ng-repeat="keg in dist.kegs" class="all_inv_span" style="border-left: 1px solid #dddddd">
+        <td class="all_inv_span" style="border-left: 1px solid #dddddd"></td>
+        <td class="all_inv_span"></td>
+        <td class="all_inv_span"></td>
+        <td class="all_inv_span">
+          <div ng-if="dist.kegs!==null && dist.kegs.length>0">
+            <div style="width:40%; display:inline-block">{{dist.kegs[$index].volume | number:2}}</div>
+            <div style="display:inline-block; color:#999999">{{dist.kegs[$index].unit}}</div>
+          </div>
+        </td>
+        <td class="all_inv_span">{{keg.deposit | number:2}}</td>
+      </tr>
+    </tbody>
+    <!-- Empty row -->
+    <tr ng-if="distributors.length===0" style="width:100%">
+      <td class="hint_text" colspan="4" style="text-align:center; font-size:1.4em; padding:16px 0px; border-left: 1px solid #dddddd; border-right: 1px solid #dddddd">
+        Empty
+      </td>
+    </tr>
+  </table>
+
+</div>
+
+<div ng-include src="'./view_distributors/edit_dist_modal.html'">
+<div ng-include src="'./view_distributors/del_dist_modal.html'">
+<div ng-include src="'./view_distributors/del_keg_modal.html'">

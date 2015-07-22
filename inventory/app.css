@@ -49,8 +49,8 @@ body {
 }
 
 .menu li {
-  padding-top: 6px;
-  padding-bottom:2px;
+  padding-top: 10px;
+  padding-bottom:5px;
   padding-left:16px;
   padding-right:16px;
   text-align:center;
@@ -69,7 +69,7 @@ body {
 }
 
 .menu li.sub_active {
-  border-bottom: 1px solid #e3e3e3;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .menu li.sub_active a{
@@ -90,7 +90,7 @@ body {
 }
 
 .label_row_container {
-  font-weight:bold;
+  /*font-weight:bold;*/
   background-color: #e0f0ff;
   padding: 0px 4px;
   font-size:1.1em;
@@ -143,8 +143,9 @@ body {
 .sort_carat {
   font-size:10px;
   float:right;
-  color:#55aacc;
+  color:#2288aa;
   margin-top:4px;
+  font-weight:bold;
 }
 
 /* sort carat in inv loc pages */
@@ -152,13 +153,14 @@ body {
   font-size:10px;
   margin-left:6px;
   padding-top:6px;
-  color:#55aacc;
+  color:#2288aa;
+  font-weight:bold;
 }
 
 .all_inv_label_span {
   padding: 0;
   border-right: solid 1px #dddddd;
-  color:#4488cc;
+  color:#4499dd;
 }
 
 .inv_loc_label_span {
@@ -169,10 +171,11 @@ body {
 
 .all_inv_span {
   display: table-cell;
-  padding: 6px 6px;
+  padding: 4px 6px;
   border-right: solid 1px #dddddd;
   position:relative;
   height:100%;
+  border-bottom: solid 1px #eeeeee;
 }
 
 .inv_row_container {
@@ -296,8 +299,8 @@ body {
 }
 
 .add_label_row_container {
-  font-weight:bold;
-  background-color: #c0e5ba;
+  /*font-weight:bold;*/
+  background-color: #d0ecca;
   padding: 0px 4px;
   font-size:1.1em;
   margin: 0px 28px;
@@ -360,10 +363,20 @@ body {
   min-width:210px;
 }
 
+.unit_dropdown {
+  width:70px;
+}
+
 .loc_li a {
   margin:0;
   font-size:1.1em;
   height:32px;
+}
+
+.inv_dropdown_li a {
+  margin: 0;
+  font-size:1.0em;
+  height:24px;
 }
 
 .new_loc {
@@ -382,6 +395,40 @@ body {
 .btn, .btn:focus, .btn:active {
   outline: none;
 }
+
+.btn_ok {
+  font-size:15px;
+  padding: 7px 10px;
+}
+
+.btn_edit {
+  background-color:#ecfddf;
+  border-color:#aaddbb;
+  color:#22aa55;
+}
+
+.btn_edit:hover {
+  background-color:#ccefcf;
+}
+
+.btn_frameless {
+  border: none;
+  background-color:rgba(0,0,0,0);
+  color:#aaaaaa;
+}
+
+.btn_frameless:hover {
+  background-color:#ffffff;
+}
+
+.hover_red:hover {
+  color:#cc2200;
+}
+
+.hover_green:hover {
+  color:#22aa55;
+}
+
 
 .sel_loc, .sel_loc:focus, .sel_loc:active {
   background-color: #3388cc;
@@ -440,14 +487,69 @@ body {
   color: #4499cc;
 }
 
+/* For New Beverage UI with tabset, adds borders under tabset to make it look
+like enclosed space */
+.new_inv_border_box {
+  margin: 0px 6px;
+  margin-bottom:8px;
+  padding:6px 12px;
+  background-color:#fffffe;
+  border-right: 1px solid #dddddd;
+  border-left: 1px solid #dddddd;
+  border-bottom: 1px solid #dddddd;
+}
+
+.new_inv_box {
+  padding: 6px 4px;
+  background-color:#fffffe;
+}
+
 .add_inv_all {
   border-radius: 4px;
-  border:1px solid #aaddbb;
-  background-color: #f5fdea;
+  border:1px solid #d6f0c5; 
+  background-color: #fdfffa;
   padding: 16px 10px;
   width:800px;
   margin-top: -11px;
   margin-bottom:0px;
+}
+
+.add_inv_new {
+  border-radius: 4px;
+  border:1px solid #c6eaa5; 
+  background-color: #fdfffa;
+  padding: 0px;
+  width:800px;
+}
+
+.add_title_bar {
+  background-color:#d0ecca;
+  padding:4px;
+  padding-bottom:8px;
+}
+
+.add_footer_bar {
+  border-top: 1px solid #fdfffa;
+  background-color:#fdfffa;
+  padding: 4px 16px;
+  padding-bottom:12px;
+}
+
+.add_inv_title {
+  margin-left:10px;
+  display:inline-block;
+  float:left;
+  margin-top:3px;
+  color:#55a066;
+  font-size:1.1em;
+}
+
+.add_inv_hint {
+  display:inline-block;
+  float:right;
+  margin-top:5px;
+  margin-right:16px;
+  color:#777777;
 }
 
 .nav-tabs > li > a {
@@ -478,13 +580,13 @@ body {
   display: inline-block;
   width:100%;
   overflow: auto;
-  margin-bottom:10px;
+  margin-bottom:6px;
 }
 
 .add_hr {
   padding:0;
   margin:0;
-  border-color:#c0d8d0;
+  border-color:#d0e8c5;
 }
 
 .add_label {
@@ -517,7 +619,7 @@ body {
 }
 
 .add_transparent_btn {
-  background-color: #f5fdea;
+  background-color: #fdfffa;
   border: 1px solid #aaddbb;
   color: #55aa55;
 }
@@ -537,8 +639,8 @@ body {
 
 .add_inv {
   border-radius:6px;
-  border:1px solid #aaddbb;
-  background-color: #f5fdea;
+  border:1px solid #d6f0c5;
+  background-color: #fdfffa;
   margin-left:-8px;
   margin-right:-8px;
   padding-left: 8px;
@@ -550,7 +652,7 @@ body {
 
 .add_inv_divider {
   margin: 12px -8px;
-  border-bottom: 1px solid #aaddbb;
+  border-bottom: 1px solid #d6f0c5;
 }
 
 .hint_text {
@@ -570,6 +672,13 @@ body {
   min-height:28px;
 }
 
+.btn_x {
+  width:24px;
+  height:24px;
+  padding:4px;
+  padding-top:2px;
+}
+
 .btn_clear {
   background-color: red !important;
   color:red;
@@ -579,12 +688,28 @@ body {
   color:red;
 }
 
+.btn_modal_x {
+  width:24px;
+  height:24px;
+  padding:4px;
+  padding-top:2px;
+  margin-left:-10px;
+  margin-top:-1px;
+}
+
 .tap_box {
   border: solid 1px gray;
   height: 96px;
   border-radius: 6px;
 }
 
+.green_row {
+  background-color: #e5f5ea;
+}
+
+.gray_row {
+  background-color:#f8f8f8; 
+}
 
 .inner_btn_left {
   margin-top:-10px;
@@ -619,9 +744,19 @@ body {
   min-width: 800px;
 }
 
-.edit-inv-modal-backdrop {
-  background-color: #eef5e5;
-  /*background-color:#f5faff;*/
+.new-dist-modal .modal-dialog {
+  margin-top: 200px;
+  max-width:620px;
+}
+
+.modal-header {
+  background-color:#eeeeee;
+  color:#777777;
+}
+
+.modal-footer {
+  background-color:#eeeeee;
+  padding: 8px 16px;
 }
 
 .start-count-modal .modal-dialog{
@@ -629,8 +764,16 @@ body {
   min-width:420px;
 }
 
-.start-count-modal-backdrop {
+.gray-modal-backdrop {
   background-color: #888888;
+}
+
+.green-modal-backdrop {
+  background-color: #eef5e5;
+}
+
+.red-modal-backdrop {
+  background-color: #eeaa55;
 }
 
 .start_count_btn_green {
@@ -664,8 +807,22 @@ body {
   cursor:pointer;
 }
 
+.edit-dist-modal .modal-dialog{
+  margin-top: 140px;
+  min-width:640px;
+}
+
+.del-dist-modal .modal-dialog{
+  margin-top: 80px;
+  min-width:620px;
+}
+
 .my_error {
   border-color: #aa0000;
+}
+
+.cursor_disabled {
+  cursor: not-allowed;
 }
 
 

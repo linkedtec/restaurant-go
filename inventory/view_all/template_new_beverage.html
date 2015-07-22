@@ -1,0 +1,287 @@
+<tabset ng-if="is_edit===false" style="margin: 12px 6px; margin-bottom:0px; font-size:1.1em">
+  <tab ng-repeat="type in beverage_types" heading="{{type}}" ng-click="selectAddType(type)">
+  </tab>
+</tabset>
+<div ng-class="{'new_inv_border_box': is_edit===false, 'new_inv_box': is_edit===true}">
+
+  <div ng-if="is_edit===true">
+    <div style="font-size:1.1em; color:#77b088; padding-top:0px">
+    {{new_beverage.alcohol_type}} - <b>{{new_beverage.product}}</b>
+    </div>
+    <hr class="add_hr"/>
+  </div>
+
+  <div class="row" style="margin-top:8px; padding-left:10px">
+    <div class="col-xs-4">
+      <div class="form-group" ng-class="{'has-error': form_ver.error_container===true}">
+        <label class="control-label bold">Container </label>
+        <select ng-model="new_beverage.container_type" class="form-control input-small" ng-options="atype for atype in container_types" style="width:150px;" ng-change="addContainerChanged()"></select>
+      </div>
+    </div>
+    <div class="col-xs-4">
+      <div class="form-group" ng-class="{'has-error': form_ver.error_serve_type===true}">
+        <label class="control-label bold"> 
+          Serve Type
+          <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;"  popover="Is this single serve (i.e., can of soda) or can there be multiple retail servings per container (bottle of wine, keg of beer)?" popover-trigger="mouseenter" popover-append-to-body="true"></span>
+        </label>
+        <select ng-model="new_beverage.serve_type" class="form-control input-small" ng-options="atype for atype in serve_types" style="width:150px;" ng-show="new_beverage.container_type!=='Keg'"></select>
+        <select ng-model="new_beverage.serve_type" class="form-control input-small" ng-options="atype for atype in serve_types" style="width:150px;" ng-show="new_beverage.container_type==='Keg'" disabled></select>
+
+      </div>
+    </div>
+  </div>
+
+  <div ng-show="new_beverage.container_type!==container_types[0] && new_beverage.serve_type!==serve_types[0]">
+    <div style="font-size:1.1em; color:#77b088; padding-top:0px">
+      Basic Info
+    </div>
+    <hr class="add_hr"/>
+    <div class="row" style="margin-top:8px; padding-left:10px">
+      <div class="col-xs-4">
+        <div class="form-group" ng-class="{'has-error': form_ver.error_product===true}">
+          <label class="control-label bold"> Product Name</label>
+          <input ng-model="new_beverage.product" class="form-control input-small" placeholder="e.g., Trumer Pils">
+        </div>
+      </div>
+      <div class="col-xs-4">
+        <div class="form-group" ng-class="{'has-error': form_ver.error_distributor===true}">
+          <label class="control-label optional"> Distributor / Supplier</label>
+          <div class="btn-group" dropdown>
+            <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" style="font-size:1.0em" dropdown-toggle>
+              <span ng-if="new_beverage.distributor !== null" style="float:left; text-align:left; width:90%;">
+                {{new_beverage.distributor.name}} 
+              </span>
+              <span ng-if="new_beverage.distributor === null" class="noselect" style="float:left; text-align:left; width:90%;  color:#999999">
+                Select a Distributor
+              </span>
+              <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:12px; color:#888888"></span>
+            </button>
+            <ul class="loc_dropdown dropdown-menu" role="menu">
+              <li class="inv_dropdown_li" ng-if="new_beverage.distributor!==null">
+                <a ng-click="clearDistributor()" class="noselect" style="color:#aaaaaa">None</a>
+              </li>
+              <li class="inv_dropdown_li" ng-repeat="dist in allDistributors">
+                <a ng-click="selectDistributor(dist)" class="noselect">{{dist.name}}</a>
+              </li>
+              <li class="inv_dropdown_li">
+                <a ng-click="addNewDistributor()" class="new_loc noselect">+ New Distributor</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-xs-4"  ng-if="new_beverage.container_type==='Keg' && new_beverage.distributor!==null">
+        <div class="form-group" ng-class="{'has-error': form_ver.error_keg===true}">
+          <label class="control-label optional">
+            Keg Volume & Deposit
+            <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;" popover="Bars that serve Draft Beer from kegs often pay deposits per keg to their distributor.  If this doesn't apply to you, leave it blank." popover-trigger="mouseenter" popover-append-to-body="true"></span>
+          </label>
+          <div class="btn-group" dropdown>
+            <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" style="font-size:1.0em" dropdown-toggle>
+              <span ng-if="new_beverage.keg !== null" style="float:left; text-align:left; width:40%;">
+                {{new_beverage.keg.volume | number:1}} {{new_beverage.keg.unit}}
+              </span>
+              <span ng-if="new_beverage.keg !== null" style="float:left; text-align:left; width:50%; color:#999999">
+                <span ng-if="new_beverage.keg.deposit === null">&nbsp;</span>
+                <span ng-if="new_beverage.keg.deposit !== null">
+                  $ {{new_beverage.keg.deposit | number:2}}
+                </span>
+              </span>
+              <span ng-if="new_beverage.keg === null" class="noselect" style="float:left; text-align:left; width:90%;  color:#999999">
+                Select a Keg
+              </span>
+              <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:12px; color:#888888"></span>
+            </button>
+            <ul class="loc_dropdown dropdown-menu" role="menu">
+              <li class="inv_dropdown_li" ng-if="new_beverage.keg!==null">
+                <a ng-click="clearKeg()" class="noselect" style="color:#aaaaaa">None</a>
+              </li>
+              <li class="inv_dropdown_li" ng-repeat="keg in new_beverage.distributor.kegs">
+                <a ng-click="selectKeg(keg)" class="noselect">{{keg.formatted}}</a>
+              </li>
+              <li class="inv_dropdown_li">
+                <a ng-click="addNewKeg()" class="new_loc noselect">+ New Keg</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row" style="padding-left:10px">
+      <div class="col-xs-4">
+        <div class="form-group" ng-class="{'has-error': form_ver.error_brewery===true}">
+          <label class="control-label optional"> Brewery / Manufacturer </label>
+          <input ng-model="new_beverage.brewery" class="form-control input-small" placeholder="e.g., Lagunitas Brewing Co." typeahead="brew for brew in allBreweries | filter:$viewValue">
+        </div>
+      </div>
+      <div class="col-xs-4" ng-show="new_beverage.alcohol_type !== 'Non Alcoholic'">
+        <div class="form-group" ng-class="{'has-error': form_ver.error_abv===true}">
+          <label class="control-label optional"> 
+            % AbV
+            <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;"  popover="Percent Alcohol by Volume (% AbV) indicates the alcoholic content of your beverage" popover-trigger="mouseenter" popover-append-to-body="false"></span>
+          </label>
+          <div class="input-group">
+            <input ng-model="new_beverage.abv" type="number" step="0.01" min="0" max="100" class="form-control input-small" placeholder="" style="width:100px">
+            <span class="input-group-addon" style="width:30px; text-align:left;">%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size:1.1em; color:#77b088;">
+      Purchase / Order Info
+      <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd" popover="When you order new stock from your supplier, what is the volume of an individual order item, and how much does it cost?" popover-trigger="mouseenter" popover-append-to-body="true"></span>
+    </div>
+    <hr class="add_hr"/>
+    <div class="row" style="padding-left:10px; margin-top:8px">
+      <div class="col-xs-4">
+        <div class="form-group" ng-class="{'has-error': form_ver.error_pvolume===true || form_ver.error_punit===true}">
+          <label class="control-label optional"> 
+            Volume per {{new_beverage.container_type}}
+          </label>
+          <div>
+            <span>
+              <input ng-model="new_beverage.purchase_volume" type="number" min="0" class="form-control input-small" style="width:100px; margin-right:6px; float:left">
+            </span>
+            <span class="btn-group" dropdown>
+              <button type="button" class="btn btn-default btn-md dropdown-toggle unit_dropdown" style="font-size:1.0em;" dropdown-toggle>
+                <span ng-if="new_beverage.purchase_unit!==null" style="float:left; text-align:left; width:80%">
+                  {{new_beverage.purchase_unit}} 
+                </span>
+                <span ng-if="new_beverage.purchase_unit===null" class="noselect" style="float:left; text-align:left; width:80%;  color:#999999"> &nbsp;
+                </span>
+                <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:12px; color:#888888"></span>
+              </button>
+              <ul class="unit_dropdown dropdown-menu" role="menu" style="min-width:90px !important">
+                <li class="inv_dropdown_li" ng-if="new_beverage.purchase_unit!==null">
+                  <a ng-click="clearPurchaseUnit()" class="noselect" style="color:#aaaaaa">None</a>
+                </li>
+                <li class="inv_dropdown_li" ng-repeat="aunit in volume_units">
+                  <a ng-click="selectPurchaseUnit(aunit)" class="noselect">{{aunit}}</a>
+                </li>
+              </ul>
+            </span>
+          </div>
+
+          <!--div>
+            <select ng-model="new_beverage.purchase_unit" class="form-control input-small" ng-options="aunit for aunit in volume_units" style="width:60px; float:left"></select>
+          </div-->
+        </div>
+      </div>
+      <div class="col-xs-4">
+        <div class="form-group" ng-class="{'has-error': form_ver.error_pcost===true}">
+          <label class="control-label bold"> 
+            Purchase Cost
+          </label>
+          <div class="input-group">
+            <span class="input-group-addon">$</span>
+            <input ng-model="new_beverage.purchase_cost" type="number" min="0" class="form-control input-small" style="width:100px;">
+          </div>
+        </div>
+      </div>
+      <div class="col-xs-4" ng-show="new_beverage.container_type!=='Keg'">
+        <div class="form-group" ng-class="{'has-error': form_ver.error_pcount===true}">
+          <label class="control-label bold">
+            Purchase Count
+            <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;" popover="For a single purchase, you might buy, e.g., a case of 12 bottles of wine for $40.  In that case, enter 12 for Purchase Count, and $40 for Purchase Cost" popover-trigger="mouseenter" popover-append-to-body="true"></span>
+          </label>
+          <div class="input-group" style="float:left; width:170px">
+            <input ng-model="new_beverage.purchase_count" type="number" min="0" class="form-control input-small" style="width:132px;" placeholder="">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size:1.1em; color:#77b088;">
+      Sales & Pricing
+      <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd" popover="When selling to customers, what are your retail sizes and prices?  If you have multiple sale points, use the 'Add More Pricing' button." popover-trigger="mouseenter" popover-append-to-body="true"></span>
+    </div>
+    <hr class="add_hr"/>
+    <div class="row" style="padding-left:10px; margin-bottom:4px; margin-top:8px">
+      <div class="col-xs-4 optional">
+        Serving Size
+      </div>
+      <div class="col-xs-4 optional">
+        Retail Price
+      </div>
+    </div>
+    <div ng-show="new_beverage.container_type !== 'Keg'" class="row" style="margin:8px 4px; background-color:#e5f5ea; padding:8px 0px">
+      <div class="col-xs-4" style="font-size:1.2em; padding-top:4px;">
+        1 {{new_beverage.container_type}}
+      </div>
+      <div class="col-xs-3" style="font-size:1.2em;">
+        <div class="input-group"  ng-class="{'has-error': form_ver.error_unit_sale===true}">
+          <span class="input-group-addon">$</span>
+          <input ng-model="new_unit_sale" type="number" min="0" class="form-control input-small" style="width:100px;">
+        </div>
+      </div>
+    </div>
+    <div ng-show="new_beverage.serve_type===serve_types[2]" ng-repeat="size_price in new_beverage.size_prices" class="row" style="margin:4px 4px; background-color:#e5f5ea; padding:8px 0px;">
+      <div class="col-xs-4">
+        <div class="form-group" ng-class="{'has-error': form_ver.errors_sale_volume[$index]===true}" style="margin-bottom:0">
+          <input ng-model="size_price.volume" type="number" min="0" class="form-control input-small" style="width:100px; margin-right:6px; float:left" placeholder="pour size">
+          <span class="btn-group" dropdown>
+            <button type="button" class="btn btn-default btn-md dropdown-toggle unit_dropdown" style="font-size:1.0em;" dropdown-toggle>
+              <span ng-if="size_price.unit!==null" style="float:left; text-align:left; width:80%">
+                {{size_price.unit}} 
+              </span>
+              <span ng-if="size_price.unit===null" class="noselect" style="float:left; text-align:left; width:80%; color:#999999"> &nbsp;
+              </span>
+              <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:12px; color:#888888"></span>
+            </button>
+            <ul class="unit_dropdown dropdown-menu" role="menu" style="min-width:90px !important">
+              <li class="inv_dropdown_li" ng-if="size_price.unit!==null">
+                <a ng-click="clearSizePriceUnit(size_price)" class="noselect" style="color:#aaaaaa">None</a>
+              </li>
+              <li class="inv_dropdown_li" ng-repeat="aunit in volume_units">
+                <a ng-click="selectSizePriceUnit(size_price, aunit)" class="noselect">{{aunit}}</a>
+              </li>
+            </ul>
+          </span>
+          <!--div>
+            <select ng-model="size_price.unit" class="form-control input-small" ng-options="aunit for aunit in volume_units" style="width:60px; float:left"></select>
+          </div-->
+        </div>
+      </div>
+      <div class="col-xs-4">
+        <div class="form-group" ng-class="{'has-error': form_ver.errors_sale_price[$index]===true}" style="margin-bottom:0px">
+          <div class="input-group">
+            <span class="input-group-addon">$</span>
+            <input ng-model="size_price.price" type="number" min="0" class="form-control input-small" style="width:100px;">
+          </div>
+        </div>
+      </div>
+      <div class="col-xs-4">
+        <button ng-show="new_beverage.size_prices.length > 1" ng-click="removeSaleRow($index)" type="button" class="btn btn-default btn-sm add_transparent_btn" style="font-size:14px; height:32px">
+          <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
+        </button>
+        <button ng-show="$index===new_beverage.size_prices.length-1" ng-click="addSaleRow(new_beverage.size_prices[$index].unit)" type="button" class="btn btn-default btn-sm add_transparent_btn" style="font-size:14px; margin-left:6px">
+          <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add More Pricing
+        </button>
+      </div>
+    </div>
+    <div style="margin-bottom:12px"></div>
+
+    <div ng-show="new_success_msg !== null" class="row" style="margin:4px 0px">
+      <div class="alert alert-success alert-dismissible" role="alert" style="margin-bottom:6px">
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span></button>
+        {{new_success_msg}}</div>
+    </div>
+    <div ng-show="new_failure_msg !== null" class="row" style="margin:4px 0px">
+      <div class="alert alert-danger" data-html="true" role="alert" style="margin-bottom:6px">
+        {{new_failure_msg}}</div>
+    </div>
+  </div>
+  <div style="padding: 4px 4px; padding-bottom:12px;" ng-show="new_beverage.container_type!==container_types[0] && new_beverage.serve_type!==serve_types[0]">
+    <button ng-click="saveBeverage()" type="button" class="btn btn-success btn_ok">
+      <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> {{save_title}}
+    </button>
+    <button ng-click="deleteBeverage()" ng-if="is_edit===true" type="button" class="btn btn-success btn-danger btn_ok" style="float:right">
+      <span class="glyphicon glyphicon-trash" aria-hidden="true"></span> Delete
+    </button>
+  </div>
+</div>
+
+<div ng-include src="'./view_all/modal_new_dist.html'">
+<div ng-include src="'./view_all/modal_new_keg.html'">

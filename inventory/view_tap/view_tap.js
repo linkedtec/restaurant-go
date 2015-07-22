@@ -383,7 +383,7 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
       templateUrl: 'showTapModal.html',
       controller: 'showTapModalCtrl',
       windowClass: 'start-count-modal',
-      backdropClass: 'start-count-modal-backdrop',
+      backdropClass: 'gray-modal-backdrop',
       size: 'md',
       resolve: {
         tap: function() {
@@ -447,7 +447,7 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
       templateUrl: 'startCountModal.html',
       controller: 'startCountModalCtrl',
       windowClass: 'start-count-modal',
-      backdropClass: 'start-count-modal-backdrop',
+      backdropClass: 'gray-modal-backdrop',
       size: 'md',
       resolve: {
         

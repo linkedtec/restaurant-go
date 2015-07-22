@@ -1,0 +1,62 @@
+<div style="margin-left:8px">
+  <!-- note that there is 1 keg which is the "Add new keg" entry-->
+  <!-- new keg input row-->
+  <div class="row" style="margin:0px 10px; font-size:0.9em">
+    <div class="col-xs-4 hint_text min_padding">
+      <b>Keg Volume</b>
+    </div>
+    <div class="col-xs-4 hint_text min_padding">
+      Deposit Value (optional)
+    </div>
+  </div>
+  <div class="row" style="margin:2px 10px; background-color:#e5f5ea; padding:8px 0px;">
+    <div class="col-xs-4 min_padding">
+      <div class="form-group" ng-class="{'has-error': form_ver.error_volume===true || form_ver.error_unit===true}">
+        <input ng-model="new_keg.volume" type="number" min="0" class="form-control input_add" style="width:90px; margin-right:6px; float:left" placeholder="Keg Vol.">
+        <div>
+          <select ng-model="new_keg.unit" class="form-control input_add" ng-options="aunit for aunit in volume_units" style="width:60px; float:left"></select>
+        </div>
+      </div>
+    </div>
+    <div class="col-xs-4 min_padding">
+      <div class="form-group" ng-class="{'has-error': form_ver.error_deposit===true}" style="margin-bottom:0px">
+        <div class="input-group">
+          <span class="input-group-addon">$</span>
+          <input ng-model="new_keg.deposit" type="number" min="0" class="form-control input_add" style="width:100px;" placeholder="Deposit">
+        </div>
+      </div>
+    </div>
+    <div class="col-xs-4 min_padding">
+      <button ng-click="saveNewKeg()" type="button" class="btn btn-md btn-success" style="margin-right:12px; float:right">
+        <span class="glyphicon glyphicon-pencil"></span> Save New Keg
+      </button>
+    </div>
+  </div>
+  <div ng-show="new_failure_msg !== null" class="row" style="margin:4px 10px;">
+    <div class=" col-xs-12 alert alert-danger" data-html="true" role="alert" style="margin-bottom:6px">
+      {{new_failure_msg}}
+    </div>
+  </div>
+  <div ng-show="keg_exists_error !== null" class="row" style="margin:4px 10px;">
+    <div class=" col-xs-12 alert alert-danger" data-html="true" role="alert" style="margin-bottom:6px">
+      {{keg_exists_error}}
+    </div>
+  </div>
+  <div style="margin-bottom:12px"></div>
+
+  <!-- Existing keg entries-->
+  <div class="row" ng-if="distributor.kegs.length > 1" style="margin-left:0px">
+    <div class="col-xs-12 hint_text" style="font-size:1.0em">
+      Existing Keg(s):
+    </div>
+  </div>
+  <div ng-repeat="keg in distributor.kegs" class="row" style="margin:4px 10px; background-color:#f5f5f5; padding:6px 0px;" ng-if="keg.is_add!==true">
+    <div class="col-xs-4">
+      {{keg.volume | number:1}} {{keg.unit}}
+    </div>
+    <div class="col-xs-4" ng-if="keg.deposit!==null">
+      $ {{keg.deposit | number:2}}
+    </div>
+  </div>  
+  
+</div>

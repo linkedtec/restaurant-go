@@ -1,0 +1,68 @@
+<!-- CONFIRM DELETE DISTRIBUTOR MODAL -->
+<script type="text/ng-template" id="deleteDistModal.html">
+  <!--div class="modal-header" style="padding-top:8px; padding-bottom:4px">
+    <span style="font-size:1.2em;margin-left:6px">Delete Distributor: <b>{{distributor.name}}</b></span>
+  </div-->
+  <div class="modal-body">
+    <div class="row" style="font-size:1.4em; margin-top:12px; font-style:italic">
+      <div class="col-xs-12">
+        Before we delete Distributor <b>{{distributor.name}}</b>, we need one final 
+        confirmation from you!
+      </div>
+    </div>
+    <div class="row" style="font-size:1.1em; margin-top:24px; margin-bottom:16px">
+      <div class="col-xs-12">
+        There are currently Beverages associated with {{distributor.name}}.  
+        To proceed, please check-off all the beverages below to signify you 
+        understand their Distributor values will be <b>empty</b> once this 
+        Distributor is deleted.
+      </div>
+    </div>
+
+    <div class="row hint_text" style="border-bottom: solid 1px #cccccc; margin:0">
+      <div class="col-xs-5">
+        Beverage
+      </div>
+      <div class="col-xs-4">
+        Brewery
+      </div>
+      <div class="col-xs-3">
+        Check all:
+        <form role="form" style="float:right">
+          <div class="checkbox checkbox-primary checkbox-single" style="margin:0">
+            <input type="checkbox" id="democheckbox" checked disabled>
+              <label></label>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div ng-repeat="bev in dist_beverages" class="row" ng-class-even="'inv_row_even'" style="margin-left:0px; margin-right:0px; padding: 8px 0px">
+      <div class="col-xs-5">
+        {{bev.product}}
+      </div>
+      <div class="col-xs-4">
+        {{bev.brewery}}
+      </div>
+      <div class="col-xs-3">
+        <form role="form" style="float:right">
+          <div class="checkbox checkbox-primary" style="margin:0px">
+            <input type="checkbox" id="checkbox{{$index}}" style="z-index:-99;" ng-click="checkedBeverage($index)">
+              <label for="checkbox{{$index}}">
+              </label>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+  <div class="modal-footer" style="padding-bottom:0px">
+    <div class="add_row" style="padding-left:0px; text-align:left">
+      <button ng-click="confirmDelete()" type="button" ng-class="{'cursor_disabled': all_checked!==true}" class="btn btn-danger btn_ok" ng-disabled="all_checked!==true">
+        <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> Delete Distributor
+      </button>
+      <button ng-click="cancel()" type="button" class="btn btn-default btn_ok">
+        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Cancel
+      </button>
+    </div>
+  </div>
+</script>

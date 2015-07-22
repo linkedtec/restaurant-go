@@ -40,6 +40,9 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
   $scope.inv_started = false;
   $scope.update_failure_msg = "";
 
+  // querying / filtering
+  $scope.add_inv_query = {query:""};
+
   // sorting
   $scope.sort_key = null;
   $scope.double_sort = -1;
@@ -391,7 +394,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       templateUrl: 'startCountModal.html',
       controller: 'startCountModalCtrl',
       windowClass: 'start-count-modal',
-      backdropClass: 'start-count-modal-backdrop',
+      backdropClass: 'gray-modal-backdrop',
       size: 'md',
       resolve: {
         

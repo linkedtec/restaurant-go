@@ -4,6 +4,7 @@
 angular.module('myApp', [
   'ngRoute',
   'myApp.viewAllInv',
+  'myApp.viewDistributors',
   'myApp.viewInvByLoc',
   'myApp.viewOnTap',
   'myApp.viewEmptyKegs',
@@ -13,15 +14,16 @@ config(['$routeProvider', function($routeProvider) {
   $routeProvider.otherwise({redirectTo: '/viewAllInv'});
 }])
 .directive('datepickerPopup', function (){
-    return {
-        restrict: 'EAC',
-        require: 'ngModel',
-        link: function(scope, element, attr, controller) {
+  return {
+    restrict: 'EAC',
+    require: 'ngModel',
+    link: function(scope, element, attr, controller) {
       //remove the default formatter from the input directive to prevent conflict
       controller.$formatters.shift();
+    }
   }
-}
 })
+
 .controller('myAppCtrl', function($scope, $location) {
 
   $scope.isActive = function (viewLocation) {
@@ -29,6 +31,32 @@ config(['$routeProvider', function($routeProvider) {
     return active;
   };
 
+})
+
+.factory("MathService", function() {
+
+  return {
+    numIsInvalid: function(num) {
+      return isNaN(num) || num < 0;
+    },
+
+    fixFloat2: function(fnum) {
+      if (fnum===null || isNaN(fnum))
+        return fnum
+      return parseFloat(fnum.toFixed(2));
+    }
+  }
+})
+
+.factory("VolUnitsService", function($http) {
+
+  return {
+    get: function() {
+      var promise = $http.get('/volume_units');
+      return promise;
+    }
+  }
+  
 })
 
 .factory("DateService", function() {
@@ -103,3 +131,4 @@ config(['$routeProvider', function($routeProvider) {
     }
   };
 });
+

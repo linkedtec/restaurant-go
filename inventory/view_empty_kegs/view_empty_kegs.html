@@ -40,14 +40,14 @@
       <div class="col-xs-6">
         <span style="float:left">
           <div class="btn-group" dropdown>
-            <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.3em">
+            <button type="button" class="btn btn-default btn-sm dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.2em">
               <span ng-if="selected_loc !== null" style="float:left; text-align:left; width:90%">
                 {{selected_loc}} 
               </span>
               <span ng-if="selected_loc === null" class="noselect" style="float:left; text-align:left; width:90%">
                 Select a Location
               </span>
-              <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:6px; font-size:14px; color:#888888"></span>
+              <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:14px; color:#888888"></span>
             </button>
             <ul class="loc_dropdown dropdown-menu" role="menu">
               <li class="loc_li" ng-repeat="loc in locations">

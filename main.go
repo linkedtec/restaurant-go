@@ -42,6 +42,9 @@ type Beverage struct {
 	ServeType      int         `json:"serve_type"`
 	Product        string      `json:"product"`
 	Distributor    NullString  `json:"distributor"`
+	DistributorID  NullInt64   `json:"distributor_id"`
+	KegID          NullInt64   `json:"keg_id"`
+	Deposit        NullFloat64 `json:"deposit"`
 	Brewery        NullString  `json:"brewery"`
 	AlcoholType    string      `json:"alcohol_type"`
 	ABV            NullFloat64 `json:"abv"`
@@ -50,7 +53,6 @@ type Beverage struct {
 	PurchaseCost   float32     `json:"purchase_cost"`
 	PurchaseCount  int         `json:"purchase_count"`
 	EmptyKegs      NullInt64   `json:"empty_kegs"`
-	Deposit        NullFloat64 `json:"deposit"`
 	FlavorProfile  NullString  `json:"flavor_profile"`
 	SalePrices     []SalePrice `json:"size_prices"`
 	Count          float32     `json:"count"`
@@ -68,18 +70,6 @@ type SalePrice struct {
 	Unit   string      `json:"unit"`
 	Price  NullFloat64 `json:"price"`
 }
-
-// This is the LocBeverage struct that is used internally on the server
-// and corresponds to the DB design.
-// XXX I believe this is deprecated, commenting out june 3, 2015
-/*
-type LocBeverage struct {
-	BevID    int       `json:"beverage_id"`
-	LocID    int       `json:"location_id"`
-	Quantity float32   `json:"quantity"`
-	Update   time.Time `json:"update"`
-}
-*/
 
 // This is the LocBeverage struct that is communicated to and from the app
 type LocBeverageApp struct {
@@ -158,6 +148,7 @@ func main() {
 	// handle inventory pages
 	setupInvHandlers()
 	setupTapsHandlers()
+	setupDistributorHandlers()
 
 	log.Printf("Listening on port 8080...")
 	log.Print("Current time is: " + getCurrentTime())
@@ -211,4 +202,39 @@ func volumeUnitsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
+}
+
+// helper function which adds a new version for a beverage, setting its old
+// version to inactive (current=FALSE).  Duplicates a beverage entry in the
+// beverages table, setting the old entry inactive and the new one active
+// with the same version_id
+func updateBeverageVersion(old_id int) (int, error) {
+
+	// duplicate the entry, which will create a new serial id
+	_, err := db.Exec("INSERT INTO beverages (distributor_id, keg_id, product, brewery, alcohol_type, abv, purchase_volume, purchase_cost, purchase_unit, flavor_profile, user_id, container_type, serve_type, purchase_count, version_id) SELECT distributor_id, keg_id, product, brewery, alcohol_type, abv, purchase_volume, purchase_cost, purchase_unit, flavor_profile, user_id, container_type, serve_type, purchase_count, version_id FROM beverages WHERE id=$1;", old_id)
+	if err != nil {
+		return -1, err
+	}
+
+	// grab the new entry's id serial
+	var new_id int
+	err = db.QueryRow("SELECT last_value FROM beverages_id_seq;").Scan(&new_id)
+	if err != nil {
+		return -1, err
+	}
+
+	// outmode the old id
+	cur_time := time.Now().UTC()
+	_, err = db.Exec("UPDATE beverages SET end_date=$1, current=FALSE where id=$2", cur_time, old_id)
+	if err != nil {
+		return -1, err
+	}
+
+	// set the new id as current
+	_, err = db.Exec("UPDATE beverages SET start_date=$1, current=TRUE where id=$2", cur_time, new_id)
+	if err != nil {
+		return -1, err
+	}
+
+	return new_id, nil
 }
