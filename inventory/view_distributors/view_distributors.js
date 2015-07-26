@@ -45,6 +45,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
     result.then(
       function(payload) {
         var data = payload.data;
+        console.log(data);
         $scope.distributors = data;
         if ($scope.distributors===null || $scope.distributors.length === 0) {
           $scope.distributors = [];
@@ -879,7 +880,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
   $scope.showKegHelp = function() {
     swal({
       title: "Distributor Kegs",
-      text: "If you order tap beer from your distributor, it most likely comes in a keg with a deposit value.  If you receive kegs of different volumes from this distributor, enter a row for each volume amount and the associated deposit.",
+      text: "If you order tap beer from your distributor, it most likely comes in a keg with a deposit value.  If you receive kegs of different volumes from this distributor, enter a row for each keg volume and the associated deposit.",
       allowOutsideClick: true,
       html: true});
   };

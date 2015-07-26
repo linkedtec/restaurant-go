@@ -507,6 +507,8 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		cur_time := time.Now().UTC()
 		if exists {
 			// if an old distributor was deleted (its active is set to FALSE),
 			// restore its active to TRUE.
@@ -535,34 +537,22 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusCreated)
-				js, err := json.Marshal(&dist)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				w.Write(js)
+			}
+		} else {
+			_, err = db.Exec("INSERT INTO distributors(name, user_id, date_created, active) VALUES ($1, $2, $3, TRUE);", dist.Name, test_user_id, cur_time)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
+			err = db.QueryRow("SELECT last_value FROM distributors_id_seq;").Scan(&dist.ID)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			dist.DateCreated = cur_time
 		}
-
-		cur_time := time.Now().UTC()
-		_, err = db.Exec("INSERT INTO distributors(name, user_id, date_created, active) VALUES ($1, $2, $3, TRUE);", dist.Name, test_user_id, cur_time)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		var dist_id int
-		err = db.QueryRow("SELECT last_value FROM distributors_id_seq;").Scan(&dist_id)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		dist.ID = dist_id
-		dist.DateCreated = cur_time
 
 		var validKegs []DistKeg // collect only valid keg entries
 
@@ -574,7 +564,7 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 			if !akeg.Volume.Valid && !akeg.Deposit.Valid {
 				continue
 			}
-			_, err = db.Exec("INSERT INTO kegs(distributor_id, volume, unit, deposit, start_date, current) VALUES($1, $2, $3, $4, $5, TRUE);", dist_id, akeg.Volume, akeg.Unit, akeg.Deposit, cur_time)
+			_, err = db.Exec("INSERT INTO kegs(distributor_id, volume, unit, deposit, start_date, current) VALUES($1, $2, $3, $4, $5, TRUE);", dist.ID, akeg.Volume, akeg.Unit, akeg.Deposit, cur_time)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)

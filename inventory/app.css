@@ -661,6 +661,10 @@ like enclosed space */
   font-size:1.1em;
 }
 
+.gray_text {
+  color: #aaaaaa;
+}
+
 .check_circle {
   color:#77dd22;
   font-size:1.4em;

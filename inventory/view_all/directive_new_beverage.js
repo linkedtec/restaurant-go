@@ -49,17 +49,6 @@ angular.module('myApp')
         console.log('edit');
         scope.is_edit=true;
 
-        // Before cloning, convert float params to floats to avoid small rounding 
-        // annoyances such as 0.06 showing up as 0.0599999999999934123912399
-        scope.editBeverage.abv = MathService.fixFloat2(scope.editBeverage.abv);
-        scope.editBeverage.purchase_volume = MathService.fixFloat2(scope.editBeverage.purchase_volume);
-        scope.editBeverage.purchase_cost = MathService.fixFloat2(scope.editBeverage.purchase_cost);
-        if (scope.editBeverage.size_prices !== null) {
-          for (var i in scope.editBeverage.size_prices) {
-            scope.editBeverage.size_prices[i]['price'] = MathService.fixFloat2(scope.editBeverage.size_prices[i]['price']);
-            scope.editBeverage.size_prices[i]['volume'] = MathService.fixFloat2(scope.editBeverage.size_prices[i]['volume']);
-          }
-        }
         scope.new_beverage = JSON.parse( JSON.stringify( scope.editBeverage ) );
 
         // Need to convert new_beverage.serve_type, which is an int, to a string
@@ -88,7 +77,7 @@ angular.module('myApp')
         // size_price row if none exist
         if (scope.new_beverage['size_prices'] === null || scope.new_beverage['size_prices'].length == 0) {
           scope.new_beverage['size_prices'] = [];
-          scope.addSaleRow('L');
+          scope.addSaleRow(null);
         }
 
         scope.save_title = "Save Changes"
@@ -245,14 +234,45 @@ angular.module('myApp')
       }
 
       scope.selectKeg = function(keg) {
+
+        var old_keg = scope.new_beverage['keg'];
+
         scope.new_beverage['keg'] = keg;
         scope.new_beverage['keg_id'] = keg.id;
+
+        if (old_keg !== null) {
+          // auto-populate purchase volume when keg is selected, if the
+          // purchase volume is currently blank
+          if (old_keg.volume !== null && old_keg.unit !== null && scope.new_beverage['purchase_volume']===old_keg.volume && scope.new_beverage['purchase_unit']===old_keg.unit) {
+            scope.new_beverage['purchase_volume'] = MathService.fixFloat2(keg.volume);
+            scope.selectPurchaseUnit(keg.unit);
+          }
+        } else {
+          if (keg.volume !== null && keg.unit !== null && scope.new_beverage['purchase_volume']===null && scope.new_beverage['purchase_unit']===null) {
+            scope.new_beverage['purchase_volume'] = MathService.fixFloat2(keg.volume);
+            scope.selectPurchaseUnit(keg.unit);
+          }
+        } 
+
+        
       };
 
       scope.clearKeg = function() {
+        var keg = scope.new_beverage['keg'];
+        if (keg === null) {
+          return;
+        }
+
+        // if purchase volume matches keg, depopulate it
+        if (keg.volume===scope.new_beverage['purchase_volume'] && keg.unit===scope.new_beverage['purchase_unit']) {
+          scope.new_beverage['purchase_volume'] = null;
+          scope.selectPurchaseUnit(null);
+        }
+        
         scope.new_beverage['keg'] = null;
         scope.new_beverage['keg_id'] = null;
-      }
+
+      };
 
       scope.deleteBeverage = function() {
         var bev_id = scope.new_beverage.id;
@@ -658,9 +678,9 @@ angular.module('myApp')
     }
     for (var i in new_distributor.kegs) {
       var keg = new_distributor.kegs[i];
-      var formatted = keg.volume + " " + keg.unit;
+      var formatted = MathService.fixFloat2(keg.volume) + " " + keg.unit;
       if (keg.deposit !== null) {
-        formatted += " ($" + keg.deposit + " deposit)";
+        formatted += " ($" + MathService.fixFloat2(keg.deposit) + " deposit)";
       }
       new_distributor.kegs[i]['formatted'] = formatted;
     }
@@ -684,7 +704,7 @@ angular.module('myApp')
 })
 
 
-.controller('newKegModalCtrl', function($scope, $modalInstance, DistributorsService, distributor) {
+.controller('newKegModalCtrl', function($scope, $modalInstance, DistributorsService, MathService, distributor) {
 
   $scope.distributor = distributor;
 
@@ -693,6 +713,14 @@ angular.module('myApp')
   };
 
   $scope.closeOnSave = function(new_keg) {
+
+    // fix decimal points for keg volumes to 2
+    if ( new_keg.deposit !== undefined && new_keg.deposit !== null ) {
+      new_keg.deposit = MathService.fixFloat2(new_keg.deposit);
+    }
+    if ( new_keg.volume !== undefined && new_keg.volume !== null ) {
+      new_keg.volume = MathService.fixFloat2(new_keg.volume);
+    }
 
     var formatted = new_keg.volume + " " + new_keg.unit;
     if (new_keg.deposit !== null) {

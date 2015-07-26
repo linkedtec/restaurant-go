@@ -163,12 +163,32 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
         $scope.inventory_items = [];
       }
 
+      // process the data we get on the client
       for (var i = 0; i < $scope.inventory_items.length; i++) {
         var inv = $scope.inventory_items[i];
+
+        // fix a list of known keys to be decimal precision 2
+        var fix_num_keys = [
+        'abv',
+        'count',
+        'purchase_cost',
+        'purchase_volume',
+        ];
+        for (var j in fix_num_keys) {
+          var fix_key = fix_num_keys[j];
+          if ( inv[fix_key] !== undefined && inv[fix_key] !== null ) {
+            inv[fix_key] = MathService.fixFloat2(inv[fix_key]);
+          }
+        }
 
         // if size_prices is null, make them empty array
         if (inv.size_prices === null) {
           $scope.inventory_items[i].size_prices = [];
+        }
+        // fix size_prices to be decimal precision 2
+        for (var j in inv.size_prices) {
+          inv.size_prices[j]['price'] = MathService.fixFloat2(inv.size_prices[j]['price']);
+          inv.size_prices[j]['volume'] = MathService.fixFloat2(inv.size_prices[j]['volume']);
         }
         
         // calculate price per volume
@@ -395,6 +415,15 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
           for (var j in $scope.all_distributors[i].kegs) {
             var keg = $scope.all_distributors[i].kegs[j];
+
+            // fix decimal points for keg volumes to 2
+            if ( keg.deposit !== undefined && keg.deposit !== null ) {
+              keg.deposit = MathService.fixFloat2(keg.deposit);
+            }
+            if ( keg.volume !== undefined && keg.volume !== null ) {
+              keg.volume = MathService.fixFloat2(keg.volume);
+            }
+
             var formatted = keg.volume + " " + keg.unit;
             if (keg.deposit !== null) {
               formatted += " ($" + keg.deposit + " deposit)";

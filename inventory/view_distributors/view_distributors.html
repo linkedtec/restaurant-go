@@ -52,7 +52,7 @@
   </div>
 
 
-  <table style="width: 100%; table-layout:fixed; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-top:6px">
+  <table style="width: 100%; min-width:720px; table-layout:fixed; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-top:6px">
     <tr style="font-size:14px; background-color: #e0f0ff;">
       <td class="all_inv_label_span noselect" style="width:35px; border-left: 1px solid #dddddd">
       </td>
@@ -62,22 +62,26 @@
           <span ng-show="sort_key === 'name'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
-      <td class="all_inv_label_span noselect" style="width:75px; overflow:auto">
+      <td class="all_inv_label_span noselect" style="width:40px; overflow:auto">
         <div class="sort_div" ng-click="sortBy('bev_count')">
-          <span>Beverages</span>
+          <span>Bevs</span>
           <span ng-show="sort_key === 'bev_count'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
-      <td class="all_inv_label_span noselect" style="width:100px; overflow:auto">
+      <td class="all_inv_label_span noselect" style="width:2px; overflow:auto"></td>
+      <td class="all_inv_label_span noselect" style="width:90px; overflow:auto">
         <div class="sort_div">
           <span>Keg Volume</span>
-          <span ng-show="sort_key === 'volume'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:75px; overflow:auto">
         <div class="sort_div">
           <span>Keg Deposit</span>
-          <span ng-show="sort_key === 'deposit'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:60px; overflow:auto">
+        <div class="sort_div">
+          <span>Keg Bevs</span>
         </div>
       </td>
     </tr>
@@ -90,27 +94,31 @@
         </td>
         <td class="all_inv_span">{{dist.name}}</td>
         <td class="all_inv_span">{{dist.bev_count}}</td>
+        <td class="all_inv_span"></td>
         <td class="all_inv_span">
           <div ng-if="dist.kegs!==null && dist.kegs.length>0">
-            <div style="width:40%; display:inline-block">{{dist.kegs[0].volume | number:2}}</div>
+            <div style="width:50%; display:inline-block">{{dist.kegs[0].volume | number:2}}</div>
             <div style="display:inline-block; color:#999999">{{dist.kegs[0].unit}}</div>
           </div>
         </td>
         <td class="all_inv_span">
           <span ng-if="dist.kegs!==null && dist.kegs.length>0">{{dist.kegs[0].deposit | number:2}}</span>
         </td>
+        <td class="all_inv_span" ng-class="{'gray_text': dist.kegs[0].bev_count===0}">{{dist.kegs[0].bev_count | number:0}}</td>
       </tr>
       <tr class="inv_row" ng-if="dist.kegs!==null && dist.kegs.length > 0 && $index>0" ng-repeat="keg in dist.kegs" class="all_inv_span" style="border-left: 1px solid #dddddd">
         <td class="all_inv_span" style="border-left: 1px solid #dddddd"></td>
         <td class="all_inv_span"></td>
         <td class="all_inv_span"></td>
+        <td class="all_inv_span"></td>
         <td class="all_inv_span">
           <div ng-if="dist.kegs!==null && dist.kegs.length>0">
-            <div style="width:40%; display:inline-block">{{dist.kegs[$index].volume | number:2}}</div>
+            <div style="width:50%; display:inline-block">{{dist.kegs[$index].volume | number:2}}</div>
             <div style="display:inline-block; color:#999999">{{dist.kegs[$index].unit}}</div>
           </div>
         </td>
         <td class="all_inv_span">{{keg.deposit | number:2}}</td>
+        <td class="all_inv_span" ng-class="{'gray_text': keg.bev_count===0}">{{keg.bev_count | number:0}}</td>
       </tr>
     </tbody>
     <!-- Empty row -->

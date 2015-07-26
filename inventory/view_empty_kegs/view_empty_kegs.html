@@ -145,7 +145,7 @@
         Add keg types from your Beverage Database.
       </div>
       <div class="col-xs-5" style="padding-right:44px">
-        <input ng-model="add_inv_query" class="form-control input-sm" placeholder="Search...">
+        <input ng-model="add_inv_query.query" class="form-control input-sm" placeholder="Search...">
       </div>
     </div>
     <!-- SCROLL AREA FOR EXISTING INVENTORY ITEMS -->
@@ -162,7 +162,7 @@
       </div>
     </div>
     <div class="add_inv_scroll_area" style="margin-bottom:20px">
-      <div ng-repeat="inv in add_inv_existing_items | filter:add_inv_query" class="add_inv_scroll_cell row">
+      <div ng-repeat="inv in add_inv_existing_items | filter:add_inv_query.query" class="add_inv_scroll_cell row">
         <div class="col-xs-4 min_padding add_inv_scroll_col" style="padding-top:4px;">
           <div style="font-size:1.1em; padding-left:6px; margin-top:-6px">{{inv.product}}</div>
           <div style="font-size:0.9em; color:#999999; padding-left:6px;"> <span ng-if="inv.purchase_volume!==null">{{inv.purchase_volume | number:1}} {{inv.purchase_unit}}</span> {{inv.container_type}}</div>
