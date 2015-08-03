@@ -10,15 +10,15 @@
   </div>
 
 
-  <div ng-show="show_add_ui===true" class="add_inv_new" style="margin-top:16px; max-width:620px;">
-    <div class="add_title_bar">
+  <div ng-show="show_add_ui===true" class="add_ui_box_green" style="margin-top:16px; max-width:640px;">
+    <div class="add_title_bar_green">
       <button ng-click="hideAddDistributor()" type="button" class="btn btn-default btn_x" style="float:left">
         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
       </button>
-      <div class="add_inv_title">
+      <div class="add_title_green">
         <span style="font-size:1.0em;"> Add New Distributor</span>
       </div>
-      <div class="add_inv_hint"> <b>bold</b> fields are required </div>
+      <div class="add_hint"> <b>bold</b> fields are required </div>
       <br/>
     </div>
     <new-distributor distributors="distributors" close-on-save="newDistributorCloseOnSave(new_distributor)" control="newDistControl"></new-distributor>

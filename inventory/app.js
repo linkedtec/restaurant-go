@@ -7,7 +7,7 @@ angular.module('myApp', [
   'myApp.viewDistributors',
   'myApp.viewInvByLoc',
   'myApp.viewOnTap',
-  'myApp.viewEmptyKegs',
+ // 'myApp.viewEmptyKegs',
   'myApp.viewHistory'
 ]).
 config(['$routeProvider', function($routeProvider) {
@@ -44,6 +44,12 @@ config(['$routeProvider', function($routeProvider) {
       if (fnum===null || isNaN(fnum))
         return fnum
       return parseFloat(fnum.toFixed(2));
+    },
+
+    fixFloat1: function(fnum) {
+      if (fnum===null || isNaN(fnum))
+        return fnum
+      return parseFloat(fnum.toFixed(1));
     }
   }
 })
@@ -106,8 +112,6 @@ config(['$routeProvider', function($routeProvider) {
 
       var mins_since_update = getMinutesSinceTime(timestamp);
       var years_since_update = mins_since_update / 60 / 24 / 365;
-
-      console.log(mins_since_update);
 
       // if years_since_update is greater than 50, we know this is 
       // a bogus timestamp

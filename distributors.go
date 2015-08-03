@@ -25,6 +25,7 @@ type DistKeg struct {
 	ID            int         `json:"id"`
 	VersionID     int         `json:"version_id"`
 	DistributorID int         `json:"distributor_id"`
+	Distributor   NullString  `json:"distributor"`
 	Volume        NullFloat64 `json:"volume"`
 	Unit          string      `json:"unit"`
 	Deposit       NullFloat64 `json:"deposit"`
@@ -49,6 +50,42 @@ func setupDistributorHandlers() {
 func kegsAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
+
+	case "GET":
+
+		var kegs []DistKeg
+
+		// return all the kegs
+		rows, err := db.Query("SELECT kegs.id, kegs.version_id, kegs.distributor_id, distributors.name, kegs.volume, kegs.unit, kegs.deposit FROM kegs, distributors WHERE current=TRUE AND kegs.distributor_id=distributors.id AND distributors.user_id=$1;", test_user_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var keg DistKeg
+			if err := rows.Scan(
+				&keg.ID,
+				&keg.VersionID,
+				&keg.DistributorID,
+				&keg.Distributor,
+				&keg.Volume,
+				&keg.Unit,
+				&keg.Deposit); err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+			kegs = append(kegs, keg)
+		}
+		js, err := json.Marshal(&kegs)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+
 	case "POST":
 		// adding new keg, expects the following:
 		// distributor_id, volume, unit, deposit
@@ -357,12 +394,22 @@ func kegsAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// check if any beverages reference this keg
 		var has_history bool
 		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages, kegs WHERE kegs.version_id=$1 AND beverages.keg_id=kegs.id);", version_id).Scan(&has_history)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+		// if that didn't work, check if location_beverages references this keg
+		if !has_history {
+			err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM location_beverages, kegs WHERE kegs.version_id=$1 AND location_beverages.beverage_id=kegs.id AND location_beverages.type='keg');", version_id).Scan(&has_history)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 
 		if has_history {

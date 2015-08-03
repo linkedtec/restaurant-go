@@ -17,25 +17,28 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     });
 }])
 
-.controller('ViewInvByLocCtrl', function($scope, $modal, $http, DateService, locType) {
+.controller('ViewInvByLocCtrl', function($scope, $modal, $http, DateService, MathService, locType) {
 
   // XXX DO NOT REASSIGN VALUE OF k_loc_type, it is determined by route
   // to be "bev" or "keg" and is a CONSTANT
   $scope.k_loc_type = locType;
 
-  $scope.add_loc = false;       // add new location mode
+  $scope.show_add_loc_ui = false;  // add new location mode
+  $scope.newLocControl = {};
   $scope.edit_loc = false;      // edit location mode
+  $scope.editLocControl = {};
+
+  $scope.addInvControl = {};
+
   $scope.locations = [];        // all locations
-  $scope.empty_locs = false;    // are locations empty?
-  $scope.selected_loc = null;   // name of the selected location
-  $scope.edit_loc_name = null;  
+  $scope.selected_loc = null;   // selected location
   $scope.last_update = null;    // last update text
-  $scope.empty_inv = false;     // is location inventory empty?
-  $scope.add_inv = false;       // add new inv item mode
-  $scope.add_inv_all_items = [];  // a cache from server of all inv items
-  $scope.add_inv_existing_items = [];  // all_items minus existing items in location
+  $scope.show_add_ui = false;       // add new inv item mode
+  $scope.add_inv_all_bevs = [];  // a cache from server of all inv items
+  $scope.add_inv_existing_bevs = [];  // all_items minus existing items in location
+  $scope.all_kegs = [];
+  $scope.add_inv_existing_kegs = [];
   $scope.total_inventory = 0;
-  $scope.new_success_msg = null;
   $scope.inv_items = [];
   $scope.inv_started = false;
   $scope.update_failure_msg = "";
@@ -47,16 +50,16 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
   $scope.sort_key = null;
   $scope.double_sort = -1;
   $scope.firstTimeSort = true;
-  // sorting add inv area
-  $scope.sort_add_key = null;
-  $scope.add_double_sort = -1;
 
-  // get locations, if empty, set $scope.empty_locs = true
+  // ===========================================================================
+  // Locations, these are shared functionality between bev and keg views
+  // ===========================================================================
+  // get locations
   $http.get('/loc', {
       params: {
         type:$scope.k_loc_type
       }
-  }).
+    }).
     success(function(data, status, headers, config) {
       // this callback will be called asynchronously when the response
       // is available
@@ -79,47 +82,61 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         $scope.locations[loc_i]['last_update_pretty'] = pretty_time;
       }
 
-      // Add the + New button for creating new locations
-      $scope.locations.push(
-        {
-          name: "+ New Location",
-          is_add: true
-        }
-      );
-
       console.log($scope.locations);
-
-      if ($scope.locations.length == 1)
-      {
-        // setting empty_locs will tell the UI to draw the first-time
-        // add new location helper
-        $scope.empty_locs = true;
-      } else {
-        // if there's only 1 location, automatically select it
-        // XXX Disabled for now as I don't know if I like it... I like the user
-        // having to manually select the location to know what they're doing.
-        /*
-        if ($scope.locations.length == 2) {
-          $scope.selectLoc($scope.locations[0]);
-        }
-        */
-      }
       
     }).
     error(function(data, status, headers, config) {
 
     });
 
-  $scope.clearLocState = function() {
-    $scope.add_inv = false;
-    $scope.last_update = null;
-    $scope.add_loc = false;       // add new location mode
-    $scope.edit_loc = false;      // edit location mode
-    $scope.empty_locs = false;    // are locations empty?
-    if ($scope.locations.length == 1) {
-      $scope.empty_locs = true;
+  // Shows the add new location UI box
+  $scope.showAddLocation = function() {
+    $scope.show_add_loc_ui=true;
+  };
+
+  $scope.hideAddLoc = function() {
+    $scope.show_add_loc_ui=false;
+    $scope.newLocControl.clearNewForm();
+  };
+
+  $scope.newLocationCloseOnSave = function(new_loc) {
+    // new_loc is the name of the new location
+    var new_loc_obj = {name:new_loc, last_update:null, last_update_pretty:null};
+    $scope.locations.push(new_loc_obj);
+    $scope.selectLoc(new_loc_obj);
+    $scope.show_add_loc_ui = false;
+  };
+
+  $scope.editLocationCloseOnDelete = function(delete_loc) {
+    for (var i = $scope.locations.length-1; i >= 0; i--) {
+      var loc = $scope.locations[i];
+      if (loc.name === $scope.selected_loc.name) {
+        $scope.locations.splice(i, 1);
+      }
     }
-    $scope.new_success_msg = null;
+    $scope.selected_loc = null;
+    $scope.clearLocState();
+  };
+
+  $scope.toggleEditLoc = function() {
+    if ($scope.edit_loc) {
+      $scope.edit_loc = false;
+      $scope.editLocControl.clearForm();
+    } else {
+      $scope.edit_loc=true;
+    }
+  };
+
+
+  // ===========================================================================
+  // Inventory-related, these differ for 'bev' or 'kegs' k_loc_type
+  // ===========================================================================
+  $scope.clearLocState = function() {
+    $scope.show_add_ui = false;
+    $scope.last_update = null;
+    $scope.show_add_loc_ui = false;   // add new location mode
+    $scope.edit_loc = false;      // edit location mode
+    $scope.addInvControl.clearState();
     $scope.inv_started = false;
     $scope.update_failure_msg = "";
   };
@@ -127,171 +144,191 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
   $scope.selectLoc = function(loc) {
     console.log(loc.name);
 
-    if (loc.name == $scope.selected_loc)
+    if ( $scope.selected_loc!==null && (loc.name === $scope.selected_loc.name))
     {
       return;
     }
 
     $scope.inv_started = false;
 
-    // check if the location is the "+ New" button for creating a new location
-    if (loc.is_add === true) {
-      if ($scope.add_loc === true)
-      {
-        $scope.add_loc = false;
-      } else {
-        $scope.add_loc = true;
-      }
-      return;
-    }
-
-    $scope.selected_loc = loc.name;
-    $scope.add_inv = false;
+    $scope.selected_loc = loc;
+    $scope.show_add_ui = false;
     $scope.getLocInv();
     $scope.last_update = loc.last_update_pretty;
-    $scope.add_loc = false;       // add new location mode
+    $scope.show_add_loc_ui = false;   // add new location mode
     $scope.edit_loc = false;      // edit location mode
-    $scope.empty_locs = false;    // are locations empty?
-    $scope.new_success_msg = null;
+    $scope.addInvControl.clearState();
     $scope.inv_started = false;
     $scope.update_failure_msg = "";
   };
 
-  $scope.hideAddLoc = function() {
-    $scope.add_loc=false;
-  };
-
-  $scope.addNewLoc = function(loc) {
-    console.log('add loc: ' + loc);
-
-    // check if it's empty
-    if (loc == undefined || loc == '')
-    {
-      swal({
-        title:"Empty Name", 
-        text: "Please enter a location name!",
-        timer: 1500});
-      return;
-    }
-    // check if location is already in $scope.locations
-    for (var loc_i in $scope.locations) {
-      console.log(loc_i);
-      var existing = $scope.locations[loc_i];
-      if (existing.name == loc)
-      {
-        console.log(loc + ' is already in system!');
-        // XXX Change this to red text on page instead of alert
-        swal({
-        title:"Location Exists", 
-        text: loc + " is already in the system!!"});
-        $scope.new_loc = "";
-        return;
-      }
-    }
-    $http.post('/loc', 
-      {
-        name:loc,
-        type:$scope.k_loc_type
-      }).
-      success(function(data, status, headers, config) {
-        // this callback will be called asynchronously when the response
-        // is available
-        console.log(data);
-        // XXX if success, add returned item to $scope.inventory_items
-        // otherwise, notify of failure and don't add
-        // First, remove the "+ New" element at the end
-        var add_new_loc = $scope.locations.splice(-1, 1);
-        var new_loc_obj = {name:loc, last_update:null, last_update_pretty:null};
-        $scope.locations.push(new_loc_obj);
-        $scope.locations.push(add_new_loc[0]);
-        $scope.empty_locs = false;
-        $scope.new_loc = "";
-        $scope.add_loc = false;
-        $scope.selectLoc(new_loc_obj);
-      }).
-      error(function(data, status, headers, config) {
-    });
-  };
-
-  $scope.toggleEditLoc = function() {
-    if ($scope.edit_loc) {
-      $scope.edit_loc = false;
-    } else {
-      $scope.edit_loc=true;
-      $scope.edit_loc_name = $scope.selected_loc;
-    }
-  };
-
   // Shows the add new inventory item UI box
   $scope.showAddInv = function() {
-    $scope.add_inv=true;
-    $scope.new_success_msg = null;
+    $scope.show_add_ui=true;
+    $scope.addInvControl.clearState();
 
-    if ($scope.add_inv_all_items.length == 0)
+    if ($scope.add_inv_all_bevs.length == 0)
     {
-      $scope.getExistingInv();
+      $scope.getAllInv();
     } else {
       $scope.cleanUpExistingInv();
     }
-
-    $scope.add_double_sort = null;
-    $scope.sortAddBy('product');
   };
 
   $scope.hideAddInv = function() {
-    $scope.add_inv=false;
+    $scope.show_add_ui=false;
   };
 
-  // item is an object here
-  $scope.addExistingInv = function(item) {
-    console.log ('add existing item: ' + item.product);
+  // get all inventory from the server.  If location type is bev, get /inv
+  // items.  If location type is kegs, get /kegs.
+  $scope.getAllInv = function() {
 
-    $http.post('/inv/loc', {
-      id:item.id, 
-      location: $scope.selected_loc,
-      type:$scope.k_loc_type}).
-      success(function(data, status, headers, config) {
-
-        console.log(data);
-
-        var item_clone = JSON.parse( JSON.stringify( item ) );
-
-        // XXX push new item onto location's inventory items
-        // XXX if new item not in all inventory, push into
-        $scope.new_success_msg = item_clone.product + " has been added to " + $scope.selected_loc + "!";
-        item_clone['quantity'] = 0;
-        item_clone['inventory'] = 0;
-
-        if (data !== null && typeof data === 'object') {
-          if ('quantity' in data) {
-            item_clone.quantity = data['quantity'];
-          }
-          if ('inventory' in data) {
-            item_clone.inventory = data['inventory'];
-          }
+    $http.get('/inv').
+    success(function(data, status, headers, config) {
+      // this callback will be called asynchronously when the response
+      // is available
+      console.log(data);
+      if (data != null) {
+        $scope.add_inv_all_bevs = data;
+        for (var i in $scope.add_inv_all_bevs) {
+          $scope.add_inv_all_bevs[i]['inventory'] = 0;
+          $scope.add_inv_all_bevs[i]['quantity'] = 0;
+          $scope.add_inv_all_bevs[i]['type'] = 'bev';
         }
+      }
+      else {
+        $scope.add_inv_all_bevs = [];
+      }
 
-        $scope.inv_items.push(item_clone);
-        //$scope.getLocInv();
-        // XXX remove added item from $scope.add_inv_existing_items manually
-        for ( var i=$scope.add_inv_existing_items.length-1; i >= 0; i--) {
-          if ( $scope.add_inv_existing_items[i].id === item.id) {
-            $scope.add_inv_existing_items.splice(i, 1);
-          }
-        }
+      // now that we got beverage inventory, get the empty kegs as well
+      $scope.getAllKegs();
 
-        $scope.empty_inv = false;
-      }).
-      error(function(data, status, headers, config) {
+      
+    }).
+    error(function(data, status, headers, config) {
+
     });
+  };
+
+  $scope.getAllKegs = function() {
+    $http.get('/kegs').
+    success(function(data, status, headers, config) {
+      // this callback will be called asynchronously when the response
+      // is available
+      console.log(data);
+      if (data != null) {
+        $scope.all_kegs = data;
+        for (var i in $scope.all_kegs) {
+          $scope.all_kegs[i]['inventory'] = 0;
+          $scope.all_kegs[i]['quantity'] = 0;
+          $scope.all_kegs[i]['type'] = 'keg';
+          // when we get kegs from server, the param names 'volume' and 'unit'
+          // don't match beverage params 'purchase_volume' and 'purchase_unit',
+          // so we duplicate and rename so the proper vol and unit show up
+          // on client display
+          $scope.all_kegs[i]['purchase_volume'] = $scope.all_kegs[i]['volume'];
+          $scope.all_kegs[i]['purchase_unit'] = $scope.all_kegs[i]['unit'];
+          // as a last hack, add distributor as product and brewery so sorting 
+          // by those keys works
+          $scope.all_kegs[i]['product'] = $scope.all_kegs[i]['distributor'];
+          $scope.all_kegs[i]['brewery'] = $scope.all_kegs[i]['distributor'];
+        }
+      }
+      else {
+        $scope.all_kegs = [];
+      }
+
+      $scope.cleanUpExistingInv();
+    }).
+    error(function(data, status, headers, config) {
+
+    });
+  }
+
+  $scope.cleanUpExistingInv = function() {
+    // On the client side, remove any entries in add_inv_existing_bevs
+    // which are already in this location
+    var clean_bevs = [];
+    for (var i=0; i < $scope.add_inv_all_bevs.length; i++) {
+
+      var is_clean = true;
+      var test_item = $scope.add_inv_all_bevs[i];
+      for (var j=0; j < $scope.inv_items.length; j++) {
+        var check_item = $scope.inv_items[j];
+        if (check_item['type'] === "keg") {
+          continue;
+        }
+        if (test_item['version_id'] == check_item['version_id'])
+        {
+          is_clean = false;
+          break;
+        }
+      }
+      if (is_clean) {
+        clean_bevs.push(test_item);
+      }
+    }
+    $scope.add_inv_existing_bevs = clean_bevs;
+
+    // now clean kegs
+    var clean_kegs = [];
+    for (var i=0; i < $scope.all_kegs.length; i++) {
+      var is_clean = true;
+      var test_item = $scope.all_kegs[i];
+      for (var j=0; j < $scope.inv_items.length; j++) {
+        var check_item = $scope.inv_items[j];
+        if (check_item['type'] === "bev") {
+          continue;
+        }
+        if (test_item['version_id'] == check_item['version_id'])
+        {
+          is_clean = false;
+          break;
+        }
+      }
+      if (is_clean) {
+        clean_kegs.push(test_item);
+      }
+    }
+    $scope.add_inv_existing_kegs = clean_kegs;
+  };
+
+  $scope.addInvCloseOnSave = function(inv_type, add_inv) {
+    console.log(add_inv);
+    $scope.inv_items.push(add_inv);
+
+    if (inv_type==='bev') {
+      // XXX remove added item from $scope.add_inv_existing_bevs manually
+      for ( var i=$scope.add_inv_existing_bevs.length-1; i >= 0; i--) {
+        if ( $scope.add_inv_existing_bevs[i].id === add_inv.id) {
+          $scope.add_inv_existing_bevs.splice(i, 1);
+          break;
+        }
+      }
+    } else if (inv_type==='keg') {
+      // XXX remove added item from $scope.all_kegs manually
+      for ( var i=$scope.add_inv_existing_kegs.length-1; i >= 0; i--) {
+        if ( $scope.add_inv_existing_kegs[i].id === add_inv.id) {
+          $scope.add_inv_existing_kegs.splice(i, 1);
+          break;
+        }
+      }
+    }
+
+    $scope.sortBy($scope.sort_key);
+    $scope.sortBy($scope.sort_key);
   };
 
   $scope.removeInvItem = function(index) {
     console.log(index);
     var item = $scope.inv_items[index];
+    var item_name = item.product;
+    if (item.type==='keg') {
+      item_name = "Keg Deposit - " + item.distributor + " " + MathService.fixFloat1(item.purchase_volume) + " " + item.purchase_unit;
+    }
     swal({
       title: "Remove Item?",
-      text: "This will remove <b>" + item.product + "</b> from " + $scope.selected_loc + ".<br/><br/>It will not affect other locations which carry the item, or its entry in the Beverage DB.",
+      text: "This will remove <b>" + item_name + "</b> from " + $scope.selected_loc.name + ".<br/><br/>It will not affect other locations which carry the item, or its entry in the Beverage DB.",
       type: "warning",
       html: true,
       showCancelButton: true,
@@ -302,79 +339,26 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         $http.delete('/inv/loc', {
           params: {
             id:item.id,
-            location:$scope.selected_loc,
-            type:$scope.k_loc_type
+            location:$scope.selected_loc.name,
+            type:item.type
           }
         }).
         success(function(data, status, headers, config) {
           $scope.getLocInv();
           swal("Removed!", item.name + " has been removed.", "success");
 
-          // push item back into add_inv_existing_items
+          // push item back into add_inv_existing_bevs
           item['inventory'] = 0;
           item['quantity'] = 0;
-          $scope.add_inv_existing_items.push(item);
+          $scope.add_inv_existing_bevs.push(item);
           // re-sort the added items twice to refresh sorting
-          $scope.sortAddBy($scope.sort_add_key);
-          $scope.sortAddBy($scope.sort_add_key);
+          $scope.addInvControl.reSort();
         }).
         error(function(data, status, headers, config) {
 
         });
       });
     
-  };
-
-  $scope.cleanUpExistingInv = function() {
-    // On the client side, remove any entries in add_inv_existing_items
-    // which are already in this location
-    var clean_existing = [];
-    for (var i=0; i < $scope.add_inv_all_items.length; i++) {
-      var is_clean = true;
-      var test_item = $scope.add_inv_all_items[i];
-      for (var j=0; j < $scope.inv_items.length; j++) {
-        var check_item = $scope.inv_items[j];
-        if (test_item['version_id'] == check_item['version_id'])
-        {
-          is_clean = false;
-          break;
-        }
-      }
-      if (is_clean) {
-        clean_existing.push(test_item);
-      }
-    }
-    $scope.add_inv_existing_items = clean_existing;
-  };
-
-  $scope.getExistingInv = function() {
-    var getParams = {name:$scope.selected_loc};
-    // if this is empty kegs storage, filter on server for container_type "keg"
-    if ($scope.k_loc_type === "kegs") {
-      getParams["container_type"] = "Keg";
-    }
-    $http.get('/inv', {
-      params: getParams
-    }).
-    success(function(data, status, headers, config) {
-      // this callback will be called asynchronously when the response
-      // is available
-      console.log(data);
-      if (data != null) {
-        $scope.add_inv_all_items = data;
-        for (var i in $scope.add_inv_all_items) {
-          $scope.add_inv_all_items['inventory'] = 0;
-          $scope.add_inv_all_items['quantity'] = 0;
-        }
-      }
-      else {
-        $scope.add_inv_all_items = [];
-      }
-      $scope.cleanUpExistingInv();
-    }).
-    error(function(data, status, headers, config) {
-
-    });
   };
 
   $scope.promptStartInv = function() {
@@ -469,15 +453,13 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       var inv = $scope.inv_items[inv_i];
       console.log(inv.product);
       console.log(inv.quantity);
-      post_item_quantities.push({id:inv.id, quantity:parseFloat(inv.quantity)})
+      post_item_quantities.push({id:inv.id, quantity:parseFloat(inv.quantity), type:inv.type})
       $scope.inv_items[inv_i]['invalid_quantity'] = false;
       $scope.inv_items[inv_i]['add_q'] = null;
 
-      var value = 0;
       // We locally calculate the new inventory without polling the server
-      if ($scope.k_loc_type === "bev") {
-        value = inv['purchase_cost'] / inv['purchase_count'] * inv['quantity'];
-      }
+      var value = inv['purchase_cost'] / inv['purchase_count'] * inv['quantity'];
+
       // always include deposits in value
       if (inv['deposit'] != null) {
         value += inv['deposit'] * inv['quantity'];
@@ -499,16 +481,12 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       if (inv['deposit'] !== null) {
         deposit = inv['deposit'];
       }
-      if ($scope.k_loc_type === "bev") {
-        $scope.inv_items[inv_i]['unit_cost'] = purchase_cost / purchase_count + deposit;
-      } else {
-        $scope.inv_items[inv_i]['unit_cost'] = deposit;
-      }
+      $scope.inv_items[inv_i]['unit_cost'] = purchase_cost / purchase_count + deposit;
     };
 
     $http.put('/inv/loc', {
       items:post_item_quantities,
-      location:$scope.selected_loc,
+      location:$scope.selected_loc.name,
       type:$scope.k_loc_type
     }).
     success(function(data, status, headers, config) {
@@ -525,7 +503,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       // for the selected location, set last_update locally to just now
       for (var i = 0; i < $scope.locations.length; i++) {
         var loc = $scope.locations[i];
-        if (loc.name === $scope.selected_loc){
+        if (loc.name === $scope.selected_loc.name){
           $scope.locations[i].last_update = data['last_update'];
           var pretty_time = DateService.getPrettyTime(data['last_update']);
           $scope.locations[i]['last_update_pretty'] = pretty_time;
@@ -582,76 +560,10 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     }
   };
 
-  $scope.saveLocName = function(new_name) {
-
-    // First verify new name does not overlap with other locations
-    for (var i = 0; i < $scope.locations.length; i++) {
-      var loc = $scope.locations[i];
-      if (new_name === loc.name) {
-        swal({
-          type: "warning",
-          title:"Name Exists", 
-          text: "There is already a location named " + new_name + ", please choose another name!"});
-        return;
-      }
-    }
-
-    $http.put('/loc', {
-      name:$scope.selected_loc,
-      type:$scope.k_loc_type,
-      new_name:new_name
-    }).
-    success(function(data, status, headers, config) {
-      // update the local location with the new name
-      for (var i = 0; i < $scope.locations.length; i++) {
-        var loc = $scope.locations[i];
-        if (loc.name == $scope.selected_loc) {
-          loc.name = new_name;
-        }
-      }
-      $scope.selected_loc = new_name;
-    }).
-    error(function(data, status, headers, config) {
-
-    });
-  };
-
-  $scope.deleteLoc = function() {
-    swal({
-      title: "Delete this Location?",
-      text: "This will remove " + $scope.selected_loc + " and all its inventory data, and cannot be undone.",
-      type: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#DD6B55",
-      confirmButtonText: "Yes, remove it!",
-      closeOnConfirm: true },
-      function() {
-        $http.delete('/loc', {
-          params: {
-          location:$scope.selected_loc,
-          type:$scope.k_loc_type
-        }
-      }).
-      success(function(data, status, headers, config) {
-        for (var i = $scope.locations.length-1; i >= 0; i--) {
-          var loc = $scope.locations[i];
-          if (loc.name === $scope.selected_loc) {
-            $scope.locations.splice(i, 1);
-          }
-        }
-        $scope.selected_loc = null;
-        $scope.clearLocState();
-      }).
-      error(function(data, status, headers, config) {
-
-      });
-    });
-  };
-
   $scope.getLocInv = function() {
     $http.get('/inv/loc', {
       params: {
-        name:$scope.selected_loc,
+        name:$scope.selected_loc.name,
         type:$scope.k_loc_type
       }
     }).
@@ -687,9 +599,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         } else {
           // for old entries which might lack inventory value, do some potentially
           // inaccurate calculations here
-          if ($scope.k_loc_type === "bev") {
-            value = inv['purchase_cost'] / inv['purchase_count'] * inv['quantity'];
-          }
+          value = inv['purchase_cost'] / inv['purchase_count'] * inv['quantity'];
           // always include deposits in value
           if (inv['deposit'] != null) {
             value += inv['deposit'] * inv['quantity'];
@@ -711,11 +621,11 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         if (inv['deposit'] !== null) {
           deposit = inv['deposit'];
         }
-        if ($scope.k_loc_type === "bev") {
+        if ($scope.inv_items[inv_i]['type']==='bev') {
           $scope.inv_items[inv_i]['unit_cost'] = purchase_cost / purchase_count + deposit;
-        } else {
+        } else { // keg
           $scope.inv_items[inv_i]['unit_cost'] = deposit;
-        }
+        }  
       }
 
       // check update in each inventory item and if updated within 24
@@ -745,13 +655,6 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         
       }
 
-      if ($scope.inv_items.length == 0) {
-        $scope.empty_inv = true;
-      } else {
-        $scope.empty_inv = false;
-      }
-      console.log($scope.empty_inv);
-
       if ($scope.firstTimeSort) {
         $scope.firstTimeSort = false;
         $scope.sortBy('product');
@@ -762,45 +665,39 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     });
   };
 
-  $scope.sortAddBy = function(sort_str) {
-    var double_sort = sort_str === $scope.sort_add_key;
-    if (double_sort) {
-      $scope.add_double_sort *= -1;
-    } else {
-      $scope.add_double_sort = -1;
+  $scope.sortFunc = function(a, b) {
+    var sort_str = $scope.sort_key;
+    var isNum = (sort_str === 'unit_cost' || sort_str === 'quantity' || sort_str === 'inventory' || sort_str === 'deposit');
+    if (a['type']==='keg' && (sort_str==='product' || sort_str==='brewery')) {
+      sort_str = 'distributor';
     }
-    $scope.sort_add_key = sort_str;
-    //var isNum = (sort_str === 'unit_cost' || sort_str === 'quantity' || sort_str === 'inventory' || sort_str === 'deposit');
-    var isNum = false;
 
-    $scope.add_inv_existing_items.sort(function(a, b) {
-      var keyA = a[sort_str];
-      var keyB = b[sort_str];
-      if ($scope.add_double_sort > 0) {
-        if (keyA === null) {
-          return -1;
-        } else if (keyB === null) {
-          return 1;
-        }
-        if (isNum)
-        {
-          return parseFloat(keyA) - parseFloat(keyB);
-        } else {
-          return -keyA.localeCompare(keyB);
-        }
-      }
-      if (keyA === null) {
-        return 1;
-      } else if (keyB === null) {
+    var keyA = a[sort_str];
+    var keyB = b[sort_str];
+    if ($scope.double_sort > 0) {
+      if (keyA===null || keyA===undefined) {
         return -1;
+      } else if (keyB===null || keyB===undefined) {
+        return 1;
       }
       if (isNum)
       {
-        return parseFloat(keyB) - parseFloat(keyA);
+        return parseFloat(keyA) - parseFloat(keyB);
       } else {
-        return keyA.localeCompare(keyB);
+        return -keyA.localeCompare(keyB);
       }
-    });
+    }
+    if (keyA===null || keyA===undefined) {
+      return 1;
+    } else if (keyB===null || keyB===undefined) {
+      return -1;
+    }
+    if (isNum)
+    {
+      return parseFloat(keyB) - parseFloat(keyA);
+    } else {
+      return keyA.localeCompare(keyB);
+    }
   };
 
   $scope.sortBy = function(sort_str) {
@@ -811,36 +708,24 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
       $scope.double_sort = -1;
     }
     $scope.sort_key = sort_str;
-    var isNum = (sort_str === 'unit_cost' || sort_str === 'quantity' || sort_str === 'inventory' || sort_str === 'deposit');
-    
-    $scope.inv_items.sort(function(a, b) {
-      var keyA = a[sort_str];
-      var keyB = b[sort_str];
-      if ($scope.double_sort > 0) {
-        if (keyA === null) {
-          return -1;
-        } else if (keyB === null) {
-          return 1;
-        }
-        if (isNum)
-        {
-          return parseFloat(keyA) - parseFloat(keyB);
-        } else {
-          return -keyA.localeCompare(keyB);
-        }
-      }
-      if (keyA === null) {
-        return 1;
-      } else if (keyB === null) {
-        return -1;
-      }
-      if (isNum)
-      {
-        return parseFloat(keyB) - parseFloat(keyA);
+
+    var bev_items = [];
+    var keg_items = [];
+
+    for (var i in $scope.inv_items) {
+      var item = $scope.inv_items[i];
+      if (item.type==='bev'){
+        bev_items.push(item);
       } else {
-        return keyA.localeCompare(keyB);
+        keg_items.push(item);
       }
-    });
+    }
+
+    bev_items.sort($scope.sortFunc);
+    keg_items.sort($scope.sortFunc);
+    $scope.inv_items = bev_items.concat(keg_items);
+    
+    //$scope.inv_items.sort($scope.sortFunc);
   };
 })
 

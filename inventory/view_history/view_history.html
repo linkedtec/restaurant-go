@@ -110,7 +110,8 @@
         </tr>
         <tr ng-repeat="dinv in inv.date_inv" ng-class-even="'inv_row_even'">
           <td></td>
-          <td>{{dinv.product}}</td>
+          <td ng-if="dinv.type!=='keg'">{{dinv.product}}</td>
+          <td ng-if="dinv.type==='keg'">Keg Deposit - {{dinv.distributor}} {{dinv.volume | number:1}} {{dinv.unit}}</td>
           <td>{{dinv.quantity | number:2}}</td>
           <td>{{dinv.inventory | number:2}}</td>
           <td></td>
@@ -132,7 +133,8 @@
         </tr>
         <tr ng-repeat-start="item in loc.histories" ng-class-even="'inv_row_even'">
           <td></td>
-          <td>{{item.product}}</td>
+          <td ng-if="item.type!=='keg'">{{item.product}}</td>
+          <td ng-if="item.type==='keg'">Keg Deposit - {{item.distributor}} {{item.volume | number:1}} {{item.unit}}</td>
           <td>{{item.quantity | number:2}}</td>
           <td>{{item.inventory | number:2}}</td>
         </tr>

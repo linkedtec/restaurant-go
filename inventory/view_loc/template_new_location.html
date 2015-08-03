@@ -1,0 +1,22 @@
+<div class="row" style="margin-left:0px; margin-top:12px;">
+  <div class="col-xs-12" style="font-size:1.1em">
+    Enter a name for your new storage Location:
+  </div>
+</div>
+<div class="row" style="margin-left:0px; margin-top:4px; margin-bottom:12px;">
+  <div class="col-xs-9">
+    <div class="form-group" ng-class="{'has-error': form_ver.error_name===true}" style="margin-bottom:0px">
+      <input ng-model="loc_name" class="form-control" placeholder="For example, 'Wine Cooler' or 'Keg Room'">
+    </div>
+  </div>
+  <div class="col-xs-3" style="text-align:right">
+    <button ng-click="saveNewLoc()" type="button" class="btn btn-primary btn-sm" style="font-size:14px; float:right; margin-right:12px">
+      <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Location
+    </button>
+  </div>
+</div>
+<div ng-show="new_failure_msg !== null" class="row" style="margin: 0px 12px;">
+  <div class="alert alert-danger" data-html="true" role="alert" style="margin-bottom:12px">
+    {{new_failure_msg}}
+  </div>
+</div>

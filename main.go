@@ -29,10 +29,14 @@ type BeverageLight struct {
 }
 
 type BeverageInv struct {
-	ID        int         `json:"id"`
-	Product   string      `json:"product"`
-	Quantity  float32     `json:"quantity"`
-	Inventory NullFloat64 `json:"inventory"`
+	ID          int         `json:"id"`
+	Product     string      `json:"product"`
+	Distributor NullString  `json:"distributor"`
+	Volume      NullFloat64 `json:"volume"`
+	Unit        NullString  `json:"unit"`
+	Quantity    float32     `json:"quantity"`
+	Inventory   NullFloat64 `json:"inventory"`
+	Type        NullString  `json:"type"`
 }
 
 type Beverage struct {
@@ -52,7 +56,6 @@ type Beverage struct {
 	PurchaseUnit   NullString  `json:"purchase_unit"`
 	PurchaseCost   float32     `json:"purchase_cost"`
 	PurchaseCount  int         `json:"purchase_count"`
-	EmptyKegs      NullInt64   `json:"empty_kegs"`
 	FlavorProfile  NullString  `json:"flavor_profile"`
 	SalePrices     []SalePrice `json:"size_prices"`
 	Count          float32     `json:"count"`
