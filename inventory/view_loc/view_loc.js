@@ -350,7 +350,12 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
           // push item back into add_inv_existing_bevs
           item['inventory'] = 0;
           item['quantity'] = 0;
-          $scope.add_inv_existing_bevs.push(item);
+          if (item.type==='bev') {
+            $scope.add_inv_existing_bevs.push(item);
+          } else {
+            $scope.add_inv_existing_kegs.push(item);
+          }
+          
           // re-sort the added items twice to refresh sorting
           $scope.addInvControl.reSort();
         }).

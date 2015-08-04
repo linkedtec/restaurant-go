@@ -229,19 +229,6 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			bev.Inventory = total_inv
-			// XXX Old query below, no longer need to use this since we save
-			// inventory in location_beverages, but keeping for records.
-			/*
-						SELECT COALESCE(SUM(res.inv),0) FROM (
-							SELECT CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity)
-							            WHEN locations.type='tap' THEN SUM(
-				                      	CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume*beverages.purchase_cost/beverages.purchase_count+COALESCE(beverages.deposit,0)
-								              	     ELSE COALESCE(beverages.deposit,0)
-								              	END)
-							            ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity)
-				             END AS inv FROM beverages, location_beverages, locations WHERE beverages.id=$1 AND beverages.id=location_beverages.beverage_id AND locations.id=location_beverages.location_id AND locations.last_update=location_beverages.update GROUP BY locations.type
-				    ) AS res
-			*/
 
 			beverages = append(beverages, bev)
 		}
@@ -1084,17 +1071,6 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				var locSumHistory InvLocSumHistory
 				locSumHistory.Location = loc.Name
 
-				/*
-									rows, err := db.Query(
-										`SELECT SUM(res.inv), res.update FROM (
-					            SELECT
-					              CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity)
-					              ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity)
-					              END AS inv, location_beverages.update::date AS update
-					              FROM beverages,location_beverages,locations
-					              WHERE beverages.id=location_beverages.beverage_id AND location_beverages.update > (now() - '1 month'::interval) AND locations.id=location_beverages.location_id AND locations.id=$1 GROUP BY update, locations.type
-					          ) AS res GROUP BY res.update ORDER BY res.update;`, loc.ID)
-				*/
 				rows, err := db.Query("SELECT SUM(COALESCE(location_beverages.inventory,0)), location_beverages.update::date FROM locations, location_beverages WHERE locations.id=$1 AND location_beverages.location_id=locations.id AND location_beverages.update >= $2::date AND location_beverages.update <= $3::date GROUP BY location_beverages.update::date ORDER BY location_beverages.update::date;", loc.ID, start_date, end_date)
 				if err != nil {
 					log.Println(err.Error())
@@ -1180,17 +1156,6 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				locSumHistory.Location.String = atype
 				locSumHistory.Location.Valid = true
 
-				/*
-									rows, err := db.Query(
-										`SELECT SUM(res.inv), res.update FROM (
-					            SELECT
-					              CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity)
-					              ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity)
-					              END AS inv, location_beverages.update::date AS update
-					              FROM beverages,location_beverages,locations
-					              WHERE beverages.id=location_beverages.beverage_id AND location_beverages.update > (now() - '1 month'::interval) AND locations.id=location_beverages.location_id AND locations.id=$1 GROUP BY update, locations.type
-					          ) AS res GROUP BY res.update ORDER BY res.update;`, loc.ID)
-				*/
 				rows, err := db.Query("SELECT SUM(COALESCE(location_beverages.inventory,0)), location_beverages.update::date FROM beverages, location_beverages WHERE beverages.alcohol_type=$1 AND location_beverages.beverage_id=beverages.id AND location_beverages.update>=$2::date AND location_beverages.update<=$3::date AND location_beverages.type='bev' GROUP BY location_beverages.update::date ORDER BY location_beverages.update::date;", atype, start_date, end_date)
 				if err != nil {
 					log.Println(err.Error())
@@ -1372,20 +1337,6 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					log.Println(item)
 
 					var histories []InvSumHistory
-					//SELECT SUM(COALESCE(location_beverages.inventory,0)), location_beverages.update::date FROM locations, location_beverages WHERE location_beverages.location_id=locations.id AND location_beverages.update > (now() - '1 month'::interval) GROUP BY location_beverages.update::date ORDER BY location_beverages.update::date;
-					/*
-									rows, err := db.Query(
-										`SELECT SUM(res.inv), res.update FROM (
-						          SELECT CASE WHEN locations.type='kegs' THEN SUM(COALESCE(beverages.deposit,0)*location_beverages.quantity)
-						                      WHEN locations.type='tap' THEN SUM(
-						                      	CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume*beverages.purchase_cost/beverages.purchase_count+COALESCE(beverages.deposit,0)
-										              	     ELSE COALESCE(beverages.deposit,0)
-										              	END)
-						                      ELSE SUM(beverages.purchase_cost/beverages.purchase_count*location_beverages.quantity+COALESCE(beverages.deposit,0)*location_beverages.quantity)
-						                    END AS inv, location_beverages.update::date AS update
-						                    FROM beverages, location_beverages, locations WHERE beverages.id=$1 AND beverages.id=location_beverages.beverage_id AND locations.id=location_beverages.location_id GROUP BY update, locations.type
-						        ) AS res GROUP BY res.update ORDER BY res.update;`, item_id)
-					*/
 
 					rows, err := db.Query("SELECT SUM(COALESCE(location_beverages.inventory,0)), COALESCE(SUM(CASE WHEN locations.type='tap' THEN CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END ELSE location_beverages.quantity END),0), location_beverages.update::date FROM location_beverages, locations, beverages WHERE location_beverages.location_id=locations.id AND location_beverages.beverage_id=beverages.id AND location_beverages.update >= $1::date AND location_beverages.update <= $2::date AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$3) AND locations.user_id=$4 GROUP BY beverages.id, location_beverages.update::date ORDER BY location_beverages.update::date;", start_date, end_date, item_id, test_user_id)
 					if err != nil {
