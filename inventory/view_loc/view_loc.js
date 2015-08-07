@@ -492,7 +492,8 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     $http.put('/inv/loc', {
       items:post_item_quantities,
       location:$scope.selected_loc.name,
-      type:$scope.k_loc_type
+      type:$scope.k_loc_type,
+      tz_offset:DateService.timeZoneOffset()
     }).
     success(function(data, status, headers, config) {
       console.log(data);

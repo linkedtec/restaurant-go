@@ -132,6 +132,14 @@ config(['$routeProvider', function($routeProvider) {
 
     getDateFromUTCTimeStamp: function(timestamp, local) {
       return getDateFromUTCTimeStamp(timestamp, local)
+    },
+
+    timeZoneOffset: function() {
+      // two notes here:
+      // 1. getTimezoneOffset returns minutes, so need to divide by 60
+      // 2. getTimezoneOffset returns a difference, so need to invert sign to
+      //    get the +2, -6, etc sign correct in timestamps
+      return (new Date().getTimezoneOffset()/60);
     }
   };
 });

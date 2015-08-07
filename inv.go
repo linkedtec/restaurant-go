@@ -980,6 +980,15 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 		history_type := r.URL.Query().Get("type")
 		start_date := r.URL.Query().Get("start_date")
 		end_date := r.URL.Query().Get("end_date")
+		tz_offset := r.URL.Query().Get("tz_offset")
+		if tz_offset == "0" {
+			tz_offset = "UTC"
+		} else if !strings.HasPrefix(tz_offset, "-") {
+			tz_offset = "+" + tz_offset
+		}
+		log.Println("TZ STRING")
+		log.Println(tz_offset)
+		log.Println(end_date)
 		// if export is set, that means return a save-able file instead of JSON
 		export := r.URL.Query().Get("export")
 		log.Println(history_type)
@@ -1018,7 +1027,13 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					) AS res GROUP BY res.update ORDER BY res.update;`)
 			*/
 			// XXX Not sure need locations.active or location_beverages.active in the query since this is historical view
-			rows, err := db.Query("SELECT SUM(COALESCE(location_beverages.inventory,0)), location_beverages.update::date FROM location_beverages, locations WHERE location_beverages.update >= $1::date AND location_beverages.update <= $2::date AND locations.id=location_beverages.location_id AND locations.user_id=$3 GROUP BY location_beverages.update::date ORDER BY location_beverages.update::date;", start_date, end_date, test_user_id)
+			rows, err := db.Query(`
+				SELECT SUM(COALESCE(location_beverages.inventory,0)), (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
+				FROM location_beverages, locations 
+				WHERE location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4
+					AND locations.id=location_beverages.location_id AND locations.user_id=$5
+				GROUP BY local_update ORDER BY local_update;`,
+				tz_offset, tz_offset, start_date, end_date, test_user_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1051,7 +1066,12 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			var histories []InvLocSumHistory
 
 			// First get all locations, but omit taps
-			loc_rows, err := db.Query("SELECT DISTINCT locations.id, locations.name FROM location_beverages, locations WHERE locations.user_id=$1 AND location_beverages.location_id=locations.id AND locations.type!='tap';", test_user_id)
+			loc_rows, err := db.Query(`
+				SELECT DISTINCT locations.id, locations.name 
+				FROM location_beverages, locations 
+				WHERE locations.user_id=$1 
+					AND location_beverages.location_id=locations.id 
+					AND locations.type!='tap';`, test_user_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1071,7 +1091,14 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				var locSumHistory InvLocSumHistory
 				locSumHistory.Location = loc.Name
 
-				rows, err := db.Query("SELECT SUM(COALESCE(location_beverages.inventory,0)), location_beverages.update::date FROM locations, location_beverages WHERE locations.id=$1 AND location_beverages.location_id=locations.id AND location_beverages.update >= $2::date AND location_beverages.update <= $3::date GROUP BY location_beverages.update::date ORDER BY location_beverages.update::date;", loc.ID, start_date, end_date)
+				rows, err := db.Query(`
+					SELECT SUM(COALESCE(location_beverages.inventory,0)), (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
+					FROM locations, location_beverages 
+					WHERE locations.id=$2 
+						AND location_beverages.location_id=locations.id 
+						AND location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $3 BETWEEN $4 AND $5 
+					GROUP BY local_update ORDER BY local_update;`,
+					tz_offset, loc.ID, tz_offset, start_date, end_date)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1101,7 +1128,14 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			locSumHistory.Location.String = "All Taps"
 			locSumHistory.Location.Valid = true
 
-			rows, err := db.Query("SELECT SUM(COALESCE(location_beverages.inventory,0)), location_beverages.update::date FROM locations, location_beverages WHERE locations.type='tap' AND location_beverages.location_id=locations.id AND location_beverages.update >= $1::date AND location_beverages.update <= $2::date AND locations.user_id=$3 GROUP BY location_beverages.update::date ORDER BY location_beverages.update::date;", start_date, end_date, test_user_id)
+			rows, err := db.Query(`
+				SELECT SUM(COALESCE(location_beverages.inventory,0)), (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
+				FROM locations, location_beverages 
+				WHERE locations.type='tap' AND location_beverages.location_id=locations.id 
+					AND location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
+					AND locations.user_id=$5 
+				GROUP BY local_update ORDER BY local_update;`,
+				tz_offset, tz_offset, start_date, end_date, test_user_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1136,7 +1170,13 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			var histories []InvLocSumHistory
 
 			// First get all alcohol types
-			type_rows, err := db.Query("SELECT DISTINCT beverages.alcohol_type FROM beverages, location_beverages, locations WHERE location_beverages.update>=$1::date AND location_beverages.update<=$2::date AND locations.id=location_beverages.location_id AND locations.user_id=$3 AND beverages.id=location_beverages.beverage_id AND location_beverages.type='bev' ORDER BY beverages.alcohol_type ASC;", start_date, end_date, test_user_id)
+			type_rows, err := db.Query(`
+				SELECT DISTINCT beverages.alcohol_type FROM beverages, location_beverages, locations 
+				WHERE location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1 BETWEEN $2 AND $3 
+					AND locations.id=location_beverages.location_id AND locations.user_id=$4 
+					AND beverages.id=location_beverages.beverage_id AND location_beverages.type='bev' 
+				ORDER BY beverages.alcohol_type ASC;`,
+				tz_offset, start_date, end_date, test_user_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1156,7 +1196,15 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				locSumHistory.Location.String = atype
 				locSumHistory.Location.Valid = true
 
-				rows, err := db.Query("SELECT SUM(COALESCE(location_beverages.inventory,0)), location_beverages.update::date FROM beverages, location_beverages WHERE beverages.alcohol_type=$1 AND location_beverages.beverage_id=beverages.id AND location_beverages.update>=$2::date AND location_beverages.update<=$3::date AND location_beverages.type='bev' GROUP BY location_beverages.update::date ORDER BY location_beverages.update::date;", atype, start_date, end_date)
+				rows, err := db.Query(`
+					SELECT SUM(COALESCE(location_beverages.inventory,0)), (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
+					FROM beverages, location_beverages 
+					WHERE beverages.alcohol_type=$2 
+						AND location_beverages.beverage_id=beverages.id 
+						AND location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $3 BETWEEN $4 AND $5 
+						AND location_beverages.type='bev' 
+					GROUP BY local_update ORDER BY local_update;`,
+					tz_offset, atype, tz_offset, start_date, end_date)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1184,7 +1232,13 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			var locSumHistory InvLocSumHistory
 			locSumHistory.Location.String = "Keg Deposits"
 			locSumHistory.Location.Valid = true
-			rows, err := db.Query("SELECT SUM(COALESCE(location_beverages.inventory,0)), location_beverages.update::date FROM location_beverages WHERE location_beverages.update>=$1::date AND location_beverages.update<=$2::date AND location_beverages.type='keg' GROUP BY location_beverages.update::date ORDER BY location_beverages.update::date;", start_date, end_date)
+			rows, err := db.Query(`
+				SELECT SUM(COALESCE(location_beverages.inventory,0)), (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
+				FROM location_beverages 
+				WHERE location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
+					AND location_beverages.type='keg' 
+				GROUP BY local_update ORDER BY local_update;`,
+				tz_offset, tz_offset, start_date, end_date)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1240,7 +1294,15 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				var sorted_keys []string
 
 				for _, id := range id_ints {
-					rows, err := db.Query("SELECT DISTINCT location_beverages.update::date FROM location_beverages, locations WHERE location_beverages.update>=$1::date AND location_beverages.update<=$2::date AND locations.id=location_beverages.location_id AND locations.user_id=$3 AND location_beverages.type='bev' AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$4) ORDER BY update::date ASC;", start_date, end_date, test_user_id, id)
+					rows, err := db.Query(`
+						SELECT DISTINCT (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
+						FROM location_beverages, locations 
+						WHERE location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
+							AND locations.id=location_beverages.location_id AND locations.user_id=$5 
+							AND location_beverages.type='bev' 
+							AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$6) 
+						ORDER BY local_update ASC;`,
+						tz_offset, tz_offset, start_date, end_date, test_user_id, id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1279,7 +1341,21 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					var itemInv InvDateItemHistory
 					itemInv.Date = a_date
 					for _, id := range id_ints {
-						rows, err := db.Query("SELECT beverages.id, beverages.product, COALESCE(SUM(CASE WHEN locations.type='tap' THEN CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END ELSE location_beverages.quantity END),0), COALESCE(SUM(location_beverages.inventory),0) FROM beverages, location_beverages, locations WHERE location_beverages.update::date=$1::date AND location_beverages.beverage_id=beverages.id AND location_beverages.location_id=locations.id AND locations.user_id=$2 AND location_beverages.type='bev' AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$3) GROUP BY beverages.id ORDER BY beverages.product ASC;", a_date, test_user_id, id)
+						rows, err := db.Query(`
+							SELECT beverages.id, beverages.product, 
+							COALESCE(SUM(
+								CASE WHEN locations.type='tap' THEN 
+									CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume 
+									ELSE 0 END 
+								ELSE location_beverages.quantity END),0), COALESCE(SUM(location_beverages.inventory),0) 
+							FROM beverages, location_beverages, locations 
+							WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
+								AND location_beverages.beverage_id=beverages.id 
+								AND location_beverages.location_id=locations.id 
+								AND locations.user_id=$3 AND location_beverages.type='bev' 
+								AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$4) 
+							GROUP BY beverages.id ORDER BY beverages.product ASC;`,
+							tz_offset, a_date, test_user_id, id)
 						if err != nil {
 							log.Println(err.Error())
 							http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1338,7 +1414,21 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 					var histories []InvSumHistory
 
-					rows, err := db.Query("SELECT SUM(COALESCE(location_beverages.inventory,0)), COALESCE(SUM(CASE WHEN locations.type='tap' THEN CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END ELSE location_beverages.quantity END),0), location_beverages.update::date FROM location_beverages, locations, beverages WHERE location_beverages.location_id=locations.id AND location_beverages.beverage_id=beverages.id AND location_beverages.update >= $1::date AND location_beverages.update <= $2::date AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$3) AND locations.user_id=$4 GROUP BY beverages.id, location_beverages.update::date ORDER BY location_beverages.update::date;", start_date, end_date, item_id, test_user_id)
+					rows, err := db.Query(`SELECT SUM(COALESCE(location_beverages.inventory,0)), 
+						COALESCE(SUM(
+							CASE WHEN locations.type='tap' THEN 
+								CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume 
+								ELSE 0 END 
+							ELSE location_beverages.quantity END),0), (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
+						FROM location_beverages, locations, beverages 
+						WHERE location_beverages.location_id=locations.id 
+							AND location_beverages.beverage_id=beverages.id 
+							AND location_beverages.type='bev' 
+							AND location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
+							AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$5) 
+							AND locations.user_id=$6 
+						GROUP BY beverages.id, local_update ORDER BY local_update;`,
+						tz_offset, tz_offset, start_date, end_date, item_id, test_user_id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1383,7 +1473,14 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 			var dates []time.Time
 			var sorted_keys []string
-			rows, err := db.Query("SELECT DISTINCT location_beverages.update::date FROM location_beverages, locations WHERE location_beverages.update>=$1::date AND location_beverages.update<=$2::date AND locations.id=location_beverages.location_id AND locations.user_id=$3 ORDER BY update::date ASC;", start_date, end_date, test_user_id)
+			rows, err := db.Query(`
+				SELECT DISTINCT (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
+				FROM location_beverages, locations 
+				WHERE location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
+					AND locations.id=location_beverages.location_id 
+					AND locations.user_id=$5 
+				ORDER BY local_update ASC;`,
+				tz_offset, tz_offset, start_date, end_date, test_user_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1406,7 +1503,19 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			for _, a_date := range dates {
 				// First get BEVERAGES from location_beverages (not including empty
 				// keg deposits)
-				rows, err = db.Query("SELECT beverages.id, beverages.product, COALESCE(SUM(CASE WHEN locations.type='tap' THEN CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END ELSE location_beverages.quantity END),0), COALESCE(SUM(location_beverages.inventory),0) FROM beverages, location_beverages, locations WHERE location_beverages.update::date=$1::date AND location_beverages.beverage_id=beverages.id AND location_beverages.location_id=locations.id AND locations.user_id=$2 AND location_beverages.type='bev' GROUP BY beverages.id ORDER BY beverages.product ASC;", a_date, test_user_id)
+				rows, err = db.Query(`
+					SELECT beverages.id, beverages.product, 
+					COALESCE(SUM(
+						CASE WHEN locations.type='tap' THEN 
+							CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume 
+							ELSE 0 END 
+						ELSE location_beverages.quantity END),0), COALESCE(SUM(location_beverages.inventory),0) 
+				FROM beverages, location_beverages, locations 
+				WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
+					AND location_beverages.beverage_id=beverages.id 
+					AND location_beverages.location_id=locations.id 
+					AND locations.user_id=$3 AND location_beverages.type='bev' 
+				GROUP BY beverages.id ORDER BY beverages.product ASC;`, tz_offset, a_date, test_user_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1432,7 +1541,16 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					itemInv.Histories = append(itemInv.Histories, bevInv)
 				}
 				// Now get KEGS
-				rows, err = db.Query("SELECT kegs.id, distributors.name, kegs.volume, kegs.unit, COALESCE(SUM(location_beverages.quantity),0), COALESCE(SUM(location_beverages.inventory),0) FROM kegs, distributors, location_beverages, locations WHERE location_beverages.update::date=$1::date AND location_beverages.beverage_id=kegs.id AND kegs.distributor_id=distributors.id AND location_beverages.location_id=locations.id AND locations.user_id=$2 AND location_beverages.type='keg' GROUP BY kegs.id,distributors.name ORDER BY distributors.name ASC;", a_date, test_user_id)
+				rows, err = db.Query(`
+					SELECT kegs.id, distributors.name, kegs.volume, kegs.unit, 
+					COALESCE(SUM(location_beverages.quantity),0), COALESCE(SUM(location_beverages.inventory),0) 
+					FROM kegs, distributors, location_beverages, locations 
+					WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date AND 
+					location_beverages.beverage_id=kegs.id 
+						AND kegs.distributor_id=distributors.id 
+						AND location_beverages.location_id=locations.id 
+						AND locations.user_id=$3 AND location_beverages.type='keg' 
+					GROUP BY kegs.id,distributors.name ORDER BY distributors.name ASC;`, tz_offset, a_date, test_user_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1497,7 +1615,13 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// Step 1: Gather all unique dates.  This includes tap locations
 			var dates []time.Time
 			var sorted_keys []string
-			rows, err := db.Query("SELECT DISTINCT location_beverages.update::date FROM location_beverages, locations WHERE location_beverages.update>=$1::date AND location_beverages.update<=$2::date AND locations.id=location_beverages.location_id AND locations.user_id=$3 ORDER BY location_beverages.update::date ASC;", start_date, end_date, test_user_id)
+			rows, err := db.Query(`
+				SELECT DISTINCT (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
+				FROM location_beverages, locations 
+				WHERE location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
+					AND locations.id=location_beverages.location_id AND locations.user_id=$5 
+				ORDER BY local_update ASC;`,
+				tz_offset, tz_offset, start_date, end_date, test_user_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1522,7 +1646,12 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				var aDateInv InvLocSumsByDate
 				aDateInv.Date = a_date
 				// -------------------- Non Taps --------------------
-				rows, err = db.Query("SELECT DISTINCT location_beverages.location_id FROM location_beverages, locations WHERE location_beverages.update::date=$1 AND locations.id=location_beverages.location_id AND locations.user_id=$2 AND locations.type!='tap' ORDER BY location_beverages.location_id ASC;", a_date, test_user_id)
+				rows, err = db.Query(`
+					SELECT DISTINCT location_beverages.location_id FROM location_beverages, locations 
+					WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
+						AND locations.id=location_beverages.location_id AND locations.user_id=$3 
+						AND locations.type!='tap' 
+					ORDER BY location_beverages.location_id ASC;`, tz_offset, a_date, test_user_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1547,7 +1676,14 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					invLocSum.Location = loc_name
 
 					// First do beverages
-					inv_rows, err := db.Query("SELECT location_beverages.beverage_id, beverages.product, location_beverages.quantity, COALESCE(location_beverages.inventory,0) FROM beverages, location_beverages WHERE location_beverages.update::date=$1 AND location_beverages.beverage_id=beverages.id AND location_beverages.location_id=$2 AND location_beverages.type='bev' ORDER BY beverages.product ASC;", a_date, loc_id)
+					inv_rows, err := db.Query(`
+						SELECT location_beverages.beverage_id, beverages.product, 
+						location_beverages.quantity, COALESCE(location_beverages.inventory,0) 
+						FROM beverages, location_beverages 
+						WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
+							AND location_beverages.beverage_id=beverages.id 
+							AND location_beverages.location_id=$3 AND location_beverages.type='bev' 
+						ORDER BY beverages.product ASC;`, tz_offset, a_date, loc_id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1572,7 +1708,16 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 					// Then do kegs
 
-					keg_rows, err := db.Query("SELECT location_beverages.beverage_id, distributors.name, kegs.volume, kegs.unit, location_beverages.quantity, COALESCE(location_beverages.inventory,0) FROM kegs, distributors, location_beverages WHERE kegs.distributor_id=distributors.id AND location_beverages.update::date=$1 AND location_beverages.beverage_id=kegs.id AND location_beverages.location_id=$2 AND location_beverages.type='keg' ORDER BY kegs.id ASC;", a_date, loc_id)
+					keg_rows, err := db.Query(`
+						SELECT location_beverages.beverage_id, distributors.name, kegs.volume, 
+						kegs.unit, location_beverages.quantity, COALESCE(location_beverages.inventory,0) 
+						FROM kegs, distributors, location_beverages 
+						WHERE kegs.distributor_id=distributors.id 
+							AND (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
+							AND location_beverages.beverage_id=kegs.id 
+							AND location_beverages.location_id=$3 
+							AND location_beverages.type='keg' 
+						ORDER BY kegs.id ASC;`, tz_offset, a_date, loc_id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1605,7 +1750,17 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				invLocSum.Location.String = loc_name
 				invLocSum.Location.Valid = true
 
-				inv_rows, err := db.Query("SELECT beverages.id, beverages.product, COALESCE(SUM(CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END),0), COALESCE(location_beverages.inventory,0) FROM beverages, location_beverages, locations WHERE location_beverages.update::date=$1 AND location_beverages.beverage_id=beverages.id AND location_beverages.location_id=locations.id AND locations.user_id=$2 AND locations.type='tap' GROUP BY beverages.id, location_beverages.inventory ORDER BY beverages.product ASC;", a_date, test_user_id)
+				inv_rows, err := db.Query(`
+					SELECT beverages.id, beverages.product, 
+					COALESCE(SUM(CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END),0), 
+					COALESCE(location_beverages.inventory,0) 
+					FROM beverages, location_beverages, locations 
+					WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
+						AND location_beverages.beverage_id=beverages.id 
+						AND location_beverages.location_id=locations.id 
+						AND locations.user_id=$3 AND locations.type='tap' 
+					GROUP BY beverages.id, location_beverages.inventory 
+					ORDER BY beverages.product ASC;`, tz_offset, a_date, test_user_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1661,7 +1816,13 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// Step 1: Gather all unique dates
 			var dates []time.Time
 			var sorted_keys []string
-			rows, err := db.Query("SELECT DISTINCT location_beverages.update::date FROM location_beverages, locations WHERE location_beverages.update>=$1::date AND location_beverages.update<=$2::date AND locations.id=location_beverages.location_id AND locations.user_id=$3 ORDER BY location_beverages.update::date ASC;", start_date, end_date, test_user_id)
+			rows, err := db.Query(`
+				SELECT DISTINCT (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
+				FROM location_beverages, locations 
+				WHERE location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
+					AND locations.id=location_beverages.location_id AND locations.user_id=$5 
+				ORDER BY local_update ASC;`,
+				tz_offset, tz_offset, start_date, end_date, test_user_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1685,7 +1846,13 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				aDateInv.Date = a_date
 
 				// First do beverages
-				rows, err = db.Query("SELECT DISTINCT beverages.alcohol_type FROM beverages, location_beverages, locations WHERE location_beverages.update::date=$1 AND locations.id=location_beverages.location_id AND locations.user_id=$2 AND beverages.id=location_beverages.beverage_id AND location_beverages.type='bev' ORDER BY beverages.alcohol_type ASC;", a_date, test_user_id)
+				rows, err = db.Query(`
+					SELECT DISTINCT beverages.alcohol_type FROM beverages, location_beverages, locations 
+					WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
+						AND locations.id=location_beverages.location_id 
+						AND locations.user_id=$3 AND beverages.id=location_beverages.beverage_id 
+						AND location_beverages.type='bev' 
+					ORDER BY beverages.alcohol_type ASC;`, tz_offset, a_date, test_user_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1703,7 +1870,20 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					invTypeSum.Location.String = type_name
 					invTypeSum.Location.Valid = true
 
-					inv_rows, err := db.Query("SELECT beverages.id, beverages.product, COALESCE(SUM(CASE WHEN locations.type='tap' THEN CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END ELSE location_beverages.quantity END),0), COALESCE(SUM(location_beverages.inventory),0) FROM beverages, location_beverages, locations WHERE location_beverages.update::date=$1 AND location_beverages.beverage_id=beverages.id AND location_beverages.location_id=locations.id AND beverages.alcohol_type=$2 AND locations.user_id=$3 AND location_beverages.type='bev' GROUP BY beverages.id ORDER BY beverages.product ASC;", a_date, type_name, test_user_id)
+					inv_rows, err := db.Query(`
+						SELECT beverages.id, beverages.product, 
+						COALESCE(SUM(
+							CASE WHEN locations.type='tap' THEN 
+								CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume 
+								ELSE 0 END 
+							ELSE location_beverages.quantity END),0), COALESCE(SUM(location_beverages.inventory),0) 
+						FROM beverages, location_beverages, locations 
+						WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
+							AND location_beverages.beverage_id=beverages.id 
+							AND location_beverages.location_id=locations.id 
+							AND beverages.alcohol_type=$3 AND locations.user_id=$4 
+							AND location_beverages.type='bev' 
+						GROUP BY beverages.id ORDER BY beverages.product ASC;`, tz_offset, a_date, type_name, test_user_id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1731,7 +1911,11 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 				// Then do kegs
 				var has_kegs bool
-				err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM location_beverages WHERE update::date=$1 AND type='keg');", a_date).Scan(&has_kegs)
+				err := db.QueryRow(`
+					SELECT EXISTS(
+						SELECT 1 FROM location_beverages 
+						WHERE (update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
+							AND type='keg');`, tz_offset, a_date).Scan(&has_kegs)
 				if err != nil {
 					// if query failed will exit here, so loc_id is guaranteed below
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1742,7 +1926,17 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					invTypeSum.Location.String = "Keg Deposits"
 					invTypeSum.Location.Valid = true
 
-					rows, err := db.Query("SELECT kegs.id, distributors.name, kegs.volume, kegs.unit, SUM(COALESCE(location_beverages.quantity,0)), SUM(COALESCE(location_beverages.inventory,0)) FROM kegs, distributors, location_beverages, locations WHERE location_beverages.update::date=$1 AND location_beverages.location_id=locations.id AND locations.user_id=$2 AND location_beverages.type='keg' AND location_beverages.beverage_id=kegs.id AND kegs.distributor_id=distributors.id GROUP BY location_beverages.update::date, kegs.id, distributors.name ORDER BY location_beverages.update::date;", a_date, test_user_id)
+					rows, err := db.Query(`
+						SELECT kegs.id, distributors.name, kegs.volume, kegs.unit, 
+						SUM(COALESCE(location_beverages.quantity,0)), SUM(COALESCE(location_beverages.inventory,0)) 
+						FROM kegs, distributors, location_beverages, locations 
+						WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
+							AND location_beverages.location_id=locations.id 
+							AND locations.user_id=$3 AND location_beverages.type='keg' 
+							AND location_beverages.beverage_id=kegs.id 
+							AND kegs.distributor_id=distributors.id 
+						GROUP BY kegs.id, distributors.name 
+						ORDER BY distributors.name;`, tz_offset, a_date, test_user_id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2107,6 +2301,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		log.Println(batch)
 		// check location exists
 		var loc_id int
 		err = db.QueryRow("SELECT id FROM locations WHERE user_id=$1 AND name=$2 AND type=$3;", test_user_id, batch.Location, batch.Type).Scan(&loc_id)
@@ -2132,17 +2327,45 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(err.Error())
 			return
 		}
+
+		// We need to compare if the PUT was on the same date as the last PUT
+		// using the user's local time, rather than UTC time, since the date
+		// depends on the user's time zone.
+		// 1. Get the time zone offset (in hours) posted from client
+		// 2. convert cur_time, in UTC, to user's local time by subtracting
+		//    time zone offset
+		// 2. convert last_update from UTC to local time using time zone offset
+		// 3. Check their date components, if they match, same_day = true
+
 		cur_time := time.Now().UTC()
-		cur_year := cur_time.Year()
-		cur_month := cur_time.Month()
-		cur_day := cur_time.Day()
-		last_year := last_update.Year()
-		last_month := last_update.Month()
-		last_day := last_update.Day()
+		tz_offset := batch.TZOffset
+
+		// convert tz_offset to duration in hours
+		hour_offset := time.Duration(-tz_offset) * time.Hour
+
+		// now that we have hour offset, add it to cur_time, which is in
+		// UTC, to get the equivalent of the local time
+		user_put_time := cur_time.Add(hour_offset)
+		log.Println("USER TIME:")
+		log.Println(user_put_time)
+
+		user_last_update := last_update.Add(hour_offset)
+		log.Println("LAST UPDATE TIME:")
+		log.Println(user_last_update)
+
+		user_year := user_put_time.Year()
+		user_month := user_put_time.Month()
+		user_day := user_put_time.Day()
+		last_year := user_last_update.Year()
+		last_month := user_last_update.Month()
+		last_day := user_last_update.Day()
 		same_day := false
-		if cur_year == last_year && cur_month == last_month && cur_day == last_day {
+		if user_year == last_year && user_month == last_month && user_day == last_day {
 			same_day = true
 		}
+
+		log.Println("SAME DAY?")
+		log.Println(same_day)
 
 		// if same day, bring all the old entries from today up to date.  Saving
 		// within the same day is recent enough that we don't need separate history

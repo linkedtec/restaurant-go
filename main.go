@@ -101,6 +101,7 @@ type LocBeverageAppBatch struct {
 	Items    []LocBeverageApp `json:"items"`
 	Location NullString       `json:"location"`
 	Type     string           `json:"type"`
+	TZOffset int              `json:"tz_offset"`
 }
 
 type Location struct {

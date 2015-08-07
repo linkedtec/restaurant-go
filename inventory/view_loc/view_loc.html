@@ -159,7 +159,7 @@
   </div>
 
   <!-- Location inventory -->
-  <div ng-if="inv_items.length>0 && inv_items.length>0 && selected_loc !== null" style="margin-top:8px;">
+  <div ng-if="inv_items.length>0 && inv_items.length>0 && selected_loc !== null" style="margin-top:8px; margin-bottom:128px">
     <div class="row label_row_container">
       <div class="col-xs-3 inv_sort_div" ng-click="sortBy('product')">
         <button ng-if="show_add_ui===false" ng-click="showAddInv()" type="button" class="btn btn-success btn-sm" style="margin-left:-4px; margin-top:-6px; height:32px; font-size:1.0em; position:absolute" onclick="event.preventDefault(); event.stopPropagation();">
