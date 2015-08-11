@@ -1,0 +1,23 @@
+<div class="row" style="margin:0">
+  <div class="col-xs-6" style="margin-top:8px">
+    <label class="control-label hint_text" style="margin-bottom:6px">&nbsp;{{title}}</label>
+    <div class="input-group">
+      <input type="text" ng-class="{'my_error': form_ver.error_date===true}" class="form-control" datepicker-popup="{{format}}" ng-model="pickedDate" is-open="date_opened" min-date="minDate" datepicker-options="dateOptions" ng-required="true" close-text="Close">
+      <span class="input-group-btn">
+        <button type="button" class="btn btn-default" ng-click="openDate($event)"><span class="glyphicon glyphicon-calendar"></span></button>
+      </span>
+    </div>
+  </div>
+  <div class="col-xs-6">
+    <div class="form-group" ng-class="{'has-error': form_ver.error_time===true}" style="margin-bottom:0">
+      <timepicker ng-model="pickedTime" ng-change="changed()" hour-step="hstep" minute-step="mstep" show-meridian="ismeridian"></timepicker>
+    </div>
+  </div>
+</div>
+<div class="row" style="margin:0px 12px">
+  <div ng-show="form_error_msg !== null" class="col-xs-12 min_padding" style="">
+    <div class="alert alert-danger" data-html="true" role="alert">
+      {{error_msg}}</div>
+    </div>
+  </div>
+</div>

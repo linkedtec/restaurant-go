@@ -39,6 +39,8 @@
   <script src="/inventory/view_tap/view_tap.js"></script>
   <!--script src="/inventory/view_empty_kegs/view_empty_kegs.js"></script-->
   <script src="/inventory/view_history/view_history.js"></script>
+  <script src="/inventory/view_pos_deliveries/directive_date_time_picker.js"></script>
+  <script src="/inventory/view_pos_deliveries/view_deliveries.js"></script>
   <script src="/lib/tableToExcel/tableToExcel.js"></script>
 </head>
 <body>
@@ -59,6 +61,8 @@
       <ul class="nav navbar-nav" ng-controller="myAppCtrl" style="font-size:1.0em;">
         <li ng-class="{ 'active': isActive('/viewAllInv') || isActive('/viewDistributors') }"><a href="#/viewAllInv">Beverages</a></li>
         <li ng-class="{ 'active': isActive('/viewInvByLoc') || isActive('/viewOnTap') || isActive('/viewEmptyKegs') || isActive('/viewHistory')}"><a href="#/viewInvByLoc">Inventory</a></li>
+        <!--RESTORE WHEN DEVELOPING DELIVERIES-->
+        <!--li ng-class="{ 'active': isActive('/viewDeliveries') }"><a href="#/viewDeliveries">Purchases & Deliveries</a></li-->
       </ul>
     </div>
   </nav>

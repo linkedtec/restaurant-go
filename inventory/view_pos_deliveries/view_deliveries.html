@@ -1,0 +1,172 @@
+<div ng-include src="'./pd_subnav.html'"></div>
+<div class="container" style="min-width:620px; max-width:880px">
+
+  <div style="width:100%; margin-top:24px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_box_move.png" height="36" width="36" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:2px; margin-left:2px">Deliveries</div>
+  </div>
+  <div class="hint_text" style="width:100%; padding-top:4px;">
+    Record and view deliveries of inventory from suppliers.
+  </div>
+
+  <div ng-show="show_add_ui===true" class="add_ui_box_blue" style="margin-top:16px; margin-bottom:16px">
+    <div class="add_title_bar_blue">
+      <button ng-click="hideAddInv()" type="button" class="btn btn-default btn_x" style="float:left">
+        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+      </button>
+      <div class="add_title_blue">
+        <span style="font-size:1.0em;"> Add New Delivery Record </span>
+      </div>
+      <br/>
+    </div>
+
+    <div class="add_blue_color" style="font-size:1.1em; margin:4px 16px; margin-top:12px">
+      Time of Delivery
+    </div>
+    <hr class="add_hr_blue" style="margin:0px 16px"/>
+    <div style="margin-top:-4px">
+      <date-time-picker title="''" picked-time="delivery_time" picked-date="delivery_date"></date-time-picker>
+    </div>
+    <div class="add_blue_color" style="font-size:1.1em; margin:4px 16px; margin-top:-12px">
+      Distributor (optional)
+    </div>
+    <hr class="add_hr_blue" style="margin:0px 16px"/>
+    <div class="row" style="margin-top:12px; margin: 12px 0px;">
+      <div class="col-xs-4">
+        <div class="form-group" ng-class="{'has-error': form_ver.error_distributor===true}">
+          <label class="control-label optional"></label>
+          <div class="btn-group" dropdown>
+            <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" style="font-size:1.0em" dropdown-toggle>
+              <span ng-if="new_distributor !== null" style="float:left; text-align:left; width:90%;">
+                {{new_distributor.name}} 
+              </span>
+              <span ng-if="new_distributor === null" class="noselect" style="float:left; text-align:left; width:90%;  color:#999999">
+                Select a Distributor
+              </span>
+              <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:12px; color:#888888"></span>
+            </button>
+            <ul class="loc_dropdown dropdown-menu" role="menu">
+              <li class="inv_dropdown_li" ng-if="new_distributor!==null">
+                <a ng-click="clearDistributor()" class="noselect" style="color:#aaaaaa">None</a>
+              </li>
+              <li class="inv_dropdown_li" ng-repeat="dist in distributors">
+                <a ng-click="selectDistributor(dist)" class="noselect">{{dist.name}}</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-xs-6" style="padding-left:12px; padding-top:8px">
+        <form role="form" style="float:right">
+          <div class="checkbox checkbox-primary" style="margin:0">
+            <input type="checkbox" id="cb_dist_bevs_only" style="z-index:-99;" ng-click="toggleDistBevsOnly()">
+              <label for="cb_dist_bevs_only">Add Beverages from this Distributor only</label>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="add_blue_color" style="font-size:1.1em; margin:4px 16px; margin-top:-12px">
+      Beverages in this Delivery
+    </div>
+    <hr class="add_hr_blue" style="margin:0px 16px"/>
+    <div ng-show="show_add_bev_ui===false">
+      <div class="col-xs-12" style="margin-top:12px">
+          <button ng-click="showAddBevInv()" type="button" class="btn btn-success btn-sm" style="font-size:14px">
+            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add Beverages
+          </button>
+        </div>
+    </div>
+    <div ng-show="show_add_bev_ui===true" class="add_ui_box_green" style="margin:16px; width:768px">
+      <div class="add_title_bar_green">
+        <button ng-click="hideAddBevInv()" type="button" class="btn btn-default btn_x" style="float:left">
+          <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+        </button>
+        <div class="add_title_green">
+          <span style="font-size:1.0em;"> Add Beverages to this Delivery </span>
+        </div>
+        <br/>
+      </div>
+      <loc-add-inv loc-name="$scope.locName" all-beverages="add_inv_unadded_bevs" control="addInvControl" add-bev-inv="addInvAddBev(bev)" show-kegs="false" show-tabs="false" list-height="240" brewery-distributor="'both'"></loc-add-inv>
+    </div>
+
+    <div class="row hint_text" ng-show="add_inv_added_bevs.length===0" style="padding: 24px 16px; font-style:italic">
+      <div class="col-xs-12">
+        No Beverages added yet.  Use the section above to add beverages to this delivery.
+      </div>
+    </div>
+    <div ng-repeat="inv in add_inv_added_bevs">
+      <div ng-class-even="'row inv_row_container inv_row_even'" ng-class-odd="'row inv_row_container'">
+        <div class="col-xs-3 min_padding" style="padding-top:6px;">
+          <div style="font-size:1.1em; padding-left:6px; margin-top:-6px">
+            <span ng-if="inv.type==='bev'">
+              {{inv.product}}
+            </span>
+            <span ng-if="inv.type==='keg'">
+              <img src="images/inv_keg.png" height="22" width="22" style="vertical-align:top; margin-top:0px"> Keg Deposit
+            </span>
+          </div>
+          <div style="font-size:0.9em; color:#999999; padding-left:6px;"> 
+            <!--span ng-if="inv.type==='keg'">{{inv.distributor}}</span-->
+            <span ng-if="inv.type==='keg'">Empty </span>
+            <span ng-if="inv.purchase_volume!==null">{{inv.purchase_volume | number:1}} {{inv.purchase_unit}}</span>
+            <span ng-if="inv.type==='bev'">{{inv.container_type}}</span>
+            <span ng-if="inv.type==='keg'">Keg</span>
+          </div>
+        </div>
+        <div class="col-xs-3 min_padding inv_col" style="padding-top:6px">
+          <span ng-if="inv.type==='bev'">{{inv.brewery}}</span>
+          <span ng-if="inv.type==='keg'">{{inv.distributor}}</span>
+        </div>
+        <div class="col-xs-2 min_padding" style="padding-top:6px; padding-left:8px !important" ng-if="inv_started===false">
+          <div ng-if="inv.type==='bev'">
+            <div ng-if="inv.deposit !== null" style="font-size:1.1em; padding-left:6px; margin-top:-6px">$ {{inv.purchase_cost / inv.purchase_count | number:2}}</div>
+            <div ng-if="inv.deposit !== null" style="font-size:0.9em; color:#999999; padding-left:6px;"> $ {{inv.deposit | number:2}} Dpst.</div>
+            <div ng-if="inv.deposit === null" style="font-size:1.1em; padding-left:2px">$ {{inv.purchase_cost / inv.purchase_count | number:2}}</div>
+          </div>
+          <div ng-if="inv.type==='keg'">
+            <div ng-if="inv.deposit !== null" style="font-size:1.1em; padding-left:6px;">$ {{inv.deposit | number:2}}</div>
+          </div>
+        </div>
+        <div class="min_padding" ng-class="{'col-xs-1': inv_started===false, 'col-xs-6': inv_started===true}">
+
+          <div ng-if="inv_started===false" style="font-size:1.1em; padding-top:6px; padding-left:2px;">
+            {{inv.quantity}}
+          </div>
+
+          <div ng-if="inv_started===true">
+            <button ng-click="addQuantity(inv,-1, false)" type="button" class="btn btn-default inv_minus_btn">
+              <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
+            </button>
+            <div class="form" ng-class="{'has-error': inv.invalid_quantity===true}">
+              <input ng-model="inv.quantity" ng-class="{'input_error': inv.invalid_quantity===true}" class="form-control" style="display:inline-block; float:left; text-align:center; max-width:64px; height:38px; font-size:1.3em;">
+            </div>
+            
+            <button ng-click="addQuantity(inv,1, false)" type="button" class="btn btn-default inv_plus_btn">
+            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+            </button>
+            <button ng-click="addQuantity(inv,inv.add_q, true)" type="button" class="btn btn-default inv_plus_btn" style="margin-left:16px">
+              <b>Add:</b>
+            </button>
+            <div class="form">
+              <input ng-model="inv.add_q" class="form-control" style="display:inline-block; float:left; text-align:center; max-width:56px; height:38px; font-size:1.3em;" placeholder="">
+            </div>
+          </div>
+        </div>
+        <div ng-if="inv_started===false" class="min_padding col-xs-2">
+          <div style="padding-left:4px; padding-top:6px;">
+            <span style="vertical-align:top">$ {{inv.inventory | number:2}}</span>
+            <span ng-if="inv.out_of_date===true" class="glyphicon glyphicon-exclamation-sign" style="font-size:18px; color:#ffbb22;" popover="This beverage has been updated since its inventory was last saved, and the old inventory value might not reflect its current pricing." popover-trigger="mouseenter" popover-append-to-body="true"></span>
+          </div>
+        </div>
+        <div class="col-xs-1 min_padding" ng-if="inv_started===false">
+          <button ng-click="removeInvItem($index)" type="button" class="btn btn-default btn-sm btn-right" style="font-size:14px; min-height:32px; color:#888888">
+            <span class="glyphicon glyphicon-trash" aria-hidden="true" style="color:#aaaaaa"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>

@@ -293,30 +293,92 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
     $scope.add_inv_existing_kegs = clean_kegs;
   };
 
-  $scope.addInvCloseOnSave = function(inv_type, add_inv) {
-    console.log(add_inv);
-    $scope.inv_items.push(add_inv);
+  $scope.addInvAddBev = function(bev) {
+    $http.post('/inv/loc', {
+      id:bev.id, 
+      location: $scope.selected_loc.name,
+      type:'bev'
+    }).
+    success(function(data, status, headers, config) {
 
-    if (inv_type==='bev') {
+      console.log(data);
+
+      var bev_clone = JSON.parse( JSON.stringify( bev ) );
+
+      bev_clone['quantity'] = 0;
+      bev_clone['inventory'] = 0;
+
+      if (data !== null && typeof data === 'object') {
+        if ('quantity' in data) {
+          bev_clone.quantity = data['quantity'];
+        }
+        if ('inventory' in data) {
+          bev_clone.inventory = data['inventory'];
+        }
+      }
+
+      $scope.inv_items.push(bev_clone);
+
       // XXX remove added item from $scope.add_inv_existing_bevs manually
       for ( var i=$scope.add_inv_existing_bevs.length-1; i >= 0; i--) {
-        if ( $scope.add_inv_existing_bevs[i].id === add_inv.id) {
+        if ( $scope.add_inv_existing_bevs[i].id === bev_clone.id) {
           $scope.add_inv_existing_bevs.splice(i, 1);
           break;
         }
       }
-    } else if (inv_type==='keg') {
+
+      $scope.addInvControl.addNewBevSuccess(bev);
+
+      $scope.sortBy($scope.sort_key);
+      $scope.sortBy($scope.sort_key);
+    }).
+    error(function(data, status, headers, config) {
+    });
+  };
+
+  $scope.addInvAddKeg = function(keg) {
+    console.log(keg);
+    $http.post('/inv/loc', {
+      id:keg.id, 
+      location: $scope.selected_loc.name,
+      type:'keg'
+    }).
+    success(function(data, status, headers, config) {
+
+      console.log(data);
+
+      var keg_clone = JSON.parse( JSON.stringify( keg ) );
+
+      // XXX push new keg onto location's inventory items
+      // XXX if new keg not in all inventory, push into
+      keg_clone['quantity'] = 0;
+      keg_clone['inventory'] = 0;
+
+      if (data !== null && typeof data === 'object') {
+        if ('quantity' in data) {
+          keg_clone.quantity = data['quantity'];
+        }
+        if ('inventory' in data) {
+          keg_clone.inventory = data['inventory'];
+        }
+      }
+
+      $scope.inv_items.push(keg_clone);
       // XXX remove added item from $scope.all_kegs manually
       for ( var i=$scope.add_inv_existing_kegs.length-1; i >= 0; i--) {
-        if ( $scope.add_inv_existing_kegs[i].id === add_inv.id) {
+        if ( $scope.add_inv_existing_kegs[i].id === keg_clone.id) {
           $scope.add_inv_existing_kegs.splice(i, 1);
           break;
         }
       }
-    }
 
-    $scope.sortBy($scope.sort_key);
-    $scope.sortBy($scope.sort_key);
+      $scope.addInvControl.addNewKegSuccess(keg);
+
+      $scope.sortBy($scope.sort_key);
+      $scope.sortBy($scope.sort_key);
+    }).
+    error(function(data, status, headers, config) {
+    });
   };
 
   $scope.removeInvItem = function(index) {

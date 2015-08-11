@@ -7,8 +7,13 @@ angular.module('myApp')
       locName: '=',
       allBeverages: '=',
       allKegs: '=',
-      closeOnSave: '&',
-      control: '='
+      addBevInv: '&',
+      addKegInv: '&',
+      control: '=',
+      showKegs: '=',
+      showTabs: '=',
+      listHeight: '=',
+      breweryDistributor: '='
     },
     templateUrl: './view_loc/template_loc_add_inv.html',
     link: function(scope, elem, attrs) {
@@ -25,6 +30,12 @@ angular.module('myApp')
       scope.double_sort_bev = -1;
       scope.sort_key_kegs = 'distributor';
       scope.double_sort_kegs = -1;
+
+      if (scope.showKegs!==null && scope.showKegs===true) {
+        scope.all_add_types = ['Beverages', 'Empty Kegs'];
+      } else {
+        scope.all_add_types = ['Beverages'];
+      }
 
       scope.internalControl.clearState = function() {
         scope.new_success_msg = null;
@@ -126,85 +137,24 @@ angular.module('myApp')
       };
 
       scope.addNewInv = function(item) {
+        console.log(item);
         if (scope.add_type === scope.all_add_types[0]) {
-          scope.addNewBevInv(item);
+          if (scope.addBevInv !== null) {
+            scope.addBevInv({bev: item});
+          }
         } else {
-          scope.addNewKegInv(item);
+          if (scope.addKegInv !== null) {
+            scope.addKegInv({keg: item});
+          }
         }
-      }
-
-      scope.addNewBevInv = function(bev) {
-        console.log ('add existing bev: ' + bev.product);
-
-        $http.post('/inv/loc', {
-          id:bev.id, 
-          location: scope.locName,
-          type:'bev'
-        }).
-        success(function(data, status, headers, config) {
-
-          console.log(data);
-
-          var bev_clone = JSON.parse( JSON.stringify( bev ) );
-
-          bev_clone['quantity'] = 0;
-          bev_clone['inventory'] = 0;
-
-          if (data !== null && typeof data === 'object') {
-            if ('quantity' in data) {
-              bev_clone.quantity = data['quantity'];
-            }
-            if ('inventory' in data) {
-              bev_clone.inventory = data['inventory'];
-            }
-          }
-
-          scope.new_success_msg = bev_clone.product + " has been added to " + scope.locName + "!";
-
-          if (scope.closeOnSave !== null) {
-            scope.closeOnSave( {inv_type:"bev", add_inv:bev_clone} );
-          }
-
-        }).
-        error(function(data, status, headers, config) {
-        });
       };
 
-      scope.addNewKegInv = function(keg) {
+      scope.internalControl.addNewBevSuccess = function(bev) {
+        scope.new_success_msg = bev.product + " has been added to " + scope.locName + "!";
+      };
 
-        $http.post('/inv/loc', {
-          id:keg.id, 
-          location: scope.locName,
-          type:'keg'
-        }).
-        success(function(data, status, headers, config) {
-
-          console.log(data);
-
-          var keg_clone = JSON.parse( JSON.stringify( keg ) );
-
-          // XXX push new keg onto location's inventory items
-          // XXX if new keg not in all inventory, push into
-          scope.new_success_msg = keg_clone.distributor + " " + keg_clone.volume + " " + keg_clone.unit + " keg has been added to " + scope.locName + "!";
-          keg_clone['quantity'] = 0;
-          keg_clone['inventory'] = 0;
-
-          if (data !== null && typeof data === 'object') {
-            if ('quantity' in data) {
-              keg_clone.quantity = data['quantity'];
-            }
-            if ('inventory' in data) {
-              keg_clone.inventory = data['inventory'];
-            }
-          }
-
-          if (scope.closeOnSave !== null) {
-            scope.closeOnSave( {inv_type:"keg", add_inv:keg_clone} );
-          }
-          
-        }).
-        error(function(data, status, headers, config) {
-        });
+      scope.internalControl.addNewKegSuccess = function(keg) {
+        scope.new_success_msg = keg.distributor + " " + keg.volume + " " + keg.unit + " keg has been added to " + scope.locName + "!";
       };
 
     }

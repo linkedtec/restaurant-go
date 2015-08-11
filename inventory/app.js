@@ -8,7 +8,8 @@ angular.module('myApp', [
   'myApp.viewInvByLoc',
   'myApp.viewOnTap',
  // 'myApp.viewEmptyKegs',
-  'myApp.viewHistory'
+  'myApp.viewHistory',
+  'myApp.viewDeliveries'
 ]).
 config(['$routeProvider', function($routeProvider) {
   $routeProvider.otherwise({redirectTo: '/viewAllInv'});

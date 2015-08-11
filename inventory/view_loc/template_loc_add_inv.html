@@ -1,8 +1,8 @@
-<tabset style="margin: 16px 6px; margin-bottom:0px; font-size:1.1em">
+<tabset ng-if="showTabs===true" style="margin: 16px 6px; margin-bottom:0px; font-size:1.1em">
   <tab ng-repeat="type in all_add_types" heading="{{type}}" ng-click="selectAddType(type)">
   </tab>
 </tabset>
-<div class="new_inv_border_box">
+<div ng-class="{'new_inv_border_box': showTabs===true}">
   <div ng-if="new_success_msg !== null" class="row" style="margin:6px 6px">
     <div class="add_row">
       <div class="alert alert-success alert-dismissible" role="alert" style="margin-bottom:0px">
@@ -29,7 +29,9 @@
         <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_bev === 'product'" ng-class="{'glyphicon-menu-down': double_sort_bev<0, 'glyphicon-menu-up':double_sort_bev>0}"></span>
       </div>
       <div class="col-xs-4 add_inv_sort_div" ng-click="internalControl.sortBevsBy('brewery')">
-        <span class="add_inv_label_span noselect">Brewery</span>
+        <span class="add_inv_label_span noselect" ng-if="breweryDistributor==='brewery'">Brewery</span>
+        <span class="add_inv_label_span noselect" ng-if="breweryDistributor==='distributor'">Distributor</span>
+        <span class="add_inv_label_span noselect" ng-if="breweryDistributor==='both'">Distributor / Brewery</span>
         <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_bev === 'brewery'" ng-class="{'glyphicon-menu-down': double_sort_bev<0, 'glyphicon-menu-up':double_sort_bev>0}"></span>
       </div>
       <div class="col-xs-2 add_inv_sort_div" ng-click="internalControl.sortBevsBy('alcohol_type')">
@@ -37,14 +39,23 @@
         <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_bev === 'alcohol_type'" ng-class="{'glyphicon-menu-down': double_sort_bev<0, 'glyphicon-menu-up':double_sort_bev>0}"></span>
       </div>
     </div>
-    <div class="add_inv_scroll_area"  style="margin: 0px 12px; margin-bottom:6px">
+    <div class="add_inv_scroll_area"  style="margin: 0px 12px; margin-bottom:6px; height:{{listHeight}}px">
       <div ng-repeat="inv in allBeverages | filter:add_inv_query.query" class="add_inv_scroll_cell row">
         <div class="col-xs-4 min_padding add_inv_scroll_col" style="padding-top:4px;">
           <div style="font-size:1.0em; padding-left:6px; margin-top:-6px">{{inv.product}}</div>
           <div style="font-size:0.9em; color:#999999; padding-left:6px;"> <span ng-if="inv.purchase_volume!==null">{{inv.purchase_volume | number:1}} {{inv.purchase_unit}}</span> {{inv.container_type}}</div>
         </div>
-        <div class="col-xs-4 min_padding add_inv_scroll_col" style="padding-top:8px; font-size:1.0em;">
-          {{inv.brewery}}
+        <div class="col-xs-4 min_padding add_inv_scroll_col" style="padding-top:4px; font-size:1.0em;">
+          <div ng-if="breweryDistributor==='brewery'" style="padding-top:4px">
+            {{inv.brewery}}
+          </div>
+          <div ng-if="breweryDistributor==='distributor'" style="padding-top:4px">
+            {{inv.distributor}}
+          </div>
+          <div ng-if="breweryDistributor==='both'">
+            <div style="font-size:1.0em; padding-left:6px; margin-top:-6px">&nbsp;{{inv.distributor}}</div>
+            <div style="font-size:0.9em; color:#999999; padding-left:6px;">&nbsp;{{inv.brewery}}</div>
+          </div>
         </div>
         <div class="col-xs-2 min_padding add_inv_scroll_col" style="padding-top:8px; font-size:1.0em;">
           {{inv.alcohol_type}}
@@ -73,7 +84,7 @@
         <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_kegs === 'deposit'" ng-class="{'glyphicon-menu-down': double_sort_kegs<0, 'glyphicon-menu-up':double_sort_kegs>0}"></span>
       </div>
     </div>
-    <div class="add_inv_scroll_area"  style="margin: 0px 12px; margin-bottom:6px">
+    <div class="add_inv_scroll_area"  style="margin: 0px 12px; margin-bottom:6px; height:{{listHeight}}px">
       <div ng-repeat="keg in allKegs | filter:add_inv_query.query" class="add_inv_scroll_cell row">
         <div class="col-xs-4 min_padding add_inv_scroll_col" style="padding-top:8px; padding-left:8px">
           {{keg.distributor}}

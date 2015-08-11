@@ -336,8 +336,8 @@ body {
 .add_inv_scroll_cell {
   margin: auto;
   padding-left: 8px;
-  padding-top:7px;
-  padding-bottom:7px;
+  padding-top:5px;
+  padding-bottom:3px;
   border-bottom: 1px solid #dddddd;
 }
 
@@ -446,13 +446,13 @@ body {
   color:#2288cc !important;
   text-decoration: none;
   background-color: #ffffff !important;
-  border-bottom: 3px solid #88ccff;
+  border-bottom: 2px solid #66baf0;
 }
 
 .main_nav li a {
   font-size:1.1em;
   text-decoration: none;
-  color:#999999 !important;
+  color:#777777 !important;
 }
 
 .main_nav li a:hover {
@@ -525,7 +525,7 @@ like enclosed space */
 .add_ui_box_blue {
   border-radius: 4px;
   border:1px solid #cae5fc; 
-  background-color: #f1f8ff;
+  background-color: #f9fcff;
   padding: 0px;
   width:800px;
 }
@@ -558,6 +558,10 @@ like enclosed space */
   font-size:1.1em;
 }
 
+.add_green_color {
+  color:#55a066;
+}
+
 .add_title_blue {
   margin-left:10px;
   display:inline-block;
@@ -566,6 +570,11 @@ like enclosed space */
   color:#5586b5;
   font-size:1.1em;
 }
+
+.add_blue_color {
+  color: #5586b5;
+}
+
 
 .add_hint {
   display:inline-block;
@@ -610,6 +619,12 @@ like enclosed space */
   padding:0;
   margin:0;
   border-color:#d0e8c5;
+}
+
+.add_hr_blue {
+  padding:0;
+  margin:0;
+  border-color:#cae5fc;
 }
 
 .add_label {
