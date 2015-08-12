@@ -194,6 +194,10 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
           $scope.add_inv_all_bevs[i]['inventory'] = 0;
           $scope.add_inv_all_bevs[i]['quantity'] = 0;
           $scope.add_inv_all_bevs[i]['type'] = 'bev';
+
+          $scope.add_inv_all_bevs[i]['volume'] = MathService.fixFloat1($scope.add_inv_all_bevs[i]['volume']);
+          $scope.add_inv_all_bevs[i]['purchase_cost'] = MathService.fixFloat1($scope.add_inv_all_bevs[i]['purchase_cost']);
+          $scope.add_inv_all_bevs[i]['deposit'] = MathService.fixFloat1($scope.add_inv_all_bevs[i]['deposit']);
         }
       }
       else {
@@ -222,6 +226,10 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
           $scope.all_kegs[i]['inventory'] = 0;
           $scope.all_kegs[i]['quantity'] = 0;
           $scope.all_kegs[i]['type'] = 'keg';
+          // fix floating point
+          $scope.all_kegs[i]['volume'] = MathService.fixFloat1($scope.all_kegs[i]['volume']);
+          $scope.all_kegs[i]['purchase_cost'] = MathService.fixFloat1($scope.all_kegs[i]['purchase_cost']);
+          $scope.all_kegs[i]['deposit'] = MathService.fixFloat1($scope.all_kegs[i]['deposit']);
           // when we get kegs from server, the param names 'volume' and 'unit'
           // don't match beverage params 'purchase_volume' and 'purchase_unit',
           // so we duplicate and rename so the proper vol and unit show up
@@ -314,6 +322,10 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         }
         if ('inventory' in data) {
           bev_clone.inventory = data['inventory'];
+          $scope.total_inventory += data['inventory'];
+        }
+        if ('out_of_date' in data) {
+          bev_clone.out_of_date = data['out_of_date']
         }
       }
 
@@ -360,6 +372,10 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
         }
         if ('inventory' in data) {
           keg_clone.inventory = data['inventory'];
+          $scope.total_inventory += data['inventory'];
+        }
+        if ('out_of_date' in data) {
+          keg_clone.out_of_date = data['out_of_date']
         }
       }
 
@@ -371,7 +387,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
           break;
         }
       }
-
+     
       $scope.addInvControl.addNewKegSuccess(keg);
 
       $scope.sortBy($scope.sort_key);
@@ -402,7 +418,8 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
           params: {
             id:item.id,
             location:$scope.selected_loc.name,
-            type:item.type
+            type:item.type,
+            tz_offset:DateService.timeZoneOffset()
           }
         }).
         success(function(data, status, headers, config) {
@@ -420,6 +437,9 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
           
           // re-sort the added items twice to refresh sorting
           $scope.addInvControl.reSort();
+
+          $scope.sortBy($scope.sort_key);
+          $scope.sortBy($scope.sort_key);
         }).
         error(function(data, status, headers, config) {
 
