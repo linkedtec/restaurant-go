@@ -45,8 +45,10 @@ angular.module('myApp')
         scope.internalControl.sortBevsBy(scope.sort_key_bev);
         scope.internalControl.sortBevsBy(scope.sort_key_bev);
 
-        scope.internalControl.sortKegsBy(scope.sort_key_kegs);
-        scope.internalControl.sortKegsBy(scope.sort_key_kegs);
+        if (scope.showKegs!==undefined && scope.showKegs!==null && scope.showKegs===true) {
+          scope.internalControl.sortKegsBy(scope.sort_key_kegs);
+          scope.internalControl.sortKegsBy(scope.sort_key_kegs);
+        }
       };
 
       scope.selectAddType = function(type) {

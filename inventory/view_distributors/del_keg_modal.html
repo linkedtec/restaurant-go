@@ -36,7 +36,7 @@
         </form>
       </div>
     </div>
-    <div ng-repeat="bev in keg_beverages" class="row" ng-class-even="'inv_row_even'" style="margin-left:0px; margin-right:0px; padding: 8px 0px">
+    <div ng-repeat="bev in keg_beverages" class="row" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="margin-left:0px; margin-right:0px; padding: 8px 0px">
       <div class="col-xs-5">
         {{bev.product}}
       </div>

@@ -1,0 +1,17 @@
+<div style="display:inline-block;">
+  <div class="input-group input-group-sm" style="max-width:150px;">
+    <input type="text" ng-class="{'my_error': form_ver.error_date_start===true}" class="form-control" datepicker-popup="{{format}}" ng-model="startDate" is-open="opened.start" min-date="minDate" datepicker-options="dateOptions" ng-required="true" close-text="Close" ng-change="startDateChanged()">
+    <span class="input-group-btn">
+      <button type="button" class="btn btn-default" ng-click="openDateStart($event)"><span class="glyphicon glyphicon-calendar"></span></button>
+    </span>
+  </div>
+</div>
+<div style="margin-left: 4px; padding-top:6px; margin-right:4px; display:inline-block; vertical-align:top">to</div>
+<div style="display:inline-block;">
+  <div class="input-group input-group-sm" style="max-width:150px;">
+    <input type="text" ng-class="{'my_error': form_ver.error_date_end===true}" class="form-control" datepicker-popup="{{format}}" ng-model="endDate" is-open="opened.end" min-date="minDate" datepicker-options="dateOptions" ng-required="true" close-text="Close" ng-change="endDateChanged()">
+    <span class="input-group-btn">
+      <button type="button" class="btn btn-default" ng-click="openDateEnd($event)"><span class="glyphicon glyphicon-calendar"></span></button>
+    </span>
+  </div>
+</div>

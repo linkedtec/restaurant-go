@@ -153,6 +153,7 @@ func main() {
 	setupInvHandlers()
 	setupTapsHandlers()
 	setupDistributorHandlers()
+	setupDeliveriesHandlers()
 
 	log.Printf("Listening on port 8080...")
 	log.Print("Current time is: " + getCurrentTime())

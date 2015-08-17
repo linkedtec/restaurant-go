@@ -713,7 +713,7 @@ angular.module('myApp.viewInvByLoc', ['ngRoute'])
           $scope.inv_items[inv_i]['unit_cost'] = purchase_cost / purchase_count + deposit;
         } else { // keg
           $scope.inv_items[inv_i]['unit_cost'] = deposit;
-        }  
+        }
       }
 
       // check update in each inventory item and if updated within 24

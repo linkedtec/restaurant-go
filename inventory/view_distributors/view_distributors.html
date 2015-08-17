@@ -52,7 +52,7 @@
   </div>
 
 
-  <table style="width: 100%; min-width:720px; table-layout:fixed; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-top:6px">
+  <table style="width: 100%; min-width:720px; table-layout:fixed; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-top:6px; margin-bottom:120px">
     <tr style="font-size:14px; background-color: #e0f0ff;">
       <td class="all_inv_label_span noselect" style="width:35px; border-left: 1px solid #dddddd">
       </td>
@@ -85,7 +85,7 @@
         </div>
       </td>
     </tr>
-    <tbody ng-repeat="dist in distributors | filter:all_dist_query.query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row'">
+    <tbody ng-repeat="dist in distributors | filter:all_dist_query.query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row inv_row_odd'">
       <tr>
         <td class="all_inv_span" style="border-left: 1px solid #dddddd; text-align:center">
           <button ng-click="editDistributor(dist)" type="button" class="btn btn-sm btn_edit">

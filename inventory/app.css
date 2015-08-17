@@ -179,7 +179,7 @@ body {
 }
 
 .inv_row_container {
-  padding-top:12px;
+  padding-top:8px;
   padding-bottom:6px;
   padding-right:0;
   padding-left:0;
@@ -291,6 +291,12 @@ body {
 
 .inv_row_even {
   background-color: #f8f8f8;
+  border-bottom: solid 1px #f0f0f0;
+}
+
+.inv_row_odd {
+  background-color: #ffffff;
+  border-bottom: solid 1px #fbfbfb;
 }
 
 .tap_full_row {
@@ -525,9 +531,9 @@ like enclosed space */
 .add_ui_box_blue {
   border-radius: 4px;
   border:1px solid #cae5fc; 
-  background-color: #f9fcff;
+  background-color: #fbfeff;
   padding: 0px;
-  width:800px;
+  min-width:800px;
 }
 
 .add_title_bar_green {
@@ -882,5 +888,45 @@ like enclosed space */
 
 .help_link {
   color:#5599cc;
+}
+
+input.customCbRnd, input.customCbSqr {
+  visibility: hidden;
+  font-weight:normal;
+}
+
+input.customCbRnd + label, input.customCbSqr + label {
+  margin-left:12px;
+  font-weight:normal;
+}
+
+input.customCbRnd:checked:after, input.customCbRnd:after,
+input.customCbSqr:checked:after, input.customCbSqr:after {
+  visibility: visible;
+  font-family: FontAwesome;
+  font-size:24px;height: 20px; width: 20px;
+  position: relative;
+  top: -8px;
+  left: 0px;
+  background-color:#FFF;
+  display: inline-block;
+  color:#4499cc;
+}
+
+input.customCbRnd:checked:after {
+  content: '\f058';
+}
+
+input.customCbRnd:after {
+  content: '\f10c';
+}
+
+input.customCbSqr:checked:after {
+  content: '\f14a';
+}
+
+input.customCbSqr:after {
+  content: '\f096';
+  color:#aabbcc;
 }
 

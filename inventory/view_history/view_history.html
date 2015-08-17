@@ -22,23 +22,9 @@
   <div>
     <div class="row" style="margin-top:2px">
       <div class="col-xs-12" style="text-align:right">
-        <div style="display:inline-block;">
-          <div class="input-group input-group-sm" style="max-width:150px;">
-            <input type="text" ng-class="{'my_error': form_ver.error_date_start===true}" class="form-control" datepicker-popup="{{format}}" ng-model="dates.start" is-open="opened.start" min-date="minDate" datepicker-options="dateOptions" ng-required="true" close-text="Close" ng-change="startDateChanged()">
-            <span class="input-group-btn">
-              <button type="button" class="btn btn-default" ng-click="openDateStart($event)"><span class="glyphicon glyphicon-calendar"></span></button>
-            </span>
-          </div>
-        </div>
-        <div style="margin-left: 4px; padding-top:6px; margin-right:4px; display:inline-block; vertical-align:top">to</div>
-        <div style="display:inline-block;">
-          <div class="input-group input-group-sm" style="max-width:150px;">
-            <input type="text" ng-class="{'my_error': form_ver.error_date_end===true}" class="form-control" datepicker-popup="{{format}}" ng-model="dates.end" is-open="opened.end" min-date="minDate" datepicker-options="dateOptions" ng-required="true" close-text="Close" ng-change="endDateChanged()">
-            <span class="input-group-btn">
-              <button type="button" class="btn btn-default" ng-click="openDateEnd($event)"><span class="glyphicon glyphicon-calendar"></span></button>
-            </span>
-          </div>
-        </div>
+
+        <date-range start-date="start_date" end-date="end_date" on-start-change="startDateChanged()" on-end-change="endDateChanged()"></date_range>
+
       </div>
     </div>
   </div>
@@ -82,7 +68,9 @@
       <!-- we are opting out of it for the time being as it doesn't work for IE or Safari-->
       <!-- and are instead using a server-side file for exporting spreadsheets -->
       <!--button type="button" class="btn btn-default btn-md btn-primary" style="font-size:1.0em; float:right; margin-top:2px" onclick="tableToExcel('inventoryTable', 'W3C Example Table', 'inventory.xls')">Export to Excel</button-->
-      <button type="button" class="btn btn-default btn-md btn-primary" style="font-size:1.0em; float:right; margin-top:2px" ng-click="exportSpreadsheet()" ng-disabled="display_items===null || display_items.length===0">Download Excel</button>
+      <button type="button" class="btn btn-default btn-md btn-default" style="font-size:1.0em; float:right; margin-top:2px; border-color:#22aacc; color:#2299cc" ng-click="exportSpreadsheet()" ng-disabled="display_items===null || display_items.length===0">
+        <span class="glyphicon glyphicon-download-alt" style="margin-right:4px"></span> Download Excel
+      </button>
     </div>
   </div>
 
@@ -94,7 +82,7 @@
   </div>
 
   <div ng-if="use_mode===1">
-    <table id="inventoryTable" summary="Data table for inventory history." rules="groups" frame="hsides" border="2" style="width:100%; margin-top:32px; margin-bottom:64px">
+    <table id="inventoryTable" summary="Data table for inventory history." rules="groups" frame="hsides" border="2" style="width:100%; margin-top:16px; margin-bottom:120px">
       <tr>
         <td></td>
         <td>Product</td>
@@ -108,7 +96,7 @@
           <td></td>
           <td>{{inv.inv_sum | number:2}}</td>
         </tr>
-        <tr ng-repeat="dinv in inv.date_inv" ng-class-even="'inv_row_even'">
+        <tr ng-repeat="dinv in inv.date_inv" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'">
           <td></td>
           <td ng-if="dinv.type!=='keg'">{{dinv.product}}</td>
           <td ng-if="dinv.type==='keg'">Keg Deposit - {{dinv.distributor}} {{dinv.volume | number:1}} {{dinv.unit}}</td>
@@ -131,7 +119,7 @@
           <td></td>
           <td style="font-weight:bold">{{loc.inv_sum | number:2}}</td>
         </tr>
-        <tr ng-repeat-start="item in loc.histories" ng-class-even="'inv_row_even'">
+        <tr ng-repeat-start="item in loc.histories" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'">
           <td></td>
           <td ng-if="item.type!=='keg'">{{item.product}}</td>
           <td ng-if="item.type==='keg'">Keg Deposit - {{item.distributor}} {{item.volume | number:1}} {{item.unit}}</td>
@@ -144,8 +132,8 @@
       </tbody>
     </table>
 
-    <div class="row" ng-if="display_items===null || display_items.length===0" style="margin-top:32px; margin-bottom:64px">
-      <div class="col-xs-12 hint_text" style="font-size:1.5em; margin-top:48px; text-align:center">
+    <div class="row" ng-if="display_items===null || display_items.length===0" style="margin-bottom:120px">
+      <div class="col-xs-12 hint_text" style="font-size:1.5em; text-align:center">
         <span ng-if="sort_type===sort_types[3] && added_items.length===0">
           Add a beverage with the "Add Beverage" dropdown.
         </span>
@@ -157,8 +145,8 @@
   </div>
 
   <div ng-show="use_mode===0">
-    <div style="margin-top:16px; margin-bottom:64px">
-      <svg id="d3viz" width="880" height="500"></svg>
+    <div style="margin-top:16px; margin-bottom:120px">
+      <svg id="d3viz" width="880" height="500"/svg>
     </div>
   </div>
 

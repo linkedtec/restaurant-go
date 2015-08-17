@@ -17,6 +17,14 @@ angular.module('myApp.viewHistory', ['ngRoute'])
   $scope.sort_types = ["All Inventory", "By Location", "Beverage Type", "Individual Items"];
   $scope.sort_type = $scope.sort_types[0];
 
+  $scope.initDate = function() {
+    var today = new Date();
+    $scope.start_date = new Date(today.setDate(today.getDate() - 30));
+    $scope.end_date = new Date();
+    $scope.end_date.setHours(23,59,59);
+  };
+  $scope.initDate();
+
   $scope.invData = {
     'all_sum' : [],
     'all_itemized' : [],
@@ -47,6 +55,10 @@ angular.module('myApp.viewHistory', ['ngRoute'])
   };
 
   $scope.getInvData = function() {
+
+    console.log("get inv data");
+    console.log($scope.startDateLocal());
+    console.log($scope.endDateLocal());
 
     if ($scope.sort_type === $scope.sort_types[0]) {
       if ($scope.use_mode === 0) {
@@ -142,7 +154,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     console.log("about to sort");
     console.log(items_arr);
     items_arr.sort(function(a,b) {
-      return new Date(a.update) - new Date(b.update);
+      return new Date(b.update) - new Date(a.update);
     });
 
     $scope.invData['items_by_date'] = items_arr;
@@ -265,26 +277,12 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     return parseDate(date_str);
   };
 
-  $scope.startDateUTC = function() {
-    return new Date(
-      $scope.dates.start.getUTCFullYear(), 
-      $scope.dates.start.getUTCMonth(), 
-      $scope.dates.start.getUTCDate());
-  };
-
-  $scope.endDateUTC = function() {
-    return new Date(
-      $scope.dates.end.getUTCFullYear(),
-      $scope.dates.end.getUTCMonth(),
-      $scope.dates.end.getUTCDate());
-  };
-
   $scope.startDateLocal = function() {
-    return $scope.dates.start;
+    return $scope.start_date;
   };
 
   $scope.endDateLocal = function() {
-    return $scope.dates.end;
+    return $scope.end_date;
   };
 
   $scope.exportSpreadsheet = function() {
@@ -330,21 +328,6 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     });
 
   };
-
-  $scope.getPrettyDate = function (date_str) {
-    if (date_str.indexOf("T") >= 0) {
-      date_str = date_str.split("T")[0];
-    } else {
-      date_str = date_str.split(" ")[0];
-    }
-    
-    var date_tokens = date_str.split("-");
-    date_str = new Date(parseInt(date_tokens[0]), parseInt(date_tokens[1])-1, parseInt(date_tokens[2])).toString();
-    var pretty_tokens = date_str.split(" ");    
-    var pretty_date = pretty_tokens[0] + ", " + pretty_tokens[1] + " " + pretty_tokens[2] + " " + pretty_tokens[3];
-
-    return pretty_date;
-  }
 
   $scope.getAllInventorySum = function() {
     $http.get('/inv/history', {
@@ -400,7 +383,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       for (var date_i in data) {
         var date_obj = data[date_i];
         var date_key = date_obj['update'];
-        var pretty_date = $scope.getPrettyDate(date_key);
+        var pretty_date = DateService.getPrettyDate(date_key, true);
 
         var inv_sum = 0;
         for (var history_i in date_obj['histories']) {
@@ -500,7 +483,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       for (var date_i in data) {
         var date_entry = data[date_i];
         var date_key = date_entry["update"];
-        var pretty_date = $scope.getPrettyDate(date_key);
+        var pretty_date = DateService.getPrettyDate(date_key, true);
 
         var inv_sum = 0;
         for (var loc_i in data[date_i]['loc_histories']) {
@@ -596,7 +579,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       for (var date_i in data) {
         var date_entry = data[date_i];
         var date_key = date_entry["update"];
-        var pretty_date = $scope.getPrettyDate(date_key);
+        var pretty_date = DateService.getPrettyDate(date_key, true);
 
         // Note, although second order key is 'loc_histories', we're piggy
         // backing off the loc data struct and using it as 'type'
@@ -1118,92 +1101,14 @@ angular.module('myApp.viewHistory', ['ngRoute'])
   //$scope.getLocationsSum();
 
   //=====================================
-  // Date picker
-  $scope.minDate = null;
-  $scope.opened = {'start':false, 'end':false};
-  $scope.dates = {'start':null, 'end':null};
-
-  $scope.formats = ['MMMM dd yyyy', 'yyyy/MM/dd', 'dd.MM.yyyy', 'shortDate'];
-  $scope.format = $scope.formats[0];
-
-  $scope.today = function() {
-    var today = new Date();
-    // start date is by default 4 weeks ago
-    $scope.dates.start = new Date(today.setDate(today.getDate() - 30));
-    $scope.dates.end = new Date();
-    $scope.dates.end.setHours(23,59,59);
-  };
-  $scope.today();
-
-  $scope.clear = function () {
-    $scope.dates.start = null;
-    $scope.dates.end = null;
-  };
-
-  $scope.toggleMin = function() {
-    //$scope.minDate = $scope.minDate ? null : new Date();
-  };
-  //$scope.toggleMin();
-
-  $scope.openDateStart = function($event) {
-    $event.preventDefault();
-    $event.stopPropagation();
-
-    $scope.opened.start = !$scope.opened.start;
-    
-  };
-
-  $scope.openDateEnd = function($event) {
-    $event.preventDefault();
-    $event.stopPropagation();
-
-    $scope.opened.end = !$scope.opened.end;
-  };
 
   $scope.startDateChanged = function() {
-    $scope.dates.start.setHours(0,0,0);
-    console.log('start date is now: ' + $scope.dates.start);
-    $scope.checkStartEndDates();
-
-    // refresh select sort type to refresh data from server
+    console.log('A');
     $scope.selectSortType($scope.sort_type);
   };
 
   $scope.endDateChanged = function() {
-    $scope.dates.end.setHours(23,59,59);
-    console.log('end date is now: ' + $scope.dates.end);
-    $scope.checkStartEndDates();
-
-    // refresh select sort type to refresh data from server
     $scope.selectSortType($scope.sort_type);
-  };
-
-  $scope.checkStartEndDates = function() {
-    if ($scope.dates.start > $scope.dates.end) {
-      $scope.dates.end = $scope.dates.start;
-    }
-  };
-
-  $scope.dateOptions = {
-    formatYear: 'yy',
-    startingDay: 1,
-    showWeeks:'false'
-  };
-
-  $scope.getDayClass = function(date, mode) {
-    if (mode === 'day') {
-      var dayToCheck = new Date(date).setHours(0,0,0,0);
-
-      for (var i=0;i<$scope.events.length;i++){
-        var currentDay = new Date($scope.events[i].date).setHours(0,0,0,0);
-
-        if (dayToCheck === currentDay) {
-          return $scope.events[i].status;
-        }
-      }
-    }
-
-    return '';
   };
 
   $scope.selectUseMode($scope.use_modes[0]);

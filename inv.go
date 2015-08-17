@@ -78,7 +78,8 @@ func (t timeArr) Len() int {
 }
 
 func (t timeArr) Less(i, j int) bool {
-	return t[i].Before(t[j])
+	// will sort descending
+	return t[i].After(t[j])
 }
 
 func (t timeArr) Swap(i, j int) {
@@ -826,7 +827,7 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 	cell = row.AddCell()
 	cell.Value = "Quantity"
 	cell = row.AddCell()
-	cell.Value = "Inventory"
+	cell.Value = "Inventory ($)"
 
 	nr := bytes.NewReader(data)
 	decoder := json.NewDecoder(nr)
@@ -988,6 +989,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Println("TZ STRING")
 		log.Println(tz_offset)
+		log.Println(start_date)
 		log.Println(end_date)
 		// if export is set, that means return a save-able file instead of JSON
 		export := r.URL.Query().Get("export")
@@ -1301,7 +1303,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							AND locations.id=location_beverages.location_id AND locations.user_id=$5 
 							AND location_beverages.type='bev' 
 							AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$6) 
-						ORDER BY local_update ASC;`,
+						ORDER BY local_update DESC;`,
 						tz_offset, tz_offset, start_date, end_date, test_user_id, id)
 					if err != nil {
 						log.Println(err.Error())
@@ -1427,7 +1429,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							AND location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
 							AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$5) 
 							AND locations.user_id=$6 
-						GROUP BY beverages.id, local_update ORDER BY local_update;`,
+						GROUP BY beverages.id, local_update ORDER BY local_update DESC;`,
 						tz_offset, tz_offset, start_date, end_date, item_id, test_user_id)
 					if err != nil {
 						log.Println(err.Error())
@@ -1479,7 +1481,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				WHERE location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
 					AND locations.id=location_beverages.location_id 
 					AND locations.user_id=$5 
-				ORDER BY local_update ASC;`,
+				ORDER BY local_update DESC;`,
 				tz_offset, tz_offset, start_date, end_date, test_user_id)
 			if err != nil {
 				log.Println(err.Error())
@@ -1620,7 +1622,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				FROM location_beverages, locations 
 				WHERE location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
 					AND locations.id=location_beverages.location_id AND locations.user_id=$5 
-				ORDER BY local_update ASC;`,
+				ORDER BY local_update DESC;`,
 				tz_offset, tz_offset, start_date, end_date, test_user_id)
 			if err != nil {
 				log.Println(err.Error())
@@ -1821,7 +1823,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				FROM location_beverages, locations 
 				WHERE location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
 					AND locations.id=location_beverages.location_id AND locations.user_id=$5 
-				ORDER BY local_update ASC;`,
+				ORDER BY local_update DESC;`,
 				tz_offset, tz_offset, start_date, end_date, test_user_id)
 			if err != nil {
 				log.Println(err.Error())

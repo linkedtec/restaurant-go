@@ -131,6 +131,36 @@ config(['$routeProvider', function($routeProvider) {
       return pretty_time;
     },
 
+    getPrettyDate: function (date_str, from_server) {
+      // the timestamp from the server is different than the timestamp from
+      // the client, so we need to handle as such
+
+      var pretty_date = "";
+
+      if (from_server) {
+        // from the server, date_str looks like this:
+        // 2015-07-19T00:00:00Z
+        if (date_str.indexOf("T") >= 0) {
+          date_str = date_str.split("T")[0];
+        } else {
+          date_str = date_str.split(" ")[0];
+        }
+        
+        var date_tokens = date_str.split("-");
+        date_str = new Date(parseInt(date_tokens[0]), parseInt(date_tokens[1])-1, parseInt(date_tokens[2])).toString();
+        var pretty_tokens = date_str.split(" ");    
+        pretty_date = pretty_tokens[0] + ", " + pretty_tokens[1] + " " + pretty_tokens[2] + " " + pretty_tokens[3];
+      } else {
+        // from the client, date_str looks like this:
+        // Fri Aug 14 2015 20:10:00 GMT-0700 (PDT)
+        // In that case, we take the first 4 tokens and add a comma to day
+        var pretty_tokens = date_str.split(" ");
+        pretty_date = pretty_tokens[0] + ", " + pretty_tokens[1] + " " + pretty_tokens[2] + " " + pretty_tokens[3];
+      }
+
+      return pretty_date;
+    },
+
     getDateFromUTCTimeStamp: function(timestamp, local) {
       return getDateFromUTCTimeStamp(timestamp, local)
     },

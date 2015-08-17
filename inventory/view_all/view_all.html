@@ -80,7 +80,7 @@
     </div>
   </div>
 
-  <table ng-if="inventory_items.length>0" style="width: 100%; table-layout:fixed; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd">
+  <table ng-if="inventory_items.length>0" style="width: 100%; table-layout:fixed; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-bottom:120px">
     <tr style="font-size:14px; ;background-color: #e0f0ff;">
       <td class="all_inv_label_span noselect" style="width:50px; border-left: 1px solid #dddddd">
       </td>
@@ -189,7 +189,7 @@
         </div>
       </td>
     </tr>
-    <tr ng-repeat="inv in inventory_items | filter:all_inv_query.query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row'" style="font-size:14px">
+    <tr ng-repeat="inv in inventory_items | filter:all_inv_query.query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row inv_row_odd'" style="font-size:14px">
       <td class="all_inv_span" style="width:50px; text-align:center;">
         <button ng-click="editBeverage(inv)" type="button" class="btn btn-sm btn_edit">
           <span class="glyphicon glyphicon-pencil"></span>

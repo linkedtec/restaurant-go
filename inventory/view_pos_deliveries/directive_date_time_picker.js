@@ -7,7 +7,8 @@ angular.module('myApp')
       pickedTime: '=',
       pickedDate: '=',
       control: '=',
-      title:'='
+      title:'=',
+      formVerDate:'='
     },
     templateUrl: './view_pos_deliveries/template_date_time_picker.html',
     link: function(scope, elem, attrs) {
@@ -19,6 +20,13 @@ angular.module('myApp')
 
       scope.internalControl.clearState = function() {
         scope.form_error_msg = null;
+      };
+
+      scope.internalControl.resetTime = function() {
+        scope.pickedTime = new Date();
+        scope.pickedTime.setMinutes(
+          parseInt(scope.pickedTime.getMinutes() / 5) * 5);
+        scope.pickedDate = new Date();
       };
 
       // rename dt to pickedDate
