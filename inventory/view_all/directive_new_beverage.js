@@ -11,7 +11,8 @@ angular.module('myApp')
       closeOnSave: '&',
       closeOnCancel: '&',
       closeOnDelete: '&',
-      control: '='
+      control: '=',
+      editMode: '='
     },
     templateUrl: './view_all/template_new_beverage.html',
     link: function(scope, elem, attrs) {

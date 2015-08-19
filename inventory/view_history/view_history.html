@@ -19,17 +19,9 @@
       View / edit historical inventory data.<br/>
     </div>
   </div>
-  <div>
-    <div class="row" style="margin-top:2px">
-      <div class="col-xs-12" style="text-align:right">
 
-        <date-range start-date="start_date" end-date="end_date" on-start-change="startDateChanged()" on-end-change="endDateChanged()"></date_range>
-
-      </div>
-    </div>
-  </div>
-  <div class="row" style="margin-top:8px">
-    <div class="col-xs-9">
+  <div class="row" style="margin-top:24px">
+    <div class="col-xs-12">
       <span>
         <div class="btn-group" dropdown>
           <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.1em;">
@@ -61,6 +53,15 @@
         </div>
       </span>
     </div>
+  </div>
+
+  <div class="row" style="margin-top:12px">
+    <div class="col-xs-9" style="text-align:left;">
+
+      <date-range start-date="start_date" end-date="end_date" on-start-change="startDateChanged()" on-end-change="endDateChanged()"></date_range>
+
+    </div>
+
     <div class="col-xs-3" ng-if="use_mode===1">
       <!-- this hidden link is just a dummy placeholder for exporting to excel-->
       <a id="excel_export"  style="display:none;"></a>
@@ -68,7 +69,7 @@
       <!-- we are opting out of it for the time being as it doesn't work for IE or Safari-->
       <!-- and are instead using a server-side file for exporting spreadsheets -->
       <!--button type="button" class="btn btn-default btn-md btn-primary" style="font-size:1.0em; float:right; margin-top:2px" onclick="tableToExcel('inventoryTable', 'W3C Example Table', 'inventory.xls')">Export to Excel</button-->
-      <button type="button" class="btn btn-default btn-md btn-default" style="font-size:1.0em; float:right; margin-top:2px; border-color:#22aacc; color:#2299cc" ng-click="exportSpreadsheet()" ng-disabled="display_items===null || display_items.length===0">
+      <button type="button" class="btn btn-default btn-sm btn-default" style="font-size:0.9em; float:right; margin-top:0px; border-color:#22aacc; color:#2299cc" ng-click="exportSpreadsheet()" ng-disabled="display_items===null || display_items.length===0">
         <span class="glyphicon glyphicon-download-alt" style="margin-right:4px"></span> Download Excel
       </button>
     </div>

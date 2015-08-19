@@ -106,6 +106,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// if type is "names", only return the names, ids, and container types
 		names_only := get_type == "names"
 		container_type := r.URL.Query().Get("container_type")
+		bev_id := r.URL.Query().Get("id")
 
 		var beverages []Beverage
 		var beverages_light []BeverageLight
@@ -114,8 +115,14 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		if names_only {
 			query = "SELECT id, version_id, container_type, product FROM beverages WHERE user_id=" + test_user_id + " AND current"
 		}
-		if len(container_type) != 0 {
+		// this is a hackery to prevent injection attacks
+		if len(container_type) != 0 && len(container_type) < 8 {
 			query += " AND container_type='" + container_type + "'"
+		}
+		if len(bev_id) != 0 {
+			if _, err := strconv.Atoi(bev_id); err == nil {
+				query += " AND id=" + bev_id
+			}
 		}
 
 		query += " ORDER BY product;"

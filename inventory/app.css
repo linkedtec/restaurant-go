@@ -779,6 +779,11 @@ like enclosed space */
   min-width: 800px;
 }
 
+.edit-purchase-modal .modal-dialog {
+  margin-top: 160px;
+  min-width: 720px;
+}
+
 .new-dist-modal .modal-dialog {
   margin-top: 200px;
   max-width:620px;

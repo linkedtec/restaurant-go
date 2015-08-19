@@ -319,6 +319,9 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
         },
         volume_units: function() {
           return $scope.volume_units;
+        },
+        edit_mode: function() {
+          return "all";
         }
       }
     });
@@ -477,12 +480,13 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   $scope.getVolUnits();
 })
 
-.controller('editInvModalCtrl', function($scope, $modalInstance, $http, $filter, MathService, edit_beverage, all_distributors, all_breweries, volume_units) {
+.controller('editInvModalCtrl', function($scope, $modalInstance, $http, $filter, MathService, edit_beverage, all_distributors, all_breweries, volume_units, edit_mode) {
 
   $scope.edit_beverage = edit_beverage;
   $scope.all_distributors = all_distributors;
   $scope.all_breweries = all_breweries;
   $scope.volume_units = volume_units;
+  $scope.edit_mode = edit_mode;
 
   $scope.editBevControl = {};
 

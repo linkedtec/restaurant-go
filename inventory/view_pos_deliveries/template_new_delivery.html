@@ -124,7 +124,7 @@
       <div ng-if="inv.deposit === null" style="font-size:1.1em; padding-left:2px">$ {{inv.unit_cost | number:2}}</div>
     </div>
     <div class="col-xs-1 min_padding" style="text-align:center">
-      <button ng-click="editBev($index)" type="button" class="btn btn-md btn_frameless hover_green" style="font-size:14px; min-height:32px;">
+      <button ng-click="editBev($index)" type="button" class="btn btn-md btn_frameless hover_green" style="font-size:14px; min-height:32px;" popover="Edit beverage details." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">
         <span class="glyphicon glyphicon-pencil"></span>
       </button>
     </div>
@@ -152,7 +152,7 @@
   </div>
 </div>
 <hr style="margin: 0px 16px; border-color:#eeeeee"/>
-<div ng-if="add_inv_added_bevs.length > 0" class="row" style="margin:0px 16px; padding-top:12px; padding-bottom:12px; font-size:1.1em; border-bottom:solid 2px #e0f0ff" ng-class="{'inv_row_even':(add_inv_added_bevs.length%2)==1, 'inv_row_odd':(add_inv_added_bevs.length%2)==0}">
+<div ng-if="add_inv_added_bevs.length > 0" class="row" style="margin:0px 16px; padding-top:12px; padding-bottom:12px; font-size:1.1em; border-bottom:solid 2px #daeafa" ng-class="{'inv_row_even':(add_inv_added_bevs.length%2)==1, 'inv_row_odd':(add_inv_added_bevs.length%2)==0}">
   <div class="col-xs-9 min_padding" style="text-align:right;">Delivery Total:</div>
   <div class="col-xs-3 min_padding" style="padding-left:8px">$ {{add_grand_total | number:2}}</div>
 </div>
@@ -169,3 +169,5 @@
   </div>
 </div>
 <div class="min_padding" style="margin-bottom:16px"></div>
+
+<div ng-include src="'./view_all/edit_inv_modal.html'">

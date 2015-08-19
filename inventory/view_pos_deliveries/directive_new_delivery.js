@@ -172,6 +172,25 @@ angular.module('myApp')
 
       };
 
+      scope.getVolUnits = function() {
+        $http.get('/volume_units').
+        success(function(data, status, headers, config) {
+          // this callback will be called asynchronously when the response
+          // is available
+          console.log(data);
+          scope.volume_units_full = data;
+          scope.volume_units = [];
+          for (var i=0; i < data.length; i++)
+          {
+            scope.volume_units.push(data[i].abbr_name);
+          }
+        }).
+        error(function(data, status, headers, config) {
+
+        });
+      };
+      scope.getVolUnits();
+
       // get all inventory from the server.  If location type is bev, get /inv
       // items.  If location type is kegs, get /kegs.
       scope.getAllInv = function() {
@@ -396,6 +415,8 @@ angular.module('myApp')
           }
         }
         scope.add_inv_unadded_bevs = new_unadded_bevs;
+
+        scope.refreshAddGrandTotal();
       }
 
       scope.selectDistributor = function(dist) {
@@ -431,6 +452,191 @@ angular.module('myApp')
 
       scope.hideAddBevInv = function() {
         scope.show_add_bev_ui = false;
+      };
+
+      scope.editBev = function(bev_i) {
+        console.log(scope.add_inv_added_bevs[bev_i]);
+        var bev = scope.add_inv_added_bevs[bev_i];
+
+        $http.get('/inv', {
+          params: {id: bev.id}
+        }).
+          success(function(data, status, headers, config) {
+            // this callback will be called asynchronously when the response
+            // is available
+            console.log(data);
+
+            var inv = data[0];
+
+            // fix a list of known keys to be decimal precision 2
+            var fix_num_keys = [
+            'abv',
+            'count',
+            'purchase_cost',
+            'purchase_volume',
+            ];
+            for (var j in fix_num_keys) {
+              var fix_key = fix_num_keys[j];
+              if ( inv[fix_key] !== undefined && inv[fix_key] !== null ) {
+                inv[fix_key] = MathService.fixFloat2(inv[fix_key]);
+              }
+            }
+
+            // if size_prices is null, make them empty array
+            if (inv.size_prices === null) {
+              inv.size_prices = [];
+            }
+            // fix size_prices to be decimal precision 2
+            for (var j in inv.size_prices) {
+              inv.size_prices[j]['price'] = MathService.fixFloat2(inv.size_prices[j]['price']);
+              inv.size_prices[j]['volume'] = MathService.fixFloat2(inv.size_prices[j]['volume']);
+            }
+
+            // server passes us distributor_id and keg_id, but we need to resolve
+            // the distributor and keg objects based on all_distributors and all_kegs
+            inv['distributor'] = null;
+            inv['keg'] = null;
+            // if beverage has a distributor_id, need to pre-populate its 
+            // distributor entry
+            if (inv['distributor_id'] !== null) {
+              var dist;
+              for (var j in scope.allDistributors) {
+                dist = scope.allDistributors[j];
+                if (dist.id === inv['distributor_id']) {
+                  inv['distributor'] = dist;
+                  break;
+                }
+              }
+              // if there's also a keg_id, pre-populate with keg entry
+              if (inv['keg_id'] !== null && dist.kegs !== null) {
+                for (var j in dist.kegs) {
+                  var keg = dist.kegs[j];
+                  if (keg.id === inv['keg_id']) {
+                    inv['keg'] = keg;
+                    break;
+                  }
+                }
+              }
+            }
+
+            console.log(inv);
+            scope.editBevLaunchModal(inv);
+          }).
+          error(function(data, status, headers, config) {
+
+          });
+      };
+
+      scope.editBevLaunchModal = function(inv) {
+        var modalEditInstance = $modal.open({
+        templateUrl: 'editInvModal.html',
+        controller: 'editInvModalCtrl',
+        windowClass: 'edit-purchase-modal',
+        backdropClass: 'green-modal-backdrop',
+        resolve: {
+          edit_beverage: function() {
+            return inv;
+          },
+          all_distributors: function() {
+            return scope.allDistributors;
+          },
+          all_breweries: function() {
+            // we're invoking the modal in edit purchase info only, so don't
+            // need to provide breweries
+            return [];
+          },
+          volume_units: function() {
+            return scope.volume_units;
+          },
+          edit_mode: function() {
+            return "purchase";
+          }
+        }
+      });
+
+      modalEditInstance.result.then(
+        // success status
+        function( result ) {
+          // result is a list, first item is string for status, e.g.,
+          // 'save' or 'delete'
+          // second item is the affected beverage
+          var status = result[0];
+          var edit_bev = result[1];
+          
+          // after a save, we want to re-calculate cost per mL, for instance
+          if (status === 'save') {
+            console.log(edit_bev);
+
+            // now need to update all client bevs with the new bev info passed
+            // to us in edit_bev
+            var update_invs = [
+              scope.add_inv_all_bevs,
+              scope.add_inv_dist_bevs,
+              scope.add_inv_unadded_bevs,
+              scope.add_inv_added_bevs
+            ];
+
+            for (var i in update_invs) {
+              var inv_list = update_invs[i];
+              for (var j in inv_list) {
+                var item = inv_list[j];
+                if (item['version_id'] === edit_bev['version_id']) {
+                  // we want to copy the new edit_bev into the inv list, 
+                  // but we want to preserve / recalculate quantity, 
+                  // inventory, and unit cost
+                  var old_quantity = item['quantity'];
+
+                  var new_item = JSON.parse( JSON.stringify( edit_bev ) );
+
+                  // locally calculate unit_cost for sorting purposes
+                  var purchase_cost = 0;
+                  var purchase_count = 1;
+                  var deposit = 0;
+                  if (new_item['purchase_cost'] !== null) {
+                    purchase_cost = new_item['purchase_cost'];
+                  }
+                  if (new_item['purchase_count'] !== null) {
+                    purchase_count = new_item['purchase_count'];
+                  }
+                  if (new_item['deposit'] !== null) {
+                    deposit = new_item['deposit'];
+                  }
+                  new_item['unit_cost'] = purchase_cost / purchase_count + deposit;
+                  new_item['quantity'] = old_quantity;
+                  new_item['inventory'] = old_quantity * new_item['unit_cost'];
+
+                  // change distributor back from object to name.  Before we
+                  // sent inv item to edit bev directive, we had to set its
+                  // distributor to an object.  But while displaying in the
+                  // scroll list, distributor is a string of distributor name.
+                  if (new_item['distributor']!==undefined && new_item['distributor']!==null) {
+                    var dist_name = new_item['distributor'].name;
+                    console.log(dist_name);
+                    new_item['distributor'] = dist_name
+                  }
+
+                  inv_list[j] = new_item;
+
+                  break;
+                }
+              }
+            }
+
+            scope.refreshAddGrandTotal();
+
+            swal({
+              title: "Beverage Updated!",
+              text: "<b>" + edit_bev.product + "</b> has been updated with your changes.",
+              type: "success",
+              timer: 4000,
+              allowOutsideClick: true,
+              html: true});
+          }
+        }, 
+        // error status
+        function() {
+          ;
+        });
       };
 
     }

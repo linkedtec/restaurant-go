@@ -25,27 +25,34 @@
   </div>
 
   <div class="row" style="margin:0; margin-top:24px">
-    <div class="col-xs-4" style="padding-left:0">
-      <button ng-show="show_add_ui===false" ng-click="showAddDelivery()" type="button" class="btn btn-primary btn-md">
+    <div class="col-xs-12" style="padding-left:0">
+      <button ng-show="show_add_ui===false" ng-click="showAddDelivery()" type="button" class="btn btn-primary btn-md" style="font-size:1.1em; padding: 8px 16px">
         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Record New Delivery
       </button>
     </div>
-    <div class="col-xs-8" style="text-align:right; margin-top:4px; padding-right:0">
+  </div>
+
+  <div class="row hint_text" style="margin-top:36px; margin-bottom:0; font-size:1.2em">
+    <div class="col-xs-12">
+      Past Deliveries
+    </div>
+  </div>
+  <hr style="margin:4px 0px; border-color:#dddddd"/>
+  
+  <div class="row" style="margin:16px 0px; margin-bottom:0px">
+    <div class="col-xs-9" style="text-align:left; padding:0">
 
       <date-range start-date="start_date" end-date="end_date" on-start-change="startDateChanged()" on-end-change="endDateChanged()"></date_range>
 
     </div>
-  </div>
-
-  <div class="row" style="margin:8px 0px; margin-bottom:0px">
-    <div class="col-xs-12" style="text-aligh:right; padding:0">
-      <button type="button" class="btn btn-default btn-md btn-default" style="font-size:1.0em; float:right; margin-top:2px; border-color:#22aacc; color:#2299cc" ng-click="exportSpreadsheet()" ng-disabled="display_items===null || display_items.length===0">
+    <div class="col-xs-3" style="text-aligh:right; padding:0">
+      <button type="button" class="btn btn-default btn-sm btn-default" style="font-size:0.9em; float:right; margin-top:0px; border-color:#22aacc; color:#2299cc" ng-click="exportSpreadsheet()" ng-disabled="display_items===null || display_items.length===0">
         <span class="glyphicon glyphicon-download-alt" style="margin-right:4px"></span> Download Excel
       </button>
     </div>
   </div>
 
-  <table id="deliveriesTable" summary="Data table for deliveries history." rules="groups" frame="hsides" border="2" style="width:100%; margin-top:8px; margin-bottom:120px">
+  <table id="deliveriesTable" summary="Data table for deliveries history." rules="groups" frame="hsides" border="2" style="width:100%; margin-top:16px; margin-bottom:120px">
     <tr>
       <td></td> <!--For edit button-->
       <td></td> <!--For date-->
@@ -62,7 +69,7 @@
           </button>
         </td>
         <td>{{dlv.pretty_date}}</td>
-        <td><span ng-if="dlv.distributor!==null">{{dlv.distributor}}</span></td>
+        <td><span ng-if="dlv.distributor!==null" style="font-weight:normal">{{dlv.distributor}}</span></td>
         <td></td>
         <td></td>
         <td>{{dlv.inv_sum | number:2}}</td>
