@@ -26,11 +26,18 @@ type Delivery struct {
 }
 
 type DeliveryItem struct {
-	BeverageID int     `json:"beverage_id"`
-	Product    string  `json:"product"`
-	DeliveryID int     `json:"delivery_id"`
-	Quantity   float32 `json:"quantity"`
-	Value      float32 `json:"value"`
+	BeverageID     int         `json:"beverage_id"`
+	Product        string      `json:"product"`
+	DeliveryID     int         `json:"delivery_id"`
+	Quantity       float32     `json:"quantity"`
+	Value          float32     `json:"value"`
+	DistributorID  NullInt64   `json:"distributor_id"`
+	ContainerType  string      `json:"container_type"`
+	Deposit        NullFloat64 `json:"deposit"`
+	PurchaseVolume NullFloat64 `json:"purchase_volume"`
+	PurchaseUnit   NullString  `json:"purchase_unit"`
+	PurchaseCost   float32     `json:"purchase_cost"`
+	PurchaseCount  int         `json:"purchase_count"`
 }
 
 func setupDeliveriesHandlers() {
@@ -186,12 +193,15 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
 			}
+
 			// for each delivery, get all associated delivery items
 			item_rows, err := db.Query(`
-        SELECT delivery_items.beverage_id, beverages.product, delivery_items.quantity, delivery_items.value 
-        FROM delivery_items, beverages 
-        WHERE delivery_items.delivery_id=$1 
-          AND delivery_items.beverage_id=beverages.id`,
+        SELECT delivery_items.beverage_id, beverages.product, beverages.distributor_id, delivery_items.quantity, delivery_items.value, 
+        beverages.container_type, beverages.purchase_volume, beverages.purchase_unit, beverages.purchase_cost, beverages.purchase_count, kegs.deposit 
+        FROM delivery_items 
+        	INNER JOIN beverages ON (beverages.id=delivery_items.beverage_id) 
+					LEFT OUTER JOIN kegs ON (beverages.keg_id=kegs.id) 
+        WHERE delivery_items.delivery_id=$1`,
 				dlv.ID)
 			if err != nil {
 				log.Println(err.Error())
@@ -201,7 +211,7 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 			defer item_rows.Close()
 			for item_rows.Next() {
 				var item DeliveryItem
-				if err := item_rows.Scan(&item.BeverageID, &item.Product, &item.Quantity, &item.Value); err != nil {
+				if err := item_rows.Scan(&item.BeverageID, &item.Product, &item.DistributorID, &item.Quantity, &item.Value, &item.ContainerType, &item.PurchaseVolume, &item.PurchaseUnit, &item.PurchaseCost, &item.PurchaseCount, &item.Deposit); err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					continue
@@ -310,6 +320,43 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Write(js)
+
+	case "DELETE":
+		dlv_id := r.URL.Query().Get("id")
+		log.Println(dlv_id)
+
+		// Deleting Deliveries is a lot simpler than deleting beverages because
+		// there is no version_id history.
+		//
+		// First delete everything in delivery_items with the delivery_id
+		// then delete the id entry in deliveries
+
+		// First check that user is authenticated to delete this delivery id
+		var exists bool
+		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM deliveries WHERE user_id=$1 AND id=$2);", test_user_id, dlv_id).Scan(&exists)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if !exists {
+			http.Error(w, "The delivery id does not belong to the user!", http.StatusInternalServerError)
+			return
+		}
+
+		_, err = db.Exec("DELETE FROM delivery_items WHERE delivery_id=$1;", dlv_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		_, err = db.Exec("DELETE FROM deliveries WHERE id=$1;", dlv_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 	}
 }

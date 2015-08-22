@@ -508,34 +508,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     $modalInstance.close(['save', $scope.edit_beverage]);
   };
 
-  $scope.deleteItem = function() {
-    var bev_id = $scope.original_beverage.id;
-
-    swal({
-      title: "Delete Beverage?",
-      text: "This will remove <b>" + $scope.original_beverage.product + "</b> from the DB, and from all inventory locations which carry it.  This cannot be undone.",
-      type: "warning",
-      showCancelButton: true,
-      html: true,
-      confirmButtonColor: "#DD6B55",
-      confirmButtonText: "Yes, remove it!",
-      closeOnConfirm: false },
-      function() {
-        $http.delete('/inv', {
-          params: {
-            id:bev_id
-        }
-        }).
-        success(function(data, status, headers, config) {
-          // communicate with ViewAllInvCtrl to delete its entry
-          $modalInstance.close(['delete', bev_id]);
-        }).
-        error(function(data, status, headers, config) {
-          console.log(data);
-        });
-    });
-  };
-
   $scope.closeOnDelete = function() {
     $modalInstance.close(['delete', $scope.edit_beverage]);
   }

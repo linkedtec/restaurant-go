@@ -435,6 +435,14 @@ body {
   color:#22aa55;
 }
 
+.warn_box {
+  border: solid 1px #f0d066;
+  border-radius:4px;
+  background-color: #fffcf5;
+  color: #c09011;
+  padding-top:2px;
+  padding-bottom:2px;
+}
 
 .sel_loc, .sel_loc:focus, .sel_loc:active {
   background-color: #3388cc;
@@ -814,6 +822,10 @@ like enclosed space */
 
 .red-modal-backdrop {
   background-color: #eeaa55;
+}
+
+.blue-modal-backdrop {
+  background-color: #e5eef5;
 }
 
 .start_count_btn_green {

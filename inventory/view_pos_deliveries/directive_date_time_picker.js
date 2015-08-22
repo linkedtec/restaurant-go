@@ -28,12 +28,14 @@ angular.module('myApp')
           parseInt(scope.pickedTime.getMinutes() / 5) * 5);
         scope.pickedDate = new Date();
       };
+      if (scope.pickedDate===null || scope.pickedDate===undefined || scope.pickedTime===null || scope.pickedTime===undefined) {
+        scope.internalControl.resetTime();
+      }
 
       // rename dt to pickedDate
       //=====================================
       // Date picker
       scope.minDate = null;
-      scope.pickedDate = null;
       scope.date_opened = false;
 
       scope.formats = ['EEE MMMM dd yyyy', 'yyyy/MM/dd', 'dd.MM.yyyy', 'shortDate'];
@@ -44,7 +46,7 @@ angular.module('myApp')
         scope.pickedDate = new Date();
         scope.today = today;
       };
-      scope.today();
+      //scope.today();
 
       scope.clearDate = function () {
         scope.pickedDate = null;
@@ -86,9 +88,9 @@ angular.module('myApp')
 
       //=====================================
       // Time picker
-      scope.pickedTime = new Date();
-      scope.pickedTime.setMinutes(
-        parseInt(scope.pickedTime.getMinutes() / 5) * 5);
+      //scope.pickedTime = new Date();
+      //scope.pickedTime.setMinutes(
+      //  parseInt(scope.pickedTime.getMinutes() / 5) * 5);
 
       scope.hstep = 1;
       scope.mstep = 5;
