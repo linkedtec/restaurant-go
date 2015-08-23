@@ -54,6 +54,7 @@ angular.module('myApp')
           // convert it back
           scope.new_delivery['delivery_date'] = DateService.getDateFromUTCTimeStamp(
             scope.new_delivery['delivery_date'], true);
+          scope.new_delivery['delivery_time'] = new Date(scope.new_delivery['delivery_time']);
 
           scope.add_grand_total = scope.new_delivery['inv_sum'];
 
@@ -142,6 +143,16 @@ angular.module('myApp')
 
         scope.clearValidation();
 
+        // first fix data -- potentially have quantity as string, need to 
+        // convert to float
+        for (var i in scope.new_delivery.delivery_items) {
+          var item = scope.new_delivery.delivery_items[i];
+          item['quantity'] = MathService.fixFloat2(parseFloat(item['quantity']));
+          item['value'] = MathService.fixFloat2(parseFloat(item['value']));
+        }
+
+        scope.new_delivery['inv_sum'] = scope.add_grand_total;
+
         var all_clear = true;
 
         // first do form validation
@@ -183,6 +194,111 @@ angular.module('myApp')
 
       };
 
+      scope.postEditDelivery = function() {
+        // If this is an EDIT operation
+        // Find any diffs between the original and the modified object.
+        // Instead of doing a comprehensive generic comparison, we rely on
+        // knowing the delivery object's structure to do comparisons (e.g.,
+        // the fact that size_prices is an array of objects)
+        var changedKeys = [];     // store which keys changed
+        // handle changed time seperately.  delivery_date or delivery_time on
+        // client could have changed, but on server it's just treated as a 
+        // single delivery_time, so consolidate if either one changed on client
+        var time_changed = false;
+
+        for (var key in scope.new_delivery) {
+          if (scope.editDelivery.hasOwnProperty(key)) {
+            if (key === '__proto__' || key === '$$hashKey' || key === 'distributor_obj' || key === 'distributor') {
+              continue;
+            } else if (key==='delivery_date' || key==='delivery_time') {
+              var odate = scope.editDelivery[key].getTime();
+              var ndate = scope.new_delivery[key].getTime();
+              if (odate !== ndate) {
+                time_changed = true;
+                continue;
+              }
+            } else if (key==='delivery_items') {
+              // handle known special cases such as delivery_items
+              var osp = scope.editDelivery.delivery_items;
+              var sp = scope.new_delivery.delivery_items;
+              if ( (osp===null && sp!==null) || (osp!==null&&sp===null) ) {
+                changedKeys.push(key);
+                continue;
+              }
+              if (scope.editDelivery.delivery_items.length !== scope.new_delivery.delivery_items.length)
+              {
+                changedKeys.push(key);
+                continue;
+              }
+              for (var i in scope.editDelivery.delivery_items) {
+                var osp = scope.editDelivery.delivery_items[i]
+                var sp = scope.new_delivery.delivery_items[i];
+                // note that in new_delivery, item.quantity will be a string,
+                // so need to convert it to fixed2 float for comparison
+                var oquantity = MathService.fixFloat2(osp.quantity);
+                var nquantity = MathService.fixFloat2(parseFloat(sp.quantity));
+                if (oquantity != nquantity || osp.value != sp.value) {
+                  changedKeys.push(key);
+                  continue;
+                }
+              }
+            }
+            else if (scope.editDelivery[key] !== scope.new_delivery[key]) {
+              changedKeys.push(key);
+            }
+          }
+        }
+
+        if (time_changed) {
+          var delivery_date_local = new Date(
+            scope.new_delivery.delivery_date.getFullYear(),
+            scope.new_delivery.delivery_date.getMonth(),
+            scope.new_delivery.delivery_date.getDate(),
+            scope.new_delivery.delivery_time.getHours(),
+            scope.new_delivery.delivery_time.getMinutes(),
+            0
+            );
+          changedKeys.push('delivery_time');
+          scope.new_delivery['delivery_time'] = delivery_date_local;
+        }
+
+        if (changedKeys.length === 0) {
+          scope.cancel();
+          return;
+        }
+
+        // now put the values of the *changed* keys to the server
+        var putObj = {};
+        for (var i in changedKeys) {
+          var key = changedKeys[i];
+          putObj[key] = scope.new_delivery[key];
+        }
+        putObj.id = scope.new_delivery.id;
+
+        console.log(changedKeys);
+        console.log(putObj);
+
+        var result = DeliveriesService.put(putObj, changedKeys);
+        result.then(
+        function(payload) {
+
+          if (scope.closeOnSave !== null) {
+            // returning an object with key new_distributor allows us to
+            // pass the controller the new distributor from this directive!
+            scope.closeOnSave( {new_delivery:scope.new_delivery} );
+          }
+
+          if (scope.internalControl !== null)
+          {
+            scope.internalControl.clearNewForm();
+          }
+
+        },
+        function(errorPayload) {
+          ; // do nothing for now
+        });
+      }
+
       scope.postNewDelivery = function() {
         var post_items = [];
         for (var i in scope.new_delivery.delivery_items) {
@@ -190,8 +306,8 @@ angular.module('myApp')
           var post_item = {
             beverage_id: item['id'],
             product: item['product'],
-            quantity: parseFloat(item['quantity']),
-            value: parseFloat(item['value'])
+            quantity: item['quantity'],
+            value: item['value']
           };
           post_items.push(post_item);
         }
@@ -341,7 +457,9 @@ angular.module('myApp')
       scope.getAllInv();
 
       scope.applyDistributorFilter = function() {
-
+        // If there is a selected distributor, hides all inv items which don't
+        // belong to that distributor.  If there is no selected distributor,
+        // restores all invs 
         if (scope.new_delivery.distributor_obj === null || !scope.dist_checked) {
           scope.add_inv_dist_bevs = scope.add_inv_all_bevs;
         } else {
@@ -518,7 +636,7 @@ angular.module('myApp')
         if (scope.is_edit) {
           swal({
             title: "Item Removed",
-            text: "Don't forget to press the <b>Save Changes</b> button for this removal to take effect for this Delivery.",
+            text: "Don't forget to <b>Save Changes</b> when you're done editing this Delivery for this removal to take effect.",
             type: "warning",
             html: true,
             confirmButtonText: "Ok",
@@ -565,6 +683,10 @@ angular.module('myApp')
         }
 
         scope.new_delivery.distributor_obj = dist;
+        if (dist !== null) {
+          scope.new_delivery.distributor_id = dist.id;
+          scope.new_delivery.distributor = dist.name;
+        }
 
         scope.refreshAddInv();
 
@@ -581,6 +703,8 @@ angular.module('myApp')
 
       scope.clearDistributor = function() {
         scope.new_delivery.distributor_obj = null;
+        scope.new_delivery.distributor_id = null;
+        scope.new_delivery.distributor = null;
 
         scope.checkEditDiffs();
       };
@@ -614,6 +738,10 @@ angular.module('myApp')
       scope.checkEditDiffs();
 
       scope.editBev = function(bev_i) {
+        // when the user is creating a new Delivery, and they're selecting
+        // beverages to add to the Delivery, they can edit the beverage
+        // details from this page for convenience, in case there were e.g., 
+        // last minute price changes
         console.log(scope.new_delivery.delivery_items[bev_i]);
         var bev = scope.new_delivery.delivery_items[bev_i];
 

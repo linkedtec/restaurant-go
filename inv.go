@@ -370,6 +370,19 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(bev_update.Bev)
 		log.Println(bev_update.ChangeKeys)
 
+		// first verify this beverage belongs to the user
+		var exists bool
+		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE user_id=$1 AND id=$2);", test_user_id, bev_update.Bev.ID).Scan(&exists)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if !exists {
+			http.Error(w, "The beverage does not belong to the user!", http.StatusInternalServerError)
+			return
+		}
+
 		// Here's how we update the keys:
 		// Any "special" keys not in the beverage table we handle individually
 		// Any keys in the beverage table should match the table's keys so

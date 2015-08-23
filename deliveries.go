@@ -40,6 +40,11 @@ type DeliveryItem struct {
 	PurchaseCount  int         `json:"purchase_count"`
 }
 
+type DeliveryUpdate struct {
+	Dlv        Delivery `json:"delivery"`
+	ChangeKeys []string `json:"change_keys"`
+}
+
 func setupDeliveriesHandlers() {
 	http.HandleFunc("/deliveries", deliveriesAPIHandler)
 }
@@ -320,6 +325,134 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Write(js)
+
+	case "PUT":
+		log.Println("Received /deliveries PUT")
+		decoder := json.NewDecoder(r.Body)
+		var dlv_update DeliveryUpdate
+		err := decoder.Decode(&dlv_update)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		log.Println(dlv_update.Dlv)
+		log.Println(dlv_update.ChangeKeys)
+
+		// first make sure the posted delivery_id belongs to the user
+		var exists bool
+		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM deliveries WHERE user_id=$1 AND id=$2);", test_user_id, dlv_update.Dlv.ID).Scan(&exists)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if !exists {
+			http.Error(w, "The delivery does not belong to the user!", http.StatusInternalServerError)
+			return
+		}
+
+		// Here's how we update the keys:
+		// Any "special" keys not in the beverage table we handle individually
+		// Any keys in the beverage table should match the table's keys so
+		// we can just insert them
+		//
+		// First, handle the "special" keys
+
+		var deliveryItemsChanged bool
+		var deliveryChanged bool
+		var deliveryUpdateKeys []string
+		for _, key := range dlv_update.ChangeKeys {
+			if key == "delivery_items" {
+				deliveryItemsChanged = true
+			} else {
+				deliveryChanged = true
+				deliveryUpdateKeys = append(deliveryUpdateKeys, key)
+			}
+		}
+
+		if deliveryChanged {
+			log.Println("Do delivery")
+
+			for _, key := range deliveryUpdateKeys {
+				// here are the potential key changes:
+				//   delivery_time
+				//   distributor_id
+				if key == "delivery_time" {
+					_, err = db.Exec("UPDATE deliveries SET delivery_time=$1 WHERE id=$2", dlv_update.Dlv.DeliveryTime, dlv_update.Dlv.ID)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+				} else if key == "distributor_id" {
+					_, err = db.Exec("UPDATE deliveries SET distributor_id=$1 WHERE id=$2", dlv_update.Dlv.DistributorID, dlv_update.Dlv.ID)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+				}
+			}
+		}
+
+		// DeliveryItems procedure:
+		// Delete all previous delivery_items associated with this delivery
+		// re-insert all delivery_items in the posted new delivery
+		if deliveryItemsChanged {
+			log.Println("Do delivery items ")
+
+			_, err = db.Exec("DELETE FROM delivery_items WHERE delivery_id=$1", dlv_update.Dlv.ID)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			for _, bev := range dlv_update.Dlv.DeliveryItems {
+				bev_id := bev.BeverageID
+				var exists bool
+				err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE user_id=$1 AND id=$2);", test_user_id, bev_id).Scan(&exists)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+				if !exists {
+					http.Error(w, "Cannot find beverage associated with your user id!", http.StatusInternalServerError)
+					continue
+				}
+
+				_, err = db.Exec("INSERT INTO delivery_items(beverage_id, delivery_id, quantity, value) VALUES ($1, $2, $3, $4);", bev.BeverageID, dlv_update.Dlv.ID, bev.Quantity, bev.Value)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+			}
+		}
+
+		// update the 'update' key in this delivery to the current time
+		cur_time := time.Now().UTC()
+		_, err = db.Exec("UPDATE deliveries SET update=$1 WHERE id=$2;", cur_time, dlv_update.Dlv.ID)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// return the updated delivery to the user
+		/*
+			w.Header().Set("Content-Type", "application/json")
+			var dlv Delivery
+			bev.ID = new_bev_id
+			js, err := json.Marshal(&bev)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Write(js)
+		*/
 
 	case "DELETE":
 		dlv_id := r.URL.Query().Get("id")

@@ -27,10 +27,9 @@ angular.module('myApp')
 
     put: function(edit_delivery, change_keys) {
       var promise = $http.put('/deliveries', {
-        delivery:edit_distributor,
+        delivery:edit_delivery,
         change_keys:change_keys
       });
-
       return promise;
     },
 

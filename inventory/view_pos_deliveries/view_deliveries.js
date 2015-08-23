@@ -57,6 +57,11 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
           var date_str = dlv['delivery_time'];
           dlv['pretty_date'] = DateService.getPrettyDate(date_str, true);
 
+          // convert date and time from utc timestamp to local time object
+          dlv['delivery_date'] = DateService.getDateFromUTCTimeStamp(
+            dlv['delivery_time'], true);
+          dlv['delivery_time'] = new Date(dlv['delivery_time']);
+
           // get the sum of item values for the delivery
           var inv_sum = 0;
           for (var j in dlv.delivery_items) {
@@ -97,10 +102,9 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
 
   $scope.editDelivery = function(delivery) {
 
-    // first prep the delivery for editing
-    // by converting some attributes to play nice with the
-    // delivery directive.
-    // distributor is a string, needs to be an object:
+    // first prep the delivery for editing by converting some attributes 
+    // to play nice with the delivery directive.
+    // first, add a distributor_obj attr for client-side distributor info
     var found_dist = false;
     for (var i in $scope.distributors) {
       var dist = $scope.distributors[i];
@@ -109,11 +113,6 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
         break;
       }
     }
-    // convert delivery_time to delivery_date and delivery_time
-    delivery['delivery_date'] = DateService.getDateFromUTCTimeStamp(
-      delivery['delivery_time'], true);
-    delivery['delivery_time'] = new Date(delivery['delivery_time']);
-
     // fix the floating point numbers to 2 decimal places for numbers
     // which might have overly long floating points
     delivery['inv_sum'] = MathService.fixFloat2(delivery['inv_sum']);
@@ -178,6 +177,8 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
             timer: 4000,
             allowOutsideClick: true,
             html: true});
+
+          $scope.reSort();
         }
       }, 
       // error status
@@ -299,11 +300,16 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
     // clone our tmp beverage to the original beverage object to commit the
     // changes on the client side.
 
+    // transfers updated values to the local client delivery entry
     for (var key in new_delivery) {
       if ($scope.edit_delivery.hasOwnProperty(key)) {
         $scope.edit_delivery[key] = new_delivery[key];
       }
     }
+
+    // get the pretty date from the updated delivery time
+    var date_str = $scope.edit_delivery['delivery_time'].toString();
+    $scope.edit_delivery['pretty_date'] = DateService.getPrettyDate(date_str, false);
 
     $modalInstance.close(['save', $scope.edit_delivery]);
   };
