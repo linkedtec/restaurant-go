@@ -292,7 +292,7 @@ body {
 
 .inv_row_even {
   background-color: #f8f8f8;
-  border-bottom: solid 1px #f0f0f0;
+  border-bottom: solid 1px #eeeeee;
 }
 
 .inv_row_odd {
