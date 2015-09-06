@@ -786,6 +786,8 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
       inv.quantity = 0;
     }
 
+    inv.quantity = MathService.fixFloat2(inv.quantity);
+
     if (isAddQ) {
       inv.add_q = null;
     }
@@ -1604,7 +1606,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
   };
 })
 
-.controller('modalInvQuantityCtrl', function($scope, $modalInstance, item, is_edit) {
+.controller('modalInvQuantityCtrl', function($scope, $modalInstance, item, is_edit, MathService) {
 
   $scope.item = item;
   $scope.is_edit = is_edit;
@@ -1633,6 +1635,8 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
     if ($scope.quantity < 0) {
       $scope.quantity = 0;
     }
+
+    $scope.quantity = MathService.fixFloat2($scope.quantity);
 
     if (isAddQ) {
       inv.add_q = null;
