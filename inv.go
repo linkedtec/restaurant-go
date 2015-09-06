@@ -93,6 +93,7 @@ func setupInvHandlers() {
 	http.HandleFunc("/inv", invAPIHandler)
 	http.HandleFunc("/loc", locAPIHandler)
 	http.HandleFunc("/inv/loc", invLocAPIHandler)
+	http.HandleFunc("/inv/locnew", invLocNewAPIHandler)
 	http.HandleFunc("/inv/history", invHistoryAPIHandler)
 	http.HandleFunc("/export/", exportAPIHandler)
 }
@@ -2010,6 +2011,243 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
+	}
+}
+
+func invLocNewAPIHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "PUT":
+		// A PUT to inventory locations is what actually updates quantities of all
+		// the beverage types in the location.
+		log.Println("Received /inv/locnew PUT")
+		decoder := json.NewDecoder(r.Body)
+		var batch LocBeverageAppBatch
+		err := decoder.Decode(&batch)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		log.Println(batch)
+		// check location exists
+		var loc_id int
+		err = db.QueryRow("SELECT id FROM locations WHERE user_id=$1 AND name=$2 AND type=$3;", test_user_id, batch.Location, batch.Type).Scan(&loc_id)
+		if err != nil {
+			// if query failed will exit here, so loc_id is guaranteed below
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Println(err.Error())
+			return
+		}
+
+		// XXX NEW LOGIC
+		// If same_day, update all location_beverages with update=last_update AND active
+		// to have update = cur_time.  Otherwise, duplicate (insert) all
+		// location_beverages with update=last_update AND active, and set their
+		// update to cur_time.
+		// Then, update locations.last_update to cur_time.
+		// Finally, update all location_beverages with update=last_update with the
+		// posted values.
+		var last_update time.Time
+		err = db.QueryRow("SELECT last_update FROM locations WHERE id=$1;", loc_id).Scan(&last_update)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Println(err.Error())
+			return
+		}
+
+		// We need to compare if the PUT was on the same date as the last PUT
+		// using the user's local time, rather than UTC time, since the date
+		// depends on the user's time zone.
+		// 1. Get the time zone offset (in hours) posted from client
+		// 2. convert cur_time, in UTC, to user's local time by subtracting
+		//    time zone offset
+		// 2. convert last_update from UTC to local time using time zone offset
+		// 3. Check their date components, if they match, same_day = true
+
+		cur_time := time.Now().UTC()
+		tz_offset := batch.TZOffset
+
+		// convert tz_offset to duration in hours
+		hour_offset := time.Duration(-tz_offset) * time.Hour
+
+		// now that we have hour offset, add it to cur_time, which is in
+		// UTC, to get the equivalent of the local time
+		user_put_time := cur_time.Add(hour_offset)
+		log.Println("USER TIME:")
+		log.Println(user_put_time)
+
+		user_last_update := last_update.Add(hour_offset)
+		log.Println("LAST UPDATE TIME:")
+		log.Println(user_last_update)
+
+		user_year := user_put_time.Year()
+		user_month := user_put_time.Month()
+		user_day := user_put_time.Day()
+		last_year := user_last_update.Year()
+		last_month := user_last_update.Month()
+		last_day := user_last_update.Day()
+		same_day := false
+		if user_year == last_year && user_month == last_month && user_day == last_day {
+			same_day = true
+		}
+
+		log.Println("SAME DAY?")
+		log.Println(same_day)
+
+		// XXX This is where the NEW NEW logic comes in:
+		// if same day, delete all the old entries
+		// if not same day. just insert from posted items
+		if same_day {
+			_, err = db.Exec("DELETE FROM location_beverages WHERE update=$1 AND location_id=$2 AND active;", last_update, loc_id)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.Println(err.Error())
+				return
+			}
+		}
+
+		// update location last_update
+		_, err = db.Exec("UPDATE locations SET last_update=$1 WHERE id=$2;", cur_time, loc_id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Println(err.Error())
+			return
+		}
+
+		// XXX In this loop, need to insert items into location_beverages as well
+		// for new logic
+		var total_inventory float32
+		for i := range batch.Items {
+			anItem := batch.Items[i]
+
+			// XXX in future need to check that the posting user's ID matches each
+			// item to be updated's user_id
+
+			// check that the item id exists
+			var exists bool
+			if anItem.Type == "bev" {
+				err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM beverages WHERE user_id=$1 AND id=$2);", test_user_id, anItem.ID).Scan(&exists)
+			} else { //keg
+				err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM kegs INNER JOIN distributors ON (distributors.id=kegs.distributor_id) WHERE kegs.id=$1 AND distributors.user_id=$2);", anItem.ID, test_user_id).Scan(&exists)
+			}
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+
+			// A note here:
+			// We are updating beverages from the LAST save.  The beverage info might
+			// have changed (such as user updating pricing, etc), which will mean
+			// a new id will exist in the beverages table with the same version_id as
+			// the old beverage.  So we have to check if the beverage is current.
+			// If it's not, need to replace the location_beverages beverage_id with
+			// the most current id.
+			var most_recent_id int
+			do_update := true
+			if anItem.Type == "bev" {
+				err = db.QueryRow("SELECT id FROM beverages WHERE version_id=(SELECT version_id FROM beverages WHERE id=$1) AND current;", anItem.ID).Scan(&most_recent_id)
+			} else { // keg
+				err = db.QueryRow("SELECT id FROM kegs WHERE version_id=(SELECT version_id FROM kegs WHERE id=$1) AND current;", anItem.ID).Scan(&most_recent_id)
+			}
+
+			switch {
+			// If there were no rows, that means the beverage was probably deleted (no current).  In that case don't do the update
+			case err == sql.ErrNoRows:
+				do_update = false
+			case err != nil:
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+			if do_update && most_recent_id != anItem.ID {
+				anItem.ID = most_recent_id
+			}
+
+			// now, calculate its inventory value and save it in location_beverages
+			// for easy retrieval.  This varies by location type:
+			// + bev:
+			//     inventory = quantity * purchase_cost / purchase_count + deposit
+			// + tap:
+			//     if purchase_volume not null and not 0:
+			//       inventory = quantity / purchase_volume * purchase_cost / purchase_count + deposit
+			//     else
+			//       inventory = deposit
+			// + keg:
+			//     inventory = quantity * deposit
+			inventory := float32(0)
+			unit_cost := float32(0)
+			deposit := float32(0)
+
+			// Calculate deposit
+			if anItem.Type == "bev" {
+				err = db.QueryRow("SELECT COALESCE(kegs.deposit, 0) FROM beverages LEFT OUTER JOIN kegs ON (beverages.keg_id=kegs.id) WHERE beverages.id=$1;", most_recent_id).Scan(&deposit)
+			} else { // keg
+				err = db.QueryRow("SELECT COALESCE(deposit, 0) FROM kegs WHERE id=$1;", most_recent_id).Scan(&deposit)
+			}
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+
+			if batch.Type == "bev" {
+				if anItem.Type == "bev" {
+					err = db.QueryRow("SELECT COALESCE(purchase_cost, 0) / COALESCE(purchase_count, 1) FROM beverages WHERE id=$1;", most_recent_id).Scan(&unit_cost)
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						log.Println(err.Error())
+						continue
+					}
+					inventory = float32(anItem.Quantity) * (unit_cost + deposit) // parenthesis are important here
+				} else { // keg
+					inventory = float32(anItem.Quantity) * deposit
+				}
+
+			} else if batch.Type == "tap" {
+				err = db.QueryRow("SELECT CASE WHEN COALESCE(purchase_volume,0)>0 THEN purchase_cost/COALESCE(purchase_count,1)/purchase_volume ELSE 0 END FROM beverages WHERE id=$1;", most_recent_id).Scan(&unit_cost)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					log.Println(err.Error())
+					continue
+				}
+				inventory = float32(anItem.Quantity)*unit_cost + deposit // no parenthesis here!
+			} else {
+				http.Error(w, "Encountered incorrect location type!", http.StatusInternalServerError)
+				return
+			}
+
+			// finally, update its quantity and inventory in location_beverages
+			// XXX HERE DO INSERTION
+			_, err = db.Exec("INSERT INTO location_beverages (beverage_id, location_id, quantity, inventory, update, active, type) VALUES ($1, $2, $3, $4, $5, TRUE, $6);", anItem.ID, loc_id, anItem.Quantity, inventory, cur_time, anItem.Type)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			/*
+				_, err = db.Exec("INSERT INTO location_beverages SET quantity=$1, inventory=$2 WHERE beverage_id=$3 AND location_id=$4 AND update=$5 AND active AND type=$6;", anItem.Quantity, inventory, most_recent_id, loc_id, cur_time, anItem.Type)
+				//_, err = db.Exec("UPDATE location_beverages SET quantity=$1, inventory=$2 WHERE beverage_id=$3 AND location_id=$4 AND update=$5 AND active AND type=$6;", anItem.Quantity, inventory, most_recent_id, loc_id, cur_time, anItem.Type)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					log.Println(err.Error())
+					continue
+				}
+			*/
+			total_inventory += inventory
+		}
+
+		var retLoc Location
+		retLoc.LastUpdate = cur_time
+		retLoc.Name = batch.Location
+		retLoc.TotalInv = total_inventory
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(retLoc)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
 	}
 }
 

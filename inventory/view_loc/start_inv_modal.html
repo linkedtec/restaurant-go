@@ -1,0 +1,211 @@
+<script type="text/ng-template" id="startInvModal.html">
+  <div class="modal-body" style="font-size:1.0em; height:100%; background-color:#eaeaea">
+    <div class="row" style="height:100%">
+      <div class="col-xs-7" style="height:100%; overflow-y:hidden">
+        <!--div style="position:absolute; left:24px; top:4px; font-size:1.1em">All Addable Items</div-->
+        <tabset style="margin: 0px 0px; font-size:1.0em; margin-left:0px">
+          <tab ng-repeat="type in add_types" heading="{{type}}" ng-click="selectAddType(type)"></tab>
+        </tabset>
+        <div class="new_inv_border_box" style="margin:0px 0px; height:96%;">
+          <div class="row" style="margin-bottom:10px; margin-top:8px">
+            <div class="col-xs-3" style="padding-right:0">
+              <div ng-if="add_type===add_types[0]" class="btn-group" dropdown style="width:100%">
+                <button type="button" class="btn btn-default btn-sm dropdown-toggle" dropdown-toggle style="font-size:1.0em; width:100%;">
+                  <span style="float:left; text-align:left; width:94%; overflow:hidden">
+                    {{type_filter}} 
+                  </span>
+                  <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:10px; color:#888888">
+                  </span>
+                </button>
+                <ul class="dropdown-menu" role="menu">
+                  <li class="loc_li" ng-repeat="type in type_filters">
+                    <a ng-click="selectType(type)" class="noselect">{{type}}</a>
+                  </li>
+                </ul>
+              </div>
+              <div ng-if="add_type===add_types[1]" class="btn-group" dropdown style="width:100%">
+                <button type="button" class="btn btn-default btn-sm dropdown-toggle" dropdown-toggle style="font-size:1.0em; width:100%;">
+                  <span style="float:left; text-align:left; width:94%; overflow:hidden">
+                    {{dist_filter}} 
+                  </span>
+                  <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:10px; color:#888888">
+                  </span>
+                </button>
+                <ul class="dropdown-menu" role="menu">
+                  <li class="loc_li" ng-repeat="dist in dist_filters">
+                    <a ng-click="selectDistributorFilter(dist)" class="noselect">{{dist}}</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="col-xs-3" style="padding-right:0">
+              <div ng-if="add_type===add_types[0]" class="btn-group" dropdown style="width:100%">
+                <button type="button" class="btn btn-default btn-sm dropdown-toggle" dropdown-toggle style="font-size:1.0em; width:100%">
+                  <span style="float:left; text-align:left; width:94%; overflow:hidden">
+                    {{container_filter}} 
+                  </span>
+                  <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:10px; color:#888888">
+                  </span>
+                </button>
+                <ul class="dropdown-menu" role="menu">
+                  <li class="loc_li" ng-repeat="type in container_filters">
+                    <a ng-click="selectContainer(type)" class="noselect">{{type}}</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="col-xs-4">
+              <input ng-model="filter_query.query" class="form-control input-md" style="height:33px" placeholder="Search For Item...">
+              <div ng-if="filter_query.query.length>0" style="position:absolute; top:2px; right:12px;">
+                <button ng-click="filter_query.query=''" type="button" class="btn btn-md btn_frameless hover_gray_transparent noselect" style="background-color:none">
+                    <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span>
+                </button>
+              </div>
+            </div>
+            <div class="col-xs-1" style="text-align:right; padding-left:0; padding-right:0">
+              <!--Buttons for grid / lines goes here-->
+            </div>
+          </div>
+          <div class="row" style="margin: 0px 0px; font-size:0.9em; color:#999999; padding-bottom:0px">
+            <div class="col-xs-1" style="padding-left:28px">
+            </div>
+            <div class="col-xs-5 add_inv_sort_div_lt" ng-if="add_type===add_types[0]" ng-click="sortBevsBy('product')" style="padding-left:20px">
+              Product
+              <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_bev === 'product'" ng-class="{'glyphicon-menu-down': double_sort_bev<0, 'glyphicon-menu-up':double_sort_bev>0}" style="color:#cccccc;">
+              </span>
+            </div>
+            <div class="col-xs-5 add_inv_sort_div_lt" ng-if="add_type===add_types[1]" ng-click="sortKegsBy('distributor')" style="padding-left:20px">
+              Distributor
+              <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_keg === 'distributor'" ng-class="{'glyphicon-menu-down': double_sort_keg<0, 'glyphicon-menu-up':double_sort_keg>0}" style="color:#cccccc;">
+              </span>
+            </div>
+            <div class="col-xs-4 add_inv_sort_div_lt" ng-if="add_type===add_types[0]" ng-click="sortBevsBy('brewery')" style="padding-left:16px">
+              Brewery
+              <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_bev === 'brewery'" ng-class="{'glyphicon-menu-down': double_sort_bev<0, 'glyphicon-menu-up':double_sort_bev>0}" style="color:#cccccc;">
+              </span>
+            </div>
+            <div class="col-xs-4 add_inv_sort_div_lt_nosort noselect" ng-if="add_type===add_types[1]" style="padding-left:16px">
+              Keg Size
+            </div>
+          </div>
+          <hr style="margin:0 0;"/>
+          <div style="height:85%; overflow-y:scroll; overflow-x:hidden;">
+            <div ng-if="add_type===add_types[0]">
+              <div ng-repeat="bev in filtered_bevs | filter:filter_query.query" class="row" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="padding:7px 0px; margin:0px 2px;">
+                <div class="col-xs-1" style="padding-left:6px;">
+                  <img ng-if="bev.icon==='draft'" src="images/bev_draft.png" height="38px" width="38px" style="margin-left:0px">
+                  <img ng-if="bev.icon==='wine'" src="images/bev_wine.png" height="38px" width="38px" style="margin-left:0px">
+                  <img ng-if="bev.icon==='bottle'" src="images/bev_bottle.png" height="38px" width="38px" style="margin-left:0px">
+                  <img ng-if="bev.icon==='can'" src="images/bev_can.png" height="38px" width="38px" style="margin-left:0px">
+                  <img ng-if="bev.icon==='liquor'" src="images/bev_xo.png" height="38px" width="38px" style="margin-left:0px">
+                </div>
+                <div class="col-xs-5" style="padding-left:20px">
+                  <div>{{bev.product}}</div>
+                  <div style="font-size:0.9em; color:#a0a0a0;">
+                    <span ng-if="bev.purchase_unit!==null">
+                      {{bev.purchase_volume | number:1}} {{bev.purchase_unit}}
+                    </span> 
+                    {{bev.container_type}}
+                  </div>
+                </div>
+                <div class="col-xs-4" style="font-size:0.9em">
+                  {{bev.brewery}}
+                </div>
+                <div class="col-xs-2">
+                  <button ng-click="enterInvQuantity(bev, false)" type="button" class="btn btn-sm btn-success" style="font-size:12px; float:right; width:64px; height:32px; border-radius:4px; margin-top:4px;">
+                    ADD <span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div ng-if="add_type===add_types[1]">
+              <div ng-repeat="keg in filtered_kegs | filter:filter_query.query" class="row" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="padding:7px 0px; margin:0px 2px;">
+                <div class="col-xs-1" style="padding-left:6px;">
+                  <img src="images/bev_keg.png" height="38px" width="38px" style="margin-left:0px">
+                </div>
+                <div class="col-xs-5">
+                  {{keg.distributor}}
+                </div>
+                <div class="col-xs-4">
+                  {{keg.volume | number:2}} {{keg.unit}} Keg
+                </div>
+                <div class="col-xs-2">
+                  <button ng-click="enterInvQuantity(keg, false)" type="button" class="btn btn-sm btn-success" style="font-size:12px; float:right; width:64px; height:32px; border-radius:4px; margin-top:4px;">
+                    ADD <span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xs-5" style="font-size:1.1em; height:100%; padding-left:4px">
+        <table style="height:100%; width:100%;">
+          <tr>
+            <td valign="top" style="height:36px;padding-top:6px; padding-left:12px; width:100%">
+              Inventory in {{loc_name}}
+              <span style="float:right; margin-right:8px; color:#999999;" ng-if="added_items.length!=1">{{added_items.length}} Items</span>
+              <span style="float:right; margin-right:8px; color:#999999;" ng-if="added_items.length===1">{{added_items.length}} Item</span>
+            </td>
+          </tr>
+          <tr>
+            <td valign="top" style="background-image:url('/inventory/images/bg_paper.png'); background-size:100%; width:100%">
+              <div class="row inv_row_added" ng-if="added_items.length===0" style="padding: 24px 16px; color:#999999">
+                No Inventory added in this Location yet.<br/>
+                Add inventory items from the <b>left screen</b>.
+              </div>
+              <div style="height:98%; overflow-y:scroll" ng-if="added_items.length>0">
+                <div class="row inv_row_added" ng-repeat="item in added_items">
+                  <div class="col-xs-1" style="padding:0">
+                  <img ng-if="item.icon==='keg'" src="images/bev_keg.png" height="38px" width="38px" style="margin-left:0px">
+                    <img ng-if="item.icon==='draft'" src="images/bev_draft.png" height="38px" width="38px" style="margin-left:0px">
+                    <img ng-if="item.icon==='wine'" src="images/bev_wine.png" height="38px" width="38px" style="margin-left:0px">
+                    <img ng-if="item.icon==='bottle'" src="images/bev_bottle.png" height="38px" width="38px" style="margin-left:0px">
+                    <img ng-if="item.icon==='can'" src="images/bev_can.png" height="38px" width="38px" style="margin-left:0px">
+                    <img ng-if="item.icon==='liquor'" src="images/bev_xo.png" height="38px" width="38px" style="margin-left:0px">
+                  </div>
+                  <div class="col-xs-7" style="padding:0; padding-left:24px">
+                    <div style="font-size:0.9em">
+                      <span ng-if="item.type==='bev'">{{item.product}}</span>
+                      <span ng-if="item.type==='keg'">{{item.distributor}}</span>
+                    </div>
+                    <div style="font-size:0.8em; color:#a0a0a0; padding:0;">
+                      <span ng-if="item.purchase_unit!==null">
+                        {{item.purchase_volume | number:1}} {{item.purchase_unit}}
+                      </span> 
+                      {{item.container_type}}
+                    </div>
+                  </div>
+                  <div class="col-xs-3" style="padding:0">
+                    <button ng-click="enterInvQuantity(item, true)" type="button" class="btn btn-sm btn_inv_qty">
+                      {{item.quantity}}
+                    </button>
+                  </div>
+                  <div class="col-xs-1" style="padding:0; padding-top:4px; float:right">
+
+                    <button ng-model="item" popover-template="'popoverRemoveItem.html'" popover-placement="left" popover-title="Remove from list?" popover-append-to-body="true" type="button" class="btn btn-sm btn_frameless hover_red" style="font-size:24px; float:right; padding:0;">
+                      <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                    </button>
+
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td valign="bottom" style="height:52px; width:100%">
+              <div style="vertical-align:bottom; margin-bottom:0px; margin-right:4px">
+                <button ng-click="saveInv()" type="button" class="btn btn-primary btn_ok" style="float:right; width:55%; font-size:18px; background-color:#0099cc; border:none">
+                  <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> Save Inventory
+                </button>
+                <button ng-click="cancelInv()" type="button" class="btn btn-default btn_ok" style="float:left; margin-right:16px; width:40%; font-size:18px">
+                  <span class="glyphicon glyphicon-remove" aria-hidden="true" style="color:#aa0000;"></span> Cancel
+                </button>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</script>

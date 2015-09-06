@@ -1,0 +1,51 @@
+<script type="text/ng-template" id="modalInvQuantity.html">
+  <div class="modal-body" style="font-size:1.0em; height:100%; background-color:#ffffff">
+    <div style="position:absolute; top:-14px; left:-14px">
+      <button ng-click="cancel()" type="button" class="btn btn-sm btn_x_circle">
+        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+      </button>
+    </div>
+    <div style="position:absolute; bottom:-26px; right:-26px">
+      <button ng-click="save()" type="button" class="btn btn-sm btn_ok_circle">
+        <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+      </button>
+    </div>
+    <div style="text-align:center; font-size:1.2em; margin-top:16px; color:#aaaaaa">
+      Enter Quantity for
+    </div>
+    <div style="text-align:center; font-size:1.8em; margin-top:-6px">
+      {{item.display_name}}
+    </div>
+    <div style="text-align:center; font-size:1.4em; margin-top:12px">
+      <img ng-if="item.icon==='keg'" src="images/bev_keg.png" height="96px" width="96px">
+      <img ng-if="item.icon==='draft'" src="images/bev_draft.png" height="96px" width="96px">
+      <img ng-if="item.icon==='wine'" src="images/bev_wine.png" height="96px" width="96px" style="margin-left:0px">
+      <img ng-if="item.icon==='bottle'" src="images/bev_bottle.png" height="96px" width="96px" style="margin-left:0px">
+      <img ng-if="item.icon==='can'" src="images/bev_can.png" height="96px" width="96px" style="margin-left:0px">
+      <img ng-if="item.icon==='liquor'" src="images/bev_xo.png" height="96px" width="96px" style="margin-left:0px">
+    </div>
+    <div style="text-align:center; margin-top:24px;">
+      <button ng-click="addQuantity(item,-10, false)" type="button" class="btn btn-default inv_minus_btn_lg" style="margin-right:5px">
+        <b>-10</b>
+      </button>
+      <button ng-click="addQuantity(item,-1, false)" type="button" class="btn btn-default inv_minus_btn_lg">
+        <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
+      </button>
+      <div class="form" ng-class="{'has-error': new_failure_msg!==null}" style="display:inline-block; vertical-align:top; margin: 0px 5px">
+        <input ng-model="quantity" ng-class="{'input_error': new_failure_msg!==null}" class="form-control" style="text-align:center; max-width:96px; height:52px; font-size:1.6em;">
+      </div>
+      <button ng-click="addQuantity(item,1, false)" type="button" class="btn btn-default inv_plus_btn_lg">
+        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+      </button>
+      <button ng-click="addQuantity(item,10, false)" type="button" class="btn btn-default inv_plus_btn_lg" style="margin-left:5px">
+        <b>+10</b>
+      </button>
+    </div>
+    <div style="margin-top:16px; margin-bottom:24px">
+      &nbsp;
+      <div ng-if="new_failure_msg !== null" class="row" style="font-size:1.2em; color:#aa2222; text-align:center">
+        {{new_failure_msg}} 
+      </div>
+    </div>
+  </div>
+</script>

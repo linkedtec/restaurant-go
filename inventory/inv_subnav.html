@@ -1,12 +1,18 @@
 <nav class="subtoolbar">
   <div class="container" style="max-width:880px">
     <ul class="menu" ng-controller="myAppCtrl">
-      <li ng-class="{ sub_active: isActive('/viewInvByLoc')}">
+      <li ng-class="{ sub_active: isActive('/viewInvByLocNew')}">
+        <a href="#/viewInvByLocNew">
+          <div style="text-align:center"><img src="images/inv_box.png" height="24" width="24"></div>
+          <div>In-Storage <span style="color:#cc3300">NEW</span></div>
+        </a>
+      </li>
+      <!--li ng-class="{ sub_active: isActive('/viewInvByLoc')}">
         <a href="#/viewInvByLoc">
           <div style="text-align:center"><img src="images/inv_box.png" height="24" width="24"></div>
           <div>In-Storage</div>
         </a>
-      </li>
+      </li-->
       <li ng-class="{ sub_active: isActive('/viewOnTap')}">
         <a href="#/viewOnTap">
           <div style="text-align:center"><img src="images/inv_on_tap.png" height="24" width="24"></div>

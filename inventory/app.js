@@ -6,6 +6,7 @@ angular.module('myApp', [
   'myApp.viewAllInv',
   'myApp.viewDistributors',
   'myApp.viewInvByLoc',
+  'myApp.viewInvByLocNew',
   'myApp.viewOnTap',
  // 'myApp.viewEmptyKegs',
   'myApp.viewHistory',
@@ -14,6 +15,16 @@ angular.module('myApp', [
 config(['$routeProvider', function($routeProvider) {
   $routeProvider.otherwise({redirectTo: '/viewAllInv'});
 }])
+// this tool tip config is to bypass a bug in Safari for closing popovers on
+// focus.  See this issue:
+// https://github.com/angular-ui/bootstrap/issues/3687
+/*
+.config(['$tooltipProvider', function($tooltipProvider){
+  $tooltipProvider.setTriggers({
+    'show': 'hide'
+  });
+}])
+*/
 .directive('datepickerPopup', function (){
   return {
     restrict: 'EAC',

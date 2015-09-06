@@ -1,0 +1,204 @@
+<div ng-include src="'./inv_subnav.html'"></div>
+<div class="container" style="min-width:620px; max-width:880px">
+
+  <div style="width:100%; margin-top:24px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_box.png" height="36" width="36" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:2px; margin-left:2px">In-Storage Inventory</div>
+  </div>
+  <div class="hint_text" style="width:100%; padding-top:4px;">
+    Record inventory by physical storage locations.
+  </div>
+
+  <!-- ADD LOCATION UI -->
+  <div ng-show="show_add_loc_ui===true || locations.length===0" class="add_ui_box_blue" style="margin-top:16px; max-width:640px; margin-bottom:-8px">
+    <div class="add_title_bar_blue">
+      <button ng-if="locations.length>0" ng-click="hideAddLoc()" type="button" class="btn btn-default btn_x" style="float:left">
+        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+      </button>
+      <div class="add_title_blue">
+        <span style="font-size:1.0em;"> Add New Location</span>
+      </div>
+      <br/>
+    </div>
+    <div class="row" ng-if="locations.length===0" style="padding-left:30px; margin-top:10px; font-size:1.1em">
+      We track inventory by storage Locations.  &nbsp;Let's create one to get started!
+    </div>
+    <new-location all-locations="locations" loc-type="k_loc_type" control="newLocControl" close-on-save="newLocationCloseOnSave(new_loc)"></new-location>
+  </div>
+
+  <div ng-if="locations.length>0" style="margin-top:24px; margin-bottom:24px">
+    <div class="row">
+      <div class="col-xs-6">
+        <span style="float:left">
+          <div class="btn-group" dropdown>
+            <button type="button" class="btn btn-default btn-sm dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.2em">
+              <span ng-if="selected_loc !== null" style="float:left; text-align:left; width:90%">
+                {{selected_loc.name}} 
+              </span>
+              <span ng-if="selected_loc === null" class="noselect" style="float:left; text-align:left; width:90%">
+                Select a Location
+              </span>
+              <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:14px; color:#888888"></span>
+            </button>
+            <ul class="loc_dropdown dropdown-menu" role="menu">
+              <li class="loc_li" ng-repeat="loc in locations">
+                <a ng-click="selectLoc(loc)" ng-class="{new_loc: loc.is_add === true}" class="noselect">{{loc.name}}</a>
+              </li>
+              <li class="loc_li">
+                <a ng-click="showAddLocation()" class="new_loc noselect">+ New Location</a>
+              </li>
+            </ul>
+          </div>
+        </span>
+        <span ng-if="selected_loc !== null">
+          <button ng-click="toggleEditLoc()" type="button" class="btn btn-default btn-sm" style="font-size:20px; height:37px; float:left; margin-left:8px; color:#b5d9f0; border-color:#dddddd">
+            <span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
+          </button>
+        </span>
+      </div>
+      <div ng-if="last_update !== null" class="col-xs-6" style="text-align:right; margin-top:0px;">
+        <div style="font-size:1.1em">Total Inventory: ${{total_inventory | number:2}}</div>
+        <div class="hint_text">Last Counted: {{last_update}}</div>
+      </div>
+    </div>
+  </div>
+
+  <div ng-if="selected_loc!==null && edit_loc===true" class="add_ui_box_blue" style="margin-top:-12px; margin-bottom:12px; max-width:640px;">
+    <div class="add_title_bar_blue">
+      <button ng-if="locations.length>0" ng-click="toggleEditLoc()" type="button" class="btn btn-default btn_x" style="float:left">
+        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+      </button>
+      <div class="add_title_blue">
+        <span style="font-size:1.0em;">Edit This Location</span>
+      </div>
+      <br/>
+    </div>
+    <edit-location all-locations="locations" loc-type="k_loc_type" edit-loc="selected_loc" control="editLocControl" close-on-delete="editLocationCloseOnDelete(delete_loc)"></edit-location>
+  </div>
+
+  <div ng-show="selected_loc!==null && show_add_ui===true" class="add_ui_box_green" style="margin-top:16px">
+    <div class="add_title_bar_green">
+      <button ng-click="hideAddInv()" type="button" class="btn btn-default btn_x" style="float:left">
+        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+      </button>
+      <div class="add_title_green">
+        <span style="font-size:1.0em;"> Add Inventory Items to {{selected_loc.name}} </span>
+      </div>
+      <br/>
+    </div>
+
+    <loc-add-inv loc-name="selected_loc.name" all-beverages="add_inv_existing_bevs" all-kegs="add_inv_existing_kegs" control="addInvControl" add-bev-inv="addInvAddBev(bev)" add-keg-inv="addInvAddKeg(keg)" show-kegs="true" show-tabs="true" list-height="300" brewery-distributor="'both'"></loc-add-inv>
+
+  </div>
+
+  <div ng-if="selected_loc !== null" style="margin-top:36px">
+    <div class="row" ng-if="inv_started === false">
+      <div class="col-xs-12" style="float:none">
+        <button ng-click="promptStartInv()" type="button" class="btn btn-default inv_xl_btn center-block">
+          <span class="glyphicon glyphicon-check" aria-hidden="true"></span> Start Counting Inventory
+        </button>
+      </div>
+    </div>
+
+    <div class="row" ng-if="inv_started === true">
+      <div class="col-xs-4">
+      </div>
+      <div class="col-xs-4 min_padding" style="text-align:center">
+        <button ng-click="saveInv()" type="button" class="btn btn-success inv_xl_btn_dark" style="padding-right:36px; padding-left:36px;">
+          <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> Finish & Save
+        </button>
+      </div>
+      <div class="col-xs-4 min_padding" style="text-align:right">
+        <button ng-click="cancelInv()" type="button" class="btn btn-default btn-md" style="height:54px">
+          <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Discard Changes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div ng-if="selected_loc !== null" style="margin-top:24px">
+    <div ng-if="inv_started===false" class="row" style="font-size:1.0em">
+      <div class="col-xs-12 hint_text" style="text-align:center">
+        The Quantities below are from the last time you did inventory.
+      </div>
+    </div>
+  </div>
+
+  <!-- Location inventory -->
+  <div ng-if="selected_loc !== null" style="margin-top:8px; margin-bottom:128px">
+    <div class="row label_row_container">
+      <div class="col-xs-1 noselect">
+      </div>
+      <div class="col-xs-4 inv_sort_div" ng-click="sortBy('product')">
+        <span class="inv_loc_label_span noselect">Product</span>
+        <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key === 'product'" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+      <div class="col-xs-4 inv_sort_div" ng-click="sortBy('brewery')">
+        <span class="inv_loc_label_span noselect">Brewery</span>
+        <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key === 'brewery'" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+      <div class="col-xs-1 inv_sort_div" ng-click="sortBy('quantity')">
+        <span class="inv_loc_label_span noselect" style="padding-top:6px; padding-bottom:6px">Qty</span>
+        <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key === 'quantity'" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+      <div class="col-xs-2 inv_sort_div" ng-click="sortBy('inventory')" ng-if="inv_started===false" popover="Inventory = Quantity * Unit Cost + Deposit.  The cost of beverages can be edited in the All Beverages DB." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+        <span class="inv_loc_label_span noselect" style="padding-top:6px; padding-bottom:6px">Inventory</span>
+        <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect"ng-show="sort_key === 'inventory'" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+      </div>
+      <!--div class="col-xs-3" style="text-align:right">Update Item</div-->
+    </div>
+    <div ng-repeat="inv in inv_items">
+      <div ng-class-even="'row inv_row_container inv_row_even'" ng-class-odd="'row inv_row_container inv_row_odd'">
+        <div class="col-xs-1 noselect">
+          <img ng-if="inv.icon==='keg'" src="images/bev_keg.png" height="36px" width="36px" style="margin-left:0px">
+          <img ng-if="inv.icon==='draft'" src="images/bev_draft.png" height="36px" width="36px" style="margin-left:0px">
+          <img ng-if="inv.icon==='wine'" src="images/bev_wine.png" height="36px" width="36px" style="margin-left:0px">
+          <img ng-if="inv.icon==='bottle'" src="images/bev_bottle.png" height="36px" width="36px" style="margin-left:0px">
+          <img ng-if="inv.icon==='can'" src="images/bev_can.png" height="36px" width="36px" style="margin-left:0px">
+          <img ng-if="inv.icon==='liquor'" src="images/bev_xo.png" height="36px" width="36px" style="margin-left:0px">
+        </div>
+        <div class="col-xs-4 min_padding" style="padding-top:6px;">
+          <!--span ng-if="inv.updated_today==true" class="glyphicon glyphicon-ok-circle check_circle" style="margin-right:6px; float:left; margin-top:-2px;"></span-->
+          <div style="font-size:1.0em; padding-left:6px; margin-top:-6px">
+            <span ng-if="inv.type==='bev'">
+              {{inv.product}}
+            </span>
+            <span ng-if="inv.type==='keg'" style="color:#994433">
+              Keg Deposit
+            </span>
+          </div>
+          <div style="font-size:0.9em; color:#999999; padding-left:6px;"> 
+            <!--span ng-if="inv.type==='keg'">{{inv.distributor}}</span-->
+            <span ng-if="inv.type==='keg'">Empty </span>
+            <span ng-if="inv.purchase_volume!==null">{{inv.purchase_volume | number:1}} {{inv.purchase_unit}}</span>
+            <span ng-if="inv.type==='bev'">{{inv.container_type}}</span>
+            <span ng-if="inv.type==='keg'">Keg</span>
+          </div>
+        </div>
+        <div class="col-xs-4 min_padding inv_col" style="padding-top:8px">
+          <span ng-if="inv.type==='bev'">{{inv.brewery}}</span>
+          <span ng-if="inv.type==='keg'">{{inv.distributor}}</span>
+        </div>
+        <div class="min_padding col-xs-1">
+
+          <div ng-if="inv_started===false" style="font-size:1.1em; padding-top:8px; padding-left:2px;">
+            {{inv.quantity}}
+          </div>
+        </div>
+        <div ng-if="inv_started===false" class="min_padding col-xs-2">
+          <div style="padding-left:4px; padding-top:8px;">
+            <span style="vertical-align:top">$ {{inv.inventory | number:2}}</span>
+            <span ng-if="inv.out_of_date===true" class="glyphicon glyphicon-exclamation-sign" style="font-size:18px; color:#ffbb22;" popover="This beverage has been updated since its inventory was last saved, and the old inventory value might not reflect its current pricing." popover-trigger="mouseenter" popover-append-to-body="true"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div ng-include src="'./view_loc/start_count_modal_new.html'">
+<div ng-include src="'./view_loc/popover_remove_item.html'">
+<div ng-include src="'./view_loc/start_inv_modal.html'">
+<div ng-include src="'./view_loc/modal_inv_quantity.html'">
+

@@ -1,0 +1,77 @@
+<script type="text/ng-template" id="startCountModalNew.html">
+  <div class="modal-body" style="font-size:1.1em">
+    <div class="row">
+      <div class="col-xs-12">
+        <div style="font-size:1.1em; margin:4px 0px; margin-top:12px">
+          Which items should this Location start with?
+        </div>
+        <hr class="add_hr_black" style="margin:0px 0px"/>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-xs-6" style="padding-right:0">
+        <div ng-class="{'start_count_btn_green': is_previous===false, 'start_count_btn_green_inactive':is_previous===true}" ng-click="pickStartItems('scratch')">
+          <div style="font-size: 1.2em; text-align:center">From Scratch</div>
+          <div style="font-size:36px; text-align:center; margin-top:6px">
+          <span class="glyphicon glyphicon-file"></span>
+          </div>
+          <div style="font-size:1.0em; color:#999999">Start with a clean slate -- add items as I see them</div>
+        </div>
+      </div>
+      <div class="col-xs-6" style="padding-left:0">
+        <div ng-class="{'start_count_btn_yellow': is_previous===false, 'start_count_selected_yellow':is_previous===true}" ng-click="pickStartItems('previous')">
+          <div style="font-size: 1.2em; text-align:center;">From Previous</div>
+          <div style="font-size:36px; text-align:center; margin-top:6px">
+            <span class="glyphicon glyphicon-repeat"></span>
+          </div>
+          <div style="font-size:1.0em; color:#999999">Start with the items from when I last did inventory</div>
+        </div>
+      </div>
+    </div>
+    <div class="row" ng-if="is_previous===true">
+      <div class="col-xs-12">
+        <div style="font-size:1.1em; margin:4px 0px; margin-top:12px">
+          What quantities should existing items start with?
+        </div>
+        <hr class="add_hr_black" style="margin:0px 0px"/>
+      </div>
+    </div>
+    <div class="row" ng-if="is_previous===true">
+      <div class="col-xs-6" style="padding-right:0">
+        <div class="start_count_btn_green" ng-click="pickMode('scratch')">
+          <div style="font-size: 1.2em; text-align:center">From Scratch</div>
+          <div style="font-size:36px; text-align:center; margin-bottom:6px">
+          <span style="font-face:bold">0</span>
+          </div>
+          <div style="font-size:1.0em; color:#999999">All quantities start at 0</div>
+        </div>
+      </div>
+      <div class="col-xs-6" style="padding-left:0">
+        <div class="start_count_btn_yellow" ng-click="pickMode('previous')">
+          <div style="font-size: 1.2em; text-align:center;">From Previous</div>
+          <div style="font-size:36px; text-align:center; margin-top:6px">
+            <span class="glyphicon glyphicon-pencil"></span>
+          </div>
+          <div style="font-size:1.0em; color:#999999">Resume counts from last inventory</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <div ng-if="show_help===false">
+      <a ng-click="showHelp()" class="help_link" style="font-size:1.0em;">
+        Need help choosing?
+      </a>
+    </div>
+    <div ng-if="show_help===true" style="font-size:1.0em; text-align:left" class="hint_text">
+      <br/>
+      <b>From Scratch</b> - choose this option to start a thorough top-to-bottom 
+      count of inventory items in this Location.
+      <br/><br/>
+      <b> From Previous</b> - choose this option if most of the inventory in 
+      this location have not changed since you last did inventory, or if you 
+      are only updating a couple quantities, as in a correction or edit.
+    </div>
+  </div>
+</script>
