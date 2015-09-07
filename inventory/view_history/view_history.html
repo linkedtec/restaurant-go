@@ -62,7 +62,7 @@
 
     </div>
 
-    <div class="col-xs-3" ng-if="use_mode===1">
+    <div class="col-xs-3" ng-if="use_mode===0">
       <!-- this hidden link is just a dummy placeholder for exporting to excel-->
       <a id="excel_export"  style="display:none;"></a>
       <!-- the below commented export button uses client-side AJAX to export to excel-->
@@ -82,7 +82,7 @@
     </div>
   </div>
 
-  <div ng-if="use_mode===1">
+  <div ng-if="use_mode===0">
     <table id="inventoryTable" summary="Data table for inventory history." rules="groups" frame="hsides" border="2" style="width:100%; margin-top:16px; margin-bottom:120px">
       <tr>
         <td></td>
@@ -145,7 +145,7 @@
     </div>
   </div>
 
-  <div ng-show="use_mode===0">
+  <div ng-show="use_mode===1">
     <div style="margin-top:16px; margin-bottom:120px">
       <svg id="d3viz" width="880" height="500"/svg>
     </div>

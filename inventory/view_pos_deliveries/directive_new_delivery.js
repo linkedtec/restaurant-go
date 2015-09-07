@@ -415,17 +415,14 @@ angular.module('myApp')
         // locally calculate unit_cost for sorting purposes
         var purchase_cost = 0;
         var purchase_count = 1;
-        var deposit = 0;
         if (inv['purchase_cost'] !== null) {
           purchase_cost = inv['purchase_cost'];
         }
         if (inv['purchase_count'] !== null) {
           purchase_count = inv['purchase_count'];
         }
-        if (inv['deposit'] !== null) {
-          deposit = inv['deposit'];
-        }
-        return purchase_cost / purchase_count + deposit;
+
+        return purchase_cost / purchase_count;
       };
 
       // get all inventory from the server.  If location type is bev, get /inv
@@ -878,17 +875,13 @@ angular.module('myApp')
                   // locally calculate unit_cost for sorting purposes
                   var purchase_cost = 0;
                   var purchase_count = 1;
-                  var deposit = 0;
                   if (new_item['purchase_cost'] !== null) {
                     purchase_cost = new_item['purchase_cost'];
                   }
                   if (new_item['purchase_count'] !== null) {
                     purchase_count = new_item['purchase_count'];
                   }
-                  if (new_item['deposit'] !== null) {
-                    deposit = new_item['deposit'];
-                  }
-                  new_item['unit_cost'] = purchase_cost / purchase_count + deposit;
+                  new_item['unit_cost'] = purchase_cost / purchase_count;
                   new_item['quantity'] = old_quantity;
                   new_item['value'] = old_quantity * new_item['unit_cost'];
 

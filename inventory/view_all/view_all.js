@@ -44,28 +44,46 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     misc: true
   }
 
+  $scope.getDeposit = function(bev) {
+    if (bev['keg']!==undefined && bev['keg']!==null) {
+      if (bev.keg.deposit!==undefined && bev.keg.deposit!==null) {
+        return bev.keg.deposit;
+      }
+    }
+    return 0;
+  };
+
   $scope.selectCostUnit = function(cost_unit) {
     $scope.selected_cost_unit = cost_unit;
 
     for (var i = 0; i < $scope.inventory_items.length; i++) {
+      var item = $scope.inventory_items[i];
       $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(
-        $scope.inventory_items[i]['purchase_volume'],
-        $scope.inventory_items[i]['purchase_unit'],
-        $scope.inventory_items[i]['purchase_cost'],
-        $scope.inventory_items[i]['purchase_count']);
+        item['purchase_volume'],
+        item['purchase_unit'],
+        item['purchase_cost'],
+        $scope.getDeposit(item),
+        item['purchase_count']);
     }
   };
 
-  $scope.getPricePerVolume = function(vol, unit, cost, count) {
+  $scope.getPricePerVolume = function(vol, unit, cost, deposit, count) {
 
     // returning -1 means invalid
-
     if (vol === null || cost === null) {
       return -1;
     }
 
     // if volume is 0, return negative number
-    if (vol == 0) {
+    if (vol === 0) {
+      return -1;
+    }
+
+    if (deposit===undefined || deposit===null) {
+      deposit = 0;
+    }
+
+    if (deposit > cost) {
       return -1;
     }
 
@@ -80,7 +98,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
     var vol_in_liters = in_liters * vol;
 
-    var cost_per_mL = cost / count / vol_in_liters / 1000.0;
+    var cost_per_mL = (cost - deposit) / count / vol_in_liters / 1000.0;
 
     // if display is cost / mL
     if ($scope.selected_cost_unit.indexOf('mL') >= 0) {
@@ -111,6 +129,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       new_beverage['purchase_volume'],
       new_beverage['purchase_unit'],
       new_beverage['purchase_cost'],
+      $scope.getDeposit(new_beverage),
       new_beverage['purchase_count']
       );
 
@@ -190,13 +209,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
           inv.size_prices[j]['price'] = MathService.fixFloat2(inv.size_prices[j]['price']);
           inv.size_prices[j]['volume'] = MathService.fixFloat2(inv.size_prices[j]['volume']);
         }
-        
-        // calculate price per volume
-        $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(
-          $scope.inventory_items[i]['purchase_volume'],
-          $scope.inventory_items[i]['purchase_unit'],
-          $scope.inventory_items[i]['purchase_cost'],
-          $scope.inventory_items[i]['purchase_count']);
 
         // add breweries all_breweries for typeahead convenience when adding 
         // new beverages, which might come from same brewery
@@ -231,6 +243,15 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
             }
           }
         }
+
+        // calculate price per volume.  Do this after keg has been populated
+        // otherwise deposit will be incorrect
+        $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(
+          $scope.inventory_items[i]['purchase_volume'],
+          $scope.inventory_items[i]['purchase_unit'],
+          $scope.inventory_items[i]['purchase_cost'],
+          $scope.getDeposit($scope.inventory_items[i]),
+          $scope.inventory_items[i]['purchase_count']);
       }
 
       if ($scope.firstTimeSort) {
@@ -356,6 +377,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
             edit_bev.purchase_volume, 
             edit_bev.purchase_unit, 
             edit_bev.purchase_cost, 
+            $scope.getDeposit(edit_bev),
             edit_bev.purchase_count);
 
           if ($scope.all_breweries.indexOf(edit_bev.brewery) < 0) {

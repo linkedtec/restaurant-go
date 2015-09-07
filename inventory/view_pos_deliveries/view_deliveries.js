@@ -87,17 +87,13 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
     // locally calculate unit_cost for sorting purposes
     var purchase_cost = 0;
     var purchase_count = 1;
-    var deposit = 0;
     if (inv['purchase_cost'] !== null) {
       purchase_cost = inv['purchase_cost'];
     }
     if (inv['purchase_count'] !== null) {
       purchase_count = inv['purchase_count'];
     }
-    if (inv['deposit'] !== null) {
-      deposit = inv['deposit'];
-    }
-    return purchase_cost / purchase_count + deposit;
+    return purchase_cost / purchase_count;
   };
 
   $scope.editDelivery = function(delivery) {

@@ -11,7 +11,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
 
 .controller('ViewHistoryCtrl', function($scope, $http, $timeout, DateService) { 
 
-  $scope.use_modes = ['Graphs', 'History Tables'];
+  $scope.use_modes = ['History Tables', 'Graphs'];
   $scope.use_mode = 0;
 
   $scope.sort_types = ["All Inventory", "By Location", "Beverage Type", "Individual Items"];
@@ -62,25 +62,25 @@ angular.module('myApp.viewHistory', ['ngRoute'])
 
     if ($scope.sort_type === $scope.sort_types[0]) {
       if ($scope.use_mode === 0) {
-        $scope.getAllInventorySum();
-      } else {
         $scope.getAllInventoryItemized();
+      } else {
+        $scope.getAllInventorySum();
       }
 
     } else if ($scope.sort_type === $scope.sort_types[1]) {
 
       if ($scope.use_mode === 0) {
-        $scope.getLocationsSum();
-      } else {
         $scope.getLocationsItemized();
+      } else {
+        $scope.getLocationsSum();
       }
       
 
     } else if ($scope.sort_type === $scope.sort_types[2]) {
       if ($scope.use_mode === 0) {
-        $scope.getBevTypesSum();
-      } else {
         $scope.getBevTypesItemized();
+      } else {
+        $scope.getBevTypesSum();
       }
     } else if ($scope.sort_type === $scope.sort_types[3]) {
       if ($scope.all_items.length === 0 && $scope.added_items.length === 0) {
@@ -163,7 +163,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
   }
 
   $scope.plotInvData = function() {
-    if ($scope.use_mode !== 0) {
+    if ($scope.use_mode !== 1) {
       return;
     }
     d3.select("#d3viz").selectAll("*").remove();
@@ -204,7 +204,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       all_items.push($scope.added_items[i]);
     }
     $scope.getItemsData(all_items);
-    if ($scope.use_mode === 1) {
+    if ($scope.use_mode === 0) {
       // for displaying itemized inventory in the table need to reorganize
       // invData.items into an array sorted by date
       $scope.constructItemsByDate();
@@ -258,7 +258,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       return keyA.localeCompare(keyB);
     });
 
-    if ($scope.use_mode===1) {
+    if ($scope.use_mode===0) {
       $scope.constructItemsByDate();
     } else {
       // we call timeout so DOM can refresh the added beverage buttons before
@@ -652,7 +652,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
 
       $scope.display_items = $scope.invData['items'];
 
-      if ($scope.use_mode===1) {
+      if ($scope.use_mode===0) {
         console.log("about to construct by date");
         console.log($scope.display_items);
         $scope.constructItemsByDate();
