@@ -2168,11 +2168,10 @@ func invLocNewAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// now, calculate its inventory value and save it in location_beverages
 			// for easy retrieval.  This varies by location type:
 			// + bev:
-			//     inventory = ((purchase_cost - deposit) / purchase_count) * quantity + deposit * ceil(quantity)
+			//     inventory = (purchase_cost / purchase_count) * quantity + deposit * ceil(quantity)
 			// + tap:
 			//     if purchase_volume not null and not 0:
-			//       inventory = ((purchase_cost - deposit) / purchase_count) * (quantity / purchase_volume) + deposit * ceil(quantity)
-			//			 unit_cost = ((purchase_cost - deposit) / purchase_count) / purchase_volume
+			//       inventory = (purchase_cost / purchase_count) * (quantity / purchase_volume) + deposit (assume 1 keg)
 			//     else
 			//       inventory = deposit
 			// + keg:
@@ -2195,8 +2194,7 @@ func invLocNewAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 			if batch.Type == "bev" {
 				if anItem.Type == "bev" {
-					err = db.QueryRow("SELECT (COALESCE(purchase_cost, 0) - $1) / COALESCE(purchase_count, 1) FROM beverages WHERE id=$2;", deposit, most_recent_id).Scan(&unit_cost)
-					//err = db.QueryRow("SELECT COALESCE(purchase_cost, 0) / COALESCE(purchase_count, 1) FROM beverages WHERE id=$1;", most_recent_id).Scan(&unit_cost)
+					err = db.QueryRow("SELECT COALESCE(purchase_cost, 0) / COALESCE(purchase_count, 1) FROM beverages WHERE id=$1;", most_recent_id).Scan(&unit_cost)
 					if err != nil {
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						log.Println(err.Error())
@@ -2208,13 +2206,13 @@ func invLocNewAPIHandler(w http.ResponseWriter, r *http.Request) {
 				}
 
 			} else if batch.Type == "tap" {
-				err = db.QueryRow("SELECT CASE WHEN COALESCE(purchase_volume,0)>0 THEN ((COALESCE(purchase_cost,0) - $1)/COALESCE(purchase_count,1))/purchase_volume ELSE 0 END FROM beverages WHERE id=$2;", deposit, most_recent_id).Scan(&unit_cost)
+				err = db.QueryRow("SELECT CASE WHEN COALESCE(purchase_volume,0)>0 THEN (COALESCE(purchase_cost,0)/COALESCE(purchase_count,1))/purchase_volume ELSE 0 END FROM beverages WHERE id=$1;", most_recent_id).Scan(&unit_cost)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					log.Println(err.Error())
 					continue
 				}
-				inventory = float32(anItem.Quantity)*unit_cost + deposit*float32(math.Ceil(float64(anItem.Quantity))) // no parenthesis here!
+				inventory = float32(anItem.Quantity)*unit_cost + deposit
 			} else {
 				http.Error(w, "Encountered incorrect location type!", http.StatusInternalServerError)
 				return
@@ -2715,10 +2713,10 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// now, calculate its inventory value and save it in location_beverages
 			// for easy retrieval.  This varies by location type:
 			// + bev:
-			//     inventory = ((purchase_cost - deposit) / purchase_count) * quantity + deposit * ceil(quantity)
+			//     inventory = (purchase_cost / purchase_count) * quantity + deposit * ceil(quantity)
 			// + tap:
 			//     if purchase_volume not null and not 0:
-			//       inventory = ((purchase_cost - deposit) / purchase_count) * (quantity / purchase_volume) + deposit * ceil(quantity)
+			//       inventory = (purchase_cost / purchase_count) * (quantity / purchase_volume) + deposit (assume 1)
 			//     else
 			//       inventory = deposit
 			// + keg:
@@ -2741,8 +2739,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 			if batch.Type == "bev" {
 				if anItem.Type == "bev" {
-					err = db.QueryRow("SELECT (COALESCE(purchase_cost, 0) - $1) / COALESCE(purchase_count, 1) FROM beverages WHERE id=$2;", deposit, most_recent_id).Scan(&unit_cost)
-					//err = db.QueryRow("SELECT COALESCE(purchase_cost, 0) / COALESCE(purchase_count, 1) FROM beverages WHERE id=$1;", most_recent_id).Scan(&unit_cost)
+					err = db.QueryRow("SELECT COALESCE(purchase_cost, 0) / COALESCE(purchase_count, 1) FROM beverages WHERE id=$1;", most_recent_id).Scan(&unit_cost)
 					if err != nil {
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						log.Println(err.Error())
@@ -2754,13 +2751,13 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 				}
 
 			} else if batch.Type == "tap" {
-				err = db.QueryRow("SELECT CASE WHEN COALESCE(purchase_volume,0)>0 THEN ((COALESCE(purchase_cost,0) - $1)/COALESCE(purchase_count,1))/purchase_volume ELSE 0 END FROM beverages WHERE id=$2;", deposit, most_recent_id).Scan(&unit_cost)
+				err = db.QueryRow("SELECT CASE WHEN COALESCE(purchase_volume,0)>0 THEN (COALESCE(purchase_cost,0)/COALESCE(purchase_count,1))/purchase_volume ELSE 0 END FROM beverages WHERE id=$1;", most_recent_id).Scan(&unit_cost)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					log.Println(err.Error())
 					continue
 				}
-				inventory = float32(anItem.Quantity)*unit_cost + deposit*float32(math.Ceil(float64(anItem.Quantity))) // no parenthesis here!
+				inventory = float32(anItem.Quantity)*unit_cost + deposit
 			} else {
 				http.Error(w, "Encountered incorrect location type!", http.StatusInternalServerError)
 				return

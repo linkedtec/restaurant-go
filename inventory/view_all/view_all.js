@@ -44,6 +44,8 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     misc: true
   }
 
+  /*
+  // this function logic is good, but not currently being used
   $scope.getDeposit = function(bev) {
     if (bev['keg']!==undefined && bev['keg']!==null) {
       if (bev.keg.deposit!==undefined && bev.keg.deposit!==null) {
@@ -52,6 +54,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     }
     return 0;
   };
+  */
 
   $scope.selectCostUnit = function(cost_unit) {
     $scope.selected_cost_unit = cost_unit;
@@ -62,12 +65,11 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
         item['purchase_volume'],
         item['purchase_unit'],
         item['purchase_cost'],
-        $scope.getDeposit(item),
         item['purchase_count']);
     }
   };
 
-  $scope.getPricePerVolume = function(vol, unit, cost, deposit, count) {
+  $scope.getPricePerVolume = function(vol, unit, cost, count) {
 
     // returning -1 means invalid
     if (vol === null || cost === null) {
@@ -76,14 +78,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
     // if volume is 0, return negative number
     if (vol === 0) {
-      return -1;
-    }
-
-    if (deposit===undefined || deposit===null) {
-      deposit = 0;
-    }
-
-    if (deposit > cost) {
       return -1;
     }
 
@@ -98,7 +92,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
     var vol_in_liters = in_liters * vol;
 
-    var cost_per_mL = (cost - deposit) / count / vol_in_liters / 1000.0;
+    var cost_per_mL = cost / count / vol_in_liters / 1000.0;
 
     // if display is cost / mL
     if ($scope.selected_cost_unit.indexOf('mL') >= 0) {
@@ -129,7 +123,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       new_beverage['purchase_volume'],
       new_beverage['purchase_unit'],
       new_beverage['purchase_cost'],
-      $scope.getDeposit(new_beverage),
       new_beverage['purchase_count']
       );
 
@@ -250,7 +243,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
           $scope.inventory_items[i]['purchase_volume'],
           $scope.inventory_items[i]['purchase_unit'],
           $scope.inventory_items[i]['purchase_cost'],
-          $scope.getDeposit($scope.inventory_items[i]),
           $scope.inventory_items[i]['purchase_count']);
       }
 
@@ -377,7 +369,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
             edit_bev.purchase_volume, 
             edit_bev.purchase_unit, 
             edit_bev.purchase_cost, 
-            $scope.getDeposit(edit_bev),
             edit_bev.purchase_count);
 
           if ($scope.all_breweries.indexOf(edit_bev.brewery) < 0) {

@@ -690,6 +690,10 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
       // We locally calculate the new inventory without polling the server
       var value = inv['purchase_cost'] / inv['purchase_count'] * inv['quantity'];
 
+      // always include deposits in value
+      if (inv['deposit'] !== null) {
+        value += inv['deposit'] * inv['quantity'];
+      }
       $scope.inv_items[inv_i]['inventory'] = value;
       $scope.inv_items[inv_i]['out_of_date'] = null;
       $scope.total_inventory += value;
@@ -708,7 +712,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
         deposit = inv['deposit'];
       }
       if (inv.type==='bev') {
-        inv['unit_cost'] = purchase_cost / purchase_count;
+        inv['unit_cost'] = purchase_cost / purchase_count + deposit;
       } else if (inv.type==='keg') {
         inv['unit_cost'] = deposit;
       }
@@ -831,9 +835,12 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
           value = inv['inventory'];
         } else {
           // for old entries which might lack inventory value, do some potentially
-          // inaccurate calculations here.  We don't include deposit, which is
-          // included already in the purchase cost
+          // inaccurate calculations here.
           value = inv['purchase_cost'] / inv['purchase_count'] * inv['quantity'];
+          // always include deposits in value
+          if (inv['deposit'] !== null) {
+            value += inv['deposit'] * inv['quantity'];
+          }
         }
         $scope.inv_items[inv_i]['inventory'] = value;
         $scope.total_inventory += value;
@@ -852,7 +859,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
           deposit = inv['deposit'];
         }
         if ($scope.inv_items[inv_i]['type']==='bev') {
-          $scope.inv_items[inv_i]['unit_cost'] = purchase_cost / purchase_count;
+          $scope.inv_items[inv_i]['unit_cost'] = purchase_cost / purchase_count + deposit;
         } else { // keg
           $scope.inv_items[inv_i]['unit_cost'] = deposit;
         }
@@ -1545,6 +1552,10 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
       // We locally calculate the new inventory without polling the server
       var value = inv['purchase_cost'] / inv['purchase_count'] * inv['quantity'];
 
+      // always include deposits in value
+      if (inv['deposit'] !== null) {
+        value += inv['deposit'] * inv['quantity'];
+      }
       $scope.added_items[i]['inventory'] = value;
       $scope.added_items[i]['out_of_date'] = null;
       $scope.total_inventory += value;
@@ -1563,7 +1574,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
         deposit = inv['deposit'];
       }
       if (inv.type==='bev') {
-        inv['unit_cost'] = purchase_cost / purchase_count;
+        inv['unit_cost'] = purchase_cost / purchase_count + deposit;
       } else if (inv.type==='keg') {
         inv['unit_cost'] = deposit;
       }
