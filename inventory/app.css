@@ -330,14 +330,15 @@ body {
 }
 
 .btn_inv_qty {
-  font-size:22px;
+  font-size:18px;
+  margin-left:-4px;
   float:left;
-  width:75%;
+  width:100%;
+  padding:0;
   height:42px;
   border-radius:4px;
   background-color:Transparent;
   border:1px solid #d0d0d0;
-  padding-top:4px;
 }
 
 .btn_inv_qty:hover {
@@ -934,8 +935,8 @@ like enclosed space */
   display:block;
   margin-top: 20px;
   margin-bottom:20px;
-  min-width:940px;
-  max-width:1024px;
+  min-width:960px;
+  max-width:1120px;
   width:96%;
   height:94% !important;
   min-height: 640px;
@@ -1040,6 +1041,14 @@ like enclosed space */
 
 .cursor_disabled {
   cursor: not-allowed;
+}
+
+.nowrap_span {
+  overflow:hidden;
+  white-space:nowrap;
+  width:98%;
+  display:inline-block;
+  text-overflow:ellipsis;
 }
 
 
