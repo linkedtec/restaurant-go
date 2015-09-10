@@ -504,6 +504,10 @@ body {
   color:#22aa55;
 }
 
+.hover_blue:hover {
+  color:#2299cc;
+}
+
 .hover_gray_transparent:hover {
   background-color:Transparent;
   color:#888888;
@@ -895,6 +899,11 @@ like enclosed space */
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+
+.noselect:focus {
+  outline: none;
+  background-color:Transparent;
 }
 
 .edit-inv-modal .modal-dialog {

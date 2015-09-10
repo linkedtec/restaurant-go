@@ -1106,7 +1106,6 @@ angular.module('myApp.viewHistory', ['ngRoute'])
   //=====================================
 
   $scope.startDateChanged = function() {
-    console.log('A');
     $scope.selectSortType($scope.sort_type);
   };
 

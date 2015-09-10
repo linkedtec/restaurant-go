@@ -130,7 +130,7 @@
               <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;"  popover="Percent Alcohol by Volume (% AbV) indicates the alcoholic content of your beverage" popover-trigger="mouseenter" popover-append-to-body="false"></span>
             </label>
             <div class="input-group">
-              <input ng-model="new_beverage.abv" type="number" step="0.01" min="0" max="100" class="form-control input-small" placeholder="" style="width:100px">
+              <input ng-model="new_beverage.abv" type="number" step="0.01" min="0" max="100" class="form-control input-small" placeholder="" style="width:140px">
               <span class="input-group-addon" style="width:30px; text-align:left;">%</span>
             </div>
           </div>
@@ -180,12 +180,12 @@
       </div>
       <div class="col-xs-4">
         <div class="form-group" ng-class="{'has-error': form_ver.error_pcost===true}">
-          <label class="control-label bold"> 
-            Purchase Cost
+          <label class="control-label"> 
+            <b>Wholesale Cost</b> <span ng-if="(new_beverage.alcohol_type==='Beer' || new_beverage.alcohol_type==='Cider') && new_beverage.container_type==='Keg'" style="color:#888888; font-style:italic">exclude Deposit</span>
           </label>
           <div class="input-group">
             <span class="input-group-addon">$</span>
-            <input ng-model="new_beverage.purchase_cost" type="number" min="0" class="form-control input-small" style="width:100px;">
+            <input ng-model="new_beverage.purchase_cost" type="number" min="0" class="form-control input-small" style="width:140px;">
           </div>
         </div>
       </div>
@@ -223,7 +223,7 @@
         <div class="col-xs-3" style="font-size:1.2em;">
           <div class="input-group"  ng-class="{'has-error': form_ver.error_unit_sale===true}">
             <span class="input-group-addon">$</span>
-            <input ng-model="new_unit_sale" type="number" min="0" class="form-control input-small" style="width:100px;">
+            <input ng-model="new_unit_sale" type="number" min="0" class="form-control input-small" style="width:140px;">
           </div>
         </div>
       </div>
@@ -258,7 +258,7 @@
           <div class="form-group" ng-class="{'has-error': form_ver.errors_sale_price[$index]===true}" style="margin-bottom:0px">
             <div class="input-group">
               <span class="input-group-addon">$</span>
-              <input ng-model="size_price.price" type="number" min="0" class="form-control input-small" style="width:100px;">
+              <input ng-model="size_price.price" type="number" min="0" class="form-control input-small" style="width:140px;">
             </div>
           </div>
         </div>

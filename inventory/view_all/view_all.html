@@ -138,14 +138,14 @@
           <span ng-show="sort_key === 'purchase_unit'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
-      <td class="all_inv_label_span noselect" style="width:70px;" ng-show="col_comps.purchase === true" ng-class="{'col_highlight': highlight_cols==='purchase'}">
-        <div class="sort_div" ng-click="sortBy('purchase_cost')" popover="Purchase Cost" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
-          <span>P. Cost</span>
+      <td class="all_inv_label_span noselect" style="width:80px;" ng-show="col_comps.purchase === true" ng-class="{'col_highlight': highlight_cols==='purchase'}">
+        <div class="sort_div" ng-click="sortBy('purchase_cost')" popover="Wholesale Cost" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+          <span>Whs. Cost</span>
           <span ng-show="sort_key === 'purchase_cost'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:70px;" ng-show="col_comps.purchase === true" ng-class="{'col_highlight': highlight_cols==='purchase'}">
-        <div class="sort_div" ng-click="sortBy('purchase_count')" popover="Purchase Count -- how many units are acquired per Purchase Cost" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+        <div class="sort_div" ng-click="sortBy('purchase_count')" popover="Purchase Count -- how many units are acquired per Wholesale Purchase" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>P. Count</span>
           <span ng-show="sort_key === 'purchase_count'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
@@ -208,7 +208,7 @@
         <span ng-if="inv.abv !== null">{{inv.abv | number:2}} <span class="inv_symbol">%</span></span<</td>
       <td class="all_inv_span" style="width:70px;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}">{{inv.purchase_volume | number:2}}</td>
       <td class="all_inv_span" style="width:60;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}">{{inv.purchase_unit}}</td>
-      <td class="all_inv_span" style="width:70px;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}"><span class="inv_symbol">$</span> {{inv.purchase_cost | number:2}}</td>
+      <td class="all_inv_span" style="width:80px;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}"><span class="inv_symbol">$</span> {{inv.purchase_cost | number:2}}</td>
       <td class="all_inv_span" style="width:70px;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}">{{inv.purchase_count}}</td>
       <td class="all_inv_span" style="width:100px;" ng-if="inv.price_per_volume >= 0 && col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}"><span class="inv_symbol">$</span> {{inv.price_per_volume | number:4}}</td>
       <td class="all_inv_span" style="width:120px;" ng-if="inv.price_per_volume < 0 && col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}"> -- </td>

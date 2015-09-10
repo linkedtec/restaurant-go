@@ -22,8 +22,8 @@ angular.module('myApp')
 
       scope.today = function() {
         var today = new Date();
-        // start date is by default 4 weeks ago
-        scope.startDate = new Date(today.setDate(today.getDate() - 30));
+        // start date is by default 1 week ago
+        scope.startDate = new Date(today.setDate(today.getDate() - 6));
         scope.endDate = new Date();
         scope.endDate.setHours(23,59,59);
       };
@@ -79,6 +79,24 @@ angular.module('myApp')
         }), 0);
 
       };
+
+      // sets the end date to today, and start day @days ago
+      scope.setRange = function(days) {
+        var today = new Date();
+        scope.endDate = new Date();
+        scope.endDate.setHours(23,59,59);
+
+        scope.startDate = new Date(today.setDate(today.getDate() - days));
+        scope.startDate.setHours(0,0,0);
+
+        // onEndChange and onStartChange call the same callback right now,
+        // so just need to call into one of them
+        $timeout((function() {
+          if (scope.onStartChange!==null) {
+            scope.onStartChange();
+          }
+        }), 0);
+      }
 
       scope.checkStartEndDates = function() {
         if (scope.startDate > scope.endDate) {
