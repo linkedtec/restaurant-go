@@ -117,6 +117,8 @@ angular.module('myApp.viewHistory', ['ngRoute'])
         var history = histories[his_i];
         var update = history.update;
         var inventory = history.inventory;
+        var wholesale = history.wholesale;
+        var deposit = history.deposit;
         var quantity = history.quantity;
         // if update is not a key in items_by_date, add it as a key
         // insert {product, quantity, inventory} into items_by_date for key
@@ -126,6 +128,8 @@ angular.module('myApp.viewHistory', ['ngRoute'])
         items_by_date[update].push({
           'product': product,
           'quantity': quantity,
+          'wholesale': wholesale,
+          'deposit': deposit,
           'inventory': inventory
         });
       }
@@ -335,8 +339,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
         type: 'all_sum',
         start_date: $scope.startDateLocal(),
         end_date: $scope.endDateLocal(),
-        tz_offset: DateService.timeZoneOffset(),
-        xport:'xlsx'
+        tz_offset: DateService.timeZoneOffset()
       }
     }).
     success(function(data, status, headers, config) {

@@ -1,5 +1,5 @@
 <div ng-include src="'./inv_subnav.html'"></div>
-<div class="container" style="min-width:620px; max-width:880px">
+<div class="container" style="min-width:760px; max-width:880px">
 
   <div style="width:100%; margin-top:24px; padding-bottom:6px; font-size:1.6em;">
     <img src="images/inv_history.png" height="36" width="36" style="vertical-align:top"/>
@@ -86,30 +86,38 @@
     <table id="inventoryTable" summary="Data table for inventory history." rules="groups" frame="hsides" border="2" style="width:100%; margin-top:16px; margin-bottom:120px">
       <tr>
         <td></td>
-        <td>Product</td>
+        <td style="width:30%">Product</td>
         <td>Quantity</td>
-        <td>Inventory ($)</td>
+        <td>Wholesale</td>
+        <td>Deposit</td>
+        <td>Inventory</td>
       </tr>
       <tbody ng-if="sort_type===sort_types[0] || sort_type===sort_types[3]" ng-repeat="inv in display_items">
         <tr style="font-weight:bold; font-style:italic">
           <td>{{inv.pretty_date}}</td>
           <td></td>
           <td></td>
+          <td></td>
+          <td></td>
           <td>{{inv.inv_sum | number:2}}</td>
         </tr>
         <tr ng-repeat="dinv in inv.date_inv" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'">
           <td></td>
-          <td ng-if="dinv.type!=='keg'">{{dinv.product}}</td>
-          <td ng-if="dinv.type==='keg'">Keg Deposit - {{dinv.distributor}} {{dinv.volume | number:1}} {{dinv.unit}}</td>
+          <td ng-if="dinv.type!=='keg'" style="width:30%">{{dinv.product}}</td>
+          <td ng-if="dinv.type==='keg'" style="width:30%">Keg Deposit - {{dinv.distributor}} {{dinv.volume | number:1}} {{dinv.unit}}</td>
           <td>{{dinv.quantity | number:2}}</td>
+          <td>{{dinv.wholesale | number:2}}</td>
+          <td>{{dinv.deposit | number:2}}</td>
           <td>{{dinv.inventory | number:2}}</td>
           <td></td>
         </tr>
-        <tr><td colspan="4"></td></tr>
+        <tr><td colspan="6"></td></tr>
       </tbody>
       <tbody ng-if="sort_type===sort_types[1] || sort_type===sort_types[2]" ng-repeat="inv in display_items">
         <tr style="font-weight:bold; font-style:italic">
           <td>{{inv.pretty_date}}</td>
+          <td></td>
+          <td></td>
           <td></td>
           <td></td>
           <td>{{inv.inv_sum | number:2}}</td>
@@ -118,18 +126,22 @@
           <td>{{loc.location}}</td>
           <td></td>
           <td></td>
+          <td></td>
+          <td></td>
           <td style="font-weight:bold">{{loc.inv_sum | number:2}}</td>
         </tr>
         <tr ng-repeat-start="item in loc.histories" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'">
           <td></td>
-          <td ng-if="item.type!=='keg'">{{item.product}}</td>
-          <td ng-if="item.type==='keg'">Keg Deposit - {{item.distributor}} {{item.volume | number:1}} {{item.unit}}</td>
+          <td ng-if="item.type!=='keg'" style="width:30%">{{item.product}}</td>
+          <td ng-if="item.type==='keg'" style="width:30%">Keg Deposit - {{item.distributor}} {{item.volume | number:1}} {{item.unit}}</td>
           <td>{{item.quantity | number:2}}</td>
+          <td>{{item.wholesale | number:2}}</td>
+          <td>{{item.deposit | number:2}}</td>
           <td>{{item.inventory | number:2}}</td>
         </tr>
         <tr ng-repeat-end ng-if="false"><td colspan="0"></td></tr>
         <tr ng-repeat-end ng-if="false"><td colspan="0"></td></tr>
-        <tr><td colspan="4"></td></tr>
+        <tr><td colspan="6"></td></tr>
       </tbody>
     </table>
 

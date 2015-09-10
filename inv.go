@@ -21,6 +21,8 @@ import (
 
 type InvSumHistory struct {
 	Inventory NullFloat64 `json:"inventory"`
+	Wholesale NullFloat64 `json:"wholesale"`
+	Deposit   NullFloat64 `json:"deposit"`
 	Quantity  float32     `json:"quantity"`
 	Date      time.Time   `json:"update"`
 }
@@ -849,6 +851,10 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 	cell = row.AddCell()
 	cell.Value = "Quantity"
 	cell = row.AddCell()
+	cell.Value = "Wholesale ($)"
+	cell = row.AddCell()
+	cell.Value = "Deposit ($)"
+	cell = row.AddCell()
 	cell.Value = "Inventory ($)"
 
 	nr := bytes.NewReader(data)
@@ -884,6 +890,8 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 			cell.Value = key_date // the date, e.g., 2015-01-01
 			daterow.AddCell()
 			daterow.AddCell()
+			daterow.AddCell()
+			daterow.AddCell()
 			date_sum_cell := daterow.AddCell()
 
 			var dateItem InvDateItemHistory
@@ -907,6 +915,10 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 				}
 				cell = bevrow.AddCell()
 				cell.Value = fmt.Sprintf("%.2f", bevInv.Quantity)
+				cell = bevrow.AddCell()
+				cell.Value = fmt.Sprintf("%.2f", bevInv.Wholesale.Float64)
+				cell = bevrow.AddCell()
+				cell.Value = fmt.Sprintf("%.2f", bevInv.Deposit.Float64)
 				cell = bevrow.AddCell()
 				cell.Value = fmt.Sprintf("%.2f", bevInv.Inventory.Float64)
 				date_inv_sum += bevInv.Inventory.Float64
@@ -936,6 +948,8 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 			cell.Value = key_date // the date, e.g., 2015-01-01
 			daterow.AddCell()
 			daterow.AddCell()
+			daterow.AddCell()
+			daterow.AddCell()
 			date_sum_cell := daterow.AddCell()
 
 			var aDateInv InvLocSumsByDate
@@ -953,6 +967,8 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 				cell.Value = locHistory.Location.String
 				cell = locrow.AddCell()
 				cell = locrow.AddCell()
+				cell = locrow.AddCell()
+				cell = locrow.AddCell()
 				loc_inv_sum_cell := locrow.AddCell()
 				loc_inv_sum := 0.0
 				for _, itemHistory := range locHistory.Histories {
@@ -966,6 +982,10 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 					}
 					cell = itemrow.AddCell()
 					cell.Value = fmt.Sprintf("%.2f", itemHistory.Quantity)
+					cell = itemrow.AddCell()
+					cell.Value = fmt.Sprintf("%.2f", itemHistory.Wholesale.Float64)
+					cell = itemrow.AddCell()
+					cell.Value = fmt.Sprintf("%.2f", itemHistory.Deposit.Float64)
 					cell = itemrow.AddCell()
 					cell.Value = fmt.Sprintf("%.2f", itemHistory.Inventory.Float64)
 					loc_inv_sum += itemHistory.Inventory.Float64
@@ -1367,11 +1387,14 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					for _, id := range id_ints {
 						rows, err := db.Query(`
 							SELECT beverages.id, beverages.product, 
-							COALESCE(SUM(
-								CASE WHEN locations.type='tap' THEN 
-									CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume 
-									ELSE 0 END 
-								ELSE location_beverages.quantity END),0), COALESCE(SUM(location_beverages.inventory),0) 
+								COALESCE(SUM(
+									CASE WHEN locations.type='tap' THEN 
+										CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume 
+										ELSE 0 END 
+									ELSE location_beverages.quantity END),0), 
+								SUM(COALESCE(location_beverages.wholesale,0)), 
+								SUM(COALESCE(location_beverages.deposit,0)), 
+								COALESCE(SUM(location_beverages.inventory),0) 
 							FROM beverages, location_beverages, locations 
 							WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
 								AND location_beverages.beverage_id=beverages.id 
@@ -1393,6 +1416,8 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 								&bevInv.ID,
 								&bevInv.Product,
 								&bevInv.Quantity,
+								&bevInv.Wholesale,
+								&bevInv.Deposit,
 								&bevInv.Inventory); err != nil {
 								log.Println(err.Error())
 								http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1439,11 +1464,13 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					var histories []InvSumHistory
 
 					rows, err := db.Query(`SELECT SUM(COALESCE(location_beverages.inventory,0)), 
-						COALESCE(SUM(
-							CASE WHEN locations.type='tap' THEN 
-								CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume 
-								ELSE 0 END 
-							ELSE location_beverages.quantity END),0), (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
+							SUM(COALESCE(location_beverages.wholesale, 0)), 
+							SUM(COALESCE(location_beverages.deposit, 0)), 
+							COALESCE(SUM(
+								CASE WHEN locations.type='tap' THEN 
+									CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume 
+									ELSE 0 END 
+								ELSE location_beverages.quantity END),0), (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
 						FROM location_beverages, locations, beverages 
 						WHERE location_beverages.location_id=locations.id 
 							AND location_beverages.beverage_id=beverages.id 
@@ -1463,6 +1490,8 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						var history InvSumHistory
 						if err := rows.Scan(
 							&history.Inventory,
+							&history.Wholesale,
+							&history.Deposit,
 							&history.Quantity,
 							&history.Date); err != nil {
 							log.Println(err.Error())
@@ -1533,7 +1562,10 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						CASE WHEN locations.type='tap' THEN 
 							CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume 
 							ELSE 0 END 
-						ELSE location_beverages.quantity END),0), COALESCE(SUM(location_beverages.inventory),0) 
+						ELSE location_beverages.quantity END),0), 
+					SUM(COALESCE(location_beverages.wholesale, 0)), 
+					SUM(COALESCE(location_beverages.deposit, 0)), 
+					COALESCE(SUM(location_beverages.inventory),0) 
 				FROM beverages, location_beverages, locations 
 				WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
 					AND location_beverages.beverage_id=beverages.id 
@@ -1554,6 +1586,8 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						&bevInv.ID,
 						&bevInv.Product,
 						&bevInv.Quantity,
+						&bevInv.Wholesale,
+						&bevInv.Deposit,
 						&bevInv.Inventory); err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1567,7 +1601,10 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				// Now get KEGS
 				rows, err = db.Query(`
 					SELECT kegs.id, distributors.name, kegs.volume, kegs.unit, 
-					COALESCE(SUM(location_beverages.quantity),0), COALESCE(SUM(location_beverages.inventory),0) 
+						COALESCE(SUM(location_beverages.quantity),0), 
+						SUM(COALESCE(location_beverages.wholesale,0)),
+						SUM(COALESCE(location_beverages.deposit,0)), 
+						COALESCE(SUM(location_beverages.inventory),0)  
 					FROM kegs, distributors, location_beverages, locations 
 					WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date AND 
 					location_beverages.beverage_id=kegs.id 
@@ -1589,6 +1626,8 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						&bevInv.Volume,
 						&bevInv.Unit,
 						&bevInv.Quantity,
+						&bevInv.Wholesale,
+						&bevInv.Deposit,
 						&bevInv.Inventory); err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1702,7 +1741,10 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					// First do beverages
 					inv_rows, err := db.Query(`
 						SELECT location_beverages.beverage_id, beverages.product, 
-						location_beverages.quantity, COALESCE(location_beverages.inventory,0) 
+							location_beverages.quantity, 
+							location_beverages.wholesale, 
+							location_beverages.deposit, 
+							COALESCE(location_beverages.inventory,0) 
 						FROM beverages, location_beverages 
 						WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
 							AND location_beverages.beverage_id=beverages.id 
@@ -1720,6 +1762,8 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							&bevInv.ID,
 							&bevInv.Product,
 							&bevInv.Quantity,
+							&bevInv.Wholesale,
+							&bevInv.Deposit,
 							&bevInv.Inventory); err != nil {
 							log.Println(err.Error())
 							http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1734,7 +1778,10 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 					keg_rows, err := db.Query(`
 						SELECT location_beverages.beverage_id, distributors.name, kegs.volume, 
-						kegs.unit, location_beverages.quantity, COALESCE(location_beverages.inventory,0) 
+							kegs.unit, location_beverages.quantity, 
+							location_beverages.wholesale, 
+							location_beverages.deposit, 
+							COALESCE(location_beverages.inventory,0) 
 						FROM kegs, distributors, location_beverages 
 						WHERE kegs.distributor_id=distributors.id 
 							AND (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
@@ -1756,6 +1803,8 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							&bevInv.Volume,
 							&bevInv.Unit,
 							&bevInv.Quantity,
+							&bevInv.Wholesale,
+							&bevInv.Deposit,
 							&bevInv.Inventory); err != nil {
 							log.Println(err.Error())
 							http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1776,14 +1825,16 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 				inv_rows, err := db.Query(`
 					SELECT beverages.id, beverages.product, 
-					COALESCE(SUM(CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END),0), 
-					COALESCE(location_beverages.inventory,0) 
+						COALESCE(SUM(CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END),0), 
+						location_beverages.wholesale, 
+						location_beverages.deposit, 
+						COALESCE(location_beverages.inventory,0) 
 					FROM beverages, location_beverages, locations 
 					WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
 						AND location_beverages.beverage_id=beverages.id 
 						AND location_beverages.location_id=locations.id 
 						AND locations.user_id=$3 AND locations.type='tap' 
-					GROUP BY beverages.id, location_beverages.inventory 
+					GROUP BY beverages.id, location_beverages.inventory, location_beverages.wholesale, location_beverages.deposit  
 					ORDER BY beverages.product ASC;`, tz_offset, a_date, test_user_id)
 				if err != nil {
 					log.Println(err.Error())
@@ -1797,6 +1848,8 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						&bevInv.ID,
 						&bevInv.Product,
 						&bevInv.Quantity,
+						&bevInv.Wholesale,
+						&bevInv.Deposit,
 						&bevInv.Inventory); err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1896,11 +1949,14 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 					inv_rows, err := db.Query(`
 						SELECT beverages.id, beverages.product, 
-						COALESCE(SUM(
-							CASE WHEN locations.type='tap' THEN 
-								CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume 
-								ELSE 0 END 
-							ELSE location_beverages.quantity END),0), COALESCE(SUM(location_beverages.inventory),0) 
+							COALESCE(SUM(
+								CASE WHEN locations.type='tap' THEN 
+									CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume 
+									ELSE 0 END 
+								ELSE location_beverages.quantity END),0), 
+							SUM(COALESCE(location_beverages.wholesale,0)), 
+							SUM(COALESCE(location_beverages.deposit,0)), 
+							COALESCE(SUM(location_beverages.inventory),0) 
 						FROM beverages, location_beverages, locations 
 						WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
 							AND location_beverages.beverage_id=beverages.id 
@@ -1920,6 +1976,8 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							&bevInv.ID,
 							&bevInv.Product,
 							&bevInv.Quantity,
+							&bevInv.Wholesale,
+							&bevInv.Deposit,
 							&bevInv.Inventory); err != nil {
 							log.Println(err.Error())
 							http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1952,7 +2010,10 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 					rows, err := db.Query(`
 						SELECT kegs.id, distributors.name, kegs.volume, kegs.unit, 
-						SUM(COALESCE(location_beverages.quantity,0)), SUM(COALESCE(location_beverages.inventory,0)) 
+							SUM(COALESCE(location_beverages.quantity,0)), 
+							SUM(COALESCE(location_beverages.wholesale,0)), 
+							SUM(COALESCE(location_beverages.deposit,0)), 
+							SUM(COALESCE(location_beverages.inventory,0)) 
 						FROM kegs, distributors, location_beverages, locations 
 						WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
 							AND location_beverages.location_id=locations.id 
@@ -1975,6 +2036,8 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							&bevInv.Volume,
 							&bevInv.Unit,
 							&bevInv.Quantity,
+							&bevInv.Wholesale,
+							&bevInv.Deposit,
 							&bevInv.Inventory); err != nil {
 							log.Println(err.Error())
 							http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2176,7 +2239,9 @@ func invLocNewAPIHandler(w http.ResponseWriter, r *http.Request) {
 			//       inventory = deposit
 			// + keg:
 			//     inventory = quantity * deposit
-			inventory := float32(0)
+			inventory := float32(0)     // the TOTAL inventory = wholesale + total_deposit
+			wholesale := float32(0)     // Inventory value without deposit, just raw goods
+			total_deposit := float32(0) // Deposit value without wholesale
 			unit_cost := float32(0)
 			deposit := float32(0)
 
@@ -2200,9 +2265,11 @@ func invLocNewAPIHandler(w http.ResponseWriter, r *http.Request) {
 						log.Println(err.Error())
 						continue
 					}
-					inventory = float32(anItem.Quantity)*unit_cost + deposit*float32(math.Ceil(float64(anItem.Quantity))) // parenthesis are important here
+					wholesale = float32(anItem.Quantity) * unit_cost
+					total_deposit = deposit * float32(math.Ceil(float64(anItem.Quantity)))
 				} else { // keg
-					inventory = float32(anItem.Quantity) * deposit
+					wholesale = 0
+					total_deposit = float32(anItem.Quantity) * deposit
 				}
 
 			} else if batch.Type == "tap" {
@@ -2212,15 +2279,18 @@ func invLocNewAPIHandler(w http.ResponseWriter, r *http.Request) {
 					log.Println(err.Error())
 					continue
 				}
-				inventory = float32(anItem.Quantity)*unit_cost + deposit
+				wholesale = float32(anItem.Quantity) * unit_cost
+				total_deposit = deposit
 			} else {
 				http.Error(w, "Encountered incorrect location type!", http.StatusInternalServerError)
 				return
 			}
 
+			inventory = wholesale + total_deposit
+
 			// finally, update its quantity and inventory in location_beverages
 			// XXX HERE DO INSERTION
-			_, err = db.Exec("INSERT INTO location_beverages (beverage_id, location_id, quantity, inventory, update, active, type) VALUES ($1, $2, $3, $4, $5, TRUE, $6);", anItem.ID, loc_id, anItem.Quantity, inventory, cur_time, anItem.Type)
+			_, err = db.Exec("INSERT INTO location_beverages (beverage_id, location_id, quantity, wholesale, deposit, inventory, update, active, type) VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, $8);", anItem.ID, loc_id, anItem.Quantity, wholesale, total_deposit, inventory, cur_time, anItem.Type)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)

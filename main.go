@@ -35,6 +35,8 @@ type BeverageInv struct {
 	Volume      NullFloat64 `json:"volume"`
 	Unit        NullString  `json:"unit"`
 	Quantity    float32     `json:"quantity"`
+	Wholesale   NullFloat64 `json:"wholesale"`
+	Deposit     NullFloat64 `json:"deposit"` // This is the TOTAL deposit based on quantity
 	Inventory   NullFloat64 `json:"inventory"`
 	Type        NullString  `json:"type"`
 }
