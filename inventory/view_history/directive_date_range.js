@@ -24,6 +24,7 @@ angular.module('myApp')
         var today = new Date();
         // start date is by default 1 week ago
         scope.startDate = new Date(today.setDate(today.getDate() - 6));
+        scope.startDate.setHours(0,0,0);
         scope.endDate = new Date();
         scope.endDate.setHours(23,59,59);
       };

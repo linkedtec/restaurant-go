@@ -63,6 +63,10 @@
     </div>
   </div>
 
+  <div ng-if="selected_loc===null" style="text-align:center; margin-top:96px; font-size:2.2em; color:#cccccc">
+    Select a Location to get started.
+  </div>
+
   <div ng-if="selected_loc!==null && edit_loc===true" class="add_ui_box_blue" style="margin-top:-12px; margin-bottom:12px; max-width:640px;">
     <div class="add_title_bar_blue">
       <button ng-if="locations.length>0" ng-click="toggleEditLoc()" type="button" class="btn btn-default btn_x" style="float:left">

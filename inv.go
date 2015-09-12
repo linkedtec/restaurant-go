@@ -2,13 +2,19 @@ package main
 
 import (
 	"bytes"
+	//"crypto/tls"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
+	"io/ioutil"
 	"log"
 	"math"
+	//"net"
 	"net/http"
+	//"net/mail"
+	"net/smtp"
 	"os"
 	"sort"
 	"strconv"
@@ -826,7 +832,7 @@ func exportAPIHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "export/"+filename)
 }
 
-func createXlsxFile(data []byte, sorted_keys []string, history_type string, suffix string, user_id string, w http.ResponseWriter, r *http.Request) {
+func createXlsxFile(data []byte, sorted_keys []string, history_type string, suffix string, user_id string, w http.ResponseWriter, r *http.Request, email string, args map[string]string) {
 
 	export_dir := "./export/"
 	if os.MkdirAll(export_dir, 0755) != nil {
@@ -1005,15 +1011,173 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	var retfile ExportFile
-	retfile.URL = filename[1:] // remove the . at the beginning
-	js, err := json.Marshal(retfile)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if email == "true" {
+
+		/*
+			smtp_server := "smtp.gmail.com:587"
+
+			from := mail.Address{"Bev App", "bevappdaemon@gmail.com"}
+			to := mail.Address{"Restaurant Owner", "core433@gmail.com"}
+			body := "this is the body line1.\nthis is the body line2.\nthis is the body line3.\n"
+			subject := "Inventory Spreadsheet"
+
+			// Set up authentication information
+			auth := smtp.PlainAuth(
+				"",
+				"bevappdaemon@gmail.com",
+				"bevApp4eva",
+				"smtp.gmail.com",
+			)
+
+			header := make(map[string]string)
+			header["From"] = from.String()
+			header["To"] = to.String()
+			header["Subject"] = subject
+			// setup the message
+			message := ""
+			for k, v := range header {
+				message += fmt.Sprintf("%s: %s\r\n", k, v)
+			}
+			message += "\r\n" + body
+
+			client, err := smtp.Dial(smtp_server)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer client.Close()
+
+			host, _, _ := net.SplitHostPort(smtp_server)
+			tlc := &tls.Config{
+				InsecureSkipVerify: true,
+				ServerName:         host,
+			}
+			if err = client.StartTLS(tlc); err != nil {
+				log.Panic(err)
+			}
+
+			err = client.Auth(auth)
+			if err != nil {
+				log.Fatal(err)
+			}
+			client.Mail("bevappdaemon@gmail.com")
+			client.Rcpt("core433@gmail.com")
+			wc, err := client.Data()
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer wc.Close()
+			_, err = wc.Write([]byte(message))
+			if err != nil {
+				log.Fatal(err)
+			}
+		*/
+
+		_start_date := args["start_date"]
+		_end_date := args["end_date"]
+		_tz_offset := args["tz_offset"]
+
+		// dates are in this format:
+		// 2015-09-05T07:29:33.629Z
+		// need to parse into time
+		const parseLongForm = "2006-01-02T15:04:05.000Z"
+		start_date, _ := time.Parse(parseLongForm, _start_date)
+		end_date, _ := time.Parse(parseLongForm, _end_date)
+
+		// Need to convert date to client's local time by subtracting timezone
+		// offset to get the correct dates to display.
+		_tz, _ := time.ParseDuration(_tz_offset + "h")
+		start_date = start_date.Add(-_tz)
+		end_date = end_date.Add(-_tz)
+
+		format_layout := "01/02/2006"
+		start_date_str := start_date.Format(format_layout)
+		end_date_str := end_date.Format(format_layout)
+
+		date_title := start_date_str
+		date_content := ""
+		if start_date_str != end_date_str {
+			date_title += " - " + end_date_str
+			date_content = "from " + start_date_str + " to " + end_date_str
+		} else {
+			date_content = "on " + start_date_str
+		}
+
+		title_layout := "01-02-2006"
+		start_date_title := start_date.Format(title_layout)
+		end_date_title := end_date.Format(title_layout)
+		title_date_title := start_date_title
+		if start_date_title != end_date_title {
+			title_date_title += "_" + end_date_title
+		}
+
+		from := "bevappdaemon@gmail.com"
+		to := "core433@gmail.com"
+		to_name := "Recipient"
+		marker := "ACUSTOMANDUNIQUEBOUNDARY"
+		subject := "Inventory Spreadsheet: " + date_title
+		body := "Attached is a spreadsheet with your inventory records " + date_content + "."
+		file_location := filename
+		file_name := "Inventory" + title_date_title + ".xlsx"
+
+		// part1 will be the mail headers
+		part1 := fmt.Sprintf("From: Bev App <%s>\r\nTo: %s <%s>\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=%s\r\n--%s", from, to_name, to, subject, marker, marker)
+
+		// part2 will be the body of the email (text or HTML)
+		part2 := fmt.Sprintf("\r\nContent-Type: text/html\r\nContent-Transfer-Encoding:8bit\r\n\r\n%s\r\n--%s", body, marker)
+
+		// read and encode attachment
+		content, _ := ioutil.ReadFile(file_location)
+		encoded := base64.StdEncoding.EncodeToString(content)
+
+		//split the encoded file in lines (doesn't matter, but low enough not to hit a max limit)
+		lineMaxLength := 500
+		nbrLines := len(encoded) / lineMaxLength
+
+		var buf bytes.Buffer
+
+		//append lines to buffer
+		for i := 0; i < nbrLines; i++ {
+			buf.WriteString(encoded[i*lineMaxLength:(i+1)*lineMaxLength] + "\n")
+		} //for
+
+		//append last line in buffer
+		buf.WriteString(encoded[nbrLines*lineMaxLength:])
+
+		//part 3 will be the attachment
+		part3 := fmt.Sprintf("\r\nContent-Type: application/xlsx; name=\"%s\"\r\nContent-Transfer-Encoding:base64\r\nContent-Disposition: attachment; filename=\"%s\"\r\n\r\n%s\r\n--%s--", file_location, file_name, buf.String(), marker)
+
+		//send the email
+		auth := smtp.PlainAuth(
+			"",
+			"bevappdaemon@gmail.com",
+			"bevApp4eva",
+			"smtp.gmail.com",
+		)
+		err = smtp.SendMail(
+			"smtp.gmail.com:587",
+			auth,
+			from,
+			[]string{to},
+			[]byte(part1+part2+part3),
+		)
+
+		//check for SendMail error
+		if err != nil {
+			log.Fatal(err)
+		}
+
+	} else {
+		w.Header().Set("Content-Type", "application/json")
+		var retfile ExportFile
+		retfile.URL = filename[1:] // remove the . at the beginning
+		js, err := json.Marshal(retfile)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
 	}
-	w.Write(js)
+
 }
 
 func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
@@ -1023,7 +1187,8 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 		history_type := r.URL.Query().Get("type")
 		start_date := r.URL.Query().Get("start_date")
 		end_date := r.URL.Query().Get("end_date")
-		tz_offset := r.URL.Query().Get("tz_offset")
+		_tz_offset := r.URL.Query().Get("tz_offset")
+		tz_offset := _tz_offset
 		if tz_offset == "0" {
 			tz_offset = "UTC"
 		} else if !strings.HasPrefix(tz_offset, "-") {
@@ -1036,6 +1201,14 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// if export is set, that means return a save-able file instead of JSON
 		export := r.URL.Query().Get("export")
 		log.Println(history_type)
+		email := r.URL.Query().Get("email")
+
+		extra_args := make(map[string]string)
+		if email == "true" {
+			extra_args["start_date"] = start_date
+			extra_args["end_date"] = end_date
+			extra_args["tz_offset"] = _tz_offset
+		}
 
 		// if no dates were provided, set start date to 1 month ago and end date
 		// to now
@@ -1440,7 +1613,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				switch export {
 				case "xlsx":
 					log.Println("create xlsx")
-					createXlsxFile(js, sorted_keys, "all_itemized", "items_", test_user_id, w, r)
+					createXlsxFile(js, sorted_keys, "all_itemized", "items_", test_user_id, w, r, email, extra_args)
 				}
 
 			} else {
@@ -1654,7 +1827,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				switch export {
 				case "xlsx":
 					log.Println("create xlsx")
-					createXlsxFile(js, sorted_keys, history_type, "all_", test_user_id, w, r)
+					createXlsxFile(js, sorted_keys, history_type, "all_", test_user_id, w, r, email, extra_args)
 				}
 			} else {
 				w.Header().Set("Content-Type", "application/json")
@@ -1875,7 +2048,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				switch export {
 				case "xlsx":
 					log.Println("create xlsx")
-					createXlsxFile(js, sorted_keys, history_type, "loc_", test_user_id, w, r)
+					createXlsxFile(js, sorted_keys, history_type, "loc_", test_user_id, w, r, email, extra_args)
 				}
 			} else {
 				w.Header().Set("Content-Type", "application/json")
@@ -2064,7 +2237,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				switch export {
 				case "xlsx":
 					log.Println("create xlsx")
-					createXlsxFile(js, sorted_keys, history_type, "type_", test_user_id, w, r)
+					createXlsxFile(js, sorted_keys, history_type, "type_", test_user_id, w, r, email, extra_args)
 				}
 			} else {
 				w.Header().Set("Content-Type", "application/json")

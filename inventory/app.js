@@ -62,6 +62,10 @@ config(['$routeProvider', function($routeProvider) {
       if (fnum===null || isNaN(fnum))
         return fnum
       return parseFloat(fnum.toFixed(1));
+    },
+
+    isInt: function(num) {
+      return num % 1 === 0;
     }
   }
 })

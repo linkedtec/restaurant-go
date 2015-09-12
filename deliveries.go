@@ -2,11 +2,14 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"net/smtp"
 	"os"
 	"strconv"
 	"strings"
@@ -49,7 +52,7 @@ func setupDeliveriesHandlers() {
 	http.HandleFunc("/deliveries", deliveriesAPIHandler)
 }
 
-func createDeliveryXlsxFile(data []byte, sorted_keys []string, suffix string, user_id string, w http.ResponseWriter, r *http.Request) {
+func createDeliveryXlsxFile(data []byte, sorted_keys []string, suffix string, user_id string, w http.ResponseWriter, r *http.Request, email string, args map[string]string) {
 
 	export_dir := "./export/"
 	if os.MkdirAll(export_dir, 0755) != nil {
@@ -136,15 +139,112 @@ func createDeliveryXlsxFile(data []byte, sorted_keys []string, suffix string, us
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	var retfile ExportFile
-	retfile.URL = filename[1:] // remove the . at the beginning
-	js, err := json.Marshal(retfile)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if email == "true" {
+		_start_date := args["start_date"]
+		_end_date := args["end_date"]
+		_tz_offset := args["tz_offset"]
+
+		// dates are in this format:
+		// 2015-09-05T07:29:33.629Z
+		// need to parse into time
+		const parseLongForm = "2006-01-02T15:04:05.000Z"
+		start_date, _ := time.Parse(parseLongForm, _start_date)
+		end_date, _ := time.Parse(parseLongForm, _end_date)
+
+		// Need to convert date to client's local time by subtracting timezone
+		// offset to get the correct dates to display.
+		_tz, _ := time.ParseDuration(_tz_offset + "h")
+		start_date = start_date.Add(-_tz)
+		end_date = end_date.Add(-_tz)
+
+		format_layout := "01/02/2006"
+		start_date_str := start_date.Format(format_layout)
+		end_date_str := end_date.Format(format_layout)
+
+		date_title := start_date_str
+		date_content := ""
+		if start_date_str != end_date_str {
+			date_title += " - " + end_date_str
+			date_content = "from " + start_date_str + " to " + end_date_str
+		} else {
+			date_content = "on " + start_date_str
+		}
+
+		title_layout := "01-02-2006"
+		start_date_title := start_date.Format(title_layout)
+		end_date_title := end_date.Format(title_layout)
+		title_date_title := start_date_title
+		if start_date_title != end_date_title {
+			title_date_title += "_" + end_date_title
+		}
+
+		from := "bevappdaemon@gmail.com"
+		to := "core433@gmail.com"
+		to_name := "Recipient"
+		marker := "ACUSTOMANDUNIQUEBOUNDARY"
+		subject := "Delivery Spreadsheet: " + date_title
+		body := "Attached is a spreadsheet with your delivery records " + date_content + "."
+		file_location := filename
+		file_name := "Deliveries_" + title_date_title + ".xlsx"
+
+		// part1 will be the mail headers
+		part1 := fmt.Sprintf("From: Bev App <%s>\r\nTo: %s <%s>\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=%s\r\n--%s", from, to_name, to, subject, marker, marker)
+
+		// part2 will be the body of the email (text or HTML)
+		part2 := fmt.Sprintf("\r\nContent-Type: text/html\r\nContent-Transfer-Encoding:8bit\r\n\r\n%s\r\n--%s", body, marker)
+
+		// read and encode attachment
+		content, _ := ioutil.ReadFile(file_location)
+		encoded := base64.StdEncoding.EncodeToString(content)
+
+		//split the encoded file in lines (doesn't matter, but low enough not to hit a max limit)
+		lineMaxLength := 500
+		nbrLines := len(encoded) / lineMaxLength
+
+		var buf bytes.Buffer
+
+		//append lines to buffer
+		for i := 0; i < nbrLines; i++ {
+			buf.WriteString(encoded[i*lineMaxLength:(i+1)*lineMaxLength] + "\n")
+		} //for
+
+		//append last line in buffer
+		buf.WriteString(encoded[nbrLines*lineMaxLength:])
+
+		//part 3 will be the attachment
+		part3 := fmt.Sprintf("\r\nContent-Type: application/xlsx; name=\"%s\"\r\nContent-Transfer-Encoding:base64\r\nContent-Disposition: attachment; filename=\"%s\"\r\n\r\n%s\r\n--%s--", file_location, file_name, buf.String(), marker)
+
+		//send the email
+		auth := smtp.PlainAuth(
+			"",
+			"bevappdaemon@gmail.com",
+			"bevApp4eva",
+			"smtp.gmail.com",
+		)
+		err := smtp.SendMail(
+			"smtp.gmail.com:587",
+			auth,
+			from,
+			[]string{to},
+			[]byte(part1+part2+part3),
+		)
+
+		//check for SendMail error
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		w.Header().Set("Content-Type", "application/json")
+		var retfile ExportFile
+		retfile.URL = filename[1:] // remove the . at the beginning
+		js, err := json.Marshal(retfile)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
 	}
-	w.Write(js)
+
 }
 
 func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
@@ -168,6 +268,14 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// if export is set, that means return a save-able file instead of JSON
 		export := r.URL.Query().Get("export")
+		email := r.URL.Query().Get("email")
+
+		extra_args := make(map[string]string)
+		if email == "true" {
+			extra_args["start_date"] = start_date
+			extra_args["end_date"] = end_date
+			extra_args["tz_offset"] = tz_offset
+		}
 
 		if len(start_date) == 0 || len(end_date) == 0 {
 			start_date = time.Now().UTC().String()
@@ -239,7 +347,7 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 			switch export {
 			case "xlsx":
 				log.Println("create xlsx")
-				createDeliveryXlsxFile(js, sorted_keys, "all_", test_user_id, w, r)
+				createDeliveryXlsxFile(js, sorted_keys, "all_", test_user_id, w, r, email, extra_args)
 			}
 		} else {
 			w.Header().Set("Content-Type", "application/json")

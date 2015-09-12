@@ -19,7 +19,8 @@ angular.module('myApp.viewHistory', ['ngRoute'])
 
   $scope.initDate = function() {
     var today = new Date();
-    $scope.start_date = new Date(today.setDate(today.getDate() - 30));
+    $scope.start_date = new Date(today.setDate(today.getDate() - 6));
+    $scope.start_date.setHours(0,0,0);
     $scope.end_date = new Date();
     $scope.end_date.setHours(23,59,59);
   };
@@ -289,7 +290,18 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     return $scope.end_date;
   };
 
-  $scope.exportSpreadsheet = function() {
+  $scope.emailSpreadsheet = function() {
+    $scope.exportSpreadsheet(true);
+  };
+
+  $scope.exportSpreadsheet = function( email ) {
+
+    if (email===undefined) {
+      email = null;
+    }
+    if (email===true) {
+      email = "true";
+    }
 
     console.log("export spreadsheet");
 
@@ -309,6 +321,8 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       all_ids.push($scope.added_items[i]['id']);
     }
 
+    var export_format = 'xlsx';
+
     $http.get('/inv/history', {
       params: { 
         type: history_type,
@@ -316,16 +330,23 @@ angular.module('myApp.viewHistory', ['ngRoute'])
         start_date: $scope.startDateLocal(),
         end_date: $scope.endDateLocal(),
         tz_offset: DateService.timeZoneOffset(),
-        export:'xlsx' }
+        export:export_format,
+        email:email }
     }).
     success(function(data, status, headers, config) {
       console.log(data);
-      var URL = data['url'];
-      // create an iframe to download the file at the url
-      var iframe = document.createElement("iframe");
-      iframe.setAttribute("src", URL);
-      iframe.setAttribute("style", "display: none");
-      document.body.appendChild(iframe);
+
+      if (email==="true") {
+
+      } else {
+        var URL = data['url'];
+        // create an iframe to download the file at the url
+        var iframe = document.createElement("iframe");
+        iframe.setAttribute("src", URL);
+        iframe.setAttribute("style", "display: none");
+        document.body.appendChild(iframe);
+      }
+      
     }).
     error(function(data, status, headers, config) {
 
@@ -1114,6 +1135,80 @@ angular.module('myApp.viewHistory', ['ngRoute'])
   };
 
   $scope.selectUseMode($scope.use_modes[0]);
+
+  $scope.custom_email_valid = false;
+  $scope.custom_email = {email:""};
+  $scope.default_email = null;
+  $scope.editing_default_email = false;
+  $scope.default_email_tmp = {email:""};
+  $scope.default_email_valid = false;
+
+  $scope.editDefaultEmail = function() {
+    if ($scope.default_email !== null) {
+      $scope.default_email_tmp.email = $scope.default_email;
+    } else {
+      $scope.default_email_tmp.email = "";
+    }
+
+    $scope.editing_default_email = true;
+
+    $scope.defaultEmailTmpChanged();
+    
+  };
+
+  $scope.emailTmpChanged = function(email) {
+    if (email.length < 5) {
+      return false;
+    }
+
+    if (email.indexOf('@') < 0) {
+      return false;
+    }
+
+    if (email.indexOf('.') < 0) {
+      return false;
+    }
+
+    return true;
+  };
+
+  $scope.defaultEmailTmpChanged = function() {
+    $scope.default_email_valid = $scope.emailTmpChanged($scope.default_email_tmp.email);
+  };
+
+  $scope.customEmailChanged = function() {
+    $scope.custom_email_valid = $scope.emailTmpChanged($scope.custom_email.email);
+  }
+
+  $scope.cancelEditDefaultEmail = function()
+  {
+    $scope.editing_default_email = false;
+    $scope.default_email_tmp.email = "";
+  };
+
+  $scope.toggleEmailPopover = function() {
+    $scope.editing_default_email = false;
+    $scope.default_email_tmp.email = "";
+  };
+
+  // email popover:
+  $scope.closePopover = function(e) {
+    $scope.editing_default_email = false;
+    $scope.default_email_tmp.email = "";
+
+    var popups = document.querySelectorAll('.popover');
+    if(popups) {
+      for(var i=0; i<popups.length; i++) {
+        var popup = popups[i];
+        var popupElement = angular.element(popup);
+
+        if(popupElement[0].previousSibling!=e.target){
+          popupElement.scope().$parent.isOpen=false;
+          popupElement.remove();
+        }
+      }
+    }
+  };
 
 });
 

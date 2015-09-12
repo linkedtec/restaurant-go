@@ -181,7 +181,7 @@
       <div class="col-xs-4">
         <div class="form-group" ng-class="{'has-error': form_ver.error_pcost===true}">
           <label class="control-label"> 
-            <b>Wholesale Cost</b> <span ng-if="(new_beverage.alcohol_type==='Beer' || new_beverage.alcohol_type==='Cider') && new_beverage.container_type==='Keg'" style="color:#888888; font-style:italic">exclude Deposit</span>
+            <b>Wholesale Cost</b> <span ng-if="new_beverage.container_type==='Keg'" style="color:#888888; font-style:italic">exclude Deposit</span>
           </label>
           <div class="input-group">
             <span class="input-group-addon">$</span>

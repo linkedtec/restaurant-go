@@ -3,11 +3,12 @@ angular.module('myApp')
 .factory("DeliveriesService", function($http) {
 
   return {
-    get: function(start_date, end_date, tz_offset, xport) {
+    get: function(start_date, end_date, tz_offset, xport, email) {
       var params = { 
         start_date: start_date,
         end_date: end_date,
-        tz_offset: tz_offset
+        tz_offset: tz_offset,
+        email: email
       };
       if (xport!==null) {
         params['export'] = xport;

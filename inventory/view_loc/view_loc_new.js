@@ -1659,7 +1659,14 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
     if (isNaN($scope.quantity) || $scope.quantity < 0) {
       $scope.new_failure_msg = "Please enter a valid quantity!";
       return;
-    };
+    }
+
+    // here's a special case: if type is keg deposit and quantity is not a whole
+    // number, need to error
+    if ($scope.item.type==='keg' && !MathService.isInt($scope.quantity)) {
+      $scope.new_failure_msg = "Keg counts must be whole numbers!";
+      return;
+    }
 
     $scope.item.quantity = $scope.quantity;
 

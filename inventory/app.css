@@ -277,6 +277,20 @@ body {
   border:none;
 }
 
+.dlv_xl_btn {
+  padding: 12px 18px;
+  font-size:1.4em;
+  margin:auto;
+  border-color:#a0d0e0;
+  border-width:2px;
+}
+
+.dlv_xl_btn:hover {
+  border-color:#a0d0e0;
+  background-color: #eaf6ff;
+  border-width:2px;
+}
+
 
 .main_container {
   min-width:560px;
@@ -1088,6 +1102,12 @@ like enclosed space */
 
 .help_link {
   color:#5599cc;
+  cursor: pointer;
+}
+
+.help_link:hover {
+  color:#55aaff;
+  text-decoration:underline;
 }
 
 input.customCbRnd, input.customCbSqr {
@@ -1128,5 +1148,9 @@ input.customCbSqr:checked:after {
 input.customCbSqr:after {
   content: '\f096';
   color:#aabbcc;
+}
+
+.popover {
+  max-width: 600px;
 }
 

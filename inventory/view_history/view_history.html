@@ -55,35 +55,39 @@
     </div>
   </div>
 
-  <div class="row" style="margin-top:12px">
-    <div class="col-xs-9" style="text-align:left;">
-
-      <date-range start-date="start_date" end-date="end_date" on-start-change="startDateChanged()" on-end-change="endDateChanged()"></date_range>
-
-    </div>
-
-    <div class="col-xs-3" ng-if="use_mode===0">
-      <!-- this hidden link is just a dummy placeholder for exporting to excel-->
-      <a id="excel_export"  style="display:none;"></a>
-      <!-- the below commented export button uses client-side AJAX to export to excel-->
-      <!-- we are opting out of it for the time being as it doesn't work for IE or Safari-->
-      <!-- and are instead using a server-side file for exporting spreadsheets -->
-      <!--button type="button" class="btn btn-default btn-md btn-primary" style="font-size:1.0em; float:right; margin-top:2px" onclick="tableToExcel('inventoryTable', 'W3C Example Table', 'inventory.xls')">Export to Excel</button-->
-      <button type="button" class="btn btn-default btn-sm btn-default" style="font-size:0.9em; float:right; margin-top:0px; border-color:#22aacc; color:#2299cc" ng-click="exportSpreadsheet()" ng-disabled="display_items===null || display_items.length===0">
-        <span class="glyphicon glyphicon-download-alt" style="margin-right:4px"></span> Download Excel
-      </button>
-    </div>
-  </div>
-
-  <div ng-if="sort_type===sort_types[3] && added_items.length>0" class="row" ng-if="sort_type===sort_types[3]" style="padding-left:12px; margin-top:12px" id="inv_items">
+  <div ng-if="sort_type===sort_types[3] && added_items.length>0" class="row" ng-if="sort_type===sort_types[3]" style="padding-left:12px; margin-top:8px; margin-bottom:-8px" id="inv_items">
     <div ng-repeat="added_item in added_items" class="a_item" id="a_item_{{$index}}">
       <span style="float:left">{{added_item.product}}</span>
       <span class="glyphicon glyphicon-remove add_x" aria-hidden="true" ng-click="removeAddedItem(added_item)"></span>
     </div>
   </div>
 
+  <div class="row" style="margin-top:20px">
+    <div class="col-xs-8" style="text-align:left;">
+
+      <date-range start-date="start_date" end-date="end_date" on-start-change="startDateChanged()" on-end-change="endDateChanged()"></date_range>
+
+    </div>
+
+    <div class="col-xs-4" ng-if="use_mode===0">
+      <!-- this hidden link is just a dummy placeholder for exporting to excel-->
+      <!--a id="excel_export"  style="display:none;"></a-->
+      <!-- the below commented export button uses client-side AJAX to export to excel-->
+      <!-- we are opting out of it for the time being as it doesn't work for IE or Safari-->
+      <!-- and are instead using a server-side file for exporting spreadsheets -->
+      <!--button type="button" class="btn btn-default btn-md btn-primary" style="font-size:1.0em; float:right; margin-top:2px" onclick="tableToExcel('inventoryTable', 'W3C Example Table', 'inventory.xls')">Export to Excel</button-->
+      <button type="button" class="btn btn-default btn-sm btn-default" style="font-size:0.9em; float:right; margin-top:0px; border-color:#22aacc; color:#2299cc" ng-click="exportSpreadsheet()" ng-disabled="display_items===null || display_items.length===0">
+        <span class="glyphicon glyphicon-download-alt" style="margin-right:4px"></span> Download
+      </button>
+      <button type="button" class="btn btn-default btn-sm btn-default" style="font-size:0.9em; float:right; margin-top:0px; border-color:#22aacc; color:#2299cc; margin-right:6px" ng-click="toggleEmailPopover()" ng-disabled="display_items===null || display_items.length===0" popover-template="'popoverEmail.html'" popover-placement="bottom" popover-title="Choose Email Recipient:" popover-append-to-body="true" >
+        <span class="glyphicon glyphicon-envelope" style="margin-right:4px"></span> Email
+      </button>
+
+    </div>
+  </div>
+
   <div ng-if="use_mode===0">
-    <table id="inventoryTable" summary="Data table for inventory history." rules="groups" frame="hsides" border="2" style="width:100%; margin-top:16px; margin-bottom:120px">
+    <table id="inventoryTable" summary="Data table for inventory history." rules="groups" frame="hsides" border="2" style="width:100%; margin-top:8px; margin-bottom:120px">
       <tr>
         <td></td>
         <td style="width:30%">Product</td>
@@ -167,3 +171,5 @@
   <link rel="stylesheet" href="/inventory/chart.css">
 
 </div>
+
+<div ng-include src="'./view_history/popover_email.html'">

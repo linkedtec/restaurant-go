@@ -22,7 +22,8 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
 
   $scope.initDate = function() {
     var today = new Date();
-    $scope.start_date = new Date(today.setDate(today.getDate() - 30));
+    $scope.start_date = new Date(today.setDate(today.getDate() - 6));
+    $scope.start_date.setHours(0,0,0);
     $scope.end_date = new Date();
     $scope.end_date.setHours(23,59,59);
   };
@@ -54,13 +55,14 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
 
         for (var i in deliveries) {
           var dlv = deliveries[i];
-          var date_str = dlv['delivery_time'];
-          dlv['pretty_date'] = DateService.getPrettyDate(date_str, true);
-
+          
           // convert date and time from utc timestamp to local time object
           dlv['delivery_date'] = DateService.getDateFromUTCTimeStamp(
             dlv['delivery_time'], true);
           dlv['delivery_time'] = new Date(dlv['delivery_time']);
+
+          var date_str = dlv['delivery_time'].toString();
+          dlv['pretty_date'] = DateService.getPrettyDate(date_str, false);
 
           // get the sum of item values for the delivery
           var inv_sum = 0;
@@ -188,25 +190,40 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
 
   };
 
-  $scope.exportSpreadsheet = function() {
+  $scope.emailSpreadsheet = function() {
+    $scope.exportSpreadsheet(true);
+  };
+
+  $scope.exportSpreadsheet = function( email ) {
     console.log("export spreadsheet");
+
+    if (email===undefined) {
+      email = null;
+    }
+    if (email===true) {
+      email = "true";
+    }
+
+    var export_format = 'xlsx';
 
     var result = DeliveriesService.get(
       $scope.startDateLocal(),
       $scope.endDateLocal(),
       DateService.timeZoneOffset(),
-      'xlsx'
+      export_format,
+      email
       );
     result.then(
       function(payload) {
         console.log(payload.data);
-        var URL = payload.data['url'];
-        // create an iframe to download the file at the url
-        var iframe = document.createElement("iframe");
-        iframe.setAttribute("src", URL);
-        iframe.setAttribute("style", "display: none");
-        document.body.appendChild(iframe);
-
+        if (email !== "true") {
+          var URL = payload.data['url'];
+          // create an iframe to download the file at the url
+          var iframe = document.createElement("iframe");
+          iframe.setAttribute("src", URL);
+          iframe.setAttribute("style", "display: none");
+          document.body.appendChild(iframe);
+        }
       },
       function(errorPayload) {
         ; // do nothing for now
