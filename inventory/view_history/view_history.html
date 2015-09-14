@@ -79,9 +79,7 @@
       <button type="button" class="btn btn-default btn-sm btn-default" style="font-size:0.9em; float:right; margin-top:0px; border-color:#22aacc; color:#2299cc" ng-click="exportSpreadsheet()" ng-disabled="display_items===null || display_items.length===0">
         <span class="glyphicon glyphicon-download-alt" style="margin-right:4px"></span> Download
       </button>
-      <button type="button" class="btn btn-default btn-sm btn-default" style="font-size:0.9em; float:right; margin-top:0px; border-color:#22aacc; color:#2299cc; margin-right:6px" ng-click="toggleEmailPopover()" ng-disabled="display_items===null || display_items.length===0" popover-template="'popoverEmail.html'" popover-placement="bottom" popover-title="Choose Email Recipient:" popover-append-to-body="true" >
-        <span class="glyphicon glyphicon-envelope" style="margin-right:4px"></span> Email
-      </button>
+      <email-button send-email="emailSpreadsheet(email)" popover-title="'Email Inventory Spreadsheet to:'"></email-button>
 
     </div>
   </div>

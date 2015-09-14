@@ -2,14 +2,11 @@ package main
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
-	"io/ioutil"
 	"log"
 	"net/http"
-	"net/smtp"
 	"os"
 	"strconv"
 	"strings"
@@ -98,8 +95,14 @@ func createDeliveryXlsxFile(data []byte, sorted_keys []string, suffix string, us
 		// each key is a date
 		daterow := sheet.AddRow()
 		cell = daterow.AddCell()
-		dlv_date := dlv.DeliveryTime.String()
-		key_date := strings.Split(dlv_date, " ")[0]
+
+		// XXX Need to convert time to local time using tz_offset, since they are
+		// in UTC and not local
+		_tz_offset := args["tz_offset"]
+		_tz, _ := time.ParseDuration(_tz_offset + "h")
+		dlv_date_local := dlv.DeliveryTime.Add(-_tz).String()
+		//dlv_date := dlv.DeliveryTime.String()
+		key_date := strings.Split(dlv_date_local, " ")[0]
 		cell.Value = key_date // the date, e.g., 2015-01-01
 		cell = daterow.AddCell()
 		if dlv.Distributor.Valid {
@@ -139,7 +142,7 @@ func createDeliveryXlsxFile(data []byte, sorted_keys []string, suffix string, us
 		return
 	}
 
-	if email == "true" {
+	if len(email) > 3 {
 		_start_date := args["start_date"]
 		_end_date := args["end_date"]
 		_tz_offset := args["tz_offset"]
@@ -178,60 +181,15 @@ func createDeliveryXlsxFile(data []byte, sorted_keys []string, suffix string, us
 			title_date_title += "_" + end_date_title
 		}
 
-		from := "bevappdaemon@gmail.com"
-		to := "core433@gmail.com"
-		to_name := "Recipient"
-		marker := "ACUSTOMANDUNIQUEBOUNDARY"
-		subject := "Delivery Spreadsheet: " + date_title
-		body := "Attached is a spreadsheet with your delivery records " + date_content + "."
+		email_title := "Delivery Spreadsheet: " + date_title
+		email_body := "Attached is a spreadsheet with your delivery records " + date_content + "."
 		file_location := filename
 		file_name := "Deliveries_" + title_date_title + ".xlsx"
 
-		// part1 will be the mail headers
-		part1 := fmt.Sprintf("From: Bev App <%s>\r\nTo: %s <%s>\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=%s\r\n--%s", from, to_name, to, subject, marker, marker)
-
-		// part2 will be the body of the email (text or HTML)
-		part2 := fmt.Sprintf("\r\nContent-Type: text/html\r\nContent-Transfer-Encoding:8bit\r\n\r\n%s\r\n--%s", body, marker)
-
-		// read and encode attachment
-		content, _ := ioutil.ReadFile(file_location)
-		encoded := base64.StdEncoding.EncodeToString(content)
-
-		//split the encoded file in lines (doesn't matter, but low enough not to hit a max limit)
-		lineMaxLength := 500
-		nbrLines := len(encoded) / lineMaxLength
-
-		var buf bytes.Buffer
-
-		//append lines to buffer
-		for i := 0; i < nbrLines; i++ {
-			buf.WriteString(encoded[i*lineMaxLength:(i+1)*lineMaxLength] + "\n")
-		} //for
-
-		//append last line in buffer
-		buf.WriteString(encoded[nbrLines*lineMaxLength:])
-
-		//part 3 will be the attachment
-		part3 := fmt.Sprintf("\r\nContent-Type: application/xlsx; name=\"%s\"\r\nContent-Transfer-Encoding:base64\r\nContent-Disposition: attachment; filename=\"%s\"\r\n\r\n%s\r\n--%s--", file_location, file_name, buf.String(), marker)
-
-		//send the email
-		auth := smtp.PlainAuth(
-			"",
-			"bevappdaemon@gmail.com",
-			"bevApp4eva",
-			"smtp.gmail.com",
-		)
-		err := smtp.SendMail(
-			"smtp.gmail.com:587",
-			auth,
-			from,
-			[]string{to},
-			[]byte(part1+part2+part3),
-		)
-
-		//check for SendMail error
+		err = sendAttachmentEmail(email, email_title, email_body, file_location, file_name)
 		if err != nil {
-			log.Fatal(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	} else {
 		w.Header().Set("Content-Type", "application/json")
@@ -253,6 +211,8 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	case "GET":
 
+		log.Println(time.Now())
+
 		start_date := r.URL.Query().Get("start_date")
 		end_date := r.URL.Query().Get("end_date")
 		tz_offset := r.URL.Query().Get("tz_offset")
@@ -271,11 +231,9 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 		email := r.URL.Query().Get("email")
 
 		extra_args := make(map[string]string)
-		if email == "true" {
-			extra_args["start_date"] = start_date
-			extra_args["end_date"] = end_date
-			extra_args["tz_offset"] = tz_offset
-		}
+		extra_args["start_date"] = start_date
+		extra_args["end_date"] = end_date
+		extra_args["tz_offset"] = tz_offset
 
 		if len(start_date) == 0 || len(end_date) == 0 {
 			start_date = time.Now().UTC().String()
@@ -289,10 +247,10 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
         SELECT deliveries.id, deliveries.distributor_id, distributors.name, deliveries.delivery_time 
         FROM deliveries 
         LEFT OUTER JOIN distributors ON (distributors.id=deliveries.distributor_id) 
-        WHERE deliveries.delivery_time AT TIME ZONE 'UTC' AT TIME ZONE $1 BETWEEN $2 AND $3 
-          AND deliveries.user_id=$4 
+        WHERE deliveries.delivery_time BETWEEN $1 AND $2 
+          AND deliveries.user_id=$3 
         ORDER BY delivery_time DESC;`,
-			tz_offset, start_date, end_date, test_user_id)
+			start_date, end_date, test_user_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -306,6 +264,14 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
 			}
+
+			// if exporting, need to apply tz_offset to delivery time because
+			// client automatically converts to local time, but on the server the
+			// date is in UTC
+			//if len(export) > 0 {
+			//_tz, _ := time.ParseDuration(tz_offset + "h")
+			//dlv.DeliveryTime = dlv.DeliveryTime.Add(-_tz)
+			//}
 
 			// for each delivery, get all associated delivery items
 			item_rows, err := db.Query(`

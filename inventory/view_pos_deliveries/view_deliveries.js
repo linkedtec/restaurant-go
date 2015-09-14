@@ -75,6 +75,8 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
           dlv['distributor_obj'] = null;
         }
 
+        console.log(deliveries);
+
         $scope.deliveries = deliveries;
 
       },
@@ -190,8 +192,8 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
 
   };
 
-  $scope.emailSpreadsheet = function() {
-    $scope.exportSpreadsheet(true);
+  $scope.emailSpreadsheet = function(email) {
+    $scope.exportSpreadsheet(email);
   };
 
   $scope.exportSpreadsheet = function( email ) {
@@ -199,9 +201,6 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
 
     if (email===undefined) {
       email = null;
-    }
-    if (email===true) {
-      email = "true";
     }
 
     var export_format = 'xlsx';
@@ -216,7 +215,10 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
     result.then(
       function(payload) {
         console.log(payload.data);
-        if (email !== "true") {
+        if (email !== null) {
+
+        } else {
+          // for downloading, not email
           var URL = payload.data['url'];
           // create an iframe to download the file at the url
           var iframe = document.createElement("iframe");

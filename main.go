@@ -1,12 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	_ "github.com/lib/pq"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"net/smtp"
 	"os"
 	"time"
 )
@@ -151,6 +155,9 @@ func main() {
 	// handle volume_units APIs
 	http.HandleFunc("/volume_units", volumeUnitsHandler)
 
+	// handle users
+	setupUsersHandlers()
+
 	// handle inventory pages
 	setupInvHandlers()
 	setupTapsHandlers()
@@ -244,4 +251,57 @@ func updateBeverageVersion(old_id int) (int, error) {
 	}
 
 	return new_id, nil
+}
+
+func sendAttachmentEmail(email_address string, email_title string, email_body string, file_location string, file_name string) error {
+	from := "bevappdaemon@gmail.com"
+	to := email_address
+	to_name := "Recipient"
+	marker := "ACUSTOMANDUNIQUEBOUNDARY"
+	subject := email_title
+	body := email_body
+
+	// part1 will be the mail headers
+	part1 := fmt.Sprintf("From: Bev App <%s>\r\nTo: %s <%s>\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=%s\r\n--%s", from, to_name, to, subject, marker, marker)
+
+	// part2 will be the body of the email (text or HTML)
+	part2 := fmt.Sprintf("\r\nContent-Type: text/html\r\nContent-Transfer-Encoding:8bit\r\n\r\n%s\r\n--%s", body, marker)
+
+	// read and encode attachment
+	content, _ := ioutil.ReadFile(file_location)
+	encoded := base64.StdEncoding.EncodeToString(content)
+
+	//split the encoded file in lines (doesn't matter, but low enough not to hit a max limit)
+	lineMaxLength := 500
+	nbrLines := len(encoded) / lineMaxLength
+
+	var buf bytes.Buffer
+
+	//append lines to buffer
+	for i := 0; i < nbrLines; i++ {
+		buf.WriteString(encoded[i*lineMaxLength:(i+1)*lineMaxLength] + "\n")
+	} //for
+
+	//append last line in buffer
+	buf.WriteString(encoded[nbrLines*lineMaxLength:])
+
+	//part 3 will be the attachment
+	part3 := fmt.Sprintf("\r\nContent-Type: application/xlsx; name=\"%s\"\r\nContent-Transfer-Encoding:base64\r\nContent-Disposition: attachment; filename=\"%s\"\r\n\r\n%s\r\n--%s--", file_location, file_name, buf.String(), marker)
+
+	//send the email
+	auth := smtp.PlainAuth(
+		"",
+		"bevappdaemon@gmail.com",
+		"bevApp4eva",
+		"smtp.gmail.com",
+	)
+	err := smtp.SendMail(
+		"smtp.gmail.com:587",
+		auth,
+		from,
+		[]string{to},
+		[]byte(part1+part2+part3),
+	)
+
+	return err
 }

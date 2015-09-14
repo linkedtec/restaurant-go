@@ -2,12 +2,17 @@
   <div style="width:280px">
     <div style="width:76%">
       <div class="hint_text" style="padding-top:0px; padding-bottom:0px; font-size:0.9em">
-        Default email address
-        <span ng-if="default_email!==null" class="help_link" ng-click="" style="float:right"> Edit Default</span>
+        <span ng-if="editing_default_email===false">
+          Default email address
+        </span>
+        <span ng-if="editing_default_email===true" style="color:#cc9944">
+          Editing default email
+        </span>
+        <span ng-if="default_email!==null && editing_default_email===false" class="help_link" ng-click="editDefaultEmail()" style="float:right"> Edit Default</span>
       </div>
     </div>
-    <div ng-if="editing_default_email===false" style="display:inline-block; width:76%; background-color:#eeeeee; height:32px; padding:3px 6px; padding-top:6px; overflow:hidden; text-overflow:ellipsis">
-      <span ng-if="default_email!==null">
+    <div ng-if="editing_default_email===false" style="display:inline-block; width:76%; background-color:#eeeeee; height:32px; padding:3px 8px; padding-top:6px; overflow:hidden; text-overflow:ellipsis">
+      <span ng-if="default_email!==null" style="color:#666666">
         {{default_email}}
       </span>
       <span ng-if="default_email===null" class="help_link" ng-click="editDefaultEmail()">
@@ -24,7 +29,7 @@
       </div>
     </div>
 
-    <button ng-if="editing_default_email===true" ng-click="saveDefault()" type="button" style="float:right; width:20%; height:32px" class="btn btn-sm btn-primary" ng-disabled="default_email_valid===false">
+    <button ng-if="editing_default_email===true" ng-click="saveDefaultEmail()" type="button" style="float:right; width:20%; height:32px" class="btn btn-sm btn-primary" ng-disabled="default_email_valid===false">
       Save
     </button>
     <button ng-if="editing_default_email===false" ng-click="sendDefault()" type="button" style="float:right; width:20%; height:32px" class="btn btn-sm btn-success" ng-disabled="default_email===null || default_email.length===0">
@@ -34,17 +39,17 @@
   <hr style="padding:4px; margin:14px 0px; margin-bottom:6px"/>
   <div style="margin-bottom:12px">
     <div class="hint_text" style="padding-top:0px; padding-bottom:0px; font-size:0.9em">
-      Enter a custom email address
+      Other email address
     </div>
     <div style="display:inline-block; width:76%;">
       <input ng-model="custom_email.email" class="form-control input-small" style="height:32px" placeholder="" ng-change="customEmailChanged()">
     </div>
-    <button ng-click="sendDefault()" type="button" style="float:right; width:20%; height:32px" class="btn btn-sm btn-success" ng-disabled="custom_email_valid===false">
+    <button ng-click="sendCustom()" type="button" style="float:right; width:20%; height:32px" class="btn btn-sm btn-success" ng-disabled="custom_email_valid===false">
       Send
     </button>
   </div>
-  <div style="text-align:left; margin-top:6px">
-    <button ng-click="closePopover($event)" type="button" style="height:28px" class="btn btn-sm btn-default">
+  <div style="position:text-align:left; margin-top:6px">
+    <button ng-click="closePopover($event, null)" type="button" style="height:28px" class="btn btn-sm btn-default">
       Cancel
     </button>
   </div>

@@ -4,17 +4,14 @@ import (
 	"bytes"
 	//"crypto/tls"
 	"database/sql"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
-	"io/ioutil"
 	"log"
 	"math"
 	//"net"
 	"net/http"
 	//"net/mail"
-	"net/smtp"
 	"os"
 	"sort"
 	"strconv"
@@ -1011,7 +1008,7 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 		return
 	}
 
-	if email == "true" {
+	if len(email) > 3 {
 
 		/*
 			smtp_server := "smtp.gmail.com:587"
@@ -1110,60 +1107,15 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 			title_date_title += "_" + end_date_title
 		}
 
-		from := "bevappdaemon@gmail.com"
-		to := "core433@gmail.com"
-		to_name := "Recipient"
-		marker := "ACUSTOMANDUNIQUEBOUNDARY"
-		subject := "Inventory Spreadsheet: " + date_title
-		body := "Attached is a spreadsheet with your inventory records " + date_content + "."
+		email_title := "Inventory Spreadsheet: " + date_title
+		email_body := "Attached is a spreadsheet with your inventory records " + date_content + "."
 		file_location := filename
-		file_name := "Inventory" + title_date_title + ".xlsx"
+		file_name := "Inventory_" + title_date_title + ".xlsx"
 
-		// part1 will be the mail headers
-		part1 := fmt.Sprintf("From: Bev App <%s>\r\nTo: %s <%s>\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=%s\r\n--%s", from, to_name, to, subject, marker, marker)
-
-		// part2 will be the body of the email (text or HTML)
-		part2 := fmt.Sprintf("\r\nContent-Type: text/html\r\nContent-Transfer-Encoding:8bit\r\n\r\n%s\r\n--%s", body, marker)
-
-		// read and encode attachment
-		content, _ := ioutil.ReadFile(file_location)
-		encoded := base64.StdEncoding.EncodeToString(content)
-
-		//split the encoded file in lines (doesn't matter, but low enough not to hit a max limit)
-		lineMaxLength := 500
-		nbrLines := len(encoded) / lineMaxLength
-
-		var buf bytes.Buffer
-
-		//append lines to buffer
-		for i := 0; i < nbrLines; i++ {
-			buf.WriteString(encoded[i*lineMaxLength:(i+1)*lineMaxLength] + "\n")
-		} //for
-
-		//append last line in buffer
-		buf.WriteString(encoded[nbrLines*lineMaxLength:])
-
-		//part 3 will be the attachment
-		part3 := fmt.Sprintf("\r\nContent-Type: application/xlsx; name=\"%s\"\r\nContent-Transfer-Encoding:base64\r\nContent-Disposition: attachment; filename=\"%s\"\r\n\r\n%s\r\n--%s--", file_location, file_name, buf.String(), marker)
-
-		//send the email
-		auth := smtp.PlainAuth(
-			"",
-			"bevappdaemon@gmail.com",
-			"bevApp4eva",
-			"smtp.gmail.com",
-		)
-		err = smtp.SendMail(
-			"smtp.gmail.com:587",
-			auth,
-			from,
-			[]string{to},
-			[]byte(part1+part2+part3),
-		)
-
-		//check for SendMail error
+		err = sendAttachmentEmail(email, email_title, email_body, file_location, file_name)
 		if err != nil {
-			log.Fatal(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 	} else {
@@ -1204,11 +1156,9 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 		email := r.URL.Query().Get("email")
 
 		extra_args := make(map[string]string)
-		if email == "true" {
-			extra_args["start_date"] = start_date
-			extra_args["end_date"] = end_date
-			extra_args["tz_offset"] = _tz_offset
-		}
+		extra_args["start_date"] = start_date
+		extra_args["end_date"] = end_date
+		extra_args["tz_offset"] = _tz_offset
 
 		// if no dates were provided, set start date to 1 month ago and end date
 		// to now
@@ -1247,10 +1197,10 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			rows, err := db.Query(`
 				SELECT SUM(COALESCE(location_beverages.inventory,0)), (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
 				FROM location_beverages, locations 
-				WHERE location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4
-					AND locations.id=location_beverages.location_id AND locations.user_id=$5
+				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3
+					AND locations.id=location_beverages.location_id AND locations.user_id=$4
 				GROUP BY local_update ORDER BY local_update;`,
-				tz_offset, tz_offset, start_date, end_date, test_user_id)
+				tz_offset, start_date, end_date, test_user_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1313,9 +1263,9 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					FROM locations, location_beverages 
 					WHERE locations.id=$2 
 						AND location_beverages.location_id=locations.id 
-						AND location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $3 BETWEEN $4 AND $5 
+						AND location_beverages.update AT TIME ZONE 'UTC' BETWEEN $3 AND $4 
 					GROUP BY local_update ORDER BY local_update;`,
-					tz_offset, loc.ID, tz_offset, start_date, end_date)
+					tz_offset, loc.ID, start_date, end_date)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1349,10 +1299,10 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				SELECT SUM(COALESCE(location_beverages.inventory,0)), (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
 				FROM locations, location_beverages 
 				WHERE locations.type='tap' AND location_beverages.location_id=locations.id 
-					AND location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
-					AND locations.user_id=$5 
+					AND location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
+					AND locations.user_id=$4 
 				GROUP BY local_update ORDER BY local_update;`,
-				tz_offset, tz_offset, start_date, end_date, test_user_id)
+				tz_offset, start_date, end_date, test_user_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1389,11 +1339,11 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// First get all alcohol types
 			type_rows, err := db.Query(`
 				SELECT DISTINCT beverages.alcohol_type FROM beverages, location_beverages, locations 
-				WHERE location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1 BETWEEN $2 AND $3 
-					AND locations.id=location_beverages.location_id AND locations.user_id=$4 
+				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $1 AND $2 
+					AND locations.id=location_beverages.location_id AND locations.user_id=$3 
 					AND beverages.id=location_beverages.beverage_id AND location_beverages.type='bev' 
 				ORDER BY beverages.alcohol_type ASC;`,
-				tz_offset, start_date, end_date, test_user_id)
+				start_date, end_date, test_user_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1418,10 +1368,10 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					FROM beverages, location_beverages 
 					WHERE beverages.alcohol_type=$2 
 						AND location_beverages.beverage_id=beverages.id 
-						AND location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $3 BETWEEN $4 AND $5 
+						AND location_beverages.update AT TIME ZONE 'UTC' BETWEEN $3 AND $4 
 						AND location_beverages.type='bev' 
 					GROUP BY local_update ORDER BY local_update;`,
-					tz_offset, atype, tz_offset, start_date, end_date)
+					tz_offset, atype, start_date, end_date)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1452,10 +1402,10 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			rows, err := db.Query(`
 				SELECT SUM(COALESCE(location_beverages.inventory,0)), (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
 				FROM location_beverages 
-				WHERE location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
+				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
 					AND location_beverages.type='keg' 
 				GROUP BY local_update ORDER BY local_update;`,
-				tz_offset, tz_offset, start_date, end_date)
+				tz_offset, start_date, end_date)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1514,12 +1464,12 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					rows, err := db.Query(`
 						SELECT DISTINCT (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
 						FROM location_beverages, locations 
-						WHERE location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
-							AND locations.id=location_beverages.location_id AND locations.user_id=$5 
+						WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
+							AND locations.id=location_beverages.location_id AND locations.user_id=$4 
 							AND location_beverages.type='bev' 
-							AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$6) 
+							AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$5) 
 						ORDER BY local_update DESC;`,
-						tz_offset, tz_offset, start_date, end_date, test_user_id, id)
+						tz_offset, start_date, end_date, test_user_id, id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1648,11 +1598,11 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						WHERE location_beverages.location_id=locations.id 
 							AND location_beverages.beverage_id=beverages.id 
 							AND location_beverages.type='bev' 
-							AND location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
-							AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$5) 
-							AND locations.user_id=$6 
+							AND location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
+							AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$4) 
+							AND locations.user_id=$5 
 						GROUP BY beverages.id, local_update ORDER BY local_update DESC;`,
-						tz_offset, tz_offset, start_date, end_date, item_id, test_user_id)
+						tz_offset, start_date, end_date, item_id, test_user_id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1702,11 +1652,11 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			rows, err := db.Query(`
 				SELECT DISTINCT (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
 				FROM location_beverages, locations 
-				WHERE location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
+				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
 					AND locations.id=location_beverages.location_id 
-					AND locations.user_id=$5 
+					AND locations.user_id=$4 
 				ORDER BY local_update DESC;`,
-				tz_offset, tz_offset, start_date, end_date, test_user_id)
+				tz_offset, start_date, end_date, test_user_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1854,10 +1804,10 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			rows, err := db.Query(`
 				SELECT DISTINCT (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
 				FROM location_beverages, locations 
-				WHERE location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
-					AND locations.id=location_beverages.location_id AND locations.user_id=$5 
+				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
+					AND locations.id=location_beverages.location_id AND locations.user_id=$4 
 				ORDER BY local_update DESC;`,
-				tz_offset, tz_offset, start_date, end_date, test_user_id)
+				tz_offset, start_date, end_date, test_user_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2069,10 +2019,10 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			rows, err := db.Query(`
 				SELECT DISTINCT (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
 				FROM location_beverages, locations 
-				WHERE location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2 BETWEEN $3 AND $4 
-					AND locations.id=location_beverages.location_id AND locations.user_id=$5 
+				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
+					AND locations.id=location_beverages.location_id AND locations.user_id=$4 
 				ORDER BY local_update DESC;`,
-				tz_offset, tz_offset, start_date, end_date, test_user_id)
+				tz_offset, start_date, end_date, test_user_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)

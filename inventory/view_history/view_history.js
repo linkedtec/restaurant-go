@@ -290,17 +290,15 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     return $scope.end_date;
   };
 
-  $scope.emailSpreadsheet = function() {
-    $scope.exportSpreadsheet(true);
+  $scope.emailSpreadsheet = function( email ) {
+
+    $scope.exportSpreadsheet(email);
   };
 
   $scope.exportSpreadsheet = function( email ) {
 
     if (email===undefined) {
       email = null;
-    }
-    if (email===true) {
-      email = "true";
     }
 
     console.log("export spreadsheet");
@@ -336,7 +334,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     success(function(data, status, headers, config) {
       console.log(data);
 
-      if (email==="true") {
+      if (email!==null) {
 
       } else {
         var URL = data['url'];
@@ -1136,79 +1134,6 @@ angular.module('myApp.viewHistory', ['ngRoute'])
 
   $scope.selectUseMode($scope.use_modes[0]);
 
-  $scope.custom_email_valid = false;
-  $scope.custom_email = {email:""};
-  $scope.default_email = null;
-  $scope.editing_default_email = false;
-  $scope.default_email_tmp = {email:""};
-  $scope.default_email_valid = false;
-
-  $scope.editDefaultEmail = function() {
-    if ($scope.default_email !== null) {
-      $scope.default_email_tmp.email = $scope.default_email;
-    } else {
-      $scope.default_email_tmp.email = "";
-    }
-
-    $scope.editing_default_email = true;
-
-    $scope.defaultEmailTmpChanged();
-    
-  };
-
-  $scope.emailTmpChanged = function(email) {
-    if (email.length < 5) {
-      return false;
-    }
-
-    if (email.indexOf('@') < 0) {
-      return false;
-    }
-
-    if (email.indexOf('.') < 0) {
-      return false;
-    }
-
-    return true;
-  };
-
-  $scope.defaultEmailTmpChanged = function() {
-    $scope.default_email_valid = $scope.emailTmpChanged($scope.default_email_tmp.email);
-  };
-
-  $scope.customEmailChanged = function() {
-    $scope.custom_email_valid = $scope.emailTmpChanged($scope.custom_email.email);
-  }
-
-  $scope.cancelEditDefaultEmail = function()
-  {
-    $scope.editing_default_email = false;
-    $scope.default_email_tmp.email = "";
-  };
-
-  $scope.toggleEmailPopover = function() {
-    $scope.editing_default_email = false;
-    $scope.default_email_tmp.email = "";
-  };
-
-  // email popover:
-  $scope.closePopover = function(e) {
-    $scope.editing_default_email = false;
-    $scope.default_email_tmp.email = "";
-
-    var popups = document.querySelectorAll('.popover');
-    if(popups) {
-      for(var i=0; i<popups.length; i++) {
-        var popup = popups[i];
-        var popupElement = angular.element(popup);
-
-        if(popupElement[0].previousSibling!=e.target){
-          popupElement.scope().$parent.isOpen=false;
-          popupElement.remove();
-        }
-      }
-    }
-  };
 
 });
 
