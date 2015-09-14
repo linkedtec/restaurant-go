@@ -864,6 +864,10 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
           $scope.inv_items[inv_i]['unit_cost'] = deposit;
         }
 
+        if (inv.type==='keg') {
+          inv['container_type'] = 'Empty Keg';
+        }
+
         // get icon
         inv['icon'] = $scope.getBevIcon(inv);
         inv['display_name'] = $scope.getDisplayName(inv);

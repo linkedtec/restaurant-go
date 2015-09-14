@@ -1072,6 +1072,7 @@ like enclosed space */
   width:98%;
   display:inline-block;
   text-overflow:ellipsis;
+  vertical-align:top;
 }
 
 

@@ -104,8 +104,11 @@
                   <div style="font-size:0.9em; color:#999999;">
                     <span ng-if="bev.purchase_unit!==null">
                       {{bev.purchase_volume | number:1}} {{bev.purchase_unit}}
-                    </span> 
-                    {{bev.container_type}}
+                    </span>
+                    <span>
+                      {{bev.container_type}}
+                    </span>
+                    
                   </div>
                 </div>
                 <div class="col-xs-4" style="font-size:0.9em; padding-left:6px; padding-right:4px">
@@ -167,13 +170,15 @@
                   <div ng-class="{'col-xs-8': item.type==='keg', 'col-xs-4': item.type==='bev'}" style="padding:0; padding-left:10px">
                     <div style="font-size:0.9em">
                       <span ng-if="item.type==='bev'" class="nowrap_span">{{item.product}}</span>
-                      <span ng-if="item.type==='keg'">{{item.distributor}}</span>
+                      <span ng-if="item.type==='keg'" class="nowrap_span">{{item.distributor}}</span>
                     </div>
                     <div style="font-size:0.8em; color:#999999; padding:0;">
                       <span ng-if="item.purchase_unit!==null">
                         {{item.purchase_volume | number:1}} {{item.purchase_unit}}
-                      </span> 
-                      {{item.container_type}}
+                      </span>
+                      <span>
+                        {{item.container_type}}
+                      </span>
                     </div>
                   </div>
                   <div class="col-xs-4" ng-if="item.type==='bev'" style="padding-left:6px; padding-right:8px; font-size:0.9em; color:#999999">
