@@ -297,6 +297,63 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
     $scope.getDeliveries();
   };
 
+  $scope.startDelivery = function() {
+
+    var modalStartInstance = $modal.open({
+      templateUrl: 'startDlvModal.html',
+      controller: 'startDlvModalCtrl',
+      windowClass: 'start-inv-modal',
+      backdropClass: 'gray-modal-backdrop',
+      size: 'lg',
+      backdrop : 'static',
+      resolve: {
+        distributors: function() {
+          return $scope.distributors;
+        }
+      }
+    });
+
+    modalStartInstance.result.then(
+      // success status
+      function( result ) {
+        var status = result[0];
+        var data = result[1];
+        // result is a list, first item is string for status, e.g.,
+        // 'save' or 'delete'
+        // second item is beverage id
+        if (status === 'cancel') {
+          ;
+        }
+        // after a save, we want to re-calculate cost per mL, for instance
+        else if (status === 'save') {
+
+        }
+      }, 
+      // error status
+      function() {
+        ;
+      });
+
+  };
+
+})
+
+.controller('startDlvModalCtrl', function($scope, $modalInstance, $filter, distributors) {
+
+  $scope.distributors = distributors;
+
+  $scope.startDlvControl = {};
+
+  $scope.startDlvControl.cancel = function() {
+    $scope.cancel();
+  };
+
+  $scope.cancel = function() {
+    console.log("cancel");
+    $modalInstance.dismiss('cancel');
+  };
+
+
 })
 
 .controller('editDelivModalCtrl', function($scope, $modalInstance, $filter, MathService, DateService, edit_delivery, distributors) {

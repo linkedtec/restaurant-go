@@ -26,6 +26,9 @@
 
   <div class="row" style="margin-top:32px">
     <div class="col-xs-12" style="float:none">
+      <!--button ng-show="show_add_ui===false" ng-click="startDelivery()" type="button" class="btn btn-default dlv_xl_btn center-block">
+        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Record New Delivery
+      </button-->
       <button ng-show="show_add_ui===false" ng-click="showAddDelivery()" type="button" class="btn btn-default dlv_xl_btn center-block">
         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Record New Delivery
       </button>
@@ -95,4 +98,5 @@
 
 </div>
 
+<div ng-include src="'./view_pos_deliveries/modal_start_delivery.html'">
 <div ng-include src="'./view_pos_deliveries/modal_edit_delivery.html'">

@@ -680,7 +680,7 @@ like enclosed space */
 }
 
 .add_blue_color {
-  color: #5586b5;
+  color: #5586b5!important;
 }
 
 
@@ -1155,3 +1155,16 @@ input.customCbSqr:after {
   max-width: 600px;
 }
 
+
+/* This is for the date time picker time picker, so the buttons
+   are not so tall.  Hopefully by being really specific (btn-link inside
+    tr inside form-group) it doesn't conflict with anything else */
+.form-group tr a.btn.btn-link {
+  padding-top:2px;
+  padding-bottom:0px;
+  color:#aaaaaa;
+}
+
+.form-group tr a.btn.btn-link:hover {
+  color:#888888;
+}

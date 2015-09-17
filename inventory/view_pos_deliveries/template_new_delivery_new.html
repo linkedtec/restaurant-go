@@ -1,107 +1,87 @@
-<tabset ng-if="showTabs===true" style="margin: 16px 6px; margin-bottom:0px; font-size:1.1em">
-  <tab ng-repeat="type in all_add_types" heading="{{type}}" ng-click="selectAddType(type)">
-  </tab>
-</tabset>
-<div ng-class="{'new_inv_border_box': showTabs===true}">
-  <div ng-if="new_success_msg !== null" class="row" style="margin:6px 6px">
-    <div class="add_row">
-      <div class="alert alert-success alert-dismissible" role="alert" style="margin-bottom:0px">
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-        <span aria-hidden="true">&times;</span></button>
-        {{new_success_msg}}
-      </div>
-    </div>
-  </div>
-  <div class="row" style="margin: 6px 12px">
-    <div class="col-xs-7 hint_text" style="padding:0; padding-top:6px">
-      Add <span style="color:#55a066">{{add_type}}</span> from your Beverage Database.
-    </div>
-    <div class="col-xs-5" style="padding:0">
-      <input ng-model="add_inv_query.query" class="form-control input-sm" placeholder="Search...">
-    </div>
+<div class="row" style="height:100%">
+  <div class="col-xs-6" style="height:100%; padding-left:12px; padding-right:4px">
+    <table style="height:100%; width:100%; outline:none">
+      <tr style="outline:none;">
+        <td valign="top" style="height:86px;padding-top:6px; padding-left:12px; width:100%; background-color:#fefefe; border:1px solid #d0d0d0;">
+    <!--div class="add_blue_color" style="font-size:1.1em; margin-top:0px; background-color:#fefefe; border-radius:6px; border:1px solid #d0d0d0; padding-top:6px; padding-left:12px; height:96px"-->
+          <span class="add_blue_color" style="font-size:1.1em">Distributor</span> <span class="hint_text" style="font-size:1.0em">(optional)</span>
+          <div class="row" style="margin-top:2px">
+            <div class="col-xs-6">
+              <div class="btn-group" dropdown>
+                <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" style="font-size:1.0em; width:100%" dropdown-toggle>
+                  <span ng-if="new_delivery.distributor_obj !== null" style="float:left; text-align:left; width:90%;">
+                    {{new_delivery.distributor_obj.name}} 
+                  </span>
+                  <span ng-if="new_delivery.distributor_obj === null" class="noselect" style="float:left; text-align:left; width:90%;  color:#999999">
+                    Select a Distributor
+                  </span>
+                  <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:12px; color:#888888"></span>
+                </button>
+                <ul class="loc_dropdown dropdown-menu" role="menu">
+                  <li class="inv_dropdown_li" ng-if="new_delivery.distributor_obj!==null">
+                    <a ng-click="selectDistributor(null)" class="noselect" style="color:#aaaaaa">None</a>
+                  </li>
+                  <li class="inv_dropdown_li" ng-repeat="dist in allDistributors">
+                    <a ng-click="selectDistributor(dist)" class="noselect">{{dist.name}}</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="col-xs-6" style="padding-top:0px; padding-left:0; border-left: solid 1px #dddddd; " ng-show="new_delivery.distributor_obj !== null">
+              <div class="row">
+                <div class="col-xs-2" style="text-align:right; padding:0; padding-right:4px; padding-top:2px;">
+                  <form role="form">
+                    <input ng-checked="dist_checked" type="checkbox" id="cb_dist_bevs_only" class="customCbSqr" style="z-index:-99;" ng-click="toggleDistBevsOnly()">
+                      <!--label for="cb_dist_bevs_only">Add Beverages from this Distributor only</label-->
+                    </input>
+                  </form>
+                </div>
+                <div class="col-xs-10" style="font-size:0.9em; padding-left:12px; padding-right:18px; max-width:220px; margin-top:-2px">Add Beverages from this Distributor only</div>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr style="height:6px">
+      </tr>
+      <tr>
+        <td valign="top" style="height:100%; background-color:#fbfff9; width:100%; border:1px solid #d0d0d0;">
+          Test
+        </td>
+      </tr>
+    </table>
   </div>
 
-  <!-- BEVERAGES SCROLL AREA -->
-  <div ng-if="add_type===all_add_types[0]">
-    <div class="row add_label_row_container" style="margin: 0px 12px;">
-      <div class="col-xs-4 add_inv_sort_div" ng-click="internalControl.sortBevsBy('product')">
-        <span class="add_inv_label_span noselect">Product</span>
-        <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_bev === 'product'" ng-class="{'glyphicon-menu-down': double_sort_bev<0, 'glyphicon-menu-up':double_sort_bev>0}"></span>
-      </div>
-      <div class="col-xs-4 add_inv_sort_div" ng-click="internalControl.sortBevsBy('brewery')">
-        <span class="add_inv_label_span noselect" ng-if="breweryDistributor==='brewery'">Brewery</span>
-        <span class="add_inv_label_span noselect" ng-if="breweryDistributor==='distributor'">Distributor</span>
-        <span class="add_inv_label_span noselect" ng-if="breweryDistributor==='both'">Distributor / Brewery</span>
-        <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_bev === 'brewery'" ng-class="{'glyphicon-menu-down': double_sort_bev<0, 'glyphicon-menu-up':double_sort_bev>0}"></span>
-      </div>
-      <div class="col-xs-2 add_inv_sort_div" ng-click="internalControl.sortBevsBy('alcohol_type')">
-        <span class="add_inv_label_span noselect">Type</span>
-        <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_bev === 'alcohol_type'" ng-class="{'glyphicon-menu-down': double_sort_bev<0, 'glyphicon-menu-up':double_sort_bev>0}"></span>
-      </div>
-    </div>
-    <div class="add_inv_scroll_area"  style="margin: 0px 12px; margin-bottom:6px; height:{{listHeight}}px">
-      <div ng-repeat="inv in allBeverages | filter:add_inv_query.query" class="add_inv_scroll_cell row">
-        <div class="col-xs-4 min_padding add_inv_scroll_col" style="padding-top:4px;">
-          <div style="font-size:1.0em; padding-left:6px; margin-top:-6px">{{inv.product}}</div>
-          <div style="font-size:0.9em; color:#999999; padding-left:6px;"> <span ng-if="inv.purchase_volume!==null">{{inv.purchase_volume | number:1}} {{inv.purchase_unit}}</span> {{inv.container_type}}</div>
-        </div>
-        <div class="col-xs-4 min_padding add_inv_scroll_col" style="padding-top:4px; font-size:1.0em;">
-          <div ng-if="breweryDistributor==='brewery'" style="padding-top:4px">
-            {{inv.brewery}}
+  <div class="col-xs-6" style="height:100%; padding-left:8px; padding-right:12px;">
+    <table style="height:100%; width:100%; outline:none">
+      <tr style="outline:none;">
+        <td valign="top" style="height:86px;padding-top:6px; padding-left:12px; width:100%; background-color:#fefefe; border:1px solid #d0d0d0;">
+          <date-time-picker blue-title="1" title="'Time of Delivery'" picked-time="new_delivery.delivery_time" picked-date="new_delivery.delivery_date" form-ver-date="form_ver.error_date" control="dt_control"></date-time-picker>
+        </td>
+      </tr>
+      <tr style="height:6px">
+      </tr>
+      <tr>
+        <td valign="top" style="height:100%; background-image:url('/inventory/images/bg_paper.png'); background-size:100%; width:100%; border:none;">
+          <div class="row inv_row_added" style="padding: 24px 16px; color:#999999">
+            No Inventory added in this Location yet.<br/>
+            Add inventory items from the <b>left screen</b>.
           </div>
-          <div ng-if="breweryDistributor==='distributor'" style="padding-top:4px">
-            {{inv.distributor}}
+        </td>
+      </tr>
+      <tr>
+        <td valign="bottom" style="height:48px; width:100%">
+          <div style="vertical-align:bottom; margin-bottom:0px; margin-right:4px">
+            <button ng-click="saveInv()" type="button" class="btn btn-primary btn_ok" style="float:right; width:55%; font-size:18px; background-color:#0099cc; border:none">
+              <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> Save Inventory
+            </button>
+            <button ng-click="cancelInv()" type="button" class="btn btn-default btn_ok" style="float:left; margin-right:16px; width:40%; font-size:18px">
+              <span class="glyphicon glyphicon-remove" aria-hidden="true" style="color:#aa0000;"></span> Cancel
+            </button>
           </div>
-          <div ng-if="breweryDistributor==='both'">
-            <div style="font-size:1.0em; padding-left:6px; margin-top:-6px">&nbsp;{{inv.distributor}}</div>
-            <div style="font-size:0.9em; color:#999999; padding-left:6px;">&nbsp;{{inv.brewery}}</div>
-          </div>
-        </div>
-        <div class="col-xs-2 min_padding add_inv_scroll_col" style="padding-top:8px; font-size:1.0em;">
-          {{inv.alcohol_type}}
-        </div>
-        <div class="col-xs-2">
-          <button ng-click="addNewInv(inv)" type="button" class="btn btn-success btn-sm" style="font-size:14px; float:right">
-          <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add
-          </button>
-        </div>
-      </div>
-    </div>
+        </td>
+      </tr>
+    </table>
   </div>
-
-  <!-- KEGS SCROLL AREA -->
-  <div ng-if="add_type===all_add_types[1]">
-    <div class="row add_label_row_container" style="margin: 0px 12px;">
-      <div class="col-xs-4 add_inv_sort_div" ng-click="internalControl.sortKegsBy('distributor')">
-        <span class="add_inv_label_span noselect">Distributor</span>
-        <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_kegs === 'distributor'" ng-class="{'glyphicon-menu-down': double_sort_kegs<0, 'glyphicon-menu-up':double_sort_kegs>0}"></span>
-      </div>
-      <div class="col-xs-4" style="padding-top:6px">
-        <span class="add_inv_label_span noselect">Volume</span>
-      </div>
-      <div class="col-xs-2 add_inv_sort_div" ng-click="internalControl.sortKegsBy('deposit')">
-        <span class="add_inv_label_span noselect">Deposit</span>
-        <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_kegs === 'deposit'" ng-class="{'glyphicon-menu-down': double_sort_kegs<0, 'glyphicon-menu-up':double_sort_kegs>0}"></span>
-      </div>
-    </div>
-    <div class="add_inv_scroll_area"  style="margin: 0px 12px; margin-bottom:6px; height:{{listHeight}}px">
-      <div ng-repeat="keg in allKegs | filter:add_inv_query.query" class="add_inv_scroll_cell row">
-        <div class="col-xs-4 min_padding add_inv_scroll_col" style="padding-top:8px; padding-left:8px">
-          {{keg.distributor}}
-        </div>
-        <div class="col-xs-4 min_padding add_inv_scroll_col" style="padding-top:8px; font-size:1.0em;">
-          {{keg.volume | number:2}} {{keg.unit}} Keg
-        </div>
-        <div class="col-xs-2 min_padding add_inv_scroll_col" style="padding-top:8px">
-          <span ng-if="keg.deposit!==null">$ {{keg.deposit | number:2}}</span>
-        </div>
-        <div class="col-xs-2">
-          <button ng-click="addNewInv(keg)" type="button" class="btn btn-success btn-sm" style="font-size:14px; float:right">
-          <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
 </div>
+

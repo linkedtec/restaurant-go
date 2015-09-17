@@ -4,6 +4,7 @@ angular.module('myApp')
   return {
     restrict: 'AE',
     scope: {
+      blueTitle: '=',
       pickedTime: '=',
       pickedDate: '=',
       control: '=',
