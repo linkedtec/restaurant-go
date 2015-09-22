@@ -79,22 +79,7 @@
     </div>
     <edit-location all-locations="locations" loc-type="k_loc_type" edit-loc="selected_loc" control="editLocControl" close-on-delete="editLocationCloseOnDelete(delete_loc)"></edit-location>
   </div>
-
-  <div ng-show="selected_loc!==null && show_add_ui===true" class="add_ui_box_green" style="margin-top:16px">
-    <div class="add_title_bar_green">
-      <button ng-click="hideAddInv()" type="button" class="btn btn-default btn_x" style="float:left">
-        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-      </button>
-      <div class="add_title_green">
-        <span style="font-size:1.0em;"> Add Inventory Items to {{selected_loc.name}} </span>
-      </div>
-      <br/>
-    </div>
-
-    <loc-add-inv loc-name="selected_loc.name" all-beverages="add_inv_existing_bevs" all-kegs="add_inv_existing_kegs" control="addInvControl" add-bev-inv="addInvAddBev(bev)" add-keg-inv="addInvAddKeg(keg)" show-kegs="true" show-tabs="true" list-height="300" brewery-distributor="'both'"></loc-add-inv>
-
-  </div>
-
+  
   <div ng-if="selected_loc !== null" style="margin-top:36px">
     <div class="row" ng-if="inv_started === false">
       <div class="col-xs-12" style="float:none">

@@ -21,7 +21,7 @@ angular.module('myApp')
       scope.internalControl = scope.control || {};
       scope.is_edit = false;
 
-      scope.new_unit_sale = null;
+      scope.new_unit_sale = {value: null};
 
       // initialize params
       scope.container_types = ["-- Select One --", "Keg", "Bottle", "Can"];
@@ -67,7 +67,7 @@ angular.module('myApp')
           {
             var sp = scope.new_beverage.size_prices[i];
             if (sp.unit === 'Unit') {
-              scope.new_unit_sale = sp.price;
+              scope.new_unit_sale.value = sp.price;
               scope.new_beverage.size_prices.splice(i,1);
               break;
             }
@@ -109,7 +109,7 @@ angular.module('myApp')
           scope.new_beverage['deposit'] = null;
           scope.new_beverage['flavor_profile'] = null;
           scope.new_beverage['size_prices'] = [{volume:null, unit:null, price:null}];
-          scope.new_unit_sale = null;
+          scope.new_unit_sale.value = null;
         }
         
         // form verification
@@ -193,7 +193,7 @@ angular.module('myApp')
       scope.addContainerChanged = function() {
         if (scope.new_beverage['container_type'] === 'Keg') {
           scope.new_beverage['serve_type'] = scope.serve_types[2];
-          scope.new_unit_sale = null;
+          scope.new_unit_sale.value = null;
           scope.new_beverage['purchase_count'] = 1;
         } else if (scope.new_beverage['container_type'] === 'Can' && scope.new_beverage['serve_type'] !== scope.serve_types[0]) {
           scope.new_beverage['serve_type'] = scope.serve_types[1];
@@ -380,7 +380,7 @@ angular.module('myApp')
           scope.form_ver.error_pcount=false;
         }
 
-        if (scope.new_unit_sale !== null && scope.new_unit_sale !== '' && MathService.numIsInvalid(scope.new_unit_sale) )
+        if (scope.new_unit_sale.value !== null && scope.new_unit_sale.value !== '' && MathService.numIsInvalid(scope.new_unit_sale.value) )
         {
           scope.form_ver.error_unit_sale=true;
           all_clear=false;
@@ -456,7 +456,7 @@ angular.module('myApp')
         // Should always add for single serve
         if (scope.new_beverage['serve_type'] === scope.serve_types[1] || scope.new_beverage['container_type'] !== "Keg") {
           // unshift places the entry at head of array
-          scope.new_beverage['size_prices'].unshift({'volume':1, 'unit':'Unit', 'price':scope.new_unit_sale})
+          scope.new_beverage['size_prices'].unshift({'volume':1, 'unit':'Unit', 'price':scope.new_unit_sale.value})
         }
 
         // check if item is already in scope.inventory_items
@@ -530,11 +530,15 @@ angular.module('myApp')
                   changedKeys.push(key);
                   continue;
                 }
+                console.log("1");
                 if (scope.editBeverage.size_prices.length !== scope.new_beverage.size_prices.length)
                 {
                   changedKeys.push(key);
                   continue;
                 }
+                console.log("2");
+                console.log(scope.editBeverage);
+                console.log(scope.new_beverage);
                 for (var i in scope.editBeverage.size_prices) {
                   var osp = scope.editBeverage.size_prices[i]
                   var sp = scope.new_beverage.size_prices[i];

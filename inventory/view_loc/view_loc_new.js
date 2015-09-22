@@ -28,12 +28,9 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
   $scope.edit_loc = false;      // edit location mode
   $scope.editLocControl = {};
 
-  $scope.addInvControl = {};
-
   $scope.locations = [];        // all locations
   $scope.selected_loc = null;   // selected location
   $scope.last_update = null;    // last update text
-  $scope.show_add_ui = false;       // add new inv item mode
   $scope.add_inv_all_bevs = [];  // a cache from server of all inv items
   $scope.add_inv_existing_bevs = [];  // all_items minus existing items in location
   $scope.all_kegs = [];
@@ -132,11 +129,9 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
   // Inventory-related, these differ for 'bev' or 'kegs' k_loc_type
   // ===========================================================================
   $scope.clearLocState = function() {
-    $scope.show_add_ui = false;
     $scope.last_update = null;
     $scope.show_add_loc_ui = false;   // add new location mode
     $scope.edit_loc = false;      // edit location mode
-    $scope.addInvControl.clearState();
     $scope.inv_started = false;
     $scope.update_failure_msg = "";
   };
@@ -152,31 +147,12 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
     $scope.inv_started = false;
 
     $scope.selected_loc = loc;
-    $scope.show_add_ui = false;
     $scope.getLocInv();
     $scope.last_update = loc.last_update_pretty;
     $scope.show_add_loc_ui = false;   // add new location mode
     $scope.edit_loc = false;      // edit location mode
-    $scope.addInvControl.clearState();
     $scope.inv_started = false;
     $scope.update_failure_msg = "";
-  };
-
-  // Shows the add new inventory item UI box
-  $scope.showAddInv = function() {
-    $scope.show_add_ui=true;
-    $scope.addInvControl.clearState();
-
-    if ($scope.add_inv_all_bevs.length == 0)
-    {
-      $scope.getAllInv();
-    } else {
-      $scope.cleanUpExistingInv();
-    }
-  };
-
-  $scope.hideAddInv = function() {
-    $scope.show_add_ui=false;
   };
 
   $scope.getBevIcon = function(item) {
@@ -403,8 +379,6 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
         }
       }
 
-      $scope.addInvControl.addNewBevSuccess(bev);
-
       $scope.sortBy($scope.sort_key);
       $scope.sortBy($scope.sort_key);
     }).
@@ -452,8 +426,6 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
         }
       }
      
-      $scope.addInvControl.addNewKegSuccess(keg);
-
       $scope.sortBy($scope.sort_key);
       $scope.sortBy($scope.sort_key);
     }).
@@ -499,9 +471,6 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
             $scope.add_inv_existing_kegs.push(item);
           }
           
-          // re-sort the added items twice to refresh sorting
-          $scope.addInvControl.reSort();
-
           $scope.sortBy($scope.sort_key);
           $scope.sortBy($scope.sort_key);
         }).
@@ -581,7 +550,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
       templateUrl: 'startInvModal.html',
       controller: 'startInvModalCtrl',
       windowClass: 'start-inv-modal',
-      backdropClass: 'gray-modal-backdrop',
+      backdropClass: 'green-modal-backdrop',
       size: 'lg',
       backdrop : 'static',
       resolve: {
@@ -866,6 +835,11 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
 
         if (inv.type==='keg') {
           inv['container_type'] = 'Empty Keg';
+
+          // keg displays use 'volume' and 'unit', while the GET result
+          // lists these as 'purchase_*'
+          inv['volume'] = inv['purchase_volume'];
+          inv['unit'] = inv['purchase_unit'];
         }
 
         // get icon
@@ -1008,516 +982,22 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
 
 })
 
-.controller('startInvModalCtrl', function($scope, $modalInstance, $modal, $http, DistributorsService, DateService, loc_name, all_bevs, all_kegs, existing_items) {
+.controller('startInvModalCtrl', function($scope, $modalInstance, $modal, $http, DateService, loc_name, all_bevs, all_kegs, existing_items) {
 
   $scope.loc_name = loc_name;
 
-  $scope.add_types = ['Beverages', 'Empty Kegs'/*, 'Recently Used in This Location'*/];
+  // these will be passed to directives for manipulation and display
   $scope.all_bevs = all_bevs;
-  $scope.filtered_bevs = JSON.parse(JSON.stringify(all_bevs));
   $scope.all_kegs = all_kegs;
-  $scope.filtered_kegs = JSON.parse(JSON.stringify(all_kegs));
-
-  $scope.add_type = $scope.add_types[0];
-
-  $scope.added_items = [];
-
-  $scope.type_filters = ['All Beverages', 'Beer', 'Cider', 'Wine', 'Liquor', 'Non Alcoholic'];
-  $scope.type_filter = $scope.type_filters[0];
-
-  $scope.container_filters = ['All Containers', 'Draft', 'Bottle', 'Can'];
-  $scope.container_filter = $scope.container_filters[0];
-
-  $scope.dist_filters = ['All Distributors'];
-  $scope.dist_filter = $scope.dist_filters[0];
-  $scope.distributors = null;
-
-  $scope.sort_key_bev = 'product';
-  $scope.sort_key_keg = 'distributor';
-  $scope.double_sort_bev = -1;
-  $scope.double_sort_keg = -1;
-
-  $scope.filter_query = {
-    query: ''
-  };
-
-  // existing_items was passed to us as a cloned array, so no need to re-clone
-  $scope.existing_items = existing_items; 
-  //console.log("EXISTING");
-  //console.log(existing_items);
-
-  $scope.closePopover = function(e) {
-    var popups = document.querySelectorAll('.popover');
-    if(popups) {
-      for(var i=0; i<popups.length; i++) {
-        var popup = popups[i];
-        var popupElement = angular.element(popup);
-
-        if(popupElement[0].previousSibling!=e.target){
-          popupElement.scope().$parent.isOpen=false;
-          popupElement.remove();
-        }
-      }
-    }
-  };
-
-  $scope.selectAddType = function(type) {
-    $scope.add_type = type;
-
-    var doReSort = true;
-    if (type === $scope.add_types[1]) {
-      if ($scope.distributors === null) {
-        $scope.getDistributors();
-        doReSort = false;
-      }
-    }
-
-    if (doReSort) {
-      $scope.reSort();
-    }
-  };
-
-  $scope.getDistributors = function() {
-
-    var result = DistributorsService.get();
-    result.then(
-      function(payload) {
-        var data = payload.data;
-        console.log(data);
-        $scope.distributors = data;
-        if ($scope.distributors===null || $scope.distributors.length === 0) {
-          $scope.distributors = [];
-        } else {
-          for (var i in $scope.distributors) {
-            if ($scope.distributors[i].kegs === null) {
-              $scope.distributors[i].kegs = [];
-            }
-          }
-        }
-        for (var i in $scope.distributors) {
-          $scope.dist_filters.push($scope.distributors[i]['name']);
-        }
-      },
-      function(errorPayload) {
-        ; // do nothing for now
-      });
-
-    $scope.reSort();
-  };
-
-  $scope.selectContainer = function(cont) {
-
-    var check_cont = cont;
-    if (check_cont==='Draft') {
-      check_cont = "Keg";
-    }
-
-    if (check_cont===$scope.container_filter) {
-      return;
-    }
-
-    $scope.container_filter = check_cont;
-
-    $scope.applyTypeFilter();
-  };
-
-  $scope.selectType = function(type) {
-
-    var check_type = type;
-    if (check_type==='Non-Alc.') {
-      check_type = "Non Alcoholic";
-    };
-
-    if (check_type===$scope.type_filter) {
-      return;
-    }
-
-    $scope.type_filter = check_type;
-
-    // reset container filters when type filter has changed
-    if (check_type===$scope.type_filters[0]) {
-      $scope.container_filters = ['All Containers', 'Draft', 'Bottle', 'Can'];
-    }
-    else if (check_type==='Beer' || check_type==='Cider') {
-      $scope.container_filters = ['All Containers', 'Draft', 'Bottle', 'Can'];
-    } else if (check_type==='Wine' || check_type==='Liquor') {
-      $scope.container_filters = ['All Containers', 'Bottle'];
-    } else {
-      $scope.container_filters = ['All Containers', 'Bottle', 'Can'];
-    }
-    $scope.container_filter = $scope.container_filters[0];
-
-    $scope.applyTypeFilter();
-  }
-
-  $scope.applyTypeFilter = function() {
-    // filter by eg Beer, Cider, Wine, etc
-    // all beverages
-    if ($scope.add_type===$scope.add_types[0]) {
-
-      $scope.filtered_bevs = [];
-
-      if ($scope.type_filter===$scope.type_filters[0]) {
-        $scope.filtered_bevs = $scope.all_bevs;
-      } else {
-        for (var i in $scope.all_bevs) {
-          var item = $scope.all_bevs[i];
-          if (item.alcohol_type===$scope.type_filter) {
-            $scope.filtered_bevs.push(item);
-          }
-        }
-      } 
-    }
-
-    // refresh container filter
-    $scope.applyContainerFilter();
-  };
-
-  $scope.applyContainerFilter = function() {
-    // all beverages
-    if ($scope.add_type===$scope.add_types[0]) {
-
-      if ($scope.container_filter===$scope.container_filters[0]) {
-        // With All Containers selected there is nothing to do
-        ;
-      } else {
-        var container_bevs = [];
-        for (var i in $scope.filtered_bevs) {
-          var item = $scope.filtered_bevs[i];
-          if (item.container_type===$scope.container_filter) {
-            container_bevs.push(item);
-          }
-        }
-        $scope.filtered_bevs = container_bevs;
-      }
-    }
-
-    $scope.excludeAddedBevs();
-  };
-
-  $scope.excludeAddedBevs = function() {
-    var new_bevs = [];
-    for (var i in $scope.filtered_bevs) {
-      var bev = $scope.filtered_bevs[i];
-      var is_added = false;
-      for (var j in $scope.added_items) {
-        var added = $scope.added_items[j];
-        if (bev.type===added.type && bev.version_id===added.version_id) {
-          is_added = true;
-          break;
-        }
-      }
-      if (!is_added){ 
-        new_bevs.push(bev);
-      }
-    }
-
-    $scope.filtered_bevs = new_bevs;
-
-    $scope.reSort();
-  };
-
-  $scope.selectDistributorFilter = function(dist) {
-    $scope.dist_filter = dist;
-
-    $scope.applyDistributorFilter();
-  };
-
-  $scope.applyDistributorFilter = function() {
-    if ($scope.dist_filter===$scope.dist_filters[0]) {
-      // With All Distributors selected there is nothing to do
-      $scope.filtered_kegs = $scope.all_kegs;
-    } else {
-      console.log($scope.dist_filter);
-      var dist_kegs = [];
-      for (var i in $scope.all_kegs) {
-        var item = $scope.all_kegs[i];
-        if (item.distributor===$scope.dist_filter) {
-          dist_kegs.push(item);
-        }
-      }
-      $scope.filtered_kegs = dist_kegs;
-    }
-
-    $scope.excludeAddedKegs();
-  };
-
-  $scope.excludeAddedKegs = function() {
-    var new_kegs = [];
-    for (var i in $scope.filtered_kegs) {
-      var keg = $scope.filtered_kegs[i];
-      var is_added = false;
-      for (var j in $scope.added_items) {
-        var added = $scope.added_items[j];
-        if (keg.type===added.type && keg.version_id===added.version_id) {
-          is_added = true;
-          break;
-        }
-      }
-      if (!is_added){ 
-        new_kegs.push(keg);
-      }
-    }
-
-    $scope.filtered_kegs = new_kegs;
-
-    $scope.reSort();
-  }
-
-  $scope.addBevToList = function(item) {
-    for (var i in $scope.filtered_bevs) {
-      var check_item = $scope.filtered_bevs[i];
-      if (check_item.version_id === item.version_id) {
-        $scope.filtered_bevs.splice(i, 1);
-        break;
-      }
-    }
-    $scope.added_items.push(item);
-  };
-
-  $scope.addKegToList = function(item) {
-    for (var i in $scope.filtered_kegs) {
-      var check_item = $scope.filtered_kegs[i];
-      if (check_item.version_id === item.version_id) {
-        $scope.filtered_kegs.splice(i, 1);
-        break;
-      }
-    }
-    $scope.added_items.push(item);
-  };
-
-  $scope.addInvToList = function(item) {
-    if ($scope.add_type === $scope.add_types[0]) {
-      $scope.addBevToList(item);
-    } else if ($scope.add_type === $scope.add_types[1]) {
-      $scope.addKegToList(item);
-    }
-  };
-
-  $scope.applyExisting = function() {
-    for (var i in $scope.existing_items) {
-      // adding to list will both add to added list, and remove from unadded list
-      $scope.addInvToList($scope.existing_items[i]);
-    };
-  };
-  $scope.applyExisting();
-
-  $scope.removeAddedItem = function(item) {
-    // removing item means removing from $scope.added_items
-    // and (potentially) restoring it to filtered_bevs / filtered_kegs
-    // based on current filtering criteria.  Need to also zero out its quantity.
-
-    console.log('REMOVE');
-    console.log(item);
-
-    item.quantity = 0;
-
-    for (var i in $scope.added_items) {
-      var a_item = $scope.added_items[i];
-      if (item.id === a_item.id && item.type === a_item.type) {
-        $scope.added_items.splice(i, 1);
-        console.log(i);
-        break;
-      }
-    }
-
-    // Check type and container filter to determine if should add back to
-    // filtered_bevs
-    if (item.type==='bev') {
-      if ($scope.container_filter !== $scope.container_filters[0] && item.container_type !== $scope.container_filter) {
-        ;
-      } else if ($scope.type_filter !== $scope.type_filters[0] && item.alcohol_type !== $scope.type_filter) {
-        ;
-      } else {
-        $scope.filtered_bevs.push(item);
-        $scope.reSort();
-      }
-    } else if (item.type==='keg') {
-      if ($scope.dist_filter !== $scope.dist_filters[0] && item.distributor !== $scope.dist_filter) {
-        ;
-      } else {
-        $scope.filtered_kegs.push(item);
-        $scope.reSort();
-      }
-    }
-
-    setInterval(
-      function() {
-        $scope.$apply();
-      }, 0);
-
-  };
-
-  $scope.promptRemoveItem = function(item) {
-
-    var prompt = '';
-    if (item.type==='bev') {
-      prompt = "This will remove <b>" + item.product + "</b> from the added inventory list.  Continue?"
-    } else if (item.type==='keg') {
-
-    }
-
-    swal({
-      title: "Remove Item?",
-      text: prompt,
-      type: "warning",
-      html: true,
-      showCancelButton: true,
-      confirmButtonColor: "#DD6B55",
-      confirmButtonText: "Yes, remove it!",
-      closeOnConfirm: true },
-      function() {
-        $scope.removeAddedItem(item);
-      });
-  };
-
-  $scope.reSort = function() {
-    if ($scope.add_type===$scope.add_types[0]) {
-
-      $scope.sortBevsBy($scope.sort_key_bev);
-      $scope.sortBevsBy($scope.sort_key_bev);
-
-    } else if ($scope.add_type===$scope.add_types[1]) {
-      $scope.sortKegsBy($scope.sort_key_keg);
-      $scope.sortKegsBy($scope.sort_key_keg);
-
-    }
-  };
-
-  $scope.sortBevsBy = function(sort_str) {
-    var double_sort = sort_str === $scope.sort_key_bev;
-    if (double_sort) {
-      $scope.double_sort_bev *= -1;
-    } else {
-      $scope.double_sort_bev = -1;
-    }
-    $scope.sort_key_bev = sort_str;
-    //var isNum = (sort_str === 'unit_cost' || sort_str === 'quantity' || sort_str === 'inventory' || sort_str === 'deposit');
-    var isNum = false;
-
-    $scope.filtered_bevs.sort(function(a, b) {
-      var keyA = a[sort_str];
-      var keyB = b[sort_str];
-      if ($scope.double_sort_bev > 0) {
-        if (keyA === null) {
-          return -1;
-        } else if (keyB === null) {
-          return 1;
-        }
-        if (isNum)
-        {
-          return parseFloat(keyA) - parseFloat(keyB);
-        } else {
-          return -keyA.localeCompare(keyB);
-        }
-      }
-      if (keyA === null) {
-        return 1;
-      } else if (keyB === null) {
-        return -1;
-      }
-      if (isNum)
-      {
-        return parseFloat(keyB) - parseFloat(keyA);
-      } else {
-        return keyA.localeCompare(keyB);
-      }
-    });
-  };
-
-  $scope.sortKegsBy = function(sort_str) {
-    var double_sort = sort_str === $scope.sort_key_keg;
-    if (double_sort) {
-      $scope.double_sort_keg *= -1;
-    } else {
-      $scope.double_sort_keg = -1;
-    }
-    $scope.sort_key_keg = sort_str;
-    var isNum = (sort_str === 'deposit');
-
-    $scope.filtered_kegs.sort(function(a, b) {
-      var keyA = a[sort_str];
-      var keyB = b[sort_str];
-      if ($scope.double_sort_keg > 0) {
-        if (keyA === null) {
-          return -1;
-        } else if (keyB === null) {
-          return 1;
-        }
-        if (isNum)
-        {
-          return parseFloat(keyA) - parseFloat(keyB);
-        } else {
-          return -keyA.localeCompare(keyB);
-        }
-      }
-      if (keyA === null) {
-        return 1;
-      } else if (keyB === null) {
-        return -1;
-      }
-      if (isNum)
-      {
-        return parseFloat(keyB) - parseFloat(keyA);
-      } else {
-        return keyA.localeCompare(keyB);
-      }
-    });
-  };
-  $scope.reSort();
-  $scope.reSort();
-
-  $scope.enterInvQuantity = function(item, is_edit) {
-
-    if (!is_edit) {
-      item.quantity = 0;
-    }
-    
-    var modalStartInstance = $modal.open({
-      templateUrl: 'modalInvQuantity.html',
-      controller: 'modalInvQuantityCtrl',
-      windowClass: 'inv-qty-modal',
-      backdropClass: 'gray-modal-backdrop',
-      size: 'sm',
-      resolve: {
-        item: function() {
-          return item;
-        },
-        is_edit: function() {
-          return is_edit;
-        }
-      }
-    });
-
-    modalStartInstance.result.then(
-      // success status
-      function( result ) {
-        // result is a list, first item is string for status, e.g.,
-        // 'save' or 'delete'
-        // second item is the affected beverage
-        var status = result[0];
-        var item = result[1];
-        
-        if (status === 'cancel') {
-          item.quantity = 0;
-        }
-        // after a save, we want to re-calculate cost per mL, for instance
-        else if (status === 'save') {
-          console.log(item);
-
-          if ($scope.add_type === $scope.add_types[0]) {
-            $scope.addBevToList(item);
-          } else if ($scope.add_type === $scope.add_types[1]) {
-            $scope.addKegToList(item);
-          }
-        } else if (status === 'edit') {
-          ;
-        }
-      }, 
-      // error status
-      function() {
-        ;
-      });
+  $scope.added_items = existing_items;
+
+  // for calling into the addable directive
+  $scope.addableControl = {};
+
+  // removeItem passes the item removed by added-items directive to
+  // addable-items directive so it reappears on the addable list
+  $scope.removeItem = function( item ) {
+    $scope.addableControl.addItemToList( item );
   };
 
   $scope.saveInv = function() {

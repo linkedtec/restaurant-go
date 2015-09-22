@@ -32,10 +32,116 @@ angular.module('myApp')
 
       scope.dt_control = {};
 
-      scope.show_add_bev_ui = false;
-
       scope.new_failure_msg = null;
       scope.save_warning = false;
+
+      scope.refreshAddGrandTotal = function() {
+        scope.add_grand_total = 0;
+        for (var i in scope.new_delivery.delivery_items) {
+          var item = scope.new_delivery.delivery_items[i];
+          if (item['value']!==undefined && item['value']!==null)
+          scope.add_grand_total += item.value;
+        }
+      };
+
+      scope.cleanUpExistingInv = function() {
+        // On the client side, remove any entries in add_inv_unadded_bevs
+        // which are already in this location
+        var clean_bevs = [];
+        for (var i=0; i < scope.add_inv_unadded_bevs.length; i++) {
+
+          var is_clean = true;
+          var test_item = scope.add_inv_unadded_bevs[i];
+          for (var j=0; j < scope.new_delivery.delivery_items.length; j++) {
+            var check_item = scope.new_delivery.delivery_items[j];
+            if (check_item['type'] === "keg") {
+              continue;
+            }
+            if (!scope.is_edit) {
+              if (test_item['version_id'] == check_item['version_id'])
+              {
+                is_clean = false;
+                break;
+              }
+            } else {
+              if (test_item['id'] == check_item['beverage_id'])
+              {
+                is_clean = false;
+                break;
+              }
+            }
+            
+          }
+          if (is_clean) {
+            clean_bevs.push(test_item);
+          }
+        }
+        scope.add_inv_unadded_bevs = clean_bevs;
+      };
+
+      scope.applyDistributorFilter = function() {
+        // If there is a selected distributor, hides all inv items which don't
+        // belong to that distributor.  If there is no selected distributor,
+        // restores all invs 
+        if (scope.new_delivery.distributor_obj === null || !scope.dist_checked) {
+          console.log('1');
+          scope.add_inv_dist_bevs = scope.add_inv_all_bevs;
+          console.log(scope.add_inv_dist_bevs);
+        } else {
+          // When filtering all distributor bevs, push all_bevs into dist_bevs
+          // which match the distributor, then remove any unadded and added bevs
+          // which are not of distributor.  Do this whenever distributor changes.
+          scope.add_inv_dist_bevs = [];
+          console.log('2');
+          for (var i in scope.add_inv_all_bevs) {
+            var item = scope.add_inv_all_bevs[i];
+            if (item.distributor_id !== null && item.distributor_id === scope.new_delivery.distributor_obj.id) {
+              scope.add_inv_dist_bevs.push(item);
+            }
+          }
+          // remove any already added bevs which don't match distributor
+          var new_added_bevs = [];
+          for (var i in scope.new_delivery.delivery_items) {
+            var item = scope.new_delivery.delivery_items[i];
+            if (item.distributor_id !== null && item.distributor_id === scope.new_delivery.distributor_obj.id) {
+              new_added_bevs.push(item);
+            }
+          }
+          scope.new_delivery.delivery_items = new_added_bevs;
+        }
+        
+        // unadded bevs is add_inv_dist_bevs minus new_delivery.delivery_items
+        var new_unadded_bevs = [];
+        for (var i in scope.add_inv_dist_bevs) {
+          var item = scope.add_inv_dist_bevs[i];
+          var is_unadded = true;
+          for (var j in scope.new_delivery.delivery_items) {
+            var added_item = scope.new_delivery.delivery_items[j];
+            if (item.id === added_item.id) {
+              is_unadded = false;
+              break;
+            }
+          }
+          if (is_unadded) {
+            new_unadded_bevs.push(item);
+          }
+        }
+        scope.add_inv_unadded_bevs = new_unadded_bevs;
+
+        scope.refreshAddGrandTotal();
+        setInterval(
+          function() {
+            scope.$apply();
+          }, 0);
+        console.log('hi');
+        console.log(scope.add_inv_dist_bevs);
+      };
+
+      scope.refreshAddInv = function() {
+        console.log('refresh add inv');
+        scope.applyDistributorFilter();
+        scope.cleanUpExistingInv();
+      };
 
       // a new delivery is just the following:
       // a delivery_date
@@ -86,7 +192,8 @@ angular.module('myApp')
           scope.new_delivery['delivery_items'] = [];
           scope.save_title = "Save New Delivery"
         }
-      }
+      };
+
       angular.element(document).ready(function() {
         scope.init();
       });
@@ -120,7 +227,6 @@ angular.module('myApp')
         
         scope.dt_control.resetTime();
 
-        scope.show_add_bev_ui = false;
         scope.new_failure_msg = null;
 
         scope.new_delivery.delivery_items = [];
@@ -437,6 +543,7 @@ angular.module('myApp')
         success(function(data, status, headers, config) {
           // this callback will be called asynchronously when the response
           // is available
+          //console.log(data);
           if (data != null) {
             scope.add_inv_all_bevs = data;
             for (var i in scope.add_inv_all_bevs) {
@@ -446,6 +553,8 @@ angular.module('myApp')
               // locally calculate unit_cost for sorting purposes
               inv['unit_cost'] = scope.getBevUnitCost(inv);
             }
+            console.log("get all inv");
+            scope.refreshAddInv();
           }
           else {
             scope.add_inv_all_bevs = [];
@@ -456,95 +565,6 @@ angular.module('myApp')
         });
       };
       scope.getAllInv();
-
-      scope.applyDistributorFilter = function() {
-        // If there is a selected distributor, hides all inv items which don't
-        // belong to that distributor.  If there is no selected distributor,
-        // restores all invs 
-        if (scope.new_delivery.distributor_obj === null || !scope.dist_checked) {
-          scope.add_inv_dist_bevs = scope.add_inv_all_bevs;
-        } else {
-          // When filtering all distributor bevs, push all_bevs into dist_bevs
-          // which match the distributor, then remove any unadded and added bevs
-          // which are not of distributor.  Do this whenever distributor changes.
-          scope.add_inv_dist_bevs = [];
-          for (var i in scope.add_inv_all_bevs) {
-            var item = scope.add_inv_all_bevs[i];
-            if (item.distributor_id !== null && item.distributor_id === scope.new_delivery.distributor_obj.id) {
-              scope.add_inv_dist_bevs.push(item);
-            }
-          }
-          // remove any already added bevs which don't match distributor
-          var new_added_bevs = [];
-          for (var i in scope.new_delivery.delivery_items) {
-            var item = scope.new_delivery.delivery_items[i];
-            if (item.distributor_id !== null && item.distributor_id === scope.new_delivery.distributor_obj.id) {
-              new_added_bevs.push(item);
-            }
-          }
-          scope.new_delivery.delivery_items = new_added_bevs;
-        }
-        
-        // unadded bevs is add_inv_dist_bevs minus new_delivery.delivery_items
-        var new_unadded_bevs = [];
-        for (var i in scope.add_inv_dist_bevs) {
-          var item = scope.add_inv_dist_bevs[i];
-          var is_unadded = true;
-          for (var j in scope.new_delivery.delivery_items) {
-            var added_item = scope.new_delivery.delivery_items[j];
-            if (item.id === added_item.id) {
-              is_unadded = false;
-              break;
-            }
-          }
-          if (is_unadded) {
-            new_unadded_bevs.push(item);
-          }
-        }
-        scope.add_inv_unadded_bevs = new_unadded_bevs;
-
-        scope.refreshAddGrandTotal();
-      };
-
-      scope.cleanUpExistingInv = function() {
-        // On the client side, remove any entries in add_inv_unadded_bevs
-        // which are already in this location
-        var clean_bevs = [];
-        for (var i=0; i < scope.add_inv_unadded_bevs.length; i++) {
-
-          var is_clean = true;
-          var test_item = scope.add_inv_unadded_bevs[i];
-          for (var j=0; j < scope.new_delivery.delivery_items.length; j++) {
-            var check_item = scope.new_delivery.delivery_items[j];
-            if (check_item['type'] === "keg") {
-              continue;
-            }
-            if (!scope.is_edit) {
-              if (test_item['version_id'] == check_item['version_id'])
-              {
-                is_clean = false;
-                break;
-              }
-            } else {
-              if (test_item['id'] == check_item['beverage_id'])
-              {
-                is_clean = false;
-                break;
-              }
-            }
-            
-          }
-          if (is_clean) {
-            clean_bevs.push(test_item);
-          }
-        }
-        scope.add_inv_unadded_bevs = clean_bevs;
-      };
-
-      scope.refreshAddInv = function() {
-        scope.applyDistributorFilter();
-        scope.cleanUpExistingInv();
-      }
 
       scope.addInvAddBev = function(bev) {
 
@@ -604,15 +624,6 @@ angular.module('myApp')
 
         scope.checkEditDiffs();
       };
-
-      scope.refreshAddGrandTotal = function() {
-        scope.add_grand_total = 0;
-        for (var i in scope.new_delivery.delivery_items) {
-          var item = scope.new_delivery.delivery_items[i];
-          if (item['value']!==undefined && item['value']!==null)
-          scope.add_grand_total += item.value;
-        }
-      }
 
       scope.commitRemoveInvItem = function(item) {
 
@@ -708,16 +719,6 @@ angular.module('myApp')
         scope.new_delivery.distributor = null;
 
         scope.checkEditDiffs();
-      };
-
-      scope.showAddBevInv = function() {
-        scope.show_add_bev_ui = true;
-        
-        scope.refreshAddInv();
-      };
-
-      scope.hideAddBevInv = function() {
-        scope.show_add_bev_ui = false;
       };
 
       scope.checkEditDiffs = function() {

@@ -1,0 +1,47 @@
+<div class="row inv_row_added" ng-if="addedItems.length===0" style="padding: 24px 16px; color:#999999">
+  No Inventory added in this Location yet.<br/>
+  Add inventory items from the <b>left screen</b>.
+</div>
+<div style="height:98%; overflow-y:scroll" ng-if="addedItems.length>0">
+  <div class="row inv_row_added" ng-repeat="item in addedItems">
+    <div class="col-xs-1" style="padding:0">
+    <img ng-if="item.icon==='keg'" src="images/bev_keg.png" height="38px" width="38px" style="margin-left:0px">
+      <img ng-if="item.icon==='draft'" src="images/bev_draft.png" height="38px" width="38px" style="margin-left:0px">
+      <img ng-if="item.icon==='wine'" src="images/bev_wine.png" height="38px" width="38px" style="margin-left:0px">
+      <img ng-if="item.icon==='bottle'" src="images/bev_bottle.png" height="38px" width="38px" style="margin-left:0px">
+      <img ng-if="item.icon==='can'" src="images/bev_can.png" height="38px" width="38px" style="margin-left:0px">
+      <img ng-if="item.icon==='liquor'" src="images/bev_xo.png" height="38px" width="38px" style="margin-left:0px">
+    </div>
+    <div ng-class="{'col-xs-8': item.type==='keg', 'col-xs-4': item.type==='bev'}" style="padding:0; padding-left:10px">
+      <div style="font-size:0.9em">
+        <span ng-if="item.type==='bev'" class="nowrap_span">{{item.product}}</span>
+        <span ng-if="item.type==='keg'" class="nowrap_span">{{item.distributor}}</span>
+      </div>
+      <div style="font-size:0.8em; color:#999999; padding:0;">
+        <span ng-if="item.purchase_unit!==null">
+          {{item.purchase_volume | number:1}} {{item.purchase_unit}}
+        </span>
+        <span>
+          {{item.container_type}}
+        </span>
+      </div>
+    </div>
+    <div class="col-xs-4" ng-if="item.type==='bev'" style="padding-left:6px; padding-right:8px; font-size:0.9em; color:#999999">
+      {{item.brewery}}
+    </div>
+    <div class="col-xs-2" style="padding:0">
+      <button ng-click="enterInvQuantity(item, true)" type="button" class="btn btn-sm btn_inv_qty">
+        {{item.quantity}}
+      </button>
+    </div>
+    <div class="col-xs-1" style="padding:0; padding-top:4px; float:right">
+
+      <button ng-model="item" popover-template="'popoverRemoveItem.html'" popover-placement="left" popover-title="Remove from list?" popover-append-to-body="true" type="button" class="btn btn-sm btn_frameless hover_red" style="font-size:24px; float:right; padding:0;">
+        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+      </button>
+
+    </div>
+  </div>
+</div>
+
+<div ng-include src="'./view_loc/modal_inv_quantity.html'">

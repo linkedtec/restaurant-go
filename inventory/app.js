@@ -5,9 +5,9 @@ angular.module('myApp', [
   'ngRoute',
   'myApp.viewAllInv',
   'myApp.viewDistributors',
-  'myApp.viewInvByLoc',
+//  'myApp.viewInvByLoc',
   'myApp.viewInvByLocNew',
-  'myApp.viewOnTap',
+//  'myApp.viewOnTap',
  // 'myApp.viewEmptyKegs',
   'myApp.viewHistory',
   'myApp.viewDeliveries'

@@ -37,8 +37,10 @@
   <script src="/inventory/view_loc/view_loc.js"></script>
   <script src="/inventory/view_loc/view_loc_new.js"></script>
   <script src="/inventory/view_loc/directive_new_location.js"></script>
-  <script src="/inventory/view_loc/directive_loc_add_inv.js"></script>
-  <script src="/inventory/view_tap/view_tap.js"></script>
+  <!--script src="/inventory/view_loc/directive_loc_add_inv.js"></script-->
+  <script src="/inventory/view_loc/directive_addable_inv.js"></script>
+  <script src="/inventory/view_loc/directive_added_inv.js"></script>
+  <!--script src="/inventory/view_tap/view_tap.js"></script-->
   <!--script src="/inventory/view_empty_kegs/view_empty_kegs.js"></script-->
   <script src="/inventory/view_history/view_history.js"></script>
   <script src="/inventory/view_history/directive_date_range.js"></script>
@@ -68,7 +70,7 @@
       <ul class="nav navbar-nav" ng-controller="myAppCtrl" style="font-size:1.0em;">
         <li ng-class="{ 'active': isActive('/viewAllInv') || isActive('/viewDistributors') }"><a href="#/viewAllInv">Beverages</a></li>
         <li ng-class="{ 'active': isActive('/viewInvByLoc') || isActive('/viewInvByLocNew') || isActive('/viewOnTap') || isActive('/viewEmptyKegs') || isActive('/viewHistory')}"><a href="#/viewInvByLocNew">Inventory</a></li>
-        <li ng-class="{ 'active': isActive('/viewDeliveries') }"><a href="#/viewDeliveries">Deliveries</a></li>
+        <!--li ng-class="{ 'active': isActive('/viewDeliveries') }"><a href="#/viewDeliveries">Deliveries</a></li-->
       </ul>
     </div>
   </nav>

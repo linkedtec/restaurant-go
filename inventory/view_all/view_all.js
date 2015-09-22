@@ -319,7 +319,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       templateUrl: 'editInvModal.html',
       controller: 'editInvModalCtrl',
       windowClass: 'edit-inv-modal',
-      backdropClass: 'green-modal-backdrop',
+      backdropClass: 'white-modal-backdrop',
       resolve: {
         edit_beverage: function() {
           return inv;
