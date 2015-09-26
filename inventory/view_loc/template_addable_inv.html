@@ -1,8 +1,8 @@
 <!--div style="position:absolute; left:24px; top:4px; font-size:1.1em">All Addable Items</div-->
-<tabset ng-if="showTabs===true" style="margin: 0px 0px; font-size:1.0em; margin-left:0px">
+<tabset ng-if="showTabs===true" style="margin: 0px 0px; font-size:1.0em; margin-left:0px; max-height:37px">
   <tab ng-repeat="type in add_types" heading="{{type}}" ng-click="selectAddType(type)"></tab>
 </tabset>
-<div ng-class="{'new_inv_border_box': showTabs===true}" style="margin:0px 0px; height:96%;">
+<div ng-class="{'new_inv_border_box': showTabs===true, 'addable_tab_margin': showTabs===true}" style="display:block; position:absolute; height:auto; top:0; bottom:0; left: 0; right:0; margin-top:0px; margin-bottom:0px; margin-right:0px; margin-left:0px !important; padding:4px 16px; padding-bottom:12px">
   <div class="row" style="margin-bottom:6px; margin-top:6px">
     <div class="col-xs-4" style="padding-right:0">
       <div ng-if="add_type===add_types[0]" class="btn-group" dropdown style="width:100%">
@@ -85,7 +85,7 @@
     </div>
   </div>
   <hr style="margin:0 0;"/>
-  <div style="height:85%; overflow-y:scroll; overflow-x:hidden;">
+  <div style="display:block; position:absolute; height:auto; bottom:0; top:94px; left: 0; right:0; margin-top:0px; margin-bottom:12px; margin-right:6px; margin-left:12px; padding:0px 4px; padding-bottom:12px; background-color:#fbfff9; overflow-y:scroll; overflow-x:hidden;">
     <div ng-if="add_type===add_types[0]">
       <div ng-repeat="bev in filtered_bevs | filter:filter_query.query" class="row" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="padding:7px 0px; margin:0px 2px;">
         <div class="col-xs-1" style="padding-left:6px;">

@@ -108,6 +108,140 @@ config(['$routeProvider', function($routeProvider) {
   }
 })
 
+.factory("ItemsService", function($http, MathService) {
+
+  var getDisplayName = function(item) {
+    if (item.type==='bev') {
+      return item.product;
+    } else if (item.type==='keg') {
+      var volume = item['volume'];
+      if (volume===undefined) {
+        volume = item['purchase_volume'];
+      }
+      var unit = item['unit'];
+      if (unit===undefined) {
+        unit = item['purchase_unit'];
+      }
+      return item['distributor'] + ' ' + volume + ' ' + unit + ' Empty Keg';
+    }
+    return item.product;
+  }
+
+  var getItemIcon = function(item) {
+    if (item.type==='keg') {
+      return 'keg';
+    }
+
+    if (item.alcohol_type==='Beer' || item.alcohol_type==='Cider') {
+      if (item.container_type==='Keg') {
+        return 'draft';
+      } else if (item.container_type==='Bottle') {
+        return 'bottle';
+      } else {
+        return 'can'
+      }
+    } else if (item.alcohol_type==='Wine') {
+      return 'wine';
+    } else if (item.alcohol_type==='Liquor') {
+      return 'liquor';
+    } else {
+      if (item.container_type==='Can') {
+        return 'can'
+      } else if (item.container_type==='Bottle') {
+        return 'bottle'
+      } else {
+        return null; // XXX Default generic icon?
+      }
+    }
+    return null;
+  }
+
+  var getBevUnitCost = function(bev) {
+    // locally calculate unit_cost for sorting purposes
+    var purchase_cost = 0;
+    var purchase_count = 1;
+    var deposit = 0;
+    if (bev['purchase_cost'] !== null) {
+      purchase_cost = bev['purchase_cost'];
+    }
+    if (bev['purchase_count'] !== null) {
+      purchase_count = bev['purchase_count'];
+    }
+    if (bev['deposit'] !== null) {
+      deposit = bev['deposit'];
+    }
+
+    return purchase_cost / purchase_count + deposit;
+  }
+
+  return {
+
+    getItemIcon: function(item) {
+      return getItemIcon(item);
+    },
+
+    getDisplayName: function(item) {
+      return getDisplayName(item);
+    },
+
+    getBevUnitCost: function(bev) {
+      return getBevUnitCost(bev);
+    },
+
+    processBevsForAddable: function(bevs) {
+      for (var i in bevs) {
+        var item = bevs[i];
+        item['inventory'] = 0;
+        item['quantity'] = 0;
+        item['type'] = 'bev';
+
+        item['unit_cost'] = getBevUnitCost(item);
+
+        item['volume'] = MathService.fixFloat1(item['volume']);
+        item['purchase_cost'] = MathService.fixFloat1(item['purchase_cost']);
+        item['deposit'] = MathService.fixFloat1(item['deposit']);
+
+        item['display_name'] = getDisplayName(item);
+
+        // get the icon type
+        // draft beer (beer mug)
+        // wine (wine bottle)
+        // bottle (either beer or non-alc)
+        // can (either beer or non-alc)
+        // liquor (XO bottle)
+        item['icon'] = getItemIcon(item);
+      }
+    },
+
+    processKegsForAddable: function(kegs) {
+      for (var i in kegs) {
+        var keg = kegs[i];
+        keg['inventory'] = 0;
+        keg['quantity'] = 0;
+        keg['type'] = 'keg';
+        // fix floating point
+        keg['volume'] = MathService.fixFloat1(keg['volume']);
+        keg['purchase_cost'] = MathService.fixFloat1(keg['purchase_cost']);
+        keg['deposit'] = MathService.fixFloat1(keg['deposit']);
+        // when we get kegs from server, the param names 'volume' and 'unit'
+        // don't match beverage params 'purchase_volume' and 'purchase_unit',
+        // so we duplicate and rename so the proper vol and unit show up
+        // on client display
+        keg['purchase_volume'] = MathService.fixFloat1(keg['volume']);
+        keg['purchase_unit'] = keg['unit'];
+        // as a last hack, add distributor as product and brewery so sorting 
+        // by those keys works
+        keg['product'] = keg['distributor'];
+        keg['brewery'] = keg['distributor'];
+
+        keg['container_type'] = 'Empty Keg';
+        keg['display_name'] = getDisplayName(keg);
+        keg['icon'] = getItemIcon(keg);
+      }
+    }
+  }
+})
+
 .factory("DateService", function() {
 
   var getMinutesSinceTime = function(timestamp) {

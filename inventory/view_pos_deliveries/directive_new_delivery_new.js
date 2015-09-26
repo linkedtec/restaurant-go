@@ -1,6 +1,6 @@
 angular.module('myApp')
 
-.directive('newDeliveryNew', function($modal, $http, $timeout, MathService, DateService, DeliveriesService) {
+.directive('newDeliveryNew', function($modal, $http, $timeout, MathService, DateService, DeliveriesService, ItemsService) {
   return {
     restrict: 'AE',
     scope: {
@@ -22,9 +22,11 @@ angular.module('myApp')
       // which match the distributor, then splice any unadded and added bevs
       // which are not of distributor.  Do this whenever distributor changes.
       scope.add_inv_all_bevs = [];      // a cache from server of all inv items
-      scope.add_inv_dist_bevs = []; // all items filtered with only selected distributor
+      scope.add_inv_dist_bevs = [];     // all items filtered with only selected distributor
       scope.add_inv_unadded_bevs = [];  // all_items minus existing items in delivery
       scope.addInvControl = {};
+      scope.addableControl = {};
+      scope.added_items = [];
 
       scope.add_grand_total = 0;
 
@@ -77,6 +79,7 @@ angular.module('myApp')
           }
         }
         scope.add_inv_unadded_bevs = clean_bevs;
+
       };
 
       scope.applyDistributorFilter = function() {
@@ -129,12 +132,9 @@ angular.module('myApp')
         scope.add_inv_unadded_bevs = new_unadded_bevs;
 
         scope.refreshAddGrandTotal();
-        setInterval(
-          function() {
-            scope.$apply();
-          }, 0);
+        
         console.log('hi');
-        console.log(scope.add_inv_dist_bevs);
+        console.log(scope.add_inv_unadded_bevs);
       };
 
       scope.refreshAddInv = function() {
@@ -517,24 +517,6 @@ angular.module('myApp')
       };
       scope.getVolUnits();
 
-      scope.getBevUnitCost = function(inv) {
-        // locally calculate unit_cost for sorting purposes
-        var purchase_cost = 0;
-        var purchase_count = 1;
-        var deposit = 0;
-        if (inv['purchase_cost'] !== null) {
-          purchase_cost = inv['purchase_cost'];
-        }
-        if (inv['purchase_count'] !== null) {
-          purchase_count = inv['purchase_count'];
-        }
-        if (inv['deposit'] !== null) {
-          deposit = inv['deposit'];
-        }
-
-        return purchase_cost / purchase_count + deposit;
-      };
-
       // get all inventory from the server.  If location type is bev, get /inv
       // items.  If location type is kegs, get /kegs.
       scope.getAllInv = function() {
@@ -546,15 +528,11 @@ angular.module('myApp')
           //console.log(data);
           if (data != null) {
             scope.add_inv_all_bevs = data;
-            for (var i in scope.add_inv_all_bevs) {
-              var inv = scope.add_inv_all_bevs[i];
-              inv['type'] = 'bev';
-
-              // locally calculate unit_cost for sorting purposes
-              inv['unit_cost'] = scope.getBevUnitCost(inv);
-            }
+            ItemsService.processBevsForAddable(scope.add_inv_all_bevs);
+            
             console.log("get all inv");
             scope.refreshAddInv();
+            
           }
           else {
             scope.add_inv_all_bevs = [];

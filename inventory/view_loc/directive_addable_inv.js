@@ -15,6 +15,14 @@ angular.module('myApp')
     templateUrl: './view_loc/template_addable_inv.html',
     link: function(scope, elem, attrs) {
 
+      // XXX NEED to have this $watch here so that if calling directive 
+      // updates its allBevs AFTER this directive is done loading, the 
+      // directive updates accordingly.  Had a big headache with the allBevs
+      // showing up null on start.
+      scope.$watch('allBevs', function() {
+        scope.applyTypeFilter();
+      });
+
       scope.add_types = ['Beverages', 'Empty Kegs'/*, 'Recently Used in This Location'*/];
       scope.add_type = scope.add_types[0];
 
@@ -265,12 +273,17 @@ angular.module('myApp')
       scope.applyTypeFilter = function() {
         // filter by eg Beer, Cider, Wine, etc
         // all beverages
+
+        console.log("apply type filter");
+        console.log(scope.allBevs);
         if (scope.add_type===scope.add_types[0]) {
 
           scope.filtered_bevs = [];
 
           if (scope.type_filter===scope.type_filters[0]) {
+            console.log("all");
             scope.filtered_bevs = scope.allBevs;
+            console.log(scope.allBevs);
           } else {
             for (var i in scope.allBevs) {
               var item = scope.allBevs[i];
@@ -291,6 +304,7 @@ angular.module('myApp')
 
           if (scope.container_filter===scope.container_filters[0]) {
             // With All Containers selected there is nothing to do
+            console.log("Z");
             ;
           } else {
             var container_bevs = [];
@@ -305,6 +319,12 @@ angular.module('myApp')
         }
 
         scope.excludeAddedBevs();
+
+        console.log(scope.filtered_bevs);
+        setInterval(
+          function() {
+            scope.$apply();
+          }, 0);
       };
 
       scope.excludeAddedBevs = function() {

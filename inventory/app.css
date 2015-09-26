@@ -956,17 +956,27 @@ like enclosed space */
 
 .start-inv-modal .modal-dialog{
   display:block;
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:0;
+  right:0;
   margin-top: 20px;
-  margin-bottom:20px;
+  margin-bottom:0px;
   min-width:960px;
   max-width:1120px;
-  width:96%;
-  height:94% !important;
+  width:98%;
+  height:auto;
   min-height: 640px;
+  /*max-height:820px;*/
 }
 
 .start-inv-modal .modal-content{
   height:96% !important;
+}
+
+.addable_tab_margin {
+  top:37px !important;
 }
 
 .btn_blue_border {
@@ -1166,7 +1176,7 @@ input.customCbSqr:after {
 .form-group tr a.btn.btn-link {
   padding-top:2px;
   padding-bottom:0px;
-  color:#aaaaaa;
+  color:#cccccc;
 }
 
 .form-group tr a.btn.btn-link:hover {

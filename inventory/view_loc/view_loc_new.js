@@ -17,7 +17,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
     });
 }])
 
-.controller('ViewInvByLocNewCtrl', function($scope, $modal, $http, DateService, MathService, locType) {
+.controller('ViewInvByLocNewCtrl', function($scope, $modal, $http, DateService, MathService, ItemsService, locType) {
 
   // XXX DO NOT REASSIGN VALUE OF k_loc_type, it is determined by route
   // to be "bev" or "keg" and is a CONSTANT
@@ -155,53 +155,6 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
     $scope.update_failure_msg = "";
   };
 
-  $scope.getBevIcon = function(item) {
-
-    if (item.type==='keg') {
-      return 'keg';
-    }
-
-    if (item.alcohol_type==='Beer' || item.alcohol_type==='Cider') {
-      if (item.container_type==='Keg') {
-        return 'draft';
-      } else if (item.container_type==='Bottle') {
-        return 'bottle';
-      } else {
-        return 'can'
-      }
-    } else if (item.alcohol_type==='Wine') {
-      return 'wine';
-    } else if (item.alcohol_type==='Liquor') {
-      return 'liquor';
-    } else {
-      if (item.container_type==='Can') {
-        return 'can'
-      } else if (item.container_type==='Bottle') {
-        return 'bottle'
-      } else {
-        return null; // XXX Default generic icon?
-      }
-    }
-    return null;
-  };
-
-  $scope.getDisplayName = function(item) {
-    if (item.type==='bev') {
-      return item.product;
-    } else if (item.type==='keg') {
-      var volume = item['volume'];
-      if (volume===undefined) {
-        volume = item['purchase_volume'];
-      }
-      var unit = item['unit'];
-      if (unit===undefined) {
-        unit = item['purchase_unit'];
-      }
-      return item['distributor'] + ' ' + volume + ' ' + unit + ' Empty Keg';
-    }
-    return item.product;
-  };
-
   // get all inventory from the server.  If location type is bev, get /inv
   // items.  If location type is kegs, get /kegs.
   $scope.getAllInv = function() {
@@ -213,26 +166,8 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
       console.log(data);
       if (data != null) {
         $scope.add_inv_all_bevs = data;
-        for (var i in $scope.add_inv_all_bevs) {
-          var item = $scope.add_inv_all_bevs[i];
-          item['inventory'] = 0;
-          item['quantity'] = 0;
-          item['type'] = 'bev';
+        ItemsService.processBevsForAddable($scope.add_inv_all_bevs);
 
-          item['volume'] = MathService.fixFloat1(item['volume']);
-          item['purchase_cost'] = MathService.fixFloat1(item['purchase_cost']);
-          item['deposit'] = MathService.fixFloat1(item['deposit']);
-
-          item['display_name'] = $scope.getDisplayName(item);
-
-          // get the icon type
-          // draft beer (beer mug)
-          // wine (wine bottle)
-          // bottle (either beer or non-alc)
-          // can (either beer or non-alc)
-          // liquor (XO bottle)
-          item['icon'] = $scope.getBevIcon(item);
-        }
       }
       else {
         $scope.add_inv_all_bevs = [];
@@ -240,7 +175,6 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
 
       // now that we got beverage inventory, get the empty kegs as well
       $scope.getAllKegs();
-
       
     }).
     error(function(data, status, headers, config) {
@@ -257,30 +191,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
       console.log(data);
       if (data != null) {
         $scope.all_kegs = data;
-        for (var i in $scope.all_kegs) {
-          var keg = $scope.all_kegs[i];
-          keg['inventory'] = 0;
-          keg['quantity'] = 0;
-          keg['type'] = 'keg';
-          // fix floating point
-          keg['volume'] = MathService.fixFloat1(keg['volume']);
-          keg['purchase_cost'] = MathService.fixFloat1(keg['purchase_cost']);
-          keg['deposit'] = MathService.fixFloat1(keg['deposit']);
-          // when we get kegs from server, the param names 'volume' and 'unit'
-          // don't match beverage params 'purchase_volume' and 'purchase_unit',
-          // so we duplicate and rename so the proper vol and unit show up
-          // on client display
-          keg['purchase_volume'] = keg['volume'];
-          keg['purchase_unit'] = keg['unit'];
-          // as a last hack, add distributor as product and brewery so sorting 
-          // by those keys works
-          keg['product'] = keg['distributor'];
-          keg['brewery'] = keg['distributor'];
-
-          keg['container_type'] = 'Empty Keg';
-          keg['display_name'] = $scope.getDisplayName(keg);
-          keg['icon'] = $scope.getBevIcon(keg);
-        }
+        ItemsService.processKegsForAddable($scope.all_kegs);
       }
       else {
         $scope.all_kegs = [];
@@ -291,7 +202,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
     error(function(data, status, headers, config) {
 
     });
-  }
+  };
 
   $scope.cleanUpExistingInv = function() {
     // On the client side, remove any entries in add_inv_existing_bevs
@@ -545,6 +456,9 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
         }
       }
     }
+
+    console.log('existing')
+    console.log(existing_items);
 
     var modalStartInstance = $modal.open({
       templateUrl: 'startInvModal.html',
@@ -827,6 +741,13 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
         if (inv['deposit'] !== null) {
           deposit = inv['deposit'];
         }
+        if (inv['volume'] !== undefined && inv['volume']!==null) {
+          inv.volume = MathService.fixFloat1(inv.volume);
+        }
+        if (inv['purchase_volume'] !== undefined && inv['purchase_volume']!==null) {
+          inv.purchase_volume = MathService.fixFloat1(inv.purchase_volume);
+        }
+        
         if ($scope.inv_items[inv_i]['type']==='bev') {
           $scope.inv_items[inv_i]['unit_cost'] = purchase_cost / purchase_count + deposit;
         } else { // keg
@@ -843,8 +764,8 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
         }
 
         // get icon
-        inv['icon'] = $scope.getBevIcon(inv);
-        inv['display_name'] = $scope.getDisplayName(inv);
+        inv['icon'] = ItemsService.getItemIcon(inv);
+        inv['display_name'] = ItemsService.getDisplayName(inv);
       }
 
       // check update in each inventory item and if updated within 24
