@@ -241,7 +241,7 @@ angular.module('myApp')
 
       // this is only callable within the editing context, and will tell the
       // controlling edit modal to dismiss itself
-      scope.cancel = function() {
+      scope.cancelDlv = function() {
         scope.internalControl.cancel();
       };
 

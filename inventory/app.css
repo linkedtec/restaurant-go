@@ -839,13 +839,13 @@ like enclosed space */
 }
 
 .btn_ok_circle {
-  width:82px;
-  height:82px;
-  border-radius:41px;
+  width:92px;
+  height:92px;
+  border-radius:46px;
   color:white;
-  font-size:52px;
+  font-size:54px;
   padding: 0;
-  padding-top:1px;
+  padding-top:3px;
   background-color:#50a000;
 }
 
@@ -1125,44 +1125,25 @@ like enclosed space */
   text-decoration:underline;
 }
 
-input.customCbRnd, input.customCbSqr {
-  visibility: hidden;
-  font-weight:normal;
-}
 
-input.customCbRnd + label, input.customCbSqr + label {
-  margin-left:12px;
-  font-weight:normal;
-}
-
-input.customCbRnd:checked:after, input.customCbRnd:after,
-input.customCbSqr:checked:after, input.customCbSqr:after {
-  visibility: visible;
+/* Custom checkboxes: usage note, icon is drawn via the label, not the input
+of type checkbox.  When using, must use input checkbox in conjunction with 
+label.  See template_new_delivery_new for example*/
+input[type=checkbox] { display:none; } 
+input[type=checkbox] + label:before {
   font-family: FontAwesome;
-  font-size:24px;height: 20px; width: 20px;
-  position: relative;
-  top: -8px;
-  left: 0px;
-  background-color:#FFF;
   display: inline-block;
+  font-size:1.6em;
+}
+
+input[type=checkbox] + label:before { 
+  content: "\f096"; 
+  color: #99aabb;
+} 
+
+input[type=checkbox]:checked + label:before { 
+  content: "\f14a";
   color:#4499cc;
-}
-
-input.customCbRnd:checked:after {
-  content: '\f058';
-}
-
-input.customCbRnd:after {
-  content: '\f10c';
-}
-
-input.customCbSqr:checked:after {
-  content: '\f14a';
-}
-
-input.customCbSqr:after {
-  content: '\f096';
-  color:#aabbcc;
 }
 
 .popover {
