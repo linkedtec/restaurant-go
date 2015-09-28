@@ -1019,7 +1019,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
   };
 })
 
-.controller('modalInvQuantityCtrl', function($scope, $modalInstance, item, is_edit, MathService) {
+.controller('modalInvQuantityCtrl', function($scope, $modalInstance, $modal, item, is_edit, is_delivery, MathService) {
 
   $scope.item = item;
   $scope.is_edit = is_edit;
@@ -1029,7 +1029,11 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
     $scope.quantity = 0;
   }
 
+  $scope.expected_invoice = {value:0}
+
   $scope.new_failure_msg = null;
+
+  $scope.is_delivery = is_delivery;
 
   $scope.addQuantity = function(inv, num, isAddQ) {
 
@@ -1054,7 +1058,23 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
     if (isAddQ) {
       inv.add_q = null;
     }
+
+    $scope.updateExpectedInvoice();
   };
+
+  $scope.updateExpectedInvoice = function() {
+    if ($scope.is_delivery !== true) {
+      return;
+    }
+
+    if (MathService.numIsInvalid($scope.quantity)) {
+      return;
+    }
+
+    $scope.expected_invoice.value = $scope.item['purchase_cost'] * $scope.quantity;
+
+  }
+  $scope.updateExpectedInvoice();
 
   $scope.save = function() {
 
@@ -1075,12 +1095,62 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
 
     $scope.item.quantity = $scope.quantity;
 
+    // if the item has a 'value' field, it should be purchase_cost * quantity
+    // e.g., for deliveries
+    if ($scope.item['value'] !== undefined) {
+     $scope.item['value'] = $scope.item['purchase_cost'] * $scope.item['quantity'];
+    }
+
     if ($scope.is_edit) {
       $modalInstance.close(['edit', null]);
     } else {
       $modalInstance.close(['save', $scope.item]);
     }
     
+  };
+
+  $scope.editBev = function( item ) {
+    // When user edits beverage unit pricing
+    // launch modal for editing unit price
+
+    console.log(item);
+
+    var modalEditInstance = $modal.open({
+      templateUrl: 'editInvModal.html',
+      controller: 'editInvModalCtrl',
+      windowClass: 'edit-purchase-modal',
+      backdropClass: 'green-modal-backdrop',
+      resolve: {
+        edit_beverage: function() {
+          return item;
+        },
+        all_distributors: function() {
+          return [];
+        },
+        all_breweries: function() {
+          // we're invoking the modal in edit purchase info only, so don't
+          // need to provide breweries
+          return [];
+        },
+        volume_units: function() {
+          return [];
+        },
+        edit_mode: function() {
+          return "purchase";
+        }
+      }
+    });
+
+    modalEditInstance.result.then(
+      // success status
+      function( result ) {
+        $scope.updateExpectedInvoice();
+      }, 
+      // error status
+      function() {
+        ;
+      });
+
   };
 
   $scope.cancel = function() {

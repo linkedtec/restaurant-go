@@ -817,115 +817,115 @@ angular.module('myApp')
 
       scope.editBevLaunchModal = function(inv) {
         var modalEditInstance = $modal.open({
-        templateUrl: 'editInvModal.html',
-        controller: 'editInvModalCtrl',
-        windowClass: 'edit-purchase-modal',
-        backdropClass: 'green-modal-backdrop',
-        resolve: {
-          edit_beverage: function() {
-            return inv;
-          },
-          all_distributors: function() {
-            return scope.allDistributors;
-          },
-          all_breweries: function() {
-            // we're invoking the modal in edit purchase info only, so don't
-            // need to provide breweries
-            return [];
-          },
-          volume_units: function() {
-            return scope.volume_units;
-          },
-          edit_mode: function() {
-            return "purchase";
+          templateUrl: 'editInvModal.html',
+          controller: 'editInvModalCtrl',
+          windowClass: 'edit-purchase-modal',
+          backdropClass: 'green-modal-backdrop',
+          resolve: {
+            edit_beverage: function() {
+              return inv;
+            },
+            all_distributors: function() {
+              return scope.allDistributors;
+            },
+            all_breweries: function() {
+              // we're invoking the modal in edit purchase info only, so don't
+              // need to provide breweries
+              return [];
+            },
+            volume_units: function() {
+              return scope.volume_units;
+            },
+            edit_mode: function() {
+              return "purchase";
+            }
           }
-        }
-      });
+        });
 
-      modalEditInstance.result.then(
-        // success status
-        function( result ) {
-          // result is a list, first item is string for status, e.g.,
-          // 'save' or 'delete'
-          // second item is the affected beverage
-          var status = result[0];
-          var edit_bev = result[1];
-          
-          // after a save, we want to re-calculate cost per mL, for instance
-          if (status === 'save') {
-            console.log(edit_bev);
+        modalEditInstance.result.then(
+          // success status
+          function( result ) {
+            // result is a list, first item is string for status, e.g.,
+            // 'save' or 'delete'
+            // second item is the affected beverage
+            var status = result[0];
+            var edit_bev = result[1];
+            
+            // after a save, we want to re-calculate cost per mL, for instance
+            if (status === 'save') {
+              console.log(edit_bev);
 
-            // now need to update all client bevs with the new bev info passed
-            // to us in edit_bev
-            var update_invs = [
-              scope.add_inv_all_bevs,
-              scope.add_inv_dist_bevs,
-              scope.add_inv_unadded_bevs,
-              scope.new_delivery.delivery_items
-            ];
+              // now need to update all client bevs with the new bev info passed
+              // to us in edit_bev
+              var update_invs = [
+                scope.add_inv_all_bevs,
+                scope.add_inv_dist_bevs,
+                scope.add_inv_unadded_bevs,
+                scope.new_delivery.delivery_items
+              ];
 
-            for (var i in update_invs) {
-              var inv_list = update_invs[i];
-              for (var j in inv_list) {
-                var item = inv_list[j];
-                if (item['version_id'] === edit_bev['version_id']) {
-                  // we want to copy the new edit_bev into the inv list, 
-                  // but we want to preserve / recalculate quantity, 
-                  // inventory, and unit cost
-                  var old_quantity = item['quantity'];
+              for (var i in update_invs) {
+                var inv_list = update_invs[i];
+                for (var j in inv_list) {
+                  var item = inv_list[j];
+                  if (item['version_id'] === edit_bev['version_id']) {
+                    // we want to copy the new edit_bev into the inv list, 
+                    // but we want to preserve / recalculate quantity, 
+                    // inventory, and unit cost
+                    var old_quantity = item['quantity'];
 
-                  var new_item = JSON.parse( JSON.stringify( edit_bev ) );
+                    var new_item = JSON.parse( JSON.stringify( edit_bev ) );
 
-                  // locally calculate unit_cost for sorting purposes
-                  var purchase_cost = 0;
-                  var purchase_count = 1;
-                  var deposit = 0;
-                  if (new_item['purchase_cost'] !== null) {
-                    purchase_cost = new_item['purchase_cost'];
+                    // locally calculate unit_cost for sorting purposes
+                    var purchase_cost = 0;
+                    var purchase_count = 1;
+                    var deposit = 0;
+                    if (new_item['purchase_cost'] !== null) {
+                      purchase_cost = new_item['purchase_cost'];
+                    }
+                    if (new_item['purchase_count'] !== null) {
+                      purchase_count = new_item['purchase_count'];
+                    }
+                    if (new_item['deposit'] !== null) {
+                      deposit = new_item['deposit'];
+                    }
+                    new_item['unit_cost'] = purchase_cost / purchase_count + deposit;
+                    new_item['quantity'] = old_quantity;
+                    new_item['value'] = old_quantity * new_item['unit_cost'];
+
+                    // change distributor back from object to name.  Before we
+                    // sent inv item to edit bev directive, we had to set its
+                    // distributor to an object.  But while displaying in the
+                    // scroll list, distributor is a string of distributor name.
+                    if (new_item['distributor']!==undefined && new_item['distributor']!==null) {
+                      var dist_name = new_item['distributor'].name;
+                      console.log(dist_name);
+                      new_item['distributor'] = dist_name
+                    }
+
+                    inv_list[j] = new_item;
+
+                    break;
                   }
-                  if (new_item['purchase_count'] !== null) {
-                    purchase_count = new_item['purchase_count'];
-                  }
-                  if (new_item['deposit'] !== null) {
-                    deposit = new_item['deposit'];
-                  }
-                  new_item['unit_cost'] = purchase_cost / purchase_count + deposit;
-                  new_item['quantity'] = old_quantity;
-                  new_item['value'] = old_quantity * new_item['unit_cost'];
-
-                  // change distributor back from object to name.  Before we
-                  // sent inv item to edit bev directive, we had to set its
-                  // distributor to an object.  But while displaying in the
-                  // scroll list, distributor is a string of distributor name.
-                  if (new_item['distributor']!==undefined && new_item['distributor']!==null) {
-                    var dist_name = new_item['distributor'].name;
-                    console.log(dist_name);
-                    new_item['distributor'] = dist_name
-                  }
-
-                  inv_list[j] = new_item;
-
-                  break;
                 }
               }
+
+              scope.refreshAddGrandTotal();
+
+              swal({
+                title: "Beverage Updated!",
+                text: "<b>" + edit_bev.product + "</b> has been updated with your changes.",
+                type: "success",
+                timer: 4000,
+                allowOutsideClick: true,
+                html: true});
             }
-
-            scope.refreshAddGrandTotal();
-
-            swal({
-              title: "Beverage Updated!",
-              text: "<b>" + edit_bev.product + "</b> has been updated with your changes.",
-              type: "success",
-              timer: 4000,
-              allowOutsideClick: true,
-              html: true});
-          }
-        }, 
-        // error status
-        function() {
-          ;
-        });
-      };
+          }, 
+          // error status
+          function() {
+            ;
+          });
+        };
 
     }
   }

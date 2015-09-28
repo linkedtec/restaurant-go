@@ -26,9 +26,6 @@ angular.module('myApp')
       scope.add_inv_unadded_bevs = [];  // all_items minus existing items in delivery
       scope.addInvControl = {};
       scope.addableControl = {};
-      scope.added_items = [];
-
-      scope.add_grand_total = 0;
 
       scope.dist_checked = false;
 
@@ -37,14 +34,7 @@ angular.module('myApp')
       scope.new_failure_msg = null;
       scope.save_warning = false;
 
-      scope.refreshAddGrandTotal = function() {
-        scope.add_grand_total = 0;
-        for (var i in scope.new_delivery.delivery_items) {
-          var item = scope.new_delivery.delivery_items[i];
-          if (item['value']!==undefined && item['value']!==null)
-          scope.add_grand_total += item.value;
-        }
-      };
+      scope.delivery_total = 0;
 
       scope.cleanUpExistingInv = function() {
         // On the client side, remove any entries in add_inv_unadded_bevs
@@ -83,19 +73,19 @@ angular.module('myApp')
       };
 
       scope.applyDistributorFilter = function() {
+
+        console.log('APPLY DISTRIBUTOR FILTER');
+
         // If there is a selected distributor, hides all inv items which don't
         // belong to that distributor.  If there is no selected distributor,
         // restores all invs 
         if (scope.new_delivery.distributor_obj === null || !scope.dist_checked) {
-          console.log('1');
           scope.add_inv_dist_bevs = scope.add_inv_all_bevs;
-          console.log(scope.add_inv_dist_bevs);
         } else {
           // When filtering all distributor bevs, push all_bevs into dist_bevs
           // which match the distributor, then remove any unadded and added bevs
           // which are not of distributor.  Do this whenever distributor changes.
           scope.add_inv_dist_bevs = [];
-          console.log('2');
           for (var i in scope.add_inv_all_bevs) {
             var item = scope.add_inv_all_bevs[i];
             if (item.distributor_id !== null && item.distributor_id === scope.new_delivery.distributor_obj.id) {
@@ -131,14 +121,11 @@ angular.module('myApp')
         }
         scope.add_inv_unadded_bevs = new_unadded_bevs;
 
-        scope.refreshAddGrandTotal();
+        scope.refreshDelivery();
         
-        console.log('hi');
-        console.log(scope.add_inv_unadded_bevs);
       };
 
       scope.refreshAddInv = function() {
-        console.log('refresh add inv');
         scope.applyDistributorFilter();
         scope.cleanUpExistingInv();
       };
@@ -150,21 +137,22 @@ angular.module('myApp')
       // A list of bevs / quantity / value, add_inv_added_bevs
       //    delivery_items
       scope.init = function() {
+        scope.new_delivery = null;
         if (scope.editDelivery!==undefined && scope.editDelivery!==null) {
-          console.log('edit');
           scope.is_edit=true;
 
           scope.new_delivery = JSON.parse( JSON.stringify( scope.editDelivery ) );
-          
+
+          console.log('EDIT DELIVERY');
+          console.log(scope.editDelivery);
+
           // stringify will change delivery_date object into string, need to 
           // convert it back
           scope.new_delivery['delivery_date'] = DateService.getDateFromUTCTimeStamp(
             scope.new_delivery['delivery_date'], true);
           scope.new_delivery['delivery_time'] = new Date(scope.new_delivery['delivery_time']);
 
-          scope.add_grand_total = scope.new_delivery['inv_sum'];
-
-          console.log(scope.new_delivery);
+          scope.delivery_total = scope.new_delivery['inv_sum'];
 
           // initiate the state of the "Add only from this distributor" checkbox
           // check the distributor_id of the new_delivery.  If all delivery_items'
@@ -181,6 +169,8 @@ angular.module('myApp')
               scope.dist_checked = true;
             }
           }
+
+          ItemsService.processBevsForAddable(scope.new_delivery.delivery_items);
 
           scope.save_title = "Save Changes";
         } else {
@@ -201,7 +191,6 @@ angular.module('myApp')
       // detect when delivery date or delivery time change, check if they are
       // valid edits and we should display save warning
       scope.$watch('new_delivery.delivery_date + new_delivery.delivery_time', function(newVal, oldVal) {
-        console.log('delivery date changed');
         scope.checkEditDiffs();
       }, true);
 
@@ -221,7 +210,7 @@ angular.module('myApp')
       scope.clearValidation();
 
       scope.internalControl.clearNewForm = function() {
-        scope.add_grand_total = 0;
+        scope.delivery_total = 0;
 
         scope.new_delivery['distributor_obj'] = null;
         
@@ -249,6 +238,17 @@ angular.module('myApp')
 
         scope.clearValidation();
 
+        if (scope.new_delivery.delivery_items.length == 0) {
+          swal({
+              title: "Delivery is Empty!",
+              text: "Please add items to this Delivery and try again.",
+              type: "warning",
+              timer: 3000,
+              allowOutsideClick: true,
+              html: true});
+          return;
+        }
+
         // first fix data -- potentially have quantity as string, need to 
         // convert to float
         for (var i in scope.new_delivery.delivery_items) {
@@ -257,7 +257,7 @@ angular.module('myApp')
           item['value'] = MathService.fixFloat2(parseFloat(item['value']));
         }
 
-        scope.new_delivery['inv_sum'] = scope.add_grand_total;
+        scope.new_delivery['inv_sum'] = scope.delivery_total;
 
         var all_clear = true;
 
@@ -265,11 +265,13 @@ angular.module('myApp')
         if (scope.new_delivery.delivery_date===undefined || scope.new_delivery.delivery_date===null) {
           all_clear = false;
           scope.form_ver.error_date = true;
+          console.log("2a");
         }
 
         if (scope.new_delivery.delivery_time===undefined || scope.new_delivery.delivery_time===null) {
           all_clear = false;
           scope.form_ver.error_time = true;
+          console.log("2b");
         }
 
         // for each of the added bevs, if their qty is empty, NaN, negative,
@@ -277,10 +279,6 @@ angular.module('myApp')
         for (var i in scope.new_delivery.delivery_items) {
           var item = scope.new_delivery.delivery_items[i];
           if (item.quantity===undefined || item.quantity===null || item.quantity===0 || MathService.numIsInvalid(item.quantity)) {
-            scope.form_ver.errors_qty[i] = true;
-            all_clear = false;
-            continue;
-          } else if (item.value===undefined || item.value===null || MathService.numIsInvalid(item.value)) {
             scope.form_ver.errors_qty[i] = true;
             all_clear = false;
             continue;
@@ -413,7 +411,7 @@ angular.module('myApp')
             beverage_id: item['id'],
             product: item['product'],
             quantity: item['quantity'],
-            value: item['value']
+            value: (item['quantity'] * item['purchase_cost'])
           };
           post_items.push(post_item);
         }
@@ -584,7 +582,7 @@ angular.module('myApp')
         inv.quantity = MathService.fixFloat2(inv.quantity);
         inv.value = MathService.fixFloat2(inv.value);
 
-        scope.refreshAddGrandTotal();
+        scope.refreshDelivery();
 
         scope.checkEditDiffs();
       };
@@ -598,9 +596,22 @@ angular.module('myApp')
 
         inv.value = MathService.fixFloat2(new_qty * inv.unit_cost);
 
-        scope.refreshAddGrandTotal();
+        scope.refreshDelivery();
 
         scope.checkEditDiffs();
+      };
+
+      scope.refreshDelivery = function() {
+        scope.delivery_total = 0;
+        for (var i in scope.new_delivery.delivery_items) {
+          var item = scope.new_delivery.delivery_items[i];
+          scope.delivery_total += item['purchase_cost'] * item['quantity'];
+        }
+
+      };
+
+      scope.removeItem = function( item ) {
+        scope.addableControl.addItemToList( item );
       };
 
       scope.commitRemoveInvItem = function(item) {
@@ -634,7 +645,7 @@ angular.module('myApp')
         }
 
         scope.checkEditDiffs();
-        scope.refreshAddGrandTotal();
+        scope.refreshDelivery();
       };
 
       scope.removeInvItem = function(index) {
@@ -663,8 +674,6 @@ angular.module('myApp')
       scope.selectDistributor = function(dist) {
 
         scope.clearValidation();
-
-        console.log("Selected dist " + dist);
         
         // if coming from no distributor, default the "show only bevs from this
         // distributor" option.  Otherwise, preserve user's previous selection
@@ -716,195 +725,6 @@ angular.module('myApp')
         return false;
       };
       scope.checkEditDiffs();
-
-      scope.editBev = function(bev_i) {
-        // when the user is creating a new Delivery, and they're selecting
-        // beverages to add to the Delivery, they can edit the beverage
-        // details from this page for convenience, in case there were e.g., 
-        // last minute price changes
-        console.log(scope.new_delivery.delivery_items[bev_i]);
-        var bev = scope.new_delivery.delivery_items[bev_i];
-
-        $http.get('/inv', {
-          params: {id: bev.id}
-        }).
-          success(function(data, status, headers, config) {
-            // this callback will be called asynchronously when the response
-            // is available
-            console.log(data);
-
-            var inv = data[0];
-
-            // fix a list of known keys to be decimal precision 2
-            var fix_num_keys = [
-            'abv',
-            'count',
-            'purchase_cost',
-            'purchase_volume',
-            ];
-            for (var j in fix_num_keys) {
-              var fix_key = fix_num_keys[j];
-              if ( inv[fix_key] !== undefined && inv[fix_key] !== null ) {
-                inv[fix_key] = MathService.fixFloat2(inv[fix_key]);
-              }
-            }
-
-            // if size_prices is null, make them empty array
-            if (inv.size_prices === null) {
-              inv.size_prices = [];
-            }
-            // fix size_prices to be decimal precision 2
-            for (var j in inv.size_prices) {
-              inv.size_prices[j]['price'] = MathService.fixFloat2(inv.size_prices[j]['price']);
-              inv.size_prices[j]['volume'] = MathService.fixFloat2(inv.size_prices[j]['volume']);
-            }
-
-            // server passes us distributor_id and keg_id, but we need to resolve
-            // the distributor and keg objects based on all_distributors and all_kegs
-            inv['distributor'] = null;
-            inv['keg'] = null;
-            // if beverage has a distributor_id, need to pre-populate its 
-            // distributor entry
-            if (inv['distributor_id'] !== null) {
-              var dist;
-              for (var j in scope.allDistributors) {
-                dist = scope.allDistributors[j];
-                if (dist.id === inv['distributor_id']) {
-                  inv['distributor'] = dist;
-                  break;
-                }
-              }
-              // if there's also a keg_id, pre-populate with keg entry
-              if (inv['keg_id'] !== null && dist.kegs !== null) {
-                for (var j in dist.kegs) {
-                  var keg = dist.kegs[j];
-                  if (keg.id === inv['keg_id']) {
-                    inv['keg'] = keg;
-                    break;
-                  }
-                }
-              }
-            }
-
-            console.log(inv);
-            scope.editBevLaunchModal(inv);
-          }).
-          error(function(data, status, headers, config) {
-
-          });
-      };
-
-      scope.editBevLaunchModal = function(inv) {
-        var modalEditInstance = $modal.open({
-        templateUrl: 'editInvModal.html',
-        controller: 'editInvModalCtrl',
-        windowClass: 'edit-purchase-modal',
-        backdropClass: 'green-modal-backdrop',
-        resolve: {
-          edit_beverage: function() {
-            return inv;
-          },
-          all_distributors: function() {
-            return scope.allDistributors;
-          },
-          all_breweries: function() {
-            // we're invoking the modal in edit purchase info only, so don't
-            // need to provide breweries
-            return [];
-          },
-          volume_units: function() {
-            return scope.volume_units;
-          },
-          edit_mode: function() {
-            return "purchase";
-          }
-        }
-      });
-
-      modalEditInstance.result.then(
-        // success status
-        function( result ) {
-          // result is a list, first item is string for status, e.g.,
-          // 'save' or 'delete'
-          // second item is the affected beverage
-          var status = result[0];
-          var edit_bev = result[1];
-          
-          // after a save, we want to re-calculate cost per mL, for instance
-          if (status === 'save') {
-            console.log(edit_bev);
-
-            // now need to update all client bevs with the new bev info passed
-            // to us in edit_bev
-            var update_invs = [
-              scope.add_inv_all_bevs,
-              scope.add_inv_dist_bevs,
-              scope.add_inv_unadded_bevs,
-              scope.new_delivery.delivery_items
-            ];
-
-            for (var i in update_invs) {
-              var inv_list = update_invs[i];
-              for (var j in inv_list) {
-                var item = inv_list[j];
-                if (item['version_id'] === edit_bev['version_id']) {
-                  // we want to copy the new edit_bev into the inv list, 
-                  // but we want to preserve / recalculate quantity, 
-                  // inventory, and unit cost
-                  var old_quantity = item['quantity'];
-
-                  var new_item = JSON.parse( JSON.stringify( edit_bev ) );
-
-                  // locally calculate unit_cost for sorting purposes
-                  var purchase_cost = 0;
-                  var purchase_count = 1;
-                  var deposit = 0;
-                  if (new_item['purchase_cost'] !== null) {
-                    purchase_cost = new_item['purchase_cost'];
-                  }
-                  if (new_item['purchase_count'] !== null) {
-                    purchase_count = new_item['purchase_count'];
-                  }
-                  if (new_item['deposit'] !== null) {
-                    deposit = new_item['deposit'];
-                  }
-                  new_item['unit_cost'] = purchase_cost / purchase_count + deposit;
-                  new_item['quantity'] = old_quantity;
-                  new_item['value'] = old_quantity * new_item['unit_cost'];
-
-                  // change distributor back from object to name.  Before we
-                  // sent inv item to edit bev directive, we had to set its
-                  // distributor to an object.  But while displaying in the
-                  // scroll list, distributor is a string of distributor name.
-                  if (new_item['distributor']!==undefined && new_item['distributor']!==null) {
-                    var dist_name = new_item['distributor'].name;
-                    console.log(dist_name);
-                    new_item['distributor'] = dist_name
-                  }
-
-                  inv_list[j] = new_item;
-
-                  break;
-                }
-              }
-            }
-
-            scope.refreshAddGrandTotal();
-
-            swal({
-              title: "Beverage Updated!",
-              text: "<b>" + edit_bev.product + "</b> has been updated with your changes.",
-              type: "success",
-              timer: 4000,
-              allowOutsideClick: true,
-              html: true});
-          }
-        }, 
-        // error status
-        function() {
-          ;
-        });
-      };
 
     }
   }

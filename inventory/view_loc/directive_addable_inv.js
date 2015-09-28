@@ -10,7 +10,9 @@ angular.module('myApp')
       addBev: '&',      // pass added bev to caller
       addKeg: '&',      // pass added keg to caller
       control: '=',
-      showTabs: '='
+      showTabs: '=',
+      isDelivery: '=',
+      refreshDelivery: '&'
     },
     templateUrl: './view_loc/template_addable_inv.html',
     link: function(scope, elem, attrs) {
@@ -405,6 +407,10 @@ angular.module('myApp')
           }
         }
         scope.addedItems.push(item);
+
+        if (scope.refreshDelivery !== undefined && scope.refreshDelivery !== null) {
+          scope.refreshDelivery();
+        }
       };
 
       scope.addKegToAdded = function(item) {
@@ -416,6 +422,10 @@ angular.module('myApp')
           }
         }
         scope.addedItems.push(item);
+
+        if (scope.refreshDelivery !== undefined && scope.refreshDelivery !== null) {
+          scope.refreshDelivery();
+        }
       };
 
       /* not currently used
@@ -454,6 +464,9 @@ angular.module('myApp')
             },
             is_edit: function() {
               return is_edit;
+            },
+            is_delivery: function() {
+              return scope.isDelivery;
             }
           }
         });
@@ -482,6 +495,7 @@ angular.module('myApp')
             } else if (status === 'edit') {
               ;
             }
+            
           }, 
           // error status
           function() {

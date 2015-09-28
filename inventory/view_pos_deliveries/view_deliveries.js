@@ -134,9 +134,9 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
     console.log(delivery);
 
     var modalEditInstance = $modal.open({
-      templateUrl: 'editDelivModal.html',
-      controller: 'editDelivModalCtrl',
-      windowClass: 'edit-inv-modal',
+      templateUrl: 'startDlvModal.html',
+      controller: 'startDlvModalCtrl',
+      windowClass: 'start-inv-modal',
       backdropClass: 'blue-modal-backdrop',
       resolve: {
         edit_delivery: function() {
@@ -170,7 +170,6 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
             allowOutsideClick: true,
             html: true});
         }
-        // after a save, we want to re-calculate cost per mL, for instance
         else if (status === 'save') {
           console.log(edit_delivery);
 
@@ -182,7 +181,7 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
             allowOutsideClick: true,
             html: true});
 
-          $scope.reSort();
+          $scope.getDeliveries();
         }
       }, 
       // error status
@@ -265,26 +264,6 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
     });
   };
 
-  $scope.newDeliveryCloseOnSave = function(new_delivery) {
-
-    console.log(new_delivery);
-
-    $scope.getDeliveries();
-
-    $scope.hideAddDelivery();
-
-  };
-
-  // Shows the add new inventory item UI box
-  $scope.showAddDelivery = function() {
-    $scope.show_add_ui=true;
-    $scope.addDeliveryControl.clearNewForm();
-  };
-
-  $scope.hideAddDelivery = function() {
-    $scope.show_add_ui=false;
-  };
-
   $scope.startDateChanged = function() {
     console.log($scope.start_date);
 
@@ -307,6 +286,9 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
       size: 'lg',
       backdrop : 'static',
       resolve: {
+        edit_delivery: function() {
+          return null;
+        },
         distributors: function() {
           return $scope.distributors;
         }
@@ -326,7 +308,7 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
         }
         // after a save, we want to re-calculate cost per mL, for instance
         else if (status === 'save') {
-
+          $scope.getDeliveries();
         }
       }, 
       // error status
@@ -338,9 +320,13 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
 
 })
 
-.controller('startDlvModalCtrl', function($scope, $modalInstance, $filter, distributors) {
+.controller('startDlvModalCtrl', function($scope, $modalInstance, $filter, distributors, edit_delivery) {
 
   $scope.distributors = distributors;
+  $scope.edit_delivery = null;
+  if (edit_delivery !== undefined && edit_delivery !== null) {
+    $scope.edit_delivery = edit_delivery;
+  }
 
   $scope.startDlvControl = {};
 
@@ -353,6 +339,16 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
     $modalInstance.dismiss('cancel');
   };
 
+  $scope.closeOnSave = function(new_delivery) {
+    console.log('close on save');
+    console.log(new_delivery);
+    $modalInstance.close(['save', new_delivery]);
+  };
+
+  $scope.closeOnDelete = function() {
+    console.log("close on delete");
+    $modalInstance.close(['delete', $scope.edit_delivery]);
+  };
 
 })
 
@@ -391,7 +387,8 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
   };
 
   $scope.closeOnDelete = function() {
+    console.log("close on delete");
     $modalInstance.close(['delete', $scope.edit_delivery]);
-  }
+  };
 
 });

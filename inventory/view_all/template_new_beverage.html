@@ -5,17 +5,17 @@
 <div ng-class="{'new_inv_border_box': is_edit===false, 'new_inv_box': is_edit===true}">
 
   <div ng-if="is_edit===true">
-    <div style="font-size:1.4em; color:#77b088; padding-top:0px">
-    {{new_beverage.alcohol_type}} - <b>{{new_beverage.product}}</b>
+    <div style="color:#666666; padding-top:0px">
+      <span style="font-size:1.3em; font-weight:bold">{{new_beverage.product}}</span>
+      <span style="font-size:1.3em; color:#aaaaaa; margin-left:12px"> {{new_beverage.alcohol_type}}</span>
     </div>
     <hr class="add_hr"/>
   </div>
 
   <div class="row" ng-if="is_edit===true && editMode==='purchase'">
-    <div class="col-xs-12" style="margin: 16px 12px; font-size:1.1em">
-      If the purchase information for your beverage has changed, update it below.<br/>
-      Any changes will apply to this delivery and future deliveries / 
-      inventory moving forward.
+    <div class="col-xs-12" style="margin: 24px 12px; font-size:1.1em">
+      If the purchase information of this beverage has changed, update it below.<br/>
+      Any changes will apply to this and future deliveries / inventory moving forward.
     </div>
   </div>
 
@@ -30,7 +30,7 @@
       <div class="form-group" ng-class="{'has-error': form_ver.error_serve_type===true}">
         <label class="control-label bold"> 
           Serve Type
-          <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;"  popover="Is this single serve (i.e., can of soda) or can there be multiple retail servings per container (bottle of wine, keg of beer)?" popover-trigger="mouseenter" popover-append-to-body="true"></span>
+          <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;"  popover="Is this single serve (i.e., can of soda) or can there be multiple retail servings per container (bottle of wine, keg of beer)?" popover-trigger="mouseenter"></span>
         </label>
         <select ng-model="new_beverage.serve_type" class="form-control input-small" ng-options="atype for atype in serve_types" style="width:150px;" ng-show="new_beverage.container_type!=='Keg'"></select>
         <select ng-model="new_beverage.serve_type" class="form-control input-small" ng-options="atype for atype in serve_types" style="width:150px;" ng-show="new_beverage.container_type==='Keg'" disabled></select>
@@ -83,7 +83,7 @@
           <div class="form-group" ng-class="{'has-error': form_ver.error_keg===true}">
             <label class="control-label optional">
               Keg Volume & Deposit
-              <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;" popover="Bars that serve Draft Beer from kegs often pay deposits per keg to their distributor.  If this doesn't apply to you, leave it blank." popover-trigger="mouseenter" popover-append-to-body="true"></span>
+              <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;" popover="Bars that serve Draft Beer from kegs often pay deposits per keg to their distributor.  If this doesn't apply to you, leave it blank." popover-trigger="mouseenter"></span>
             </label>
             <div class="btn-group" dropdown>
               <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" style="font-size:1.0em" dropdown-toggle>
@@ -127,7 +127,7 @@
           <div class="form-group" ng-class="{'has-error': form_ver.error_abv===true}">
             <label class="control-label optional"> 
               % AbV
-              <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;"  popover="Percent Alcohol by Volume (% AbV) indicates the alcoholic content of your beverage" popover-trigger="mouseenter" popover-append-to-body="false"></span>
+              <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;"  popover="Percent Alcohol by Volume (% AbV) indicates the alcoholic content of your beverage" popover-trigger="mouseenter"></span>
             </label>
             <div class="input-group">
               <input ng-model="new_beverage.abv" type="number" step="0.01" min="0" max="100" class="form-control input-small" placeholder="" style="width:140px">
@@ -140,7 +140,7 @@
 
     <div style="font-size:1.1em; color:#77b088;">
       Purchase / Order Info
-      <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd" popover="When you order new stock from your supplier, what is the volume of an individual order item, and how much does it cost?" popover-trigger="mouseenter" popover-append-to-body="true"></span>
+      <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd" popover="When you order new stock from your supplier, what is the volume of an individual order item, and how much does it cost?" popover-trigger="mouseenter"></span>
     </div>
     <hr class="add_hr"/>
     <div class="row" style="padding-left:10px; margin-top:8px">
@@ -181,7 +181,7 @@
       <div class="col-xs-4">
         <div class="form-group" ng-class="{'has-error': form_ver.error_pcost===true}">
           <label class="control-label"> 
-            <b>Wholesale Cost</b> <span ng-if="new_beverage.container_type==='Keg'" style="color:#888888; font-style:italic">exclude Deposit</span>
+            <b>Wholesale</b> <span ng-if="new_beverage.container_type==='Keg'" style="color:#888888; font-style:italic">exclude Deposit</span>
           </label>
           <div class="input-group">
             <span class="input-group-addon">$</span>
@@ -193,7 +193,7 @@
         <div class="form-group" ng-class="{'has-error': form_ver.error_pcount===true}">
           <label class="control-label bold">
             Purchase Count
-            <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;" popover="For a single purchase, you might buy, e.g., a case of 12 bottles of wine for $40.  In that case, enter 12 for Purchase Count, and $40 for Purchase Cost" popover-trigger="mouseenter" popover-append-to-body="true"></span>
+            <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;" popover="For a single purchase, you might buy, e.g., a case of 12 bottles of wine for $40.  In that case, enter 12 for Purchase Count, and $40 for Purchase Cost" popover-trigger="mouseenter"></span>
           </label>
           <div class="input-group" style="float:left; width:170px">
             <input ng-model="new_beverage.purchase_count" type="number" min="0" class="form-control input-small" style="width:132px;" placeholder="">
@@ -205,7 +205,7 @@
     <div ng-if="editMode==='all'">
       <div style="font-size:1.1em; color:#77b088;">
         Sales & Pricing
-        <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd" popover="When selling to customers, what are your retail sizes and prices?  If you have multiple sale points, use the 'Add More Pricing' button." popover-trigger="mouseenter" popover-append-to-body="true"></span>
+        <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd" popover="When selling to customers, what are your retail sizes and prices?  If you have multiple sale points, use the 'Add More Pricing' button." popover-trigger="mouseenter"></span>
       </div>
       <hr class="add_hr"/>
       <div class="row" style="padding-left:10px; margin-bottom:4px; margin-top:8px">

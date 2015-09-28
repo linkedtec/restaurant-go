@@ -344,7 +344,7 @@ body {
 }
 
 .btn_inv_qty {
-  font-size:18px;
+  font-size:16px;
   margin-left:-4px;
   float:left;
   width:100%;
@@ -950,7 +950,7 @@ like enclosed space */
 }
 
 .inv-qty-modal .modal-dialog{
-  margin-top:120px;
+  margin-top:80px;
   min-width:480px;
 }
 
@@ -1138,7 +1138,7 @@ input[type=checkbox] + label:before {
 
 input[type=checkbox] + label:before { 
   content: "\f096"; 
-  color: #99aabb;
+  color: #66bbdd;
 } 
 
 input[type=checkbox]:checked + label:before { 
@@ -1147,7 +1147,7 @@ input[type=checkbox]:checked + label:before {
 }
 
 .popover {
-  max-width: 600px;
+  max-width: 400px;
 }
 
 

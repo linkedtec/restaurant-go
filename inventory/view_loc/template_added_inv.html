@@ -1,9 +1,16 @@
-<div class="row inv_row_added" ng-if="addedItems.length===0" style="padding: 24px 16px; color:#999999">
-  No Inventory added in this Location yet.<br/>
-  Add inventory items from the <b>left screen</b>.
+<div class="row inv_row_added hint_text" ng-if="addedItems.length===0" style="padding: 24px 16px;">
+  <div ng-if="isDelivery===false">
+    No Inventory added in this Location yet.<br/>
+    Add inventory items from the <b>left screen</b>.
+  </div>
+  <div ng-if="isDelivery===true">
+    No Items added to this Delivery Record yet.<br/>
+    Add Delivery items from the <b>left screen</b>.
+    <br/>
+  </div>
 </div>
 <div style="height:100%; overflow-y:scroll" ng-if="addedItems.length>0">
-  <div class="row inv_row_added" ng-repeat="item in addedItems">
+  <div class="row inv_row_added" ng-repeat="item in addedItems" style="margin-right:7px">
     <div class="col-xs-1" style="padding:0">
     <img ng-if="item.icon==='keg'" src="images/bev_keg.png" height="38px" width="38px" style="margin-left:0px">
       <img ng-if="item.icon==='draft'" src="images/bev_draft.png" height="38px" width="38px" style="margin-left:0px">
@@ -13,7 +20,7 @@
       <img ng-if="item.icon==='liquor'" src="images/bev_xo.png" height="38px" width="38px" style="margin-left:0px">
     </div>
     <div ng-class="{'col-xs-8': item.type==='keg', 'col-xs-4': item.type==='bev'}" style="padding:0; padding-left:10px">
-      <div style="font-size:0.9em">
+      <div style="font-size:1.0em">
         <span ng-if="item.type==='bev'" class="nowrap_span">{{item.product}}</span>
         <span ng-if="item.type==='keg'" class="nowrap_span">{{item.distributor}}</span>
       </div>
@@ -26,12 +33,18 @@
         </span>
       </div>
     </div>
-    <div class="col-xs-4" ng-if="item.type==='bev'" style="padding-left:6px; padding-right:8px; font-size:0.9em; color:#999999">
+    <div ng-class="{'col-xs-4':isDelivery===false, 'col-xs-3':isDelivery===true}" ng-if="item.type==='bev'" style="padding-left:6px; padding-right:8px; font-size:0.9em; color:#999999">
       {{item.brewery}}
     </div>
-    <div class="col-xs-2" style="padding:0">
+    <div ng-if="isDelivery===false" class="col-xs-2" style="padding:0">
       <button ng-click="enterInvQuantity(item, true)" type="button" class="btn btn-sm btn_inv_qty">
         {{item.quantity}}
+      </button>
+    </div>
+    <!-- for delivery, show the wholesale invoice value in the box instead of quantity-->
+    <div ng-if="isDelivery===true" class="col-xs-3" style="padding:0; padding-left:12px">
+      <button ng-click="enterInvQuantity(item, true)" type="button" class="btn btn-sm btn_inv_qty">
+        <span style="color:#aaaaaa">$ </span>{{(item.quantity * item.purchase_cost) | number:2}}
       </button>
     </div>
     <div class="col-xs-1" style="padding:0; padding-top:4px; float:right">

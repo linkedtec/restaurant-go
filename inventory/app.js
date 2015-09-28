@@ -191,9 +191,18 @@ config(['$routeProvider', function($routeProvider) {
     processBevsForAddable: function(bevs) {
       for (var i in bevs) {
         var item = bevs[i];
-        item['inventory'] = 0;
-        item['quantity'] = 0;
-        item['type'] = 'bev';
+        // Note that the bevs might already have some of these fields defined
+        // in the case of e.g., editing,
+        // so only add them if one doesn't already exist
+        if (item['inventory'] === undefined || item['inventory'] === null) {
+          item['inventory'] = 0;
+        }
+        if (item['quantity'] === undefined || item['quantity'] === null) {
+          item['quantity'] = 0;
+        }
+        if (item['type'] === undefined || item['type'] === null) {
+          item['type'] = 'bev';
+        }
 
         item['unit_cost'] = getBevUnitCost(item);
 
@@ -216,9 +225,16 @@ config(['$routeProvider', function($routeProvider) {
     processKegsForAddable: function(kegs) {
       for (var i in kegs) {
         var keg = kegs[i];
-        keg['inventory'] = 0;
-        keg['quantity'] = 0;
-        keg['type'] = 'keg';
+        if (keg['inventory'] === undefined || keg['inventory'] === null) {
+          keg['inventory'] = 0;
+        }
+        if (keg['quantity'] === undefined || keg['quantity'] === null) {
+          keg['quantity'] = 0;
+        }
+        if (keg['type'] === undefined || keg['type'] === null) {
+          keg['type'] = 'keg';
+        }
+        
         // fix floating point
         keg['volume'] = MathService.fixFloat1(keg['volume']);
         keg['purchase_cost'] = MathService.fixFloat1(keg['purchase_cost']);

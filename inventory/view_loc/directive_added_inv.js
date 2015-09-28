@@ -8,7 +8,9 @@ angular.module('myApp')
       removeBev: '&',      // pass added bev to caller
       removeKeg: '&',      // pass added keg to caller
       removeItem: '&',
-      control: '='
+      control: '=',
+      isDelivery: '=',
+      refreshDelivery: '&'
     },
     templateUrl: './view_loc/template_added_inv.html',
     link: function(scope, elem, attrs) {
@@ -46,6 +48,9 @@ angular.module('myApp')
             },
             is_edit: function() {
               return is_edit;
+            },
+            is_delivery: function() {
+              return scope.isDelivery;
             }
           }
         });
@@ -66,6 +71,8 @@ angular.module('myApp')
             else if (status === 'save') {
               console.log(item);
 
+
+
               /*
               if (scope.add_type === scope.add_types[0]) {
                 scope.addBevToList(item);
@@ -75,6 +82,10 @@ angular.module('myApp')
               */
             } else if (status === 'edit') {
               ;
+            }
+
+            if (scope.refreshDelivery !== undefined && scope.refreshDelivery !== null) {
+              scope.refreshDelivery();
             }
           }, 
           // error status
@@ -102,6 +113,10 @@ angular.module('myApp')
         // XXX pass to controller, which will then pass to be added to
         // the addable list, if necessary
         scope.removeItem({item:item});
+
+        if (scope.refreshDelivery !== undefined && scope.refreshDelivery !== null) {
+          scope.refreshDelivery();
+        }
 
       };
 

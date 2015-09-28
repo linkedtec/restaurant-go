@@ -32,7 +32,7 @@
         <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
       </button>
       <div class="form" ng-class="{'has-error': new_failure_msg!==null}" style="display:inline-block; vertical-align:top; margin: 0px 5px">
-        <input ng-model="quantity" ng-class="{'input_error': new_failure_msg!==null}" class="form-control" style="text-align:center; max-width:96px; height:52px; font-size:1.6em;">
+        <input ng-model="quantity" ng-class="{'input_error': new_failure_msg!==null}" class="form-control" style="text-align:center; max-width:96px; height:52px; font-size:1.6em;" ng-change="updateExpectedInvoice()">
       </div>
       <button ng-click="addQuantity(item,1, false)" type="button" class="btn btn-default inv_plus_btn_lg">
         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -40,6 +40,37 @@
       <button ng-click="addQuantity(item,10, false)" type="button" class="btn btn-default inv_plus_btn_lg" style="margin-left:5px">
         <b>+10</b>
       </button>
+    </div>
+    <div ng-if="is_delivery===true" style="margin: 24px 42px 0px; font-size:1.3em">
+      <div class="row" style="border-bottom:1px solid #dddddd">
+        <div class="col-xs-7" style="color:#888888">
+          Unit Price<span ng-if="item.purchase_count > 1"> ({{item.purchase_count}} count)</span>:
+        </div>
+        <div class="col-xs-5" style="text-align:right">
+          <span ng-if="is_edit!==true">
+            <button ng-click="editBev(item)" type="button" class="btn btn-md btn_frameless hover_green" style="font-size:16px; min-height:32px;" popover="Update Unit Price." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">
+              <span class="glyphicon glyphicon-pencil"></span>
+            </button>
+          </span>
+          <span>
+            $ {{item.purchase_cost | number:2}}
+          </span>
+        </div>
+      </div>
+      <div class="row" style="border-bottom:1px solid #dddddd; margin-top:8px">
+        <div class="col-xs-6" style="color:#888888">
+          Expected Invoice:
+        </div>
+        <div class="col-xs-6" style="text-align:right; font-weight:bold; font-size:1.1em">
+          $ {{expected_invoice.value | number:2}}
+        </div>
+      </div>
+      <div class="row" ng-if="is_edit!==true" style="font-size:0.8em; margin-top:8px">
+        <div class="col-xs-12">
+          If Expected Invoice does not match the actual invoice, 
+          update the unit price above to reflect price changes.
+        </div>
+      </div>
     </div>
     <div style="margin-top:16px; margin-bottom:24px">
       &nbsp;
