@@ -1,0 +1,142 @@
+<div ng-include src="'./bev_subnav.html'"></div>
+<div class="container" style="min-width:820px; max-width:960px">
+
+  <div style="width:100%; margin-top:24px; padding-bottom:6px; font-size:1.3em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_menu.png" height="32" width="32" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:8px; margin-left:2px">Plan Beverages Menu</div>
+  </div>
+  <div class="hint_text" style="width:100%; padding-top:4px;">
+    Plan current and upcoming beverages for sale
+  </div>
+
+  <!--Use this page to track par for beverages being sold; you can even make purchase 
+  orders to your Distributors, assuming you've done inventory.-->
+
+  <tabset style="margin-top:36px; font-size:1.0em;">
+    <tab ng-repeat="mode in use_modes" heading="{{mode}}" ng-click="selectUseMode(mode)">
+    </tab>
+  </tabset>
+  <div style="margin: 0px; padding:12px 16px; border: 1px solid #dddddd; border-top: none; background-color:#fdfdfd">
+    <div ng-if="use_mode===0" style="margin: 12px 0px; font-size:1.1em">
+      Staples are beverages you sell year-round and almost always carry in stock.
+    </div>
+    <div ng-if="use_mode===1" style="margin: 12px 0px; font-size:1.1em">
+      Seasonal (or rotational) beverages are served for a limited period of time.
+    </div>
+    <div ng-if="use_mode===2" style="margin: 12px 0px; font-size:1.1em">
+      These beverages are currently not on your menu.
+    </div>
+
+    <div style="margin-top:18px">
+      <button ng-if="use_mode!==2" ng-show="show_add_ui===false" ng-click="showAddInv()" type="button" class="btn btn-success btn-sm" style="font-size:13px;">
+        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add Beverages
+      </button>
+      <div ng-if="show_add_ui===true" class="add_ui_box_green" style="width:680px">
+        <div class="add_title_bar_green">
+          <button ng-click="hideAddInv()" type="button" class="btn btn-default btn_x" style="float:left">
+            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+          </button>
+          <div class="add_title_green">
+            <span ng-if="use_mode===0" style="font-size:1.0em;"> Add Beverages to Staples Menu </span>
+            <span ng-if="use_mode===1" style="font-size:1.0em;"> Add Beverages to Seasonal Menu </span>
+          </div>
+          <br/>
+        </div>
+        <div style="display:block; position:relative; height:480px; bottom:0; top:0px; left: 0; right:0; margin-top:12px; margin-bottom:12px; margin-right:12px; margin-left:12px; padding:4px 8px; padding-bottom:12px; background-color:#fbfff9; border:1px solid #dddddd">
+          <addable-inv all-bevs="add_inv_unadded" all-kegs="[]" added-items="inventory_items" control="addableControl" show-tabs="false" use-override-add-func="true" override-add-func="showParModal(item)"></addable-inv>
+        </div>
+      </div>
+    </div>
+
+    <table style="width: 100%; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-bottom:24px; margin-top:8px">
+      <tr style="font-size:13px; ;background-color: #e0f0ff;">
+        <td class="all_inv_label_span noselect" style="width:20px; border-left: 1px solid #dddddd">
+        </td>
+        <td class="all_inv_label_span noselect" style="width:190px;">
+          <div class="sort_div" ng-click="sortBy('product')">
+            <span>Product</span>
+            <span ng-show="sort_key === 'product'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+          </div>
+        </td>
+        <td class="all_inv_label_span noselect" style="width:160px;">
+          <div class="sort_div" ng-click="sortBy('brewery')">
+            <span>Brewery</span>
+            <span ng-show="sort_key === 'brewery'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+          </div>
+        </td>
+        <td ng-if="use_mode===1" class="all_inv_label_span noselect" style="width:120px; background-color:#fff5dd">
+          <div class="sort_div" ng-click="sortBy('start_date')">
+            <span>Start Date</span>
+            <span ng-show="sort_key === 'end_date'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+          </div>
+        </td>
+        <td ng-if="use_mode===1" class="all_inv_label_span noselect" style="width:120px; background-color:#fff5dd">
+          <div class="sort_div" ng-click="sortBy('end_date')">
+            <span>End Date</span>
+            <span ng-show="sort_key === 'end_date'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+          </div>
+        </td>
+        <td class="all_inv_span" style="width:80px; border-bottom:none">Serving</td>
+        <td class="all_inv_span" style="width:80px; border-bottom:none">Retail</td>
+        <td ng-if="use_mode!==2" class="all_inv_label_span noselect" style="width:60px;">
+          <div class="sort_div" ng-click="sortBy('par')">
+            <span>Par</span>
+            <span ng-show="sort_key === 'par'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+          </div>
+        </td>
+        <td ng-if="use_mode!==2" class="all_inv_label_span noselect" style="width:70px;">
+          <div class="sort_div" ng-click="sortBy('stock')">
+            <span>Stock</span>
+            <span ng-show="sort_key === 'stock'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+          </div>
+        </td>
+        <td ng-if="use_mode===2" style="width:200px">
+        </td>
+      </tr>
+
+      <tr ng-if="inventory_items===null || inventory_items.length===0" class="inv_row">
+        <td class="all_inv_span hint_text" colspan="100" style="font-size:1.5em; text-align:center; padding: 24px 0px; background-color:white">
+          No Beverages added yet.
+        </td>
+      </tr>
+
+      <tr ng-repeat="inv in inventory_items | filter:all_inv_query.query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row inv_row_odd'" style="font-size:13px">
+        <td class="all_inv_span min_padding" style="width:20px; text-align:center;">
+          <button ng-click="editBeverage(inv)" type="button" class="btn btn-xs btn_edit">
+            <span class="glyphicon glyphicon-pencil"></span>
+          </button>
+        </td>
+        <td class="all_inv_span" style="width:190px;">
+          <span>
+            <img ng-if="inv.icon==='keg'" src="images/bev_keg.png" height="22px" width="22px">
+            <img ng-if="inv.icon==='draft'" src="images/bev_draft.png" height="22px" width="22x">
+            <img ng-if="inv.icon==='wine'" src="images/bev_wine.png" height="22px" width="22px" style="margin-left:0px">
+            <img ng-if="inv.icon==='bottle'" src="images/bev_bottle.png" height="22px" width="22px" style="margin-left:0px">
+            <img ng-if="inv.icon==='can'" src="images/bev_can.png" height="22px" width="22px" style="margin-left:0px">
+            <img ng-if="inv.icon==='liquor'" src="images/bev_xo.png" height="22px" width="22px" style="margin-left:0px">
+          </span>
+          <span style="vertical-align:middle; padding-left:4px">
+            {{inv.product}}
+          </span>
+        </td>
+        <td class="all_inv_span" style="width:160px;">{{inv.brewery}}</td>
+        <td ng-if="use_mode===1" class="all_inv_span" style="width:120px;">{{inv.sale_start_pretty}}</td>
+        <td ng-if="use_mode===1" class="all_inv_span" style="width:120px;">{{inv.sale_end_pretty}}</td>
+        <td class="all_inv_span" style="width:80px;">
+          <div style="width:55%; display:inline-block">{{inv.purchase_volume | number:2}}</div>
+          <span style="color:#aaaaaa">{{inv.purchase_unit}}</span>
+        </td>
+        <td class="all_inv_span" style="width:80px;">
+          <span style="color:#aaaaaa">$</span>
+          <span style="margin-left:10%">{{inv.purchase_cost | number:2}}</span></td>
+        <td ng-if="use_mode!==2" class="all_inv_span" style="width:60px;">{{inv.par | number:1}}</td>
+        <td ng-if="use_mode!==2" class="all_inv_span" style="width:70px;">{{inv.inventory | number:1}}</td>
+        <td class="all_inv_span" ng-if="use_mode===2" style="width:200px">
+          Move To:
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div ng-include src="'./view_sales_plan/modal_par_quantity.html'">

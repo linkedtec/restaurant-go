@@ -1,0 +1,97 @@
+<script type="text/ng-template" id="modalParQuantity.html">
+  <div class="modal-header" style="padding-top:8px; padding-bottom:4px;">
+    <div style="position:absolute; top:-14px; left:-14px">
+      <button ng-click="cancel()" type="button" class="btn btn-sm btn_x_circle">
+        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+      </button>
+    </div>
+    <span style="font-size:1.2em;margin-left:24px">Add <b>{{item.product}}</b> to 
+      <span ng-if="is_seasonal===false">
+        Staples 
+      </span>
+      <span ng-if="is_seasonal===true">
+        Seasonal 
+      </span>
+    Menu</span>
+  </div>
+  <div class="modal-body" style="font-size:1.0em; height:100%; background-color:#ffffff; padding:0">
+    <div style="position:absolute; bottom:-32px; right:-32px">
+      <button ng-click="save()" type="button" class="btn btn-sm btn_ok_circle">
+        <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+      </button>
+    </div>
+    <div ng-if="show_help===true" style="font-size:1.0em; text-align:left; margin:0; padding:4px 16px; background-color:#fff9ca" class="hint_text">
+      <!--div ng-if="show_help===false" style="margin-top:0px; text-align:center">
+        Please review beverage 
+        <a ng-click="showHelp()" class="help_link" style="font-size:1.0em;">
+          Par Level <span class="glyphicon glyphicon-question-sign"></span>
+        </a>
+        before it is added to the menu.
+      </div-->
+
+      <div ng-if="show_help===true">
+        <b>Par</b> is the minimum quantity which must be kept in stock to support 
+        sales demand.  When making Purchase Orders to your suppliers, you will 
+        order the difference between in-stock inventory and this par level.
+      </div>
+    </div>
+
+    <div class="row hint_text" style="margin-top:24px; margin-bottom:0px; margin-left:auto; margin-right:auto; font-size:1.1em; width:360px; text-align:center">
+      <div class="col-xs-12 min_padding">
+          Please enter the Par Level <span ng-if="is_seasonal===true">and Sales Period <br/></span>for 
+          this beverage:
+      </div>
+    </div>
+
+    <div style="text-align:center; font-size:1.8em; margin-top:8px">
+      {{item.display_name}}
+    </div>
+
+    <div style="text-align:center; font-size:1.4em; margin-top:6px">
+      <img ng-if="item.icon==='keg'" src="images/bev_keg.png" height="96px" width="96px">
+      <img ng-if="item.icon==='draft'" src="images/bev_draft.png" height="96px" width="96px">
+      <img ng-if="item.icon==='wine'" src="images/bev_wine.png" height="96px" width="96px" style="margin-left:0px">
+      <img ng-if="item.icon==='bottle'" src="images/bev_bottle.png" height="96px" width="96px" style="margin-left:0px">
+      <img ng-if="item.icon==='can'" src="images/bev_can.png" height="96px" width="96px" style="margin-left:0px">
+      <img ng-if="item.icon==='liquor'" src="images/bev_xo.png" height="96px" width="96px" style="margin-left:0px">
+    </div>
+
+    <div ng-if="is_seasonal===true">
+      <div class="row" style="margin-top:24px; margin-bottom:0px; margin-left:auto; margin-right:auto; border-bottom:1px solid #eaeaea; font-size:1.2em; width:360px;">
+        <div class="col-xs-12 min_padding">
+            Sales Period:
+        </div>
+      </div>
+      <div class="row" style="margin-top:6px; margin-left:auto; margin-right:auto; width:360px; text-align:center">
+        <div class="col-xs-12 min_padding">
+          <date-range start-date="start_date.date" end-date="end_date.date" on-start-change="startDateChanged()" on-end-change="endDateChanged()" control='dateControl'></date_range>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:16px; margin-bottom:0px; margin-left:auto; margin-right:auto; border-bottom:1px solid #eaeaea; font-size:1.2em; width:360px; padding-bottom:4px">
+      <div class="col-xs-8 min_padding" style="">
+        <div style="margin-top:10px">
+          Par Level:
+          <a ng-if="show_help===false" ng-click="showHelp()" class="help_link" style="font-size:0.9em;">
+            What is this? <span class="glyphicon glyphicon-question-sign"></span>
+          </a>
+        </div>
+      </div>
+      <div class="col-xs-4 min_padding" style="text-align:right">
+        <div class="form" ng-class="{'has-error': form_ver.error_par===true}" style="display:inline-block; vertical-align:top; margin: 0px 5px">
+          <input ng-model="quantity" ng-class="{'input_error': form_ver.error_par===true}" class="form-control" style="text-align:center; max-width:96px; height:32px; font-size:1.1em;">
+        </div>
+      </div>
+
+    </div>
+
+    <div style="margin-top:16px; margin-bottom:48px">
+      &nbsp;
+      <div ng-if="new_failure_msg !== null" class="row" style="font-size:1.2em; color:#aa2222; text-align:center">
+        {{new_failure_msg}} 
+      </div>
+    </div>
+  </div>
+
+</script>

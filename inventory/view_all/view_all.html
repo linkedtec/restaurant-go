@@ -1,12 +1,12 @@
 <div ng-include src="'./bev_subnav.html'"></div>
 <div style="padding-left:20px;">
 
-  <div style="margin-top:24px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
-    <img src="images/inv_all.png" height="36" width="36" style="vertical-align:top"/>
-    <div style="display: inline-block; vertical-align:top; margin-top:6px; margin-left:2px">All Beverages Database</div>
+  <div style="margin-top:18px; padding-bottom:6px; font-size:1.3em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_all.png" height="32" width="32" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:10px; margin-left:2px">All Beverages Database</div>
   </div>
   <div class="hint_text" style="width:100%; padding-top:4px;">
-    Details & Pricing of all beverages your restaurant carries.
+    Complete Database of all Beverages in the system.
   </div>
 
 
@@ -168,8 +168,8 @@
           <span ng-show="sort_key === 'price_per_volume'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
-      <td class="all_inv_span" style="width:90px;" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">Serv. Size</td>
-      <td class="all_inv_span" style="width:70px;" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">Ret. Price</td>
+      <td class="all_inv_span" style="width:90px; border-bottom:none" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">Serv. Size</td>
+      <td class="all_inv_span" style="width:70px; border-bottom:none" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">Ret. Price</td>
       <!--td class="all_inv_label_span noselect" style="width:60px;" ng-show="col_comps.inventory === true" ng-class="{'col_highlight': highlight_cols==='inventory'}">
         <div class="sort_div" ng-click="sortBy('count')" popover="Quantity in Inventory (in all locations)" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>Qty</span>

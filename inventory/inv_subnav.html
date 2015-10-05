@@ -1,10 +1,10 @@
 <nav class="subtoolbar">
   <div class="container" style="max-width:880px">
     <ul class="menu" ng-controller="myAppCtrl">
-      <li ng-class="{ sub_active: isActive('/viewInvByLocNew')}">
+      <li class="subtoolbar_item" ng-class="{ sub_active: isActive('/viewInvByLocNew')}">
         <a href="#/viewInvByLocNew">
-          <div style="text-align:center"><img src="images/inv_box.png" height="24" width="24"></div>
-          <div>In-Storage</div>
+          <div style="display:inline-block; float:left"><img src="images/inv_box.png"></div>
+          <div style="display:inline-block; float:left; margin-top:4px; margin-left:4px">Count Inventory</div>
         </a>
       </li>
       <!--li ng-class="{ sub_active: isActive('/viewInvByLoc')}">
@@ -23,11 +23,18 @@
           <div style="text-align:center"><img src="images/inv_keg.png" height="24" width="24"></div>
           <div>Empty Kegs</div>
         </a></li-->
-      <li ng-class="{ sub_active: isActive('/viewHistory')}">
+      <li class="subtoolbar_item" ng-class="{ sub_active: isActive('/viewHistory')}">
         <a href="#/viewHistory">
-          <div style="text-align:center"><img src="images/inv_history.png" height="24" width="24"></div>
-          <div>Records</div>
-        </a></li>
+          <div style="display:inline-block; float:left"><img src="images/inv_history.png"></div>
+          <div style="display:inline-block; float:left; margin-top:4px; margin-left:4px">Records</div>
+        </a>
+      </li>
+      <li class="subtoolbar_item" ng-class="{ sub_active: isActive('/viewDeliveries')}">
+        <a href="#/viewDeliveries">
+          <div style="display:inline-block; float:left"><img src="images/inv_box_move.png"></div>
+          <div style="display:inline-block; float:left; margin-top:4px; margin-left:4px">Deliveries</div>
+        </a>
+      </li>
     </ul>
   </div>
 </nav>

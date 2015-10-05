@@ -1,12 +1,12 @@
 <div ng-include src="'./bev_subnav.html'"></div>
 <div class="container" style="min-width:620px; max-width:880px">
 
-  <div style="width:100%; margin-top:24px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
-    <img src="images/inv_box.png" height="36" width="36" style="vertical-align:top"/>
-    <div style="display: inline-block; vertical-align:top; margin-top:2px; margin-left:2px">Distributors and Kegs</div>
+  <div style="width:100%; margin-top:24px; padding-bottom:6px; font-size:1.3em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_box.png" height="32" width="32" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:8px; margin-left:2px">Distributors and Kegs</div>
   </div>
   <div class="hint_text" style="width:100%; padding-top:4px;">
-    Manage Beverage Distributors and any associated Beer Kegs and Deposits
+    Manage Distributor Info including Beer Kegs and Deposits
   </div>
 
 
@@ -52,8 +52,8 @@
   </div>
 
 
-  <table style="width: 100%; min-width:720px; table-layout:fixed; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-top:6px; margin-bottom:120px">
-    <tr style="font-size:14px; background-color: #e0f0ff;">
+  <table style="width: 100%; min-width:720px; table-layout:fixed; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-top:6px; margin-bottom:120px; font-size:13px">
+    <tr style="background-color: #e0f0ff;">
       <td class="all_inv_label_span noselect" style="width:35px; border-left: 1px solid #dddddd">
       </td>
       <td class="all_inv_label_span noselect" style="width:175px; overflow:auto">
@@ -88,7 +88,7 @@
     <tbody ng-repeat="dist in distributors | filter:all_dist_query.query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row inv_row_odd'">
       <tr>
         <td class="all_inv_span" style="border-left: 1px solid #dddddd; text-align:center">
-          <button ng-click="editDistributor(dist)" type="button" class="btn btn-sm btn_edit">
+          <button ng-click="editDistributor(dist)" type="button" class="btn btn-xs btn_edit">
             <span class="glyphicon glyphicon-pencil"></span>
           </button>
         </td>

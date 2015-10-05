@@ -32,6 +32,21 @@ type BeverageLight struct {
 	Product       string `json:"product"`
 }
 
+type BeverageSalePlan struct {
+	ID             int         `json:"id"`
+	VersionID      int         `json:"version_id"`
+	Product        string      `json:"product"`
+	ContainerType  string      `json:"container_type"`
+	Brewery        NullString  `json:"brewery"`
+	AlcoholType    string      `json:"alcohol_type"`
+	PurchaseVolume NullFloat64 `json:"purchase_volume"`
+	PurchaseUnit   NullString  `json:"purchase_unit"`
+	PurchaseCost   float32     `json:"purchase_cost"`
+	SaleStart      time.Time   `json:"sale_start"`
+	SaleEnd        time.Time   `json:"sale_end"`
+	Par            NullFloat64 `json:"par"`
+}
+
 type BeverageInv struct {
 	ID          int         `json:"id"`
 	Product     string      `json:"product"`
@@ -66,6 +81,10 @@ type Beverage struct {
 	SalePrices     []SalePrice `json:"size_prices"`
 	Count          float32     `json:"count"`
 	Inventory      NullFloat64 `json:"inventory"`
+	SaleStatus     NullString  `json:"sale_status"`
+	SaleStart      time.Time   `json:"sale_start"`
+	SaleEnd        time.Time   `json:"sale_end"`
+	Par            NullFloat64 `json:"par"`
 }
 
 type BeverageUpdate struct {

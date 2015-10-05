@@ -1,16 +1,39 @@
 angular.module('myApp')
 
-.directive('dateRange', function($modal, $http, $timeout) {
+.directive('dateRange', function($modal, $http, $timeout, DateService) {
   return {
     restrict: 'AE',
     scope: {
       startDate: '=',
       endDate: '=',
       onStartChange: '&',
-      onEndChange: '&'
+      onEndChange: '&',
+      showHelpers: '=',
+      control: '='
     },
     templateUrl: './view_history/template_date_range.html',
     link: function(scope, elem, attrs) {
+
+      // provides a way of exposing certain functions to outside controllers
+      scope.internalControl = scope.control || {};
+      scope.form_ver = {
+        'error_start': false,
+        'error_end': false
+      }
+
+      scope.internalControl.validate = function() {
+        scope.form_ver.error_start = false;
+        scope.form_ver.error_end = false;
+
+        if (!DateService.isValidDate(scope.startDate) ) {
+          scope.form_ver.error_start = true;
+        }
+        if (!DateService.isValidDate(scope.endDate) ) {
+          scope.form_ver.error_end = true;
+        }
+
+        return scope.form_ver.error_start === false && scope.form_ver.error_end === false;
+      }
 
       //=====================================
       // Date picker
@@ -20,6 +43,7 @@ angular.module('myApp')
       scope.formats = ['MMMM dd yyyy', 'yyyy/MM/dd', 'dd.MM.yyyy', 'shortDate'];
       scope.format = scope.formats[0];
 
+      /*
       scope.today = function() {
         var today = new Date();
         // start date is by default 1 week ago
@@ -29,6 +53,7 @@ angular.module('myApp')
         scope.endDate.setHours(23,59,59);
       };
       scope.today();
+      */
 
       scope.clear = function () {
         scope.startDate = null;
@@ -56,6 +81,13 @@ angular.module('myApp')
       };
 
       scope.startDateChanged = function() {
+
+        scope.form_ver.error_start = false;
+        if (!DateService.isValidDate(scope.startDate)) {
+          scope.form_ver.error_start = true;
+          return;
+        }
+
         scope.startDate.setHours(0,0,0);
         console.log('start date is now: ' + scope.startDate);
         scope.checkStartEndDates();
@@ -69,6 +101,13 @@ angular.module('myApp')
       };
 
       scope.endDateChanged = function() {
+
+        scope.form_ver.error_end = false;
+        if (!DateService.isValidDate(scope.endDate)) {
+          scope.form_ver.error_end = true;
+          return;
+        }
+
         scope.endDate.setHours(23,59,59);
         console.log('end date is now: ' + scope.endDate);
         scope.checkStartEndDates();
@@ -100,6 +139,12 @@ angular.module('myApp')
       }
 
       scope.checkStartEndDates = function() {
+
+        // null end date is a valid state by itself
+        if (scope.endDate === null) {
+          return;
+        }
+
         if (scope.startDate > scope.endDate) {
           scope.endDate = scope.startDate;
         }

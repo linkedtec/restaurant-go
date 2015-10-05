@@ -1,9 +1,9 @@
 <div ng-include src="'./inv_subnav.html'"></div>
 <div class="container" style="min-width:620px; max-width:880px">
 
-  <div style="width:100%; margin-top:24px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
-    <img src="images/inv_box.png" height="36" width="36" style="vertical-align:top"/>
-    <div style="display: inline-block; vertical-align:top; margin-top:2px; margin-left:2px">In-Storage Inventory</div>
+  <div style="width:100%; margin-top:24px; padding-bottom:6px; font-size:1.3em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_box.png" height="32" width="32" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:6px; margin-left:2px">Count Inventory</div>
   </div>
   <div class="hint_text" style="width:100%; padding-top:4px;">
     Record inventory by physical storage locations.
@@ -114,8 +114,8 @@
   </div>
 
   <!-- Location inventory -->
-  <div ng-if="selected_loc !== null" style="margin-top:8px; margin-bottom:128px">
-    <div class="row label_row_container">
+  <div ng-if="selected_loc !== null" style="margin-top:8px; margin-bottom:128px;">
+    <div class="row label_row_container" style="font-size:1.0em">
       <div class="col-xs-1 noselect">
       </div>
       <div class="col-xs-4 inv_sort_div" ng-click="sortBy('product')">
@@ -139,12 +139,12 @@
     <div ng-repeat="inv in inv_items">
       <div ng-class-even="'row inv_row_container inv_row_even'" ng-class-odd="'row inv_row_container inv_row_odd'">
         <div class="col-xs-1 noselect">
-          <img ng-if="inv.icon==='keg'" src="images/bev_keg.png" height="36px" width="36px" style="margin-left:0px">
-          <img ng-if="inv.icon==='draft'" src="images/bev_draft.png" height="36px" width="36px" style="margin-left:0px">
-          <img ng-if="inv.icon==='wine'" src="images/bev_wine.png" height="36px" width="36px" style="margin-left:0px">
-          <img ng-if="inv.icon==='bottle'" src="images/bev_bottle.png" height="36px" width="36px" style="margin-left:0px">
-          <img ng-if="inv.icon==='can'" src="images/bev_can.png" height="36px" width="36px" style="margin-left:0px">
-          <img ng-if="inv.icon==='liquor'" src="images/bev_xo.png" height="36px" width="36px" style="margin-left:0px">
+          <img ng-if="inv.icon==='keg'" src="images/bev_keg.png" height="32px" width="32px" style="margin-left:0px">
+          <img ng-if="inv.icon==='draft'" src="images/bev_draft.png" height="32px" width="32px" style="margin-left:0px">
+          <img ng-if="inv.icon==='wine'" src="images/bev_wine.png" height="32px" width="32px" style="margin-left:0px">
+          <img ng-if="inv.icon==='bottle'" src="images/bev_bottle.png" height="32px" width="32px" style="margin-left:0px">
+          <img ng-if="inv.icon==='can'" src="images/bev_can.png" height="32px" width="32px" style="margin-left:0px">
+          <img ng-if="inv.icon==='liquor'" src="images/bev_xo.png" height="32px" width="32px" style="margin-left:0px">
         </div>
         <div class="col-xs-4 min_padding" style="padding-top:6px;">
           <!--span ng-if="inv.updated_today==true" class="glyphicon glyphicon-ok-circle check_circle" style="margin-right:6px; float:left; margin-top:-2px;"></span-->
@@ -156,7 +156,7 @@
               Keg Deposit
             </span>
           </div>
-          <div style="font-size:0.9em; color:#999999; padding-left:6px;"> 
+          <div style="font-size:0.9em; color:#999999; padding-left:6px; margin-top:-2px"> 
             <!--span ng-if="inv.type==='keg'">{{inv.distributor}}</span-->
             <span ng-if="inv.type==='keg'">Empty </span>
             <span ng-if="inv.purchase_volume!==null">{{inv.purchase_volume | number:1}} {{inv.purchase_unit}}</span>
@@ -164,13 +164,13 @@
             <span ng-if="inv.type==='keg'">Keg</span>
           </div>
         </div>
-        <div class="col-xs-4 min_padding inv_col" style="padding-top:8px">
+        <div class="col-xs-4 min_padding inv_col" style="padding-top:8px; font-size:0.9em">
           <span ng-if="inv.type==='bev'">{{inv.brewery}}</span>
           <span ng-if="inv.type==='keg'">{{inv.distributor}}</span>
         </div>
         <div class="min_padding col-xs-1">
 
-          <div ng-if="inv_started===false" style="font-size:1.1em; padding-top:8px; padding-left:2px;">
+          <div ng-if="inv_started===false" style="font-size:1.0em; padding-top:8px; padding-left:2px;">
             {{inv.quantity}}
           </div>
         </div>

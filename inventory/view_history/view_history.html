@@ -1,9 +1,9 @@
 <div ng-include src="'./inv_subnav.html'"></div>
 <div class="container" style="min-width:760px; max-width:880px">
 
-  <div style="width:100%; margin-top:24px; padding-bottom:6px; font-size:1.6em;">
-    <img src="images/inv_history.png" height="36" width="36" style="vertical-align:top"/>
-    <div style="display: inline-block; vertical-align:top; margin-top:2px; margin-left:2px">Inventory Records & History</div>
+  <div style="width:100%; margin-top:24px; padding-bottom:6px; font-size:1.3em;">
+    <img src="images/inv_history.png" height="32" width="32" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:6px; margin-left:2px">Inventory Records & History</div>
   </div>
   <!--div class="hint_text" style="width:100%; padding-top:4px;">
     View weekly inventory and historical data.
@@ -65,7 +65,7 @@
   <div class="row" style="margin-top:20px">
     <div class="col-xs-8" style="text-align:left;">
 
-      <date-range start-date="start_date" end-date="end_date" on-start-change="startDateChanged()" on-end-change="endDateChanged()"></date_range>
+      <date-range start-date="start_date" end-date="end_date" on-start-change="startDateChanged()" on-end-change="endDateChanged()" show-helpers="true"></date_range>
 
     </div>
 

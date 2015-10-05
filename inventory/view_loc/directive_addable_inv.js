@@ -12,7 +12,9 @@ angular.module('myApp')
       control: '=',
       showTabs: '=',
       isDelivery: '=',
-      refreshDelivery: '&'
+      refreshDelivery: '&',
+      useOverrideAddFunc: '=',
+      overrideAddFunc: '&' // by default adding will bring up inv quantity modal, if override callback is specified will call that instead
     },
     templateUrl: './view_loc/template_addable_inv.html',
     link: function(scope, elem, attrs) {
@@ -22,7 +24,7 @@ angular.module('myApp')
       // directive updates accordingly.  Had a big headache with the allBevs
       // showing up null on start.
       scope.$watch('allBevs', function() {
-        scope.applyTypeFilter();
+        scope.internalControl.applyTypeFilter ();
       });
 
       scope.add_types = ['Beverages', 'Empty Kegs'/*, 'Recently Used in This Location'*/];
@@ -240,7 +242,7 @@ angular.module('myApp')
 
         scope.container_filter = check_cont;
 
-        scope.applyTypeFilter();
+        scope.internalControl.applyTypeFilter ();
       };
 
       scope.selectType = function(type) {
@@ -269,10 +271,10 @@ angular.module('myApp')
         }
         scope.container_filter = scope.container_filters[0];
 
-        scope.applyTypeFilter();
+        scope.internalControl.applyTypeFilter ();
       }
 
-      scope.applyTypeFilter = function() {
+      scope.internalControl.applyTypeFilter  = function() {
         // filter by eg Beer, Cider, Wine, etc
         // all beverages
 
@@ -447,6 +449,13 @@ angular.module('myApp')
       scope.applyExisting();
 
       scope.enterInvQuantity = function(item, is_edit) {
+
+        // if overrideAddFunc was provided, will call that instead of the 
+        // standard enterInvQuantity modal
+        if (scope.useOverrideAddFunc === true) {
+          scope.overrideAddFunc({item:item});
+          return;
+        }
 
         if (!is_edit) {
           item.quantity = 0;

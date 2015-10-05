@@ -1,12 +1,13 @@
-<div ng-include src="'./pd_subnav.html'"></div>
+<!--div ng-include src="'./pd_subnav.html'"></div-->
+<div ng-include src="'./inv_subnav.html'"></div>
 <div class="container" style="min-width:620px; max-width:880px">
 
-  <div style="width:100%; margin-top:24px; padding-bottom:6px; font-size:1.6em; border-bottom:solid 1px #dddddd">
-    <img src="images/inv_box_move.png" height="36" width="36" style="vertical-align:top"/>
-    <div style="display: inline-block; vertical-align:top; margin-top:2px; margin-left:2px">Deliveries</div>
+  <div style="width:100%; margin-top:24px; padding-bottom:6px; font-size:1.3em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_box_move.png" height="32" width="32" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:6px; margin-left:2px">Deliveries</div>
   </div>
   <div class="hint_text" style="width:100%; padding-top:4px;">
-    Record and view deliveries of inventory from suppliers.
+    Record and view Deliveries / Invoices from Distributors.
   </div>
 
   <div ng-show="show_add_ui===true" class="add_ui_box_blue" style="margin-top:24px; margin-bottom:24px">
@@ -42,7 +43,7 @@
   <div class="row" style="margin:16px 0px; margin-bottom:0px">
     <div class="col-xs-8" style="text-align:left; padding:0">
 
-      <date-range start-date="start_date" end-date="end_date" on-start-change="startDateChanged()" on-end-change="endDateChanged()"></date_range>
+      <date-range start-date="start_date" end-date="end_date" on-start-change="startDateChanged()" on-end-change="endDateChanged()" show-helpers="true"></date_range>
 
     </div>
     <div class="col-xs-4" style="text-aligh:right; padding:0">

@@ -27,6 +27,7 @@ type Delivery struct {
 
 type DeliveryItem struct {
 	BeverageID     int         `json:"beverage_id"`
+	VersionID      int         `json:"version_id"`
 	Product        string      `json:"product"`
 	DeliveryID     int         `json:"delivery_id"`
 	Quantity       float32     `json:"quantity"`
@@ -276,7 +277,7 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 			// for each delivery, get all associated delivery items
 			item_rows, err := db.Query(`
-        SELECT delivery_items.beverage_id, beverages.product, beverages.distributor_id, delivery_items.quantity, delivery_items.value, 
+        SELECT delivery_items.beverage_id, beverages.version_id, beverages.product, beverages.distributor_id, delivery_items.quantity, delivery_items.value, 
         beverages.alcohol_type, beverages.container_type, beverages.purchase_volume, beverages.purchase_unit, beverages.purchase_cost, beverages.purchase_count, kegs.deposit 
         FROM delivery_items 
         	INNER JOIN beverages ON (beverages.id=delivery_items.beverage_id) 
@@ -291,7 +292,7 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 			defer item_rows.Close()
 			for item_rows.Next() {
 				var item DeliveryItem
-				if err := item_rows.Scan(&item.BeverageID, &item.Product, &item.DistributorID, &item.Quantity, &item.Value, &item.AlcoholType, &item.ContainerType, &item.PurchaseVolume, &item.PurchaseUnit, &item.PurchaseCost, &item.PurchaseCount, &item.Deposit); err != nil {
+				if err := item_rows.Scan(&item.BeverageID, &item.VersionID, &item.Product, &item.DistributorID, &item.Quantity, &item.Value, &item.AlcoholType, &item.ContainerType, &item.PurchaseVolume, &item.PurchaseUnit, &item.PurchaseCost, &item.PurchaseCount, &item.Deposit); err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					continue

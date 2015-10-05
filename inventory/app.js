@@ -5,6 +5,7 @@ angular.module('myApp', [
   'ngRoute',
   'myApp.viewAllInv',
   'myApp.viewDistributors',
+  'myApp.viewSalesPlan',
 //  'myApp.viewInvByLoc',
   'myApp.viewInvByLocNew',
 //  'myApp.viewOnTap',
@@ -363,6 +364,13 @@ config(['$routeProvider', function($routeProvider) {
       // 2. getTimezoneOffset returns a difference, so need to invert sign to
       //    get the +2, -6, etc sign correct in timestamps
       return (new Date().getTimezoneOffset()/60);
+    },
+
+    isValidDate: function(d) {
+      if ( Object.prototype.toString.call(d) !== "[object Date]" ) {
+        return false;
+      }
+      return !isNaN(d.getTime());
     }
   };
 });

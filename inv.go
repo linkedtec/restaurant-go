@@ -98,10 +98,126 @@ func setupInvHandlers() {
 
 	http.HandleFunc("/inv", invAPIHandler)
 	http.HandleFunc("/loc", locAPIHandler)
+	http.HandleFunc("/inv/menu", invMenuAPIHandler)
 	http.HandleFunc("/inv/loc", invLocAPIHandler)
 	http.HandleFunc("/inv/locnew", invLocNewAPIHandler)
 	http.HandleFunc("/inv/history", invHistoryAPIHandler)
 	http.HandleFunc("/export/", exportAPIHandler)
+}
+
+// invMenuAPIHandler handles menu planning requests, such as getting
+// staple, seasonal, or inactive sales items.
+func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
+
+	switch r.Method {
+	case "GET":
+		sale_status := r.URL.Query().Get("sale_status")
+
+		rows, err := db.Query(`
+			SELECT id, version_id, product, container_type, brewery, alcohol_type, 
+			purchase_volume, purchase_unit, purchase_cost, 
+			COALESCE(sale_start,  '0001-01-01 00:00:00'), COALESCE(sale_end, '0001-01-01 00:00:00'), par 
+			FROM beverages WHERE user_id=$1 AND current 
+			AND COALESCE(sale_status, 'inactive')=$2;`, test_user_id, sale_status)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		var beverages []BeverageSalePlan
+
+		defer rows.Close()
+		for rows.Next() {
+			var bev BeverageSalePlan
+			if err := rows.Scan(
+				&bev.ID,
+				&bev.VersionID,
+				&bev.Product,
+				&bev.ContainerType,
+				&bev.Brewery,
+				&bev.AlcoholType,
+				&bev.PurchaseVolume,
+				&bev.PurchaseUnit,
+				&bev.PurchaseCost,
+				&bev.SaleStart,
+				&bev.SaleEnd,
+				&bev.Par); err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+
+			beverages = append(beverages, bev)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+
+		js, err := json.Marshal(beverages)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+
+	case "POST":
+
+		// user posts beverage's id, par, and sale_status.  We want to change the
+		// beverage's sale status and par
+		decoder := json.NewDecoder(r.Body)
+		var bev Beverage
+		err := decoder.Decode(&bev)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		var exists bool
+		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE user_id=$1 AND id=$2);", test_user_id, bev.ID).Scan(&exists)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if !exists {
+			http.Error(w, "The beverage does not belong to the user!", http.StatusInternalServerError)
+			return
+		}
+
+		// make sure we get the latest id from version_id
+		var latest_id int
+
+		err = db.QueryRow("SELECT id FROM beverages WHERE version_id=(SELECT version_id FROM beverages WHERE id=$1) AND current;", bev.ID).Scan(&latest_id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		_, err = db.Exec("UPDATE beverages SET sale_status=$1, par=$2 WHERE id=$3;", bev.SaleStatus, bev.Par, latest_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		log.Println(bev)
+
+		// if sale_status is 'seasonal', also update sale_start and sale_end
+		if bev.SaleStatus.Valid && bev.SaleStatus.String == "seasonal" {
+			_, err = db.Exec("UPDATE beverages SET sale_start=$1, sale_end=$2 WHERE id=$3;", bev.SaleStart, bev.SaleEnd, latest_id)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+
+	default:
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
 }
 
 func invAPIHandler(w http.ResponseWriter, r *http.Request) {
