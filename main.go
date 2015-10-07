@@ -45,6 +45,7 @@ type BeverageSalePlan struct {
 	SaleStart      time.Time   `json:"sale_start"`
 	SaleEnd        time.Time   `json:"sale_end"`
 	Par            NullFloat64 `json:"par"`
+	SalePrices     []SalePrice `json:"size_prices"`
 }
 
 type BeverageInv struct {
@@ -244,7 +245,7 @@ func volumeUnitsHandler(w http.ResponseWriter, r *http.Request) {
 func updateBeverageVersion(old_id int) (int, error) {
 
 	// duplicate the entry, which will create a new serial id
-	_, err := db.Exec("INSERT INTO beverages (distributor_id, keg_id, product, brewery, alcohol_type, abv, purchase_volume, purchase_cost, purchase_unit, flavor_profile, user_id, container_type, serve_type, purchase_count, version_id) SELECT distributor_id, keg_id, product, brewery, alcohol_type, abv, purchase_volume, purchase_cost, purchase_unit, flavor_profile, user_id, container_type, serve_type, purchase_count, version_id FROM beverages WHERE id=$1;", old_id)
+	_, err := db.Exec("INSERT INTO beverages (distributor_id, keg_id, product, brewery, alcohol_type, abv, purchase_volume, purchase_cost, purchase_unit, flavor_profile, user_id, container_type, serve_type, purchase_count, version_id, sale_status, sale_start, sale_end, par) SELECT distributor_id, keg_id, product, brewery, alcohol_type, abv, purchase_volume, purchase_cost, purchase_unit, flavor_profile, user_id, container_type, serve_type, purchase_count, version_id, sale_status, sale_start, sale_end, par FROM beverages WHERE id=$1;", old_id)
 	if err != nil {
 		return -1, err
 	}

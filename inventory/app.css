@@ -724,7 +724,7 @@ like enclosed space */
 .nav-tabs > li > a {
   padding:4px 16px;
   color:#888888;
-  font-size:1.1em;
+  font-size:1.0em;
 }
 
 .nav-tabs > li.active > a:focus {
@@ -1192,3 +1192,12 @@ input[type=checkbox]:checked + label:before {
 .form-group tr a.btn.btn-link:hover {
   color:#888888;
 }
+
+
+.center_date_popover {
+  position: relative;
+}
+.center_date_popover .dropdown-menu {
+   left: auto !important;
+   right: -140px;
+ }

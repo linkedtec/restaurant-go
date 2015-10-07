@@ -151,6 +151,24 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 			beverages = append(beverages, bev)
 		}
 
+		for i := range beverages {
+			bev := beverages[i]
+			rows, err := db.Query("SELECT id, serving_size, serving_unit, serving_price FROM size_prices WHERE beverage_id=$1;", bev.ID)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+			for rows.Next() {
+				var sp SalePrice
+				if err := rows.Scan(
+					&sp.ID, &sp.Volume, &sp.Unit, &sp.Price); err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+				beverages[i].SalePrices = append(beverages[i].SalePrices, sp)
+			}
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 
 		js, err := json.Marshal(beverages)
@@ -512,13 +530,21 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// we can just insert them
 		//
 		// First, handle the "special" keys
-		// TABLE size_prices
+		// - size_prices requires updating a separate table, so it is its own special key
+		// - sale_status, sale_start, sale_end, and par are not long term state variables,
+		//   so we do not need to increment the beverage id when these change
+		// - everything else requires an increment to beverage id
 		var sizePricesChanged bool
 		var beverageChanged bool
+		var saleStatusChanged bool
+		var saleStatusUpdateKeys []string
 		var beverageUpdateKeys []string
 		for _, key := range bev_update.ChangeKeys {
 			if key == "size_prices" {
 				sizePricesChanged = true
+			} else if key == "sale_status" || key == "sale_start" || key == "sale_end" || key == "par" {
+				saleStatusChanged = true
+				saleStatusUpdateKeys = append(saleStatusUpdateKeys, key)
 			} else {
 				beverageChanged = true
 				beverageUpdateKeys = append(beverageUpdateKeys, key)
@@ -533,13 +559,20 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// duplicate old beverage into new entry with new id, this will be the
-		// updated entry we update with the new changes we received from user
-		new_bev_id, err := updateBeverageVersion(old_bev_id)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		var new_bev_id int
+		// Only need to duplicate the beverage into new entry with new id if
+		// sizePrices changed or beverageChanged, NOT if only saleStatusChanged.
+		if sizePricesChanged || beverageChanged {
+			// duplicate old beverage into new entry with new id, this will be the
+			// updated entry we update with the new changes we received from user
+			new_bev_id, err = updateBeverageVersion(old_bev_id)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		} else {
+			new_bev_id = old_bev_id
 		}
 
 		if beverageChanged {
@@ -690,6 +723,41 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
+				}
+			}
+		}
+
+		// Finally, handle sale status changes
+		if saleStatusChanged {
+			for _, key := range saleStatusUpdateKeys {
+				if key == "sale_status" {
+					_, err = db.Exec("UPDATE beverages SET sale_status=$1 WHERE id=$2", bev_update.Bev.SaleStatus, new_bev_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+				} else if key == "sale_start" {
+					_, err = db.Exec("UPDATE beverages SET sale_start=$1 WHERE id=$2", bev_update.Bev.SaleStart, new_bev_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+				} else if key == "sale_end" {
+					_, err = db.Exec("UPDATE beverages SET sale_end=$1 WHERE id=$2", bev_update.Bev.SaleEnd, new_bev_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+				} else if key == "par" {
+					_, err = db.Exec("UPDATE beverages SET par=$1 WHERE id=$2", bev_update.Bev.Par, new_bev_id)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
 				}
 			}
 		}

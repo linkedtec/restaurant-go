@@ -62,7 +62,7 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
           dlv['delivery_time'] = new Date(dlv['delivery_time']);
 
           var date_str = dlv['delivery_time'].toString();
-          dlv['pretty_date'] = DateService.getPrettyDate(date_str, false);
+          dlv['pretty_date'] = DateService.getPrettyDate(date_str, false, true);
 
           // get the sum of item values for the delivery
           var inv_sum = 0;
@@ -381,7 +381,7 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
 
     // get the pretty date from the updated delivery time
     var date_str = $scope.edit_delivery['delivery_time'].toString();
-    $scope.edit_delivery['pretty_date'] = DateService.getPrettyDate(date_str, false);
+    $scope.edit_delivery['pretty_date'] = DateService.getPrettyDate(date_str, false, true);
 
     $modalInstance.close(['save', $scope.edit_delivery]);
   };

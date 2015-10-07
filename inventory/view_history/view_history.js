@@ -405,7 +405,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       for (var date_i in data) {
         var date_obj = data[date_i];
         var date_key = date_obj['update'];
-        var pretty_date = DateService.getPrettyDate(date_key, true);
+        var pretty_date = DateService.getPrettyDate(date_key, true, true);
 
         var inv_sum = 0;
         for (var history_i in date_obj['histories']) {
@@ -505,7 +505,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       for (var date_i in data) {
         var date_entry = data[date_i];
         var date_key = date_entry["update"];
-        var pretty_date = DateService.getPrettyDate(date_key, true);
+        var pretty_date = DateService.getPrettyDate(date_key, true, true);
 
         var inv_sum = 0;
         for (var loc_i in data[date_i]['loc_histories']) {
@@ -601,7 +601,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       for (var date_i in data) {
         var date_entry = data[date_i];
         var date_key = date_entry["update"];
-        var pretty_date = DateService.getPrettyDate(date_key, true);
+        var pretty_date = DateService.getPrettyDate(date_key, true, true);
 
         // Note, although second order key is 'loc_histories', we're piggy
         // backing off the loc data struct and using it as 'type'

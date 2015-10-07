@@ -324,7 +324,7 @@ config(['$routeProvider', function($routeProvider) {
       return pretty_time;
     },
 
-    getPrettyDate: function (date_str, from_server) {
+    getPrettyDate: function (date_str, from_server, show_weekday) {
       // the timestamp from the server is different than the timestamp from
       // the client, so we need to handle as such
 
@@ -348,7 +348,12 @@ config(['$routeProvider', function($routeProvider) {
         // Fri Aug 14 2015 20:10:00 GMT-0700 (PDT)
         // In that case, we take the first 4 tokens and add a comma to day
         var pretty_tokens = date_str.split(" ");
-        pretty_date = pretty_tokens[0] + ", " + pretty_tokens[1] + " " + pretty_tokens[2] + " " + pretty_tokens[3];
+        if (show_weekday) {
+          pretty_date = pretty_tokens[0] + ", " + pretty_tokens[1] + " " + pretty_tokens[2] + " " + pretty_tokens[3];
+        } else {
+          pretty_date = pretty_tokens[1] + " " + pretty_tokens[2] + " " + pretty_tokens[3];
+        }
+        
       }
 
       return pretty_date;

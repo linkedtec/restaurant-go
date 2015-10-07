@@ -9,10 +9,10 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
   });
 }])
 
-.controller('ViewSalesPlanCtrl', function($scope, $modal, $http, ItemsService, DateService) {
+.controller('ViewSalesPlanCtrl', function($scope, $modal, $http, ItemsService, DateService, BeveragesService) {
 
   $scope.use_modes = ['Staples', 'Seasonal', 'Off Menu'];
-  $scope.use_mode = 0;
+  $scope.use_mode = 1;
 
   $scope.add_inv_all = [];
   $scope.add_inv_unadded = [];
@@ -21,12 +21,26 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
   $scope.show_add_ui = false;
 
+  $scope.filter_query = {'query': ''}
+
   $scope.addableControl = {};
 
   // sorting
+  // these are the active sorting variables which read from either the backed 
+  // up seasonal or nonseasonal saved sort state variables below
   $scope.sort_key = null;
-  $scope.double_sort = -1;
-  $scope.firstTimeSort = true;
+  $scope.double_sort = 1;
+
+  // we back up the start of nonseasonal vs seasonal sorting when changing 
+  // between the two modes so we can restore the sorting when switching back
+  $scope.sort_key_nonseasonal = null;
+  $scope.double_sort_nonseasonal = 1;
+  $scope.firstTimeSortNonseasonal = true;
+
+  // seasonal gets its own sorting
+  $scope.sort_key_seasonal = null;
+  $scope.double_sort_seasonal = 1;
+  $scope.firstTimeSortSeasonal = true;
 
   $scope.selectUseMode = function(use_mode) {
 
@@ -34,7 +48,11 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       return;
     }
 
+    $scope.inventory_items = [];
+
     $scope.hideAddInv();
+
+    var old_mode = $scope.use_mode;
 
     if (use_mode === $scope.use_modes[0]) {
       $scope.use_mode = 0;
@@ -42,6 +60,35 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       $scope.use_mode = 1;
     } else {
       $scope.use_mode = 2;
+    }
+
+    // update the sort keys by restoring backups if going from nonseasonal to 
+    // seasonal and vice versa
+    if ($scope.use_mode === 1 && old_mode !== 1) {
+      // first back up nonseasonal sort key
+      $scope.sort_key_nonseasonal = $scope.sort_key;
+      $scope.double_sort_nonseasonal = -$scope.double_sort;
+
+      if ($scope.firstTimeSortSeasonal === true) {
+        $scope.sort_key = 'sale_end';
+        $scope.firstTimeSortSeasonal = false;
+      } else {
+        $scope.sort_key = $scope.sort_key_seasonal;
+        $scope.double_sort = $scope.double_sort_seasonal;
+      }
+    }
+    // else if going from seasonal to nonseasonal
+    else if ($scope.use_mode !== 1 && old_mode === 1) {
+      $scope.sort_key_seasonal = $scope.sort_key;
+      $scope.double_sort_seasonal = -$scope.double_sort;
+
+      if ($scope.firstTimeSortNonseasonal === true) {
+        $scope.sort_key = 'product';
+        $scope.firstTimeSortNonseasonal = false;
+      } else {
+        $scope.sort_key = $scope.sort_key_nonseasonal;
+        $scope.double_sort = $scope.double_sort_nonseasonal;
+      }
     }
 
     $scope.getInvData();
@@ -115,29 +162,54 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
           item['sale_end'] = DateService.getDateFromUTCTimeStamp(
             item['sale_end'], true);
 
-          item['sale_start_pretty'] = DateService.getPrettyDate(item['sale_start'].toString(), false);
-          item['sale_end_pretty'] = DateService.getPrettyDate(item['sale_end'].toString(), false);
-
-          console.log(item);
-          //dlv['delivery_time'] = new Date(dlv['delivery_time']);
-
-          //var date_str = dlv['delivery_time'].toString();
-          //dlv['pretty_date'] = DateService.getPrettyDate(date_str, false);
+          item['sale_start_pretty'] = DateService.getPrettyDate(item['sale_start'].toString(), false, false);
+          item['sale_end_pretty'] = DateService.getPrettyDate(item['sale_end'].toString(), false, false);
         }
       }
 
-      if ($scope.use_mode===1) {
-        //$scope.sortSeasonal();
-      } else {
-        $scope.sortBy('product');
-      }
+      $scope.sortBy($scope.sort_key);
       
     }).
     error(function(data, status, headers, config) {
 
     });
   };
-  $scope.getInvData();
+  //$scope.getInvData();
+  $scope.selectUseMode($scope.use_modes[0]);
+
+  // this is called when the user uses one of the calendar buttons to change the
+  // start or end dates of a seasonal item
+  $scope.editDate = function(item, start_or_end) {
+
+    var putObj = {};
+    putObj.id = item.id;
+    var change_keys = [];
+    if (start_or_end === 'start') {
+      change_keys.push('sale_start');
+      putObj['sale_start'] = item.sale_start;
+    } else {
+      change_keys.push('sale_end');
+      putObj['sale_end'] = item.sale_end;
+    }
+
+    var result = BeveragesService.put(putObj, change_keys);
+    result.then(
+    function(payload) {
+      var new_bev_id = payload.data['id'];
+      item.id = new_bev_id;
+
+      // update client display of date
+      if (start_or_end === 'start') {
+        item['sale_start_pretty'] = DateService.getPrettyDate(item['sale_start'].toString(), false, false);
+      } else {
+        item['sale_end_pretty'] = DateService.getPrettyDate(item['sale_end'].toString(), false, false);
+      }
+
+    },
+    function(errorPayload) {
+      ; // do nothing for now
+    });
+  };
 
   $scope.showParModal = function(item) {
     console.log('show par');
@@ -210,11 +282,19 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
               }
             }
 
+            // update client pretty dates for displaying start and end dates
+            if ($scope.use_mode===1) {
+              item['sale_start_pretty'] = DateService.getPrettyDate(item['sale_start'].toString(), false, false);
+              item['sale_end_pretty'] = DateService.getPrettyDate(item['sale_end'].toString(), false, false);
+            }
+
             // since the addable directive does not directly reference our
             // add_inv_unadded items but made a copy of it, but does share our
             // added inventory_items, we need to call applyTypeFilter to have it
             // properly remove the item we just added from its addable items
             $scope.addableControl.applyTypeFilter();
+
+            $scope.sortBy($scope.sort_key);
 
           }).
           error(function(data, status, headers, config) {
@@ -233,6 +313,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
   $scope.sortFunc = function(a, b) {
     var sort_str = $scope.sort_key;
     var isNum = (sort_str === 'par' || sort_str === 'stock');
+    var isDate = (sort_str === 'sale_start' || sort_str === 'sale_end');
 
     var keyA = a[sort_str];
     var keyB = b[sort_str];
@@ -245,7 +326,9 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       if (isNum)
       {
         return parseFloat(keyA) - parseFloat(keyB);
-      } else {
+      } else if (isDate) {
+        return keyA - keyB;
+      }else {
         return -keyA.localeCompare(keyB);
       }
     }
@@ -257,6 +340,8 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
     if (isNum)
     {
       return parseFloat(keyB) - parseFloat(keyA);
+    } else if (isDate) {
+      return keyB - keyA;
     } else {
       return keyA.localeCompare(keyB);
     }
@@ -377,9 +462,6 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
         $scope.new_failure_msg = "Please enter valid Sales Period dates!";
         return;
       }
-
-      console.log('date:');
-      console.log($scope.start_date.date);
 
     }
 
