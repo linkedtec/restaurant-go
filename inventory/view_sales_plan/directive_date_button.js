@@ -5,6 +5,8 @@ angular.module('myApp')
     restrict: 'AE',
     scope: {
       date: '=',
+      minDate: '=',  // date cannot go below this date
+      maxDate: '=',  // date cannot go beyond this date
       onDateChange: '&',
       endOfDay: '=', // true means set hours to 23 59 59, false means 0 0 0 for start of day
       control: '='
@@ -30,7 +32,6 @@ angular.module('myApp')
 
       //=====================================
       // Date picker
-      scope.minDate = null;
       scope.opened = {value:false};
 
       scope.formats = ['MMMM dd yyyy', 'yyyy/MM/dd', 'dd.MM.yyyy', 'shortDate'];
@@ -39,11 +40,6 @@ angular.module('myApp')
       scope.clear = function () {
         scope.date = null;
       };
-
-      scope.toggleMin = function() {
-        //scope.minDate = scope.minDate ? null : new Date();
-      };
-      //scope.toggleMin();
 
       scope.openDate = function($event) {
         $event.preventDefault();
@@ -57,6 +53,16 @@ angular.module('myApp')
 
         scope.form_ver.error_date = false;
         if (!DateService.isValidDate(scope.date)) {
+          scope.form_ver.error_date = true;
+          return;
+        }
+
+        if (scope.date < scope.minDate) {
+          scope.form_ver.error_date = true;
+          return;
+        }
+
+        if (scope.date > scope.maxDate) {
           scope.form_ver.error_date = true;
           return;
         }

@@ -352,7 +352,7 @@ body {
 }
 
 .inv_row_even {
-  background-color: #f8f8f8;
+  background-color: #fafafa;
   border-bottom: solid 1px #eeeeee;
 }
 
@@ -823,6 +823,15 @@ like enclosed space */
   border-bottom: 1px solid #d6f0c5;
 }
 
+.label_small {
+  font-size:13px;
+}
+
+.input_small {
+  font-size:13px;
+  height:30px;
+}
+
 .hint_text {
   /*font-style: italic;*/
   color: #999999;
@@ -831,6 +840,10 @@ like enclosed space */
 
 .gray_text {
   color: #aaaaaa;
+}
+
+.gray_bg {
+  background-color: #f0f0f0;
 }
 
 .check_circle {
@@ -955,7 +968,7 @@ like enclosed space */
 
 .edit-purchase-modal .modal-dialog {
   margin-top: 160px;
-  min-width: 720px;
+  min-width: 780px;
 }
 
 .new-dist-modal .modal-dialog {
@@ -1118,8 +1131,6 @@ like enclosed space */
   vertical-align:top;
 }
 
-
-
 .modal-backdrop.in{
   opacity:0.70;
   filter: alpha(opacity=70);
@@ -1129,6 +1140,10 @@ like enclosed space */
   -webkit-box-shadow: 0 4px 4px -3px #bbbbbb;
   -moz-box-shadow: 0 4px 4px -3px #bbbbbb;
   box-shadow: 0 4px 4px -3px #bbbbbb;
+}
+
+.menu_script {
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
 }
 
 .bold {

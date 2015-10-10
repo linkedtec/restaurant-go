@@ -372,10 +372,22 @@ config(['$routeProvider', function($routeProvider) {
     },
 
     isValidDate: function(d) {
+      if (d === null || d === undefined) {
+        return false;
+      }
       if ( Object.prototype.toString.call(d) !== "[object Date]" ) {
         return false;
       }
       return !isNaN(d.getTime());
+    },
+
+    // Given date d1 and date d2, returns the days between them
+    daysBetween: function(d1, d2) {
+      var ms_in_one_day = 1000 * 60 * 60 * 24; // milliseconds in a day
+      var d1_ms = d1.getTime();
+      var d2_ms = d2.getTime();
+      var diff_ms = d2_ms - d1_ms;
+      return Math.round(diff_ms/ms_in_one_day);
     }
   };
 });

@@ -16,16 +16,32 @@
     <tab ng-repeat="mode in use_modes" heading="{{mode}}" ng-click="selectUseMode(mode)">
     </tab>
   </tabset>
-  <div style="margin: 0px; padding:12px 16px; border: 1px solid #dddddd; border-top: none; background-color:#fdfdfd">
-    <div ng-if="use_mode===0" style="margin: 12px 0px; font-size:1.1em">
-      Staples are beverages you sell year-round and almost always carry in stock.
+  <div style="margin: 0px; padding:12px 16px; border: 1px solid #dddddd; border-top: none; background-color:#fdfdfd; margin-bottom:128px">
+    <div ng-if="use_mode===0">
+      <div class="" style="margin-top:12px; font-size:1.6em; display:inline-block;">
+        Staples
+      </div>
+      <div class="hint_text" style="display:inline-block;margin: 0px 12px 10px; font-size:1.0em;">
+        Beverages you sell year-round and almost always carry in stock.
+      </div>
     </div>
-    <div ng-if="use_mode===1" style="margin: 12px 0px; font-size:1.1em">
-      Seasonal (or rotational) beverages are served for a limited period of time.
+    <div ng-if="use_mode===1">
+      <div class="" style="margin-top:12px; font-size:1.6em; display:inline-block;">
+        Seasonal
+      </div>
+      <div class="hint_text" style="display:inline-block;margin: 0px 12px 10px; font-size:1.0em;">
+        Rotational beverages served for a limited period of time.
+      </div>
     </div>
-    <div ng-if="use_mode===2" style="margin: 12px 0px; font-size:1.1em">
-      These beverages are currently not on your menu.
+    <div ng-if="use_mode===2">
+      <div class="" style="margin-top:12px; font-size:1.6em; display:inline-block;">
+        Inactive
+      </div>
+      <div class="hint_text" style="display:inline-block;margin: 0px 12px 10px; font-size:1.0em;">
+        These beverages are currently not being served.
+      </div>
     </div>
+    <hr style="margin:0; margin-top:-6px"/>
 
     <div ng-if="show_add_ui===true" class="add_ui_box_green" style="width:680px">
       <div class="add_title_bar_green">
@@ -39,7 +55,7 @@
         <br/>
       </div>
       <div style="display:block; position:relative; height:480px; bottom:0; top:0px; left: 0; right:0; margin-top:12px; margin-bottom:12px; margin-right:12px; margin-left:12px; padding:4px 8px; padding-bottom:12px; background-color:#fbfff9; border:1px solid #dddddd">
-        <addable-inv all-bevs="add_inv_unadded" all-kegs="[]" added-items="inventory_items" control="addableControl" show-tabs="false" use-override-add-func="true" override-add-func="showParModal(item)"></addable-inv>
+        <addable-inv all-bevs="add_inv_unadded" all-kegs="[]" added-items="inventory_items" control="addableControl" show-tabs="false" use-override-add-func="true" override-add-func="showParModal(item, use_mode, false)"></addable-inv>
       </div>
     </div>
 
@@ -101,7 +117,7 @@
             <span ng-show="sort_key === 'stock'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
           </div>
         </td>
-        <td ng-if="use_mode===2" style="width:200px">
+        <td ng-if="use_mode===2" class="all_inv_span noselect" style="width:130px">
         </td>
       </tr>
 
@@ -111,7 +127,7 @@
         </td>
       </tr>
 
-      <tr ng-repeat="inv in inventory_items | filter:filter_query.query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row inv_row_odd'" style="font-size:13px">
+      <tr ng-repeat="inv in inventory_items | filter:filter_query.query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row inv_row_odd'" style="font-size:13px" ng-class="{'hint_text gray_bg': inv.upcoming===true, 'inv_row_odd': use_mode===1}">
         <td class="all_inv_span min_padding" style="width:20px; text-align:center;">
           <button ng-click="editBeverage(inv)" type="button" class="btn btn-xs btn_edit">
             <span class="glyphicon glyphicon-pencil"></span>
@@ -137,17 +153,31 @@
           </span>
         </td>
         <td class="all_inv_span" style="width:150px;">{{inv.brewery}}</td>
-        <td ng-if="use_mode===1" class="all_inv_span" style="width:125px;">
-          <span>{{inv.sale_start_pretty}}</span>
-          <span style="float:right; margin-top:-1px">
-            <date-button date="inv.sale_start" end-of-day="false" on-date-change="editDate(inv, 'start')"/>
-          </span>
+        <td ng-if="use_mode===1" class="all_inv_span" style="width:125px;" >
+          <div style="display:inline-block; float:left; vertical-align:top; padding-left:4px">
+            <div>
+              {{inv.sale_start_pretty}}
+            </div>
+            <div ng-if="inv.days_til_sale!==null && inv.days_til_sale>=1 && inv.days_til_sale < 14" style="font-size:0.8em; margin-top:0; border-radius:4px; padding:1px 2px; background-color:#44aa00; text-align:center; color:white">
+              Starts: {{inv.days_til_sale}} days!
+            </div>
+          </div>
+          <div style="position:absolute; top:auto; bottom:auto; right:2px;">
+            <date-button date="inv.sale_start" max-date="inv.sale_end" end-of-day="false" on-date-change="editDate(inv, 'start')"/>
+          </div>
         </td>
         <td ng-if="use_mode===1" class="all_inv_span" style="width:125px;">
-          {{inv.sale_end_pretty}}
-          <span style="float:right; margin-top:-1px">
-            <date-button date="inv.sale_end" end-of-day="true" on-date-change="editDate(inv, 'end')"/>
-          </span>
+          <div style="display:inline-block; float:left; vertical-align:top; padding-left:4px">
+            <div>
+              {{inv.sale_end_pretty}}
+            </div>
+            <div ng-if="inv.days_til_end!==null && inv.days_til_end<14" style="font-size:0.8em; margin-top:0; border-radius:4px; padding:1px 2px; background-color:#dd6622; text-align:center; color:white">
+              Ends: {{inv.days_til_end}} days!
+            </div>
+          </div>
+          <div style="position:absolute; top:auto; bottom:auto; right:2px;">
+            <date-button date="inv.sale_end" min-date="inv.sale_start" end-of-day="true" on-date-change="editDate(inv, 'end')"/>
+          </div>
         </td>
         <td class="all_inv_span" style="width:80px;">
           <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">
@@ -165,9 +195,23 @@
             <span ng-if="sp.price === null"> -- </span>
           </div>
         <td ng-if="use_mode!==2" class="all_inv_span" style="width:60px;">{{inv.par | number:1}}</td>
-        <td ng-if="use_mode!==2" class="all_inv_span" style="width:70px;">{{inv.inventory | number:1}}</td>
-        <td class="all_inv_span" ng-if="use_mode===2" style="width:200px">
-          Move To:
+        <td ng-if="use_mode!==2" class="all_inv_span" style="width:70px;">{{inv.count | number:1}}</td>
+        <td class="all_inv_span" ng-if="use_mode===2" style="width:130px; text-align:center">
+
+            <div class="btn-group" style="width:100%;" dropdown>
+              <button type="button" class="btn btn-default btn-md dropdown-toggle input_small" style="width:100%;" dropdown-toggle>
+                <span class="noselect" style="float:left; text-align:left; width:90%;  color:#999999">
+                  Move to Menu:
+                </span>
+                <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:12px; color:#888888"></span>
+              </button>
+              <ul class="loc_dropdown dropdown-menu" role="menu">
+                <li class="inv_dropdown_li" ng-repeat="menu in move_menus">
+                  <a ng-click="moveToMenu(inv, menu)" class="noselect">{{menu}}</a>
+                </li>
+              </ul>
+            </div>
+
         </td>
       </tr>
     </table>

@@ -116,7 +116,7 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 		rows, err := db.Query(`
 			SELECT id, version_id, product, container_type, brewery, alcohol_type, 
 			purchase_volume, purchase_unit, purchase_cost, 
-			COALESCE(sale_start,  '0001-01-01 00:00:00'), COALESCE(sale_end, '0001-01-01 00:00:00'), par 
+			sale_start, sale_end, par 
 			FROM beverages WHERE user_id=$1 AND current 
 			AND COALESCE(sale_status, 'inactive')=$2;`, test_user_id, sale_status)
 		if err != nil {
@@ -153,6 +153,31 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		for i := range beverages {
 			bev := beverages[i]
+
+			// get count of inventory in all bev locations
+			var exists bool
+			err := db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update AND location_beverages.type='bev');", bev.VersionID).Scan(&exists)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+			if !exists {
+				bev.Count = 0
+			} else {
+				// Now get the total count of this beverage.  Note that we want to find
+				// all the version_id that match, in case this beverage was updated
+				// recently
+				err = db.QueryRow("SELECT SUM(location_beverages.quantity) FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$1 AND location_beverages.type='bev';", bev.VersionID).Scan(&beverages[i].Count)
+				switch {
+				case err == sql.ErrNoRows:
+					bev.Count = 0
+				case err != nil:
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+			}
+			// get size_prices
 			rows, err := db.Query("SELECT id, serving_size, serving_unit, serving_price FROM size_prices WHERE beverage_id=$1;", bev.ID)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -252,7 +277,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		var beverages []Beverage
 		var beverages_light []BeverageLight
 
-		query := "SELECT id, version_id, container_type, serve_type, distributor_id, keg_id, product, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, purchase_count, flavor_profile FROM beverages WHERE user_id=" + test_user_id + " AND current"
+		query := "SELECT id, version_id, container_type, serve_type, distributor_id, keg_id, product, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, purchase_count, flavor_profile, sale_status, sale_start, sale_end, par FROM beverages WHERE user_id=" + test_user_id + " AND current"
 		if names_only {
 			query = "SELECT id, version_id, container_type, product FROM beverages WHERE user_id=" + test_user_id + " AND current"
 		}
@@ -306,7 +331,11 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 					&bev.PurchaseUnit,
 					&bev.PurchaseCost,
 					&bev.PurchaseCount,
-					&bev.FlavorProfile); err != nil {
+					&bev.FlavorProfile,
+					&bev.SaleStatus,
+					&bev.SaleStart,
+					&bev.SaleEnd,
+					&bev.Par); err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					continue
@@ -439,8 +468,8 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Println(bev)
 		cur_time := time.Now().UTC()
-		_, err = db.Exec("INSERT INTO beverages(product, container_type, serve_type, distributor_id, keg_id, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, purchase_count, flavor_profile, user_id, start_date, current) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, TRUE);",
-			bev.Product, bev.ContainerType, bev.ServeType, bev.DistributorID, bev.KegID, bev.Brewery, bev.AlcoholType, bev.ABV, bev.PurchaseVolume, bev.PurchaseUnit, bev.PurchaseCost, bev.PurchaseCount, bev.FlavorProfile, test_user_id, cur_time)
+		_, err = db.Exec("INSERT INTO beverages(product, container_type, serve_type, distributor_id, keg_id, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, purchase_count, flavor_profile, user_id, start_date, current, sale_status, sale_start, sale_end, par) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, TRUE, $16, $17, $18, $19);",
+			bev.Product, bev.ContainerType, bev.ServeType, bev.DistributorID, bev.KegID, bev.Brewery, bev.AlcoholType, bev.ABV, bev.PurchaseVolume, bev.PurchaseUnit, bev.PurchaseCost, bev.PurchaseCount, bev.FlavorProfile, test_user_id, cur_time, bev.SaleStatus, bev.SaleStart, bev.SaleEnd, bev.Par)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -559,10 +588,12 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		doDuplicate := sizePricesChanged || beverageChanged
+
 		var new_bev_id int
 		// Only need to duplicate the beverage into new entry with new id if
 		// sizePrices changed or beverageChanged, NOT if only saleStatusChanged.
-		if sizePricesChanged || beverageChanged {
+		if doDuplicate {
 			// duplicate old beverage into new entry with new id, this will be the
 			// updated entry we update with the new changes we received from user
 			new_bev_id, err = updateBeverageVersion(old_bev_id)
@@ -698,7 +729,9 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 					continue
 				}
 			}
-		} else {
+		} else if doDuplicate {
+			// Note we only duplicate and reassign size_prices to the new bev ID if
+			// doDuplicate was specified and we duplicated the beverage
 			// find all old size_prices with old_bev_id
 			rows, err := db.Query("SELECT serving_size, serving_unit, serving_price, beverage_id FROM size_prices WHERE beverage_id=$1;", old_bev_id)
 			if err != nil {

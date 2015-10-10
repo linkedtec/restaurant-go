@@ -42,10 +42,11 @@ type BeverageSalePlan struct {
 	PurchaseVolume NullFloat64 `json:"purchase_volume"`
 	PurchaseUnit   NullString  `json:"purchase_unit"`
 	PurchaseCost   float32     `json:"purchase_cost"`
-	SaleStart      time.Time   `json:"sale_start"`
-	SaleEnd        time.Time   `json:"sale_end"`
+	SaleStart      NullTime    `json:"sale_start"`
+	SaleEnd        NullTime    `json:"sale_end"`
 	Par            NullFloat64 `json:"par"`
 	SalePrices     []SalePrice `json:"size_prices"`
+	Count          float32     `json:"count"`
 }
 
 type BeverageInv struct {
@@ -83,8 +84,8 @@ type Beverage struct {
 	Count          float32     `json:"count"`
 	Inventory      NullFloat64 `json:"inventory"`
 	SaleStatus     NullString  `json:"sale_status"`
-	SaleStart      time.Time   `json:"sale_start"`
-	SaleEnd        time.Time   `json:"sale_end"`
+	SaleStart      NullTime    `json:"sale_start"`
+	SaleEnd        NullTime    `json:"sale_end"`
 	Par            NullFloat64 `json:"par"`
 }
 

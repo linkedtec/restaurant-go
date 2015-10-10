@@ -33,7 +33,11 @@ angular.module('myApp')
         purchase_count: new_beverage['purchase_count'],
         purchase_cost: new_beverage['purchase_cost'],
         flavor_profile: new_beverage['flavor_profile'],
-        size_prices: new_beverage['size_prices']
+        size_prices: new_beverage['size_prices'],
+        sale_status: new_beverage['sale_status'],
+        sale_start: new_beverage['sale_start'],
+        sale_end: new_beverage['sale_end'],
+        par: new_beverage['par']
       });
       return promise;
     },

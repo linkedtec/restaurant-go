@@ -115,6 +115,19 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     $scope.newBevControl.clearNewForm();
   };
 
+  $scope.convertSaleStatusToInt = function(item) {
+    if (item['sale_status'] === 'staple') {
+      item['sale_status'] = 0;
+      item['sale_status_display'] = 'Staple';
+    } else if (item['sale_status'] === 'seasonal') {
+      item['sale_status'] = 1;
+      item['sale_status_display'] = 'Seasonal';
+    } else if (item['sale_status'] === 'inactive') {
+      item['sale_status'] = 2;
+      item['sale_status_display'] = 'Inactive';
+    }
+  };
+
   $scope.newBeverageCloseOnSave = function(new_beverage) {
     new_beverage['count'] = 0;
     new_beverage['inventory'] = 0;
@@ -147,6 +160,10 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
         }
       }
     }
+
+    // change sale_status from string to int
+    // change sale_status from string to int, and proper sale_status_display
+    $scope.convertSaleStatusToInt(new_beverage);
 
     $scope.inventory_items.push(new_beverage);
 
@@ -244,6 +261,9 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
           $scope.inventory_items[i]['purchase_unit'],
           $scope.inventory_items[i]['purchase_cost'],
           $scope.inventory_items[i]['purchase_count']);
+
+        // change sale_status from string to int, and proper sale_status_display
+        $scope.convertSaleStatusToInt(inv);
       }
 
       if ($scope.firstTimeSort) {
@@ -374,6 +394,10 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
           if ($scope.all_breweries.indexOf(edit_bev.brewery) < 0) {
             $scope.all_breweries.push(edit_bev.brewery);
           }
+
+          // change sale_status from string to int
+          // change sale_status from string to int, and proper sale_status_display
+          $scope.convertSaleStatusToInt(edit_bev);
 
           swal({
             title: "Beverage Updated!",
