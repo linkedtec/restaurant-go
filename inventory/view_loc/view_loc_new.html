@@ -30,8 +30,8 @@
     <div class="row">
       <div class="col-xs-6">
         <span style="float:left">
-          <div class="btn-group" dropdown>
-            <button type="button" class="btn btn-default btn-sm dropdown-toggle loc_dropdown" dropdown-toggle style="font-size:1.2em">
+          <div class="btn-group" uib-dropdown>
+            <button type="button" class="btn btn-default btn-sm dropdown-toggle loc_dropdown" uib-dropdown-toggle style="font-size:1.2em">
               <span ng-if="selected_loc !== null" style="float:left; text-align:left; width:90%">
                 {{selected_loc.name}} 
               </span>
@@ -130,7 +130,7 @@
         <span class="inv_loc_label_span noselect" style="padding-top:6px; padding-bottom:6px">Qty</span>
         <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key === 'quantity'" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
       </div>
-      <div class="col-xs-2 inv_sort_div" ng-click="sortBy('inventory')" ng-if="inv_started===false" popover="Inventory = Quantity * Unit Cost + Deposit.  The cost of beverages can be edited in the All Beverages DB." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+      <div class="col-xs-2 inv_sort_div" ng-click="sortBy('inventory')" ng-if="inv_started===false" uib-popover="Inventory = Quantity * Unit Cost + Deposit.  The cost of beverages can be edited in the All Beverages DB." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
         <span class="inv_loc_label_span noselect" style="padding-top:6px; padding-bottom:6px">Inventory</span>
         <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect"ng-show="sort_key === 'inventory'" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
       </div>
@@ -177,7 +177,7 @@
         <div ng-if="inv_started===false" class="min_padding col-xs-2">
           <div style="padding-left:4px; padding-top:8px;">
             <span style="vertical-align:top">$ {{inv.inventory | number:2}}</span>
-            <span ng-if="inv.out_of_date===true" class="glyphicon glyphicon-exclamation-sign" style="font-size:18px; color:#ffbb22;" popover="This beverage has been updated since its inventory was last saved, and the old inventory value might not reflect its current pricing." popover-trigger="mouseenter" popover-append-to-body="true"></span>
+            <span ng-if="inv.out_of_date===true" class="glyphicon glyphicon-exclamation-sign" style="font-size:18px; color:#ffbb22;" uib-popover="This beverage has been updated since its inventory was last saved, and the old inventory value might not reflect its current pricing." popover-trigger="mouseenter" popover-append-to-body="true"></span>
           </div>
         </div>
       </div>

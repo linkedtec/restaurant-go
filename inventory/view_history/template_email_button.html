@@ -1,5 +1,5 @@
-<button type="button" class="btn btn-default btn-sm btn-default" style="font-size:0.9em; float:right; margin-top:0px; border-color:#22aacc; color:#2299cc; margin-right:6px" ng-click="toggleEmailPopover()" ng-disabled="display_items===null || display_items.length===0" popover-template="'popoverEmail.html'" popover-placement="bottom" popover-title="{{popoverTitle}}" popover-append-to-body="true" >
+<a tabindex="0" popover-trigger="focus" type="button" class="btn btn-default btn-sm btn-default" style="font-size:0.9em; float:right; margin-top:0px; border-color:#22aacc; color:#2299cc; margin-right:6px" ng-click="toggleEmailPopover()" ng-disabled="display_items===null || display_items.length===0" uib-popover-template="'popoverEmail.html'" popover-placement="bottom" popover-title="{{popoverTitle}}" popover-append-to-body="true" >
   <span class="glyphicon glyphicon-envelope" style="margin-right:4px"></span> Email
-</button>
+</a>
 
 <div ng-include src="'./view_history/popover_email.html'">

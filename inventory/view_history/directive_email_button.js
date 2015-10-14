@@ -151,6 +151,7 @@ angular.module('myApp')
             */
           }
         }
+        console.log('closed');
       };
 
     }

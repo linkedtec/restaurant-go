@@ -1,7 +1,7 @@
-<tabset ng-if="is_edit===false" style="margin: 12px 6px; margin-bottom:0px; font-size:1.1em">
-  <tab ng-repeat="type in beverage_types" heading="{{type}}" ng-click="selectAddType(type)">
-  </tab>
-</tabset>
+<uib-tabset ng-if="is_edit===false" style="margin: 12px 6px; margin-bottom:0px; font-size:1.1em">
+  <uib-tab ng-repeat="type in beverage_types" heading="{{type}}" ng-click="selectAddType(type)">
+  </uib-tab>
+</uib-tabset>
 <div ng-class="{'new_inv_border_box': is_edit===false, 'new_inv_box': is_edit===true}">
 
   <div ng-if="is_edit===true">
@@ -13,13 +13,13 @@
   </div>
 
   <div class="row" ng-if="is_edit===true && editMode==='purchase'">
-    <div class="col-xs-12" style="margin: 24px 12px; font-size:1.1em">
+    <div class="col-xs-12" style="margin: 12px 12px; font-size:1.1em; margin-bottom:0px">
       If the purchase information of this beverage has changed, update it below.<br/>
       Any changes will apply to this and future deliveries / inventory moving forward.
     </div>
   </div>
 
-  <div class="row" style="margin-top:8px; padding-left:0px" ng-if="editMode==='all'">
+  <div class="row" style="margin-top:8px; padding-left:0px; margin-bottom:10px" ng-if="editMode==='all'">
     <div class="col-xs-3">
       <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_container===true}">
         <label class="control-label bold label_small">Container </label>
@@ -30,7 +30,7 @@
       <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_serve_type===true}">
         <label class="control-label bold label_small"> 
           Serve Type
-          <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;"  popover="Is this single serve (i.e., can of soda) or can there be multiple retail servings per container (bottle of wine, keg of beer)?" popover-trigger="mouseenter"></span>
+          <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;"  uib-popover="Is this single serve (i.e., can of soda) or can there be multiple retail servings per container (bottle of wine, keg of beer)?" popover-trigger="mouseenter"></span>
         </label>
         <select ng-model="new_beverage.serve_type" class="form-control input_small" ng-options="atype for atype in serve_types" style="width:100%;" ng-show="new_beverage.container_type!=='Keg'"></select>
         <select ng-model="new_beverage.serve_type" class="form-control input_small" ng-options="atype for atype in serve_types" style="width:100%;" ng-show="new_beverage.container_type==='Keg'" disabled></select>
@@ -39,13 +39,13 @@
     </div>
   </div>
 
-  <div ng-show="new_beverage.container_type!==container_types[0] && new_beverage.serve_type!==serve_types[0]">
-    <div ng-if="editMode==='all'">
-      <div style="font-size:1.0em; color:#57a068; margin-top:12px">
+  <div ng-show="new_beverage.container_type!==container_types[0] && new_beverage.serve_type!==serve_types[0]" style="float:left">
+    <div ng-if="showBasic===true">
+      <div style="font-size:1.0em; color:#479558; margin-top:4px; background-color:#d8f0ca; padding:3px 4px 0px">
         Basic Info
       </div>
       <hr class="add_hr"/>
-      <div class="row" style="margin-top:4px; padding-left:0px" ng-if="editMode==='all'">
+      <div class="row" style="margin-top:4px; padding-left:0px" ng-if="showBasic===true">
         <div class="col-xs-3">
           <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_product===true}">
             <label class="control-label bold label_small"> Product Name</label>
@@ -55,8 +55,8 @@
         <div class="col-xs-3">
           <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_distributor===true}">
             <label class="control-label optional label_small"> Distributor / Supplier</label>
-            <div class="btn-group" style="width:100% !important" dropdown>
-              <button type="button" class="btn btn-default btn-md dropdown-toggle input_small" style="width:100%" dropdown-toggle>
+            <div class="btn-group" style="width:100% !important" uib-dropdown>
+              <button type="button" class="btn btn-default btn-md dropdown-toggle input_small" style="width:100%" uib-dropdown-toggle>
                 <span ng-if="new_beverage.distributor !== null" style="float:left; text-align:left; width:90%;">
                   {{new_beverage.distributor.name}} 
                 </span>
@@ -83,10 +83,10 @@
           <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_keg===true}">
             <label class="control-label optional label_small">
               Keg Volume & Deposit
-              <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;" popover="Bars that serve Draft Beer from kegs often pay deposits per keg to their distributor.  If this doesn't apply to you, leave it blank." popover-trigger="mouseenter"></span>
+              <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;" uib-popover="Bars that serve Draft Beer from kegs often pay deposits per keg to their distributor.  If this doesn't apply to you, leave it blank." popover-trigger="mouseenter"></span>
             </label>
-            <div class="btn-group" style="width:100%" dropdown>
-              <button type="button" class="btn btn-default btn-md dropdown-toggle input_small" style="width:100%" dropdown-toggle>
+            <div class="btn-group" style="width:100%" uib-dropdown>
+              <button type="button" class="btn btn-default btn-md dropdown-toggle input_small" style="width:100%" uib-dropdown-toggle>
                 <span ng-if="new_beverage.keg !== null" style="float:left; text-align:left; width:40%;">
                   {{new_beverage.keg.volume | number:1}} {{new_beverage.keg.unit}}
                 </span>
@@ -116,18 +116,18 @@
           </div>
         </div>
       </div>
-      <div class="row" style="padding-left:0px; margin-top:8px" ng-if="editMode==='all'">
+      <div class="row" style="padding-left:0px; margin-top:8px" ng-if="showBasic===true">
         <div class="col-xs-3">
           <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_brewery===true}">
             <label class="control-label optional label_small"> Brewery / Manufacturer </label>
-            <input ng-model="new_beverage.brewery" class="form-control input_small" placeholder="e.g., River Brewing Co." typeahead="brew for brew in allBreweries | filter:$viewValue">
+            <input ng-model="new_beverage.brewery" class="form-control input_small" placeholder="e.g., River Brewing Co." uib-typeahead="brew for brew in allBreweries | filter:$viewValue">
           </div>
         </div>
         <div class="col-xs-3" ng-show="new_beverage.alcohol_type !== 'Non Alcoholic'">
           <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_abv===true}">
             <label class="control-label optional label_small"> 
               % AbV
-              <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;"  popover="Percent Alcohol by Volume (% AbV) indicates the alcoholic content of your beverage" popover-trigger="mouseenter"></span>
+              <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;"  uib-popover="Percent Alcohol by Volume (% AbV) indicates the alcoholic content of your beverage" popover-trigger="mouseenter"></span>
             </label>
             <div class="input-group" style="width:100%">
               <input ng-model="new_beverage.abv" type="number" step="0.01" min="0" max="100" class="form-control input_small" placeholder="" style="width:100%">
@@ -138,9 +138,9 @@
       </div>
     </div>
 
-    <div style="font-size:1.0em; color:#57a068; margin-top:12px">
+    <div style="font-size:1.0em; color:#479558; margin-top:20px; background-color:#d8f0ca; padding:3px 4px 0px">
       Purchase / Order Info
-      <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd" popover="When you order new stock from your supplier, what is the volume of an individual order item, and how much does it cost?" popover-trigger="mouseenter"></span>
+      <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd" uib-popover="When you order new stock from your supplier, what is the volume of an individual order item, and how much does it cost?" popover-trigger="mouseenter"></span>
     </div>
     <hr class="add_hr"/>
     <div class="row" style="padding-left:0px; margin-top:4px">
@@ -153,8 +153,8 @@
             <span>
               <input ng-model="new_beverage.purchase_volume" type="number" min="0" class="form-control input_small" style="width:50%; float:left">
             </span>
-            <span class="btn-group" style="width:50%; float:right" dropdown>
-              <button type="button" class="btn btn-default btn-md dropdown-toggle unit_dropdown input_small" style="width:90%; float:right" dropdown-toggle>
+            <span class="btn-group" style="width:50%; float:right" uib-dropdown>
+              <button type="button" class="btn btn-default btn-md dropdown-toggle unit_dropdown input_small" style="width:90%; float:right" uib-dropdown-toggle>
                 <span ng-if="new_beverage.purchase_unit!==null" style="float:left; text-align:left; width:80%">
                   {{new_beverage.purchase_unit}} 
                 </span>
@@ -193,38 +193,38 @@
         <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_pcount===true}">
           <label class="control-label bold label_small">
             Purchase Count
-            <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;" popover="For a single purchase, you might buy, e.g., a case of 12 bottles of wine for $40.  In that case, enter 12 for Purchase Count, and $40 for Purchase Cost" popover-trigger="mouseenter"></span>
+            <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;" uib-popover="For a single purchase, you might buy, e.g., a case of 12 bottles of wine for $40.  In that case, enter 12 for Purchase Count, and $40 for Purchase Cost" popover-trigger="mouseenter"></span>
           </label>
           <input ng-model="new_beverage.purchase_count" class="form-control input_small" placeholder="">
         </div>
       </div>
       <div class="col-xs-3">
         <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_par===true}">
-          <label class="control-label optional label_small">
+          <label class="control-label optional label_small" ng-class="{'bold': requiredVars.indexOf('par')>=0}">
             Par Level
-            <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;" popover="How much inventory you need to maintain in stock between purchasing periods." popover-trigger="mouseenter"></span>
+            <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;" uib-popover="How much inventory you need to maintain in stock between purchasing periods." popover-trigger="mouseenter"></span>
           </label>
-          <input ng-model="new_beverage.par" class="form-control input_small" placeholder="">
+          <input ng-model="new_beverage.par" ng-class="{'my_error': form_ver.error_par===true}" class="form-control input_small" placeholder="">
         </div>
       </div>
     </div>
 
-    <div ng-if="editMode==='all'">
-      <div style="font-size:1.0em; color:#57a068; margin-top:12px">
+    <div ng-if="showSales===true">
+      <div style="font-size:1.0em; color:#479558; margin-top:20px; background-color:#d8f0ca; padding:3px 4px 0px">
         Sales & Pricing
-        <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd" popover="When selling to customers, what are your retail sizes and prices?  If you have multiple sale points, use the 'Add More Pricing' button." popover-trigger="mouseenter"></span>
+        <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd" uib-popover="When selling to customers, what are your retail sizes and prices?  If you have multiple sale points, use the 'Add More Pricing' button." popover-trigger="mouseenter"></span>
       </div>
       <hr class="add_hr"/>
       <div class="row" style="padding-left:0px; margin-top:4px">
         <div class="col-xs-3">
           <div class="form-group" style="width:100%; margin-bottom:0" ng-class="{'has-error': form_ver.error_sale_status===true}">
-            <label class="control-label optional label_small"> 
+            <label class="control-label optional label_small" ng-class="{'bold': requiredVars.indexOf('sale_status')>=0}"> 
               Sale / Menu Status
             </label>
-            <div class="btn-group" style="width:100% !important" dropdown>
-              <button type="button" class="btn btn-default btn-md dropdown-toggle input_small" style="width:100%" dropdown-toggle>
+            <div class="btn-group" style="width:100% !important" uib-dropdown>
+              <button type="button" class="btn btn-default btn-md dropdown-toggle input_small" style="width:100%" uib-dropdown-toggle ng-class="{'my_error': form_ver.error_sale_status===true}">
                 <span ng-if="new_beverage.sale_status !== null" style="float:left; text-align:left; width:90%;">
-                  {{sale_statuses[new_beverage.sale_status]}} 
+                  {{new_beverage.sale_status}} 
                 </span>
                 <span ng-if="new_beverage.sale_status === null" class="noselect" style="float:left; text-align:left; width:90%; color:#999999">
                   Select Sale Status
@@ -242,26 +242,26 @@
             </div>
           </div>
         </div>
-        <div class="col-xs-3" ng-show="new_beverage.sale_status===1">
+        <div class="col-xs-3" ng-show="new_beverage.sale_status==='Seasonal'">
           <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_sale_start===true}">
             <label class="control-label label_small"> 
               Sale Period Start
             </label>
             <div class="input-group">
-              <input type="text" ng-class="{'my_error': form_ver.error_sale_start===true}" class="form-control input_small" datepicker-popup="{{date_format}}" ng-model="new_beverage.sale_start" is-open="date_opened.start" datepicker-options="date_options" ng-required="true" close-text="Close" ng-change="saleStartChanged()">
+              <input type="text" ng-class="{'my_error': form_ver.error_sale_start===true}" class="form-control input_small" uib-datepicker-popup="{{date_format}}" ng-model="new_beverage.sale_start" is-open="date_opened.start" datepicker-options="date_options" ng-required="true" close-text="Close" ng-change="saleStartChanged()">
               <span class="input-group-btn">
                 <button type="button" class="btn btn-default input_small" ng-click="openSaleStart($event)"><span class="glyphicon glyphicon-calendar"></span></button>
               </span>
             </div>
           </div>
         </div>
-        <div class="col-xs-3" ng-show="new_beverage.sale_status===1">
+        <div class="col-xs-3" ng-show="new_beverage.sale_status==='Seasonal'">
           <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_sale_end===true}">
             <label class="control-label label_small">
               Sale Period End
             </label>
             <div class="input-group">
-              <input type="text" ng-class="{'my_error': form_ver.error_sale_end===true}" class="form-control input_small" datepicker-popup="{{date_format}}" ng-model="new_beverage.sale_end" is-open="date_opened.end" datepicker-options="date_options" ng-required="true" close-text="Close" ng-change="saleEndChanged()">
+              <input type="text" ng-class="{'my_error': form_ver.error_sale_end===true}" class="form-control input_small" uib-datepicker-popup="{{date_format}}" ng-model="new_beverage.sale_end" is-open="date_opened.end" datepicker-options="date_options" ng-required="true" close-text="Close" ng-change="saleEndChanged()">
               <span class="input-group-btn">
                 <button type="button" class="btn btn-default input_small" ng-click="openSaleEnd($event)"><span class="glyphicon glyphicon-calendar"></span></button>
               </span>
@@ -292,8 +292,8 @@
         <div class="col-xs-3 min_padding">
           <div class="form-group" ng-class="{'has-error': form_ver.errors_sale_volume[$index]===true}" style="width:100%; margin-bottom:0">
             <input ng-model="size_price.volume" type="number" min="0" class="form-control input_small" style="width:60%; float:left" placeholder="pour size">
-            <span class="btn-group" style="width:40%;" dropdown>
-              <button type="button" style="width:90%; float:right" class="btn btn-default btn-md dropdown-toggle unit_dropdown input_small" dropdown-toggle>
+            <span class="btn-group" style="width:40%;" uib-dropdown>
+              <button type="button" style="width:90%; float:right" class="btn btn-default btn-md dropdown-toggle unit_dropdown input_small" uib-dropdown-toggle>
                 <span ng-if="size_price.unit!==null" style="float:left; text-align:left; width:80%">
                   {{size_price.unit}} 
                 </span>
@@ -324,16 +324,16 @@
           </div>
         </div>
         <div class="col-xs-6">
-          <button ng-show="new_beverage.size_prices.length > 1" ng-click="removeSaleRow($index)" type="button" class="btn btn-default btn-sm add_transparent_btn input_small">
+          <button ng-show="new_beverage.size_prices.length > 1" ng-click="removeSaleRow($index)" type="button" class="btn btn-default btn-sm add_transparent_btn">
             <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
           </button>
-          <button ng-show="$index===new_beverage.size_prices.length-1" ng-click="addSaleRow(new_beverage.size_prices[$index].unit)" type="button" class="btn btn-default btn-sm add_transparent_btn input_small" style="margin-left:6px">
+          <button ng-show="$index===new_beverage.size_prices.length-1" ng-click="addSaleRow(new_beverage.size_prices[$index].unit)" type="button" class="btn btn-default btn-sm add_transparent_btn" style="margin-left:6px">
             <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add More Pricing
           </button>
         </div>
       </div>
     </div>
-    <div style="margin-bottom:12px" ng-if="editMode==='all'"></div>
+    <div style="margin-bottom:12px"></div>
 
     <div ng-show="new_success_msg !== null" class="row" style="margin:4px 0px">
       <div class="alert alert-success alert-dismissible" role="alert" style="margin-bottom:6px">
@@ -348,10 +348,14 @@
     </div>
   </div>
   <div style="padding: 4px 4px; padding-bottom:12px;" ng-show="new_beverage.container_type!==container_types[0] && new_beverage.serve_type!==serve_types[0]">
+    <hr style="margin-bottom:8px; margin-top:4px"/>
     <button ng-click="saveBeverage()" type="button" class="btn btn-success btn_ok">
       <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> {{save_title}}
     </button>
-    <button ng-click="deleteBeverage()" ng-if="is_edit===true && editMode==='all'" type="button" class="btn btn-success btn-danger btn_ok" style="float:right">
+    <button ng-if="is_edit===true" ng-click="closeOnCancel()" type="button" class="btn btn-default btn_ok" style="margin-left:8px">
+      <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Cancel
+    </button>
+    <button ng-click="deleteBeverage()" ng-if="hideDelete!==true && is_edit===true" type="button" class="btn btn-success btn-danger btn_ok" style="float:right">
       <span class="glyphicon glyphicon-trash" aria-hidden="true"></span> Delete
     </button>
   </div>

@@ -1113,6 +1113,10 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
     // When user edits beverage unit pricing
     // launch modal for editing unit price
 
+    // XXX This is necessary here!  Other views (such as the delivery view,
+    // which calls modal inv quantity, calls into here)
+    // Dan's note on 10/10/2015
+
     console.log(item);
 
     var modalEditInstance = $modal.open({
@@ -1137,6 +1141,12 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
         },
         edit_mode: function() {
           return "purchase";
+        },
+        hide_delete: function() {
+          return true;
+        },
+        required_vars: function() {
+          return [];
         }
       }
     });

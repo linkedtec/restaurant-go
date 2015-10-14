@@ -9,16 +9,23 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
   });
 }])
 
-.controller('ViewSalesPlanCtrl', function($scope, $modal, $http, ItemsService, DateService, BeveragesService) {
+.controller('ViewSalesPlanCtrl', function($scope, $modal, $http, ItemsService, DateService, BeveragesService, DistributorsService, MathService) {
 
   $scope.use_modes = ['Staples', 'Seasonal', 'Inactive'];
   $scope.use_mode = 1; // XXX hacky initialization to get sorting correct on
                        // startup by switching to mode 0
+  $scope.sale_statuses = ['Staple', 'Seasonal', 'Inactive'];
+
   $scope.move_menus = ['Staples', 'Seasonal'];
+
+  $scope.add_mode = 1;
+  $scope.add_modes = ['Existing Beverages in DB', 'Create New Beverage']
 
   $scope.add_inv_all = [];
   $scope.add_inv_unadded = [];
 
+  $scope.all_breweries = [];
+  $scope.all_distributors = [];
   $scope.inventory_items = [];
 
   $scope.show_add_ui = false;
@@ -102,8 +109,42 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
     $scope.getInvData();
   };
 
+  $scope.getAllDistributors = function() {
+
+    var result = DistributorsService.get();
+    result.then(function(payload) {
+      var data = payload.data;
+      
+      $scope.all_distributors = data;
+      console.log(data);
+    });
+  };
+
+  $scope.selectAddMode = function(mode) {
+    if (mode === $scope.add_modes[$scope.add_mode]) {
+      return;
+    }
+
+    $scope.add_mode = $scope.add_modes.indexOf(mode);
+
+    if ($scope.add_mode===0) {
+      $scope.addUIStyle = {width:'600px'}
+      $scope.addUIHeight = {height:'480px'};
+    } else {
+      $scope.addUIStyle = {width:'100%'};
+      $scope.addUIHeight = {height:'100%'};
+
+      if ($scope.all_distributors.length===0) {
+        $scope.getAllDistributors();
+      }
+    }
+  };
+  $scope.selectAddMode($scope.add_modes[0]);
+
   $scope.showAddInv = function() {
     $scope.show_add_ui=true;
+
+    $scope.selectAddMode($scope.add_modes[0]);
   };
 
   $scope.hideAddInv = function() {
@@ -115,7 +156,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
     // been added yet
     $http.get('/inv/menu', {
       params: {
-        sale_status:'inactive'
+        sale_status:'Inactive'
       }
     }).
     success(function(data, status, headers, config) {
@@ -125,6 +166,13 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
       $scope.add_inv_unadded = data;
       ItemsService.processBevsForAddable($scope.add_inv_unadded);
+
+      for (var i in $scope.add_inv_unadded) {
+        var item = $scope.add_inv_unadded[i];
+        if ($scope.all_breweries.indexOf(item['brewery']) < 0) {
+            $scope.all_breweries.push(item['brewery']);
+          }
+      }
       
     }).
     error(function(data, status, headers, config) {
@@ -168,11 +216,11 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
   $scope.getInvData = function() {
 
-    var type = 'inactive';
+    var type = 'Inactive';
     if ($scope.use_mode === 0) {
-      type = 'staple;';
+      type = 'Staple;';
     } else if ($scope.use_mode === 1) {
-      type = 'seasonal';
+      type = 'Seasonal';
     }
 
     // currently bogus test data
@@ -195,16 +243,15 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       ItemsService.processBevsForAddable($scope.inventory_items);
 
 
-      if ($scope.use_mode===1){ 
-        for (var i in $scope.inventory_items) {
-          var item = $scope.inventory_items[i];
-          item['sale_start'] = DateService.getDateFromUTCTimeStamp(
-            item['sale_start'], true);
-          item['sale_end'] = DateService.getDateFromUTCTimeStamp(
-            item['sale_end'], true);
+      for (var i in $scope.inventory_items) {
+        var item = $scope.inventory_items[i];
 
+        if ($scope.all_breweries.indexOf(item['brewery']) < 0) {
+          $scope.all_breweries.push(item['brewery']);
+        }
+
+        if ($scope.use_mode===1) {
           $scope.calculateDates(item);
-
         }
       }
 
@@ -305,11 +352,11 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
         else if (status === 'save') {
           console.log(item);
 
-          var type = 'staple';
+          var type = 'Staple';
           if (menu_type === 1) {
-            type = 'seasonal';
+            type = 'Seasonal';
           } else if (menu_type === 2) {
-            type = 'inactive';
+            type = 'Inactive';
           }
 
           var post_params = {
@@ -458,6 +505,67 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
     */
 
     $scope.inventory_items.sort($scope.sortFunc);
+  };
+
+  $scope.editBeverage = function(inv) {
+
+    console.log(inv);
+
+    var modalEditInstance = $modal.open({
+      templateUrl: 'editInvModal.html',
+      controller: 'editInvModalCtrl',
+      windowClass: 'edit-inv-modal',
+      backdropClass: 'white-modal-backdrop',
+      resolve: {
+        edit_beverage: function() {
+          return inv;
+        },
+        all_distributors: function() {
+          return $scope.all_distributors;
+        },
+        all_breweries: function() {
+          return $scope.all_breweries;
+        },
+        volume_units: function() {
+          return [];
+        },
+        edit_mode: function() {
+          return "purchase, sales";
+        },
+        hide_delete: function() {
+          return true;
+        },
+        required_vars: function() {
+          return ['sale_status', 'par'];
+        }
+      }
+    });
+
+    modalEditInstance.result.then(
+      // success status
+      function( result ) {
+        // result is a list, first item is string for status, e.g.,
+        // 'save' or 'delete'
+        // second item is the affected beverage
+        var status = result[0];
+        var edit_bev = result[1];
+        
+        if (status === 'save') {
+          console.log(edit_bev);
+
+          swal({
+            title: "Beverage Updated!",
+            text: "<b>" + edit_bev.product + "</b> has been updated with your changes.",
+            type: "success",
+            timer: 4000,
+            allowOutsideClick: true,
+            html: true});
+        }
+      }, 
+      // error status
+      function() {
+        ;
+      });
   };
 
 })

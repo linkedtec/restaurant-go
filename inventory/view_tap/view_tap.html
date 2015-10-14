@@ -9,10 +9,10 @@
     Record flow rate of kegs and take on-tap inventory.
   </div-->
 
-  <tabset style="margin-top:4px; font-size:1.1em;">
-    <tab ng-repeat="mode in use_modes" heading="{{mode}}" ng-click="selectUseMode(mode)">
-    </tab>
-  </tabset>
+  <uib-tabset style="margin-top:4px; font-size:1.1em;">
+    <uib-tab ng-repeat="mode in use_modes" heading="{{mode}}" ng-click="selectUseMode(mode)">
+    </uib-tab>
+  </uib-tabset>
 
   <div class="row" ng-if="use_mode===1" style="margin-top:6px">
     <div class="col-xs-12 hint_text" style="font-size:1.1em">

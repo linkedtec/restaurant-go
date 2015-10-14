@@ -26,6 +26,7 @@ config(['$routeProvider', function($routeProvider) {
   });
 }])
 */
+/*
 .directive('datepickerPopup', function (){
   return {
     restrict: 'EAC',
@@ -36,6 +37,7 @@ config(['$routeProvider', function($routeProvider) {
     }
   }
 })
+*/
 
 .controller('myAppCtrl', function($scope, $location) {
 
@@ -109,7 +111,7 @@ config(['$routeProvider', function($routeProvider) {
   }
 })
 
-.factory("ItemsService", function($http, MathService) {
+.factory("ItemsService", function($http, MathService, DateService) {
 
   var getDisplayName = function(item) {
     if (item.type==='bev') {
@@ -129,6 +131,13 @@ config(['$routeProvider', function($routeProvider) {
   }
 
   var getItemIcon = function(item) {
+    // get the icon type
+    // draft beer (beer mug)
+    // wine (wine bottle)
+    // bottle (either beer or non-alc)
+    // can (either beer or non-alc)
+    // liquor (XO bottle)
+
     if (item.type==='keg') {
       return 'keg';
     }
@@ -162,13 +171,13 @@ config(['$routeProvider', function($routeProvider) {
     var purchase_cost = 0;
     var purchase_count = 1;
     var deposit = 0;
-    if (bev['purchase_cost'] !== null) {
+    if (bev['purchase_cost'] !== null && bev['purchase_cost'] !== undefined) {
       purchase_cost = bev['purchase_cost'];
     }
-    if (bev['purchase_count'] !== null) {
+    if (bev['purchase_count'] !== null && bev['purchase_count'] !== undefined) {
       purchase_count = bev['purchase_count'];
     }
-    if (bev['deposit'] !== null) {
+    if (bev['deposit'] !== null && bev['deposit'] !== undefined) {
       deposit = bev['deposit'];
     }
 
@@ -190,8 +199,62 @@ config(['$routeProvider', function($routeProvider) {
     },
 
     processBevsForAddable: function(bevs) {
+
+      if (bevs===null || bevs.length === 0) {
+        bevs = [];
+      }
+
       for (var i in bevs) {
         var item = bevs[i];
+
+        // fix a list of known keys to be decimal precision 2
+        var fix_num_keys = [
+          'abv',
+          'count',
+          'purchase_cost',
+          'deposit'
+        ];
+        for (var j in fix_num_keys) {
+          var fix_key = fix_num_keys[j];
+          if ( item[fix_key] !== undefined && item[fix_key] !== null ) {
+            item[fix_key] = MathService.fixFloat2(item[fix_key]);
+          }
+        }
+        // now fix a list of known single precision
+        fix_num_keys = [
+          'purchase_count',
+          'par',
+          'purchase_volume',
+          'volume',
+        ];
+        for (var j in fix_num_keys) {
+          var fix_key = fix_num_keys[j];
+          if ( item[fix_key] !== undefined && item[fix_key] !== null ) {
+            item[fix_key] = MathService.fixFloat1(item[fix_key]);
+          }
+        }
+
+        // if size_prices is null, make them empty array
+        if (item.size_prices===undefined || item.size_prices===null) {
+          item.size_prices = [];
+        }
+
+        // fix size_prices to be decimal precision 2
+        for (var j in item.size_prices) {
+          item.size_prices[j]['price'] = MathService.fixFloat2(item.size_prices[j]['price']);
+          item.size_prices[j]['volume'] = MathService.fixFloat2(item.size_prices[j]['volume']);
+        }
+
+        if (item['sale_start']!==undefined && item['sale_start']!==null) {
+          item['sale_start'] = DateService.getDateFromUTCTimeStamp(
+            item['sale_start'], true);
+        }
+
+        if (item['sale_end']!==undefined && item['sale_end']!==null) {
+          item['sale_end'] = DateService.getDateFromUTCTimeStamp(
+            item['sale_end'], true);
+        }
+        
         // Note that the bevs might already have some of these fields defined
         // in the case of e.g., editing,
         // so only add them if one doesn't already exist
@@ -207,19 +270,10 @@ config(['$routeProvider', function($routeProvider) {
 
         item['unit_cost'] = getBevUnitCost(item);
 
-        item['volume'] = MathService.fixFloat1(item['volume']);
-        item['purchase_cost'] = MathService.fixFloat1(item['purchase_cost']);
-        item['deposit'] = MathService.fixFloat1(item['deposit']);
-
         item['display_name'] = getDisplayName(item);
 
-        // get the icon type
-        // draft beer (beer mug)
-        // wine (wine bottle)
-        // bottle (either beer or non-alc)
-        // can (either beer or non-alc)
-        // liquor (XO bottle)
         item['icon'] = getItemIcon(item);
+
       }
     },
 

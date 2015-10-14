@@ -630,7 +630,7 @@ like enclosed space */
   margin: 0px 6px;
   margin-bottom:8px;
   padding:6px 12px;
-  background-color:#fbfff9;
+  background-color:#fbfdf9;
   border-right: 1px solid #dddddd;
   border-left: 1px solid #dddddd;
   border-bottom: 1px solid #dddddd;
@@ -638,7 +638,7 @@ like enclosed space */
 
 .new_inv_box {
   padding: 6px 4px;
-  background-color:#fbfff9;
+  background-color:#fbfdf9;
 }
 
 .add_inv_all {
@@ -830,6 +830,8 @@ like enclosed space */
 .input_small {
   font-size:13px;
   height:30px;
+  padding-left:8px;
+  padding-right:4px;
 }
 
 .hint_text {

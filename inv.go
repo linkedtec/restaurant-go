@@ -114,11 +114,11 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 		sale_status := r.URL.Query().Get("sale_status")
 
 		rows, err := db.Query(`
-			SELECT id, version_id, product, container_type, brewery, alcohol_type, 
-			purchase_volume, purchase_unit, purchase_cost, 
-			sale_start, sale_end, par 
+			SELECT id, version_id, product, container_type, serve_type, brewery, alcohol_type, 
+			purchase_volume, purchase_unit, purchase_cost, purchase_count, 
+			sale_status, sale_start, sale_end, par 
 			FROM beverages WHERE user_id=$1 AND current 
-			AND COALESCE(sale_status, 'inactive')=$2;`, test_user_id, sale_status)
+			AND COALESCE(sale_status, 'Inactive')=$2;`, test_user_id, sale_status)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -135,11 +135,14 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 				&bev.VersionID,
 				&bev.Product,
 				&bev.ContainerType,
+				&bev.ServeType,
 				&bev.Brewery,
 				&bev.AlcoholType,
 				&bev.PurchaseVolume,
 				&bev.PurchaseUnit,
 				&bev.PurchaseCost,
+				&bev.PurchaseCount,
+				&bev.SaleStatus,
 				&bev.SaleStart,
 				&bev.SaleEnd,
 				&bev.Par); err != nil {
@@ -162,15 +165,17 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			if !exists {
-				bev.Count = 0
+				bev.Count.Float64 = 0
+				bev.Count.Valid = false
 			} else {
 				// Now get the total count of this beverage.  Note that we want to find
 				// all the version_id that match, in case this beverage was updated
 				// recently
-				err = db.QueryRow("SELECT SUM(location_beverages.quantity) FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$1 AND location_beverages.type='bev';", bev.VersionID).Scan(&beverages[i].Count)
+				err = db.QueryRow("SELECT SUM(location_beverages.quantity) FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update AND date_part('day', age(locations.last_update)) < 3 AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$1 AND location_beverages.type='bev';", bev.VersionID).Scan(&beverages[i].Count)
 				switch {
 				case err == sql.ErrNoRows:
-					bev.Count = 0
+					bev.Count.Float64 = 0
+					bev.Count.Valid = false
 				case err != nil:
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)

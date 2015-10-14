@@ -838,6 +838,12 @@ angular.module('myApp')
             },
             edit_mode: function() {
               return "purchase";
+            },
+            hide_delete: function() {
+              return true;
+            },
+            required_vars: function() {
+              return [];
             }
           }
         });

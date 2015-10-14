@@ -42,29 +42,17 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
   $scope.getDistributors = function() {
 
     var result = DistributorsService.get();
-    result.then(
-      function(payload) {
-        var data = payload.data;
-        console.log(data);
-        $scope.distributors = data;
-        if ($scope.distributors===null || $scope.distributors.length === 0) {
-          $scope.distributors = [];
-        } else {
-          for (var i in $scope.distributors) {
-            if ($scope.distributors[i].kegs === null) {
-              $scope.distributors[i].kegs = [];
-            }
-          }
-        }
+    result.then(function(payload) {
+      var data = payload.data;
+      
+      $scope.distributors = data;
+      console.log(data);
 
-        if ($scope.firstTimeSort) {
-          $scope.firstTimeSort = false;
-          $scope.sortBy('name');
-        }
-      },
-      function(errorPayload) {
-        ; // do nothing for now
-      });
+      if ($scope.firstTimeSort) {
+        $scope.firstTimeSort = false;
+        $scope.sortBy('name');
+      }
+    });
   };
   $scope.getDistributors();
 

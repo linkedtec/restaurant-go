@@ -46,7 +46,7 @@
     <div style="display:inline-block; width:200px; float:left">
       <input ng-model="all_inv_query.query" class="form-control input-md" placeholder="Search Inventory...">
     </div>
-    <div style="display:inline-block; margin-left:10px;float:left"  popover="Show / hide columns" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+    <div style="display:inline-block; margin-left:10px;float:left"  uib-popover="Show / hide columns" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
       <button ng-click="showColumnsCtrl()" type="button" class="btn btn-default btn-md" style="height:34px">
         <span class="glyphicon glyphicon-th-list" aria-hidden="true" style="color:#888888"></span>
       </button>
@@ -60,11 +60,11 @@
       </div>
       <div style="display:inline-block; margin-left:24px">
         <div style="display:inline-block;" class="btn-group">
-          <label class="btn btn-default btn-sm col_comp" ng-model="col_comps.supplier" btn-checkbox ng-mouseover="highlightCols('supplier')" ng-mouseleave="unhighlightCols()">Supplier</label>
-          <label class="btn btn-default btn-sm col_comp" ng-model="col_comps.purchase" btn-checkbox ng-mouseover="highlightCols('purchase')" ng-mouseleave="unhighlightCols()">Purchase</label>
-          <label class="btn btn-default btn-sm col_comp" ng-model="col_comps.retail" btn-checkbox ng-mouseover="highlightCols('retail')" ng-mouseleave="unhighlightCols()">Retail</label>
-          <label class="btn btn-default btn-sm col_comp" ng-model="col_comps.inventory" btn-checkbox ng-mouseover="highlightCols('inventory')" ng-mouseleave="unhighlightCols()">Inventory</label>
-          <label class="btn btn-default btn-sm col_comp" ng-model="col_comps.misc" btn-checkbox ng-mouseover="highlightCols('misc')" ng-mouseleave="unhighlightCols()">Misc.</label>
+          <label class="btn btn-default btn-sm col_comp" ng-model="col_comps.supplier" uib-btn-checkbox ng-mouseover="highlightCols('supplier')" ng-mouseleave="unhighlightCols()">Supplier</label>
+          <label class="btn btn-default btn-sm col_comp" ng-model="col_comps.purchase" uib-btn-checkbox ng-mouseover="highlightCols('purchase')" ng-mouseleave="unhighlightCols()">Purchase</label>
+          <label class="btn btn-default btn-sm col_comp" ng-model="col_comps.retail" uib-btn-checkbox ng-mouseover="highlightCols('retail')" ng-mouseleave="unhighlightCols()">Retail</label>
+          <label class="btn btn-default btn-sm col_comp" ng-model="col_comps.inventory" uib-btn-checkbox ng-mouseover="highlightCols('inventory')" ng-mouseleave="unhighlightCols()">Inventory</label>
+          <label class="btn btn-default btn-sm col_comp" ng-model="col_comps.misc" uib-btn-checkbox ng-mouseover="highlightCols('misc')" ng-mouseleave="unhighlightCols()">Misc.</label>
         </div>
         <div style="display:inline-block; margin-left:6px">
           <button ng-click="showAllColumns()" type="button" class="btn btn-default btn-sm">
@@ -84,26 +84,26 @@
     <tr style="font-size:12px; ;background-color: #e0f0ff;">
       <td class="all_inv_label_span noselect" style="width:40px; border-left: 1px solid #dddddd">
       </td>
-      <td class="all_inv_label_span noselect" style="width:160px; overflow:auto">
+      <td class="all_inv_label_span noselect" style="width:180px; overflow:auto">
         <div class="sort_div" ng-click="sortBy('product')">
           <span>Product</span>
           <span ng-show="sort_key === 'product'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:95px;">
-        <div class="sort_div" ng-click="sortBy('alcohol_type')" popover="Alcohol Type" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+        <div class="sort_div" ng-click="sortBy('alcohol_type')" uib-popover="Alcohol Type" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>Alc. Type</span>
           <span ng-show="sort_key === 'alcohol_type'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:80px;">
-        <div class="sort_div" ng-click="sortBy('container_type')" popover="Container Type" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+        <div class="sort_div" ng-click="sortBy('container_type')" uib-popover="Container Type" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>Container</span>
           <span ng-show="sort_key === 'container_type'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:60px;">
-        <div class="sort_div" ng-click="sortBy('serve_type')" popover="Serve Type" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+        <div class="sort_div" ng-click="sortBy('serve_type')" uib-popover="Serve Type" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>Serve</span>
           <span ng-show="sort_key === 'serve_type'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
@@ -121,41 +121,41 @@
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:50px;" ng-show="col_comps.misc === true" ng-class="{'col_highlight': highlight_cols==='misc'}">
-        <div class="sort_div" ng-click="sortBy('abv')" popover="% Alcohol by Volume" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+        <div class="sort_div" ng-click="sortBy('abv')" uib-popover="% Alcohol by Volume" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>AbV</span>
           <span ng-show="sort_key === 'abv'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:70px;" ng-show="col_comps.purchase === true" ng-class="{'col_highlight': highlight_cols==='purchase'}">
-        <div class="sort_div" ng-click="sortBy('purchase_volume')" popover="Purchase Volume" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+        <div class="sort_div" ng-click="sortBy('purchase_volume')" uib-popover="Purchase Volume" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>P. Vol</span>
           <span ng-show="sort_key === 'purchase_volume'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:60px;" ng-show="col_comps.purchase === true" ng-class="{'col_highlight': highlight_cols==='purchase'}">
-        <div class="sort_div" ng-click="sortBy('purchase_unit')" popover="Purchase Unit" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+        <div class="sort_div" ng-click="sortBy('purchase_unit')" uib-popover="Purchase Unit" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>P. Unit</span>
           <span ng-show="sort_key === 'purchase_unit'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:80px;" ng-show="col_comps.purchase === true" ng-class="{'col_highlight': highlight_cols==='purchase'}">
-        <div class="sort_div" ng-click="sortBy('purchase_cost')" popover="Wholesale Cost" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+        <div class="sort_div" ng-click="sortBy('purchase_cost')" uib-popover="Wholesale Cost" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>Whs. Cost</span>
           <span ng-show="sort_key === 'purchase_cost'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:70px;" ng-show="col_comps.purchase === true" ng-class="{'col_highlight': highlight_cols==='purchase'}">
-        <div class="sort_div" ng-click="sortBy('purchase_count')" popover="Purchase Count -- how many units are acquired per Wholesale Purchase" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+        <div class="sort_div" ng-click="sortBy('purchase_count')" uib-popover="Purchase Count -- how many units are acquired per Wholesale Purchase" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>P. Count</span>
           <span ng-show="sort_key === 'purchase_count'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:100px;" ng-show="col_comps.purchase === true" ng-class="{'col_highlight': highlight_cols==='purchase'}">
-        <div class="sort_div" ng-click="sortBy('price_per_volume')" popover="Cost per Volume, can toggle between mL and oZ" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+        <div class="sort_div" ng-click="sortBy('price_per_volume')" uib-popover="Cost per Volume, can toggle between mL and oZ" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>{{selected_cost_unit}}</span>
           <span style="z-index:99;">
-            <span class="dropdown" dropdown>
-              <button dropdown-toggle type="button" class="btn btn-xs" style="margin-top:-4px; padding:2px; padding-bottom:0px; background-color:#f0faff; border-color:#aaddbb; width:20px" onclick="event.preventDefault(); event.stopPropagation();">
+            <span class="dropdown" uib-dropdown>
+              <button uib-dropdown-toggle type="button" class="btn btn-xs" style="margin-top:-4px; padding:2px; padding-bottom:0px; background-color:#f0faff; border-color:#aaddbb; width:20px" onclick="event.preventDefault(); event.stopPropagation();">
                 <span class="glyphicon glyphicon-cog" style="color:#65a9e0"></span>
               </button>
               <ul class="dropdown-menu" role="menu">
@@ -171,19 +171,19 @@
       <td class="all_inv_span" style="width:90px; border-bottom:none" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">Serv. Size</td>
       <td class="all_inv_span" style="width:70px; border-bottom:none" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">Ret. Price</td>
       <!--td class="all_inv_label_span noselect" style="width:60px;" ng-show="col_comps.inventory === true" ng-class="{'col_highlight': highlight_cols==='inventory'}">
-        <div class="sort_div" ng-click="sortBy('count')" popover="Quantity in Inventory (in all locations)" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+        <div class="sort_div" ng-click="sortBy('count')" uib-popover="Quantity in Inventory (in all locations)" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>Qty</span>
           <span ng-show="sort_key === 'count'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:100px;" ng-show="col_comps.inventory === true" ng-class="{'col_highlight': highlight_cols==='inventory'}">
-        <div class="sort_div" ng-click="sortBy('inventory')"  popover="Inventory = Purchase Cost * Quantity" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+        <div class="sort_div" ng-click="sortBy('inventory')" uib-popover="Inventory = Purchase Cost * Quantity" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>Inventory</span>
           <span ng-show="sort_key === 'inventory'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td-->
       <td class="all_inv_label_span noselect" style="width:70px;" ng-show="col_comps.misc === true" ng-class="{'col_highlight': highlight_cols==='misc'}">
-        <div class="sort_div" ng-click="sortBy('deposit')" popover="Keg Deposit" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+        <div class="sort_div" ng-click="sortBy('deposit')" uib-popover="Keg Deposit" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>Dpst</span>
           <span ng-show="sort_key === 'deposit'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
@@ -195,15 +195,30 @@
           <span class="glyphicon glyphicon-pencil"></span>
         </button>
       </td>
-      <td class="all_inv_span" style="width:160px;">{{inv.product}}</td>
+      <td class="all_inv_span" style="width:180px;">
+        <div style="display:inline-block; float:left; width:24px">
+          <img ng-if="inv.icon==='keg'" src="images/bev_keg.png" height="24px" width="24px">
+          <img ng-if="inv.icon==='draft'" src="images/bev_draft.png" height="24px" width="24x">
+          <img ng-if="inv.icon==='wine'" src="images/bev_wine.png" height="24px" width="24px">
+          <img ng-if="inv.icon==='bottle'" src="images/bev_bottle.png" height="24px" width="24px">
+          <img ng-if="inv.icon==='can'" src="images/bev_can.png" height="24px" width="24px">
+          <img ng-if="inv.icon==='liquor'" src="images/bev_xo.png" height="24px" width="24px">
+        </div>
+        <div style="display:inline-block; float:left; margin-left:4px; width:135px; margin-top:2px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap">
+          <span style="vertical-align:middle;">
+          {{inv.product}}
+          </span>
+        </div>
+      </div>
+      </td>
       <td class="all_inv_span" style="width:95px;">{{inv.alcohol_type}}</td>
       <td class="all_inv_span" style="width:80px;">{{inv.container_type}}</td>
       <td class="all_inv_span" style="width:60px;">
         <span ng-show="inv.serve_type===0">Single</span>
         <span ng-show="inv.serve_type===1">Multi</span>
       </td>
-      <td class="all_inv_span" style="width:140px;" ng-show="col_comps.supplier === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='supplier'}">{{inv.distributor.name}}</td>
-      <td class="all_inv_span" style="width:140px;" ng-show="col_comps.supplier === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='supplier'}">{{inv.brewery}}</td>
+      <td class="all_inv_span" style="width:140px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap" ng-show="col_comps.supplier === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='supplier'}">{{inv.distributor.name}}</td>
+      <td class="all_inv_span" style="width:140px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap" ng-show="col_comps.supplier === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='supplier'}">{{inv.brewery}}</td>
       <td class="all_inv_span" style="width:50px;" ng-show="col_comps.misc === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='misc'}">
         <span ng-if="inv.abv !== null">{{inv.abv | number:2}} <span class="inv_symbol">%</span></span<</td>
       <td class="all_inv_span" style="width:70px;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}">{{inv.purchase_volume | number:2}}</td>

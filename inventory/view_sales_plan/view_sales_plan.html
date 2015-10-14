@@ -12,10 +12,10 @@
   <!--Use this page to track par for beverages being sold; you can even make purchase 
   orders to your Distributors, assuming you've done inventory.-->
 
-  <tabset style="margin-top:36px; font-size:1.0em;">
-    <tab ng-repeat="mode in use_modes" heading="{{mode}}" ng-click="selectUseMode(mode)">
-    </tab>
-  </tabset>
+  <uib-tabset style="margin-top:36px; font-size:1.0em;">
+    <uib-tab ng-repeat="mode in use_modes" heading="{{mode}}" ng-click="selectUseMode(mode)">
+    </uib-tab>
+  </uib-tabset>
   <div style="margin: 0px; padding:12px 16px; border: 1px solid #dddddd; border-top: none; background-color:#fdfdfd; margin-bottom:128px">
     <div ng-if="use_mode===0">
       <div class="" style="margin-top:12px; font-size:1.6em; display:inline-block;">
@@ -43,7 +43,7 @@
     </div>
     <hr style="margin:0; margin-top:-6px"/>
 
-    <div ng-if="show_add_ui===true" class="add_ui_box_green" style="width:680px">
+    <div ng-if="show_add_ui===true" class="add_ui_box_green" style="margin-top:12px" ng-style="addUIStyle">
       <div class="add_title_bar_green">
         <button ng-click="hideAddInv()" type="button" class="btn btn-default btn_x" style="float:left">
           <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -54,8 +54,17 @@
         </div>
         <br/>
       </div>
-      <div style="display:block; position:relative; height:480px; bottom:0; top:0px; left: 0; right:0; margin-top:12px; margin-bottom:12px; margin-right:12px; margin-left:12px; padding:4px 8px; padding-bottom:12px; background-color:#fbfff9; border:1px solid #dddddd">
-        <addable-inv all-bevs="add_inv_unadded" all-kegs="[]" added-items="inventory_items" control="addableControl" show-tabs="false" use-override-add-func="true" override-add-func="showParModal(item, use_mode, false)"></addable-inv>
+      <uib-tabset style="margin:12px 12px 0px; font-size:1.0em;">
+        <uib-tab ng-repeat="mode in add_modes" heading="{{mode}}" ng-click="selectAddMode(mode)">
+        </uib-tab>
+      </uib-tabset>
+      <div style="display:block; position:relative; bottom:0; top:0px; left: 0; right:0; margin:0px 12px 12px; padding:4px 8px; padding-bottom:12px; background-color:#ffffff; border:1px solid #dddddd; border-top:none" ng-style="addUIHeight">
+        <div ng-if="add_mode===0">
+          <addable-inv all-bevs="add_inv_unadded" all-kegs="[]" added-items="inventory_items" control="addableControl" show-tabs="false" use-override-add-func="true" override-add-func="showParModal(item, use_mode, false)"></addable-inv>
+        </div>
+        <div ng-if="add_mode===1">
+          <new-beverage all-distributors="all_distributors" all-breweries="all_breweries" volume-units="volume_units" prepopulate-vars="{'sale_status':sale_statuses[use_mode]}" required-vars="['par','sale_status']" control="newBevControl" edit-mode="'all'" close-on-save="newBeverageCloseOnSave(new_beverage)"></new-beverage>
+        </div>
       </div>
     </div>
 
@@ -112,7 +121,7 @@
           </div>
         </td>
         <td ng-if="use_mode!==2" class="all_inv_label_span noselect" style="width:70px;">
-          <div class="sort_div" ng-click="sortBy('stock')">
+          <div class="sort_div" ng-click="sortBy('stock')" uib-popover="Recently recorded quantity in Inventory.  Inventory done more than 3 days ago is not included!" popover-trigger="mouseenter" popover-append-to-body="true">
             <span>Stock</span>
             <span ng-show="sort_key === 'stock'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
           </div>
@@ -150,7 +159,7 @@
               <span ng-if="inv.purchase_volume!==null">{{inv.purchase_volume | number:1}} {{inv.purchase_unit}}</span>
               <span>{{inv.container_type}}</span>
             </div>
-          </span>
+          </div>
         </td>
         <td class="all_inv_span" style="width:150px;">{{inv.brewery}}</td>
         <td ng-if="use_mode===1" class="all_inv_span" style="width:125px;" >
@@ -194,12 +203,17 @@
             <span ng-if="sp.price !== null"><span class="inv_symbol">$</span> {{sp.price | number:2}}</span>
             <span ng-if="sp.price === null"> -- </span>
           </div>
-        <td ng-if="use_mode!==2" class="all_inv_span" style="width:60px;">{{inv.par | number:1}}</td>
-        <td ng-if="use_mode!==2" class="all_inv_span" style="width:70px;">{{inv.count | number:1}}</td>
+        <td ng-if="use_mode!==2" class="all_inv_span" style="width:60px;">
+          {{inv.par | number:1}}
+        </td>
+        <td ng-if="use_mode!==2" class="all_inv_span" style="width:70px;">
+          <span ng-if="inv.count!==null">{{inv.count | number:1}}</span>
+          <span ng-if="inv.count===null" class="glyphicon glyphicon-alert" style="font-size:16px; color:#fce6b0; float:right" uib-popover="No Inventory records in the past 3 days!" popover-trigger="mouseenter" popover-append-to-body="true"></span>
+        </td>
         <td class="all_inv_span" ng-if="use_mode===2" style="width:130px; text-align:center">
 
-            <div class="btn-group" style="width:100%;" dropdown>
-              <button type="button" class="btn btn-default btn-md dropdown-toggle input_small" style="width:100%;" dropdown-toggle>
+            <div class="btn-group" style="width:100%;" uib-dropdown>
+              <button type="button" class="btn btn-default btn-md dropdown-toggle input_small" style="width:100%;" uib-dropdown-toggle>
                 <span class="noselect" style="float:left; text-align:left; width:90%;  color:#999999">
                   Move to Menu:
                 </span>
@@ -218,5 +232,6 @@
   </div>
 </div>
 
+<div ng-include src="'./view_all/edit_inv_modal.html'">
 <div ng-include src="'./view_sales_plan/modal_par_quantity.html'">
 <div ng-include src="'./view_sales_plan/template_date_button.html'">

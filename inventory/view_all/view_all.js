@@ -9,7 +9,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   });
 }])
 
-.controller('ViewAllInvCtrl', function($scope, $modal, $http, $filter, MathService, DistributorsService) {
+.controller('ViewAllInvCtrl', function($scope, $modal, $http, $filter, ItemsService, MathService, DistributorsService) {
 
   $scope.show_add_ui = false;
   $scope.all_distributors = [];
@@ -115,19 +115,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     $scope.newBevControl.clearNewForm();
   };
 
-  $scope.convertSaleStatusToInt = function(item) {
-    if (item['sale_status'] === 'staple') {
-      item['sale_status'] = 0;
-      item['sale_status_display'] = 'Staple';
-    } else if (item['sale_status'] === 'seasonal') {
-      item['sale_status'] = 1;
-      item['sale_status_display'] = 'Seasonal';
-    } else if (item['sale_status'] === 'inactive') {
-      item['sale_status'] = 2;
-      item['sale_status_display'] = 'Inactive';
-    }
-  };
-
   $scope.newBeverageCloseOnSave = function(new_beverage) {
     new_beverage['count'] = 0;
     new_beverage['inventory'] = 0;
@@ -161,10 +148,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       }
     }
 
-    // change sale_status from string to int
-    // change sale_status from string to int, and proper sale_status_display
-    $scope.convertSaleStatusToInt(new_beverage);
-
     $scope.inventory_items.push(new_beverage);
 
     if ($scope.all_breweries.indexOf(new_beverage['brewery']) < 0) {
@@ -192,33 +175,11 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
         $scope.inventory_items = [];
       }
 
+      ItemsService.processBevsForAddable($scope.inventory_items);
+
       // process the data we get on the client
       for (var i = 0; i < $scope.inventory_items.length; i++) {
         var inv = $scope.inventory_items[i];
-
-        // fix a list of known keys to be decimal precision 2
-        var fix_num_keys = [
-        'abv',
-        'count',
-        'purchase_cost',
-        'purchase_volume',
-        ];
-        for (var j in fix_num_keys) {
-          var fix_key = fix_num_keys[j];
-          if ( inv[fix_key] !== undefined && inv[fix_key] !== null ) {
-            inv[fix_key] = MathService.fixFloat2(inv[fix_key]);
-          }
-        }
-
-        // if size_prices is null, make them empty array
-        if (inv.size_prices === null) {
-          $scope.inventory_items[i].size_prices = [];
-        }
-        // fix size_prices to be decimal precision 2
-        for (var j in inv.size_prices) {
-          inv.size_prices[j]['price'] = MathService.fixFloat2(inv.size_prices[j]['price']);
-          inv.size_prices[j]['volume'] = MathService.fixFloat2(inv.size_prices[j]['volume']);
-        }
 
         // add breweries all_breweries for typeahead convenience when adding 
         // new beverages, which might come from same brewery
@@ -261,9 +222,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
           $scope.inventory_items[i]['purchase_unit'],
           $scope.inventory_items[i]['purchase_cost'],
           $scope.inventory_items[i]['purchase_count']);
-
-        // change sale_status from string to int, and proper sale_status_display
-        $scope.convertSaleStatusToInt(inv);
       }
 
       if ($scope.firstTimeSort) {
@@ -355,6 +313,12 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
         },
         edit_mode: function() {
           return "all";
+        },
+        hide_delete: function() {
+          return false;
+        },
+        required_vars: function() {
+          return [];  // this means no ADDITIONAL required vars
         }
       }
     });
@@ -394,10 +358,6 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
           if ($scope.all_breweries.indexOf(edit_bev.brewery) < 0) {
             $scope.all_breweries.push(edit_bev.brewery);
           }
-
-          // change sale_status from string to int
-          // change sale_status from string to int, and proper sale_status_display
-          $scope.convertSaleStatusToInt(edit_bev);
 
           swal({
             title: "Beverage Updated!",
@@ -439,60 +399,19 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   $scope.getAllDistributors = function() {
 
     var result = DistributorsService.get();
-    result.then(
-      function(payload) {
-        var data = payload.data;
-        
-        $scope.all_distributors = data;
-        console.log(data);
+    result.then(function(payload) {
+      var data = payload.data;
+      
+      $scope.all_distributors = data;
+      console.log(data);
 
-        // go through all kegs in all distributors and add a 'formatted'
-        // attribute for displaying volume, unit, and deposit
-        for (var i in $scope.all_distributors) {
-          if ($scope.all_distributors[i].kegs===null) {
-            $scope.all_distributors[i].kegs = [];
-          }
-
-          for (var j in $scope.all_distributors[i].kegs) {
-            var keg = $scope.all_distributors[i].kegs[j];
-
-            // fix decimal points for keg volumes to 2
-            if ( keg.deposit !== undefined && keg.deposit !== null ) {
-              keg.deposit = MathService.fixFloat2(keg.deposit);
-            }
-            if ( keg.volume !== undefined && keg.volume !== null ) {
-              keg.volume = MathService.fixFloat2(keg.volume);
-            }
-
-            var formatted = keg.volume + " " + keg.unit;
-            if (keg.deposit !== null) {
-              formatted += " ($" + keg.deposit + " deposit)";
-            }
-            $scope.all_distributors[i].kegs[j]['formatted'] = formatted;
-          }
-
-          // sort kegs by volume
-          $scope.all_distributors[i].kegs.sort(function(a, b) {
-            if (a.volume < b.volume) return -1;
-            return 1;
-          });
-
-        }
-
-        // sort distributors by name
-        $scope.all_distributors.sort(function(a, b) {
-          if (a.name < b.name) return -1;
-          return 1;
-        });
-
-        // after loading all distributors, load inventory
+      // after loading all distributors, load inventory
         $scope.getAllInv();
-
       },
       function(errorPayload) {
         ; // do nothing for now
       });
-  }
+  };
 
   $scope.getVolUnits = function() {
     $http.get('/volume_units').
@@ -517,13 +436,15 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   $scope.getVolUnits();
 })
 
-.controller('editInvModalCtrl', function($scope, $modalInstance, $http, $filter, MathService, edit_beverage, all_distributors, all_breweries, volume_units, edit_mode) {
+.controller('editInvModalCtrl', function($scope, $modalInstance, $http, $filter, MathService, edit_beverage, all_distributors, all_breweries, volume_units, edit_mode, hide_delete, required_vars) {
 
   $scope.edit_beverage = edit_beverage;
   $scope.all_distributors = all_distributors;
   $scope.all_breweries = all_breweries;
   $scope.volume_units = volume_units;
   $scope.edit_mode = edit_mode;
+  $scope.hide_delete = hide_delete;
+  $scope.required_vars = required_vars;
 
   $scope.editBevControl = {};
 

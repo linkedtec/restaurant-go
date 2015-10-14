@@ -49,7 +49,7 @@
     </div>
     <div class="col-xs-1" style="padding:0; padding-top:4px; float:right">
 
-      <button ng-model="item" popover-template="'popoverRemoveItem.html'" popover-placement="left" popover-title="Remove from list?" popover-append-to-body="true" type="button" class="btn btn-sm btn_frameless hover_red" style="font-size:20px; float:right; padding:0;">
+      <a tabindex="0" popover-trigger="focus" type="button" ng-model="item" uib-popover-template="'popoverRemoveItem.html'" popover-placement="left" popover-title="Remove from list?" popover-append-to-body="true" type="button" class="btn btn-sm btn_frameless hover_red" style="font-size:20px; float:right; padding:0;">
         <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
       </button>
 

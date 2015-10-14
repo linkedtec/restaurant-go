@@ -37,16 +37,19 @@ type BeverageSalePlan struct {
 	VersionID      int         `json:"version_id"`
 	Product        string      `json:"product"`
 	ContainerType  string      `json:"container_type"`
+	ServeType      int         `json:"serve_type"`
 	Brewery        NullString  `json:"brewery"`
 	AlcoholType    string      `json:"alcohol_type"`
 	PurchaseVolume NullFloat64 `json:"purchase_volume"`
 	PurchaseUnit   NullString  `json:"purchase_unit"`
 	PurchaseCost   float32     `json:"purchase_cost"`
+	PurchaseCount  int         `json:"purchase_count"`
+	SaleStatus     NullString  `json:"sale_status"`
 	SaleStart      NullTime    `json:"sale_start"`
 	SaleEnd        NullTime    `json:"sale_end"`
 	Par            NullFloat64 `json:"par"`
 	SalePrices     []SalePrice `json:"size_prices"`
-	Count          float32     `json:"count"`
+	Count          NullFloat64 `json:"count"`
 }
 
 type BeverageInv struct {

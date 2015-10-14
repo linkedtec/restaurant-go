@@ -1,7 +1,7 @@
-<tabset ng-if="showTabs===true" style="margin: 16px 6px; margin-bottom:0px; font-size:1.1em">
-  <tab ng-repeat="type in all_add_types" heading="{{type}}" ng-click="selectAddType(type)">
-  </tab>
-</tabset>
+<uib-tabset ng-if="showTabs===true" style="margin: 16px 6px; margin-bottom:0px; font-size:1.1em">
+  <uib-tab ng-repeat="type in all_add_types" heading="{{type}}" ng-click="selectAddType(type)">
+  </uib-tab>
+</uib-tabset>
 <div ng-class="{'new_inv_border_box': showTabs===true}">
   <div ng-if="new_success_msg !== null" class="row" style="margin:6px 6px">
     <div class="add_row">

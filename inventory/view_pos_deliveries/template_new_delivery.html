@@ -19,8 +19,8 @@
   <div class="col-xs-5">
     <div class="form-group">
       <label class="control-label optional"></label>
-      <div class="btn-group" dropdown>
-        <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" style="font-size:1.0em; width:260px" dropdown-toggle>
+      <div class="btn-group" uib-dropdown>
+        <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" style="font-size:1.0em; width:260px" uib-dropdown-toggle>
           <span ng-if="new_delivery.distributor_obj !== null" style="float:left; text-align:left; width:90%;">
             {{new_delivery.distributor_obj.name}} 
           </span>
@@ -86,17 +86,17 @@
     <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key === 'product'" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
   </div>
   <div class="col-xs-2 inv_sort_div" ng-click="sortBy('unit_cost')">
-    <span class="inv_loc_label_span noselect" style="padding-top:6px; padding-bottom:6px" popover="If Unit Cost of this beverage has changed, use the edit (pencil) button to update its information in the database." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">Unit Cost</span>
+    <span class="inv_loc_label_span noselect" style="padding-top:6px; padding-bottom:6px" uib-popover="If Unit Cost of this beverage has changed, use the edit (pencil) button to update its information in the database." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">Unit Cost</span>
     <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key === 'unit_cost'" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
   </div>
   <div class="col-xs-1 inv_sort_div" style="text-align:center">
-    <span ng-if="is_edit===false" class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;"  popover="If purchase information -- e.g., purchase cost or deposit -- of this beverage has changed, use the edit button to update its information in the database." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400"></span>
+    <span ng-if="is_edit===false" class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#88ccdd;"  uib-popover="If purchase information -- e.g., purchase cost or deposit -- of this beverage has changed, use the edit button to update its information in the database." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400"></span>
   </div>
   <div class="col-xs-3 inv_sort_div" ng-click="sortBy('quantity')">
     <span class="inv_loc_label_span noselect" style="padding-top:6px; padding-bottom:6px">Quantity</span>
     <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key === 'quantity'" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
   </div>
-  <div class="col-xs-2 inv_sort_div" ng-click="sortBy('inventory')" popover="Inventory = Quantity * Unit Cost + Deposit.  The cost of beverages can be edited in the All Beverages DB." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">
+  <div class="col-xs-2 inv_sort_div" ng-click="sortBy('inventory')" uib-popover="Inventory = Quantity * Unit Cost + Deposit.  The cost of beverages can be edited in the All Beverages DB." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">
     <span class="inv_loc_label_span noselect" style="padding-top:6px; padding-bottom:6px">Total Price</span>
     <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect"ng-show="sort_key === 'inventory'" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
   </div>
@@ -125,7 +125,7 @@
       <div ng-if="inv.deposit === null" style="font-size:1.1em; padding-left:2px">$ {{inv.unit_cost | number:2}}</div>
     </div>
     <div class="col-xs-1 min_padding" style="text-align:center">
-      <button ng-if="is_edit===false" ng-click="editBev($index)" type="button" class="btn btn-md btn_frameless hover_green" style="font-size:14px; min-height:32px;" popover="Edit beverage details." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">
+      <button ng-if="is_edit===false" ng-click="editBev($index)" type="button" class="btn btn-md btn_frameless hover_green" style="font-size:14px; min-height:32px;" uib-popover="Edit beverage details." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">
         <span class="glyphicon glyphicon-pencil"></span>
       </button>
     </div>

@@ -120,7 +120,7 @@
         <div class="col-xs-4">
           <div class="form-group" ng-class="{'has-error': form_ver.error_brewery===true}">
             <label class="control-label optional"> Brewery / Manufacturer </label>
-            <input ng-model="new_beverage.brewery" class="form-control input-small" placeholder="e.g., Lagunitas Brewing Co." typeahead="brew for brew in allBreweries | filter:$viewValue">
+            <input ng-model="new_beverage.brewery" class="form-control input-small" placeholder="e.g., Lagunitas Brewing Co." uib-typeahead="brew for brew in allBreweries | filter:$viewValue">
           </div>
         </div>
         <div class="col-xs-4" ng-show="new_beverage.alcohol_type !== 'Non Alcoholic'">

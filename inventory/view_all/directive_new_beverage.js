@@ -8,11 +8,14 @@ angular.module('myApp')
       allDistributors: '=',
       editBeverage: '=',   // if we're using this to edit instead of create new beverage
       volumeUnits: '=',
+      prepopulateVars: '=?', // a dictionary of prepopulated values for certain keys
+      requiredVars: '=?',
       closeOnSave: '&',
       closeOnCancel: '&',
       closeOnDelete: '&',
       control: '=',
-      editMode: '='
+      editMode: '=',  // can contain substrings 'all', 'basic', 'purchase', 'sales'
+      hideDelete: '='
     },
     templateUrl: './view_all/template_new_beverage.html',
     link: function(scope, elem, attrs) {
@@ -41,12 +44,29 @@ angular.module('myApp')
         showWeeks:'false'
       };
 
+      scope.showBasic = false;
+      scope.showPurchase = false;
+      scope.showSales = false;
+      if (scope.editMode.search("all") >= 0) {
+        scope.showBasic = true;
+        scope.showPurchase = true;
+        scope.showSales = true;
+      }
+      if (scope.editMode.search("purchase") >= 0) {
+        scope.showPurchase = true;
+      }
+      if (scope.editMode.search("basic") >= 0) {
+        scope.showBasic = true;
+      }
+      if (scope.editMode.search("sales") >= 0) {
+        scope.showSales = true;
+      }
+
       scope.openSaleStart = function($event) {
         $event.preventDefault();
         $event.stopPropagation();
 
         scope.date_opened.start = !scope.date_opened.start;
-        
       };
 
       scope.openSaleEnd = function($event) {
@@ -117,6 +137,16 @@ angular.module('myApp')
           scope.new_beverage.serve_type = scope.serve_types[2];
         }
 
+        // need to convert sale_start and sale_end back to JS dates from string
+        if (scope.new_beverage['sale_start']!==undefined && scope.new_beverage['sale_start']!==null) {
+          scope.new_beverage['sale_start'] = DateService.getDateFromUTCTimeStamp(
+            scope.new_beverage['sale_start'], true);
+        }
+        if (scope.new_beverage['sale_end']!==undefined && scope.new_beverage['sale_end']!==null) {
+          scope.new_beverage['sale_end'] = DateService.getDateFromUTCTimeStamp(
+            scope.new_beverage['sale_end'], true);
+        }
+
         // need to handle unit sale price separately from other sale prices
         if (scope.new_beverage['size_prices'] !== null) {
           for (var i = 0; i < scope.new_beverage.size_prices.length; i++)
@@ -163,7 +193,6 @@ angular.module('myApp')
           scope.new_beverage['purchase_cost'] = null;
           scope.new_beverage['purchase_count'] = 1;
           scope.new_beverage['sale_status'] = null;
-          scope.new_beverage['sale_status_display'] = null;
           scope.new_beverage['sale_start'] = null;
           scope.new_beverage['sale_end'] = null;
           scope.new_beverage['par'] = null;
@@ -220,6 +249,21 @@ angular.module('myApp')
       };
       scope.getVolUnits();
       */
+
+      scope.applyPrepopulateVars = function() {
+        // if prepopulated parameters were passed, fill them out now
+        if (scope.prepopulateVars !== null && scope.prepopulateVars !== undefined) {
+          for (var key in scope.prepopulateVars) {
+            scope.new_beverage[key] = scope.prepopulateVars[key];
+          }
+        }
+      }
+      scope.applyPrepopulateVars();
+
+      console.log(scope.requiredVars);
+      if (scope.requiredVars===undefined || scope.requiredVars===null) {
+        scope.requiredVars = [];
+      }
 
       scope.selectAddType = function(type) {
         scope.new_beverage['alcohol_type'] = type;
@@ -286,13 +330,11 @@ angular.module('myApp')
       };
 
       scope.selectSaleStatus = function(status) {
-        scope.new_beverage['sale_status'] = scope.sale_statuses.indexOf(status);
-        scope.new_beverage['sale_status_display'] = status;
+        scope.new_beverage['sale_status'] = status;
       };
 
       scope.clearSaleStatus = function() {
         scope.new_beverage['sale_status'] = null;
-        scope.new_beverage['sale_status_display'] = null;
       }
 
       scope.selectDistributor = function (dist) {
@@ -328,8 +370,7 @@ angular.module('myApp')
             scope.new_beverage['purchase_volume'] = MathService.fixFloat2(keg.volume);
             scope.selectPurchaseUnit(keg.unit);
           }
-        } 
-
+        }
         
       };
 
@@ -379,6 +420,13 @@ angular.module('myApp')
         });
       };
 
+      scope.requiredMissing = function(key) {
+        if (scope.requiredVars.indexOf(key)>=0 && (scope.new_beverage[key]===null || scope.new_beverage[key]==='')) {
+          return true;
+        }
+        return false;
+      }
+
       scope.saveBeverage = function() {
     
         scope.new_success_msg = null;
@@ -386,119 +434,148 @@ angular.module('myApp')
 
         var all_clear = true;
 
+        console.log(scope.new_beverage);
+
         // check all necessary fields are present
-        if (scope.new_beverage['product'] === null || scope.new_beverage['product'] === '' )
-        {
-          scope.form_ver.error_product = true;
-          all_clear = false;
-        } else {
+        // Note: only need to verify things that are being shown in UI
+        if (scope.showBasic) {
+          // product is required by default
           scope.form_ver.error_product = false;
-        }
+          if (scope.new_beverage['product'] === null || scope.new_beverage['product'] === '' )
+          {
+            scope.form_ver.error_product = true;
+            all_clear = false;
+          }
 
-        if (scope.new_beverage['container_type'] === null || scope.new_beverage['container_type'] === '' || scope.new_beverage['container_type'] === scope.container_types[0] )
-        {
-          scope.form_ver.error_container=true;
-          all_clear = false;
-        } else {
+          // container type is required by default
           scope.form_ver.error_container=false;
-        }
+          if (scope.new_beverage['container_type'] === null || scope.new_beverage['container_type'] === '' || scope.new_beverage['container_type'] === scope.container_types[0] )
+          {
+            scope.form_ver.error_container=true;
+            all_clear = false;
+          }
 
-        if (scope.new_beverage['serve_type'] === null || scope.new_beverage['serve_type'] === '' || scope.new_beverage['serve_type'] === scope.serve_types[0] )
-        {
-          scope.form_ver.error_serve_type=true;
-          all_clear = false;
-        } else {
+          // serve_type is required by default
           scope.form_ver.error_serve_type=false;
-        }
+          if (scope.new_beverage['serve_type'] === null || scope.new_beverage['serve_type'] === '' || scope.new_beverage['serve_type'] === scope.serve_types[0] )
+          {
+            scope.form_ver.error_serve_type=true;
+            all_clear = false;
+          }
 
-        if ( MathService.numIsInvalid(scope.new_beverage['abv']) )
-        {
-          scope.form_ver.error_abv=true;
-          all_clear = false;
-        } else {
           scope.form_ver.error_abv=false;
+          if ( scope.requiredMissing('abv') ) {
+            scope.form_ver.error_abv=true;
+            all_clear = false;
+          }
+          if ( MathService.numIsInvalid(scope.new_beverage['abv']) )
+          {
+            scope.form_ver.error_abv=true;
+            all_clear = false;
+          }
         }
+        
+        if (scope.showPurchase) {
+          scope.form_ver.error_pvolume=false;
+          if ( scope.requiredMissing('purchase_volume') ) {
+            scope.form_ver.error_pvolume=true;
+            all_clear = false;
+          }
+          if ( scope.new_beverage['purchase_volume'] !== null && scope.new_beverage['purchase_volume'] !== '' && MathService.numIsInvalid(scope.new_beverage['purchase_volume']) )
+          {
+            scope.form_ver.error_pvolume=true;
+            all_clear = false;
+          }
 
-        scope.form_ver.error_pvolume=false;
-        if ( scope.new_beverage['purchase_volume'] !== null && scope.new_beverage['purchase_volume'] !== '' && MathService.numIsInvalid(scope.new_beverage['purchase_volume']) )
-        {
-          scope.form_ver.error_pvolume=true;
-          all_clear = false;
-        }
+          // if purchase unit is not empty but purchase volume is empty, that's a volume error
+          if ( scope.new_beverage['purchase_unit'] !== null && (scope.new_beverage['purchase_volume'] === null || scope.new_beverage['purchase_volume'] === '') ) {
+            scope.form_ver.error_pvolume=true;
+            all_clear=false;
+          }
 
-        // if purchase unit is not empty but purchase volume is empty, that's a volume error
-        if ( scope.new_beverage['purchase_unit'] !== null && (scope.new_beverage['purchase_volume'] === null || scope.new_beverage['purchase_volume'] === '') ) {
-          scope.form_ver.error_pvolume=true;
-          all_clear=false;
-        }
+          scope.form_ver.error_punit=false;
+          // if purchase volume is not empty but no unit, that's a unit error
+          if ( (scope.new_beverage['purchase_volume'] !== null && scope.new_beverage['purchase_volume'] !== '') && scope.new_beverage['purchase_unit']===null ) {
+            scope.form_ver.error_punit=true;
+            all_clear=false;
+          }
 
-        scope.form_ver.error_punit=false;
-        // if purchase volume is not empty but no unit, that's a unit error
-        if ( (scope.new_beverage['purchase_volume'] !== null && scope.new_beverage['purchase_volume'] !== '') && scope.new_beverage['purchase_unit']===null ) {
-          scope.form_ver.error_punit=true;
-          all_clear=false;
-        }
-
-        if (scope.new_beverage['purchase_cost'] === null || scope.new_beverage['purchase_cost'] === '' || MathService.numIsInvalid(scope.new_beverage['purchase_cost']) )
-        {
-          scope.form_ver.error_pcost=true;
-          all_clear = false;
-        } else {
           scope.form_ver.error_pcost=false;
-        }
+          if ( scope.requiredMissing('purchase_cost') ) {
+            scope.form_ver.error_pcost=true;
+            all_clear = false;
+          }
+          if (scope.new_beverage['purchase_cost'] === null || scope.new_beverage['purchase_cost'] === '' || MathService.numIsInvalid(scope.new_beverage['purchase_cost']) )
+          {
+            scope.form_ver.error_pcost=true;
+            all_clear = false;
+          }
 
-        console.log(scope.new_beverage['purchase_count']);
-        if ( scope.new_beverage['purchase_count'] === null || scope.new_beverage['purchase_count'] === '' || MathService.numIsInvalid(scope.new_beverage['purchase_count']) )
-        {
-          scope.form_ver.error_pcount=true;
-          all_clear = false;
-        } else {
           scope.form_ver.error_pcount=false;
-        }
+          if ( scope.requiredMissing('purchase_count') ) {
+            scope.form_ver.error_pcount=true;
+            all_clear = false;
+          }
+          if ( scope.new_beverage['purchase_count'] === null || scope.new_beverage['purchase_count'] === '' || MathService.numIsInvalid(scope.new_beverage['purchase_count']) )
+          {
+            scope.form_ver.error_pcount=true;
+            all_clear = false;
+          }
 
-        if ( MathService.numIsInvalid(scope.new_beverage['par']) )
-        {
-          scope.form_ver.error_par=true;
-          all_clear = false;
-        } else {
           scope.form_ver.error_par=false;
+          if ( scope.requiredMissing('par') ) {
+            console.log('missing');
+            scope.form_ver.error_par=true;
+            all_clear = false;
+          }
+          if ( MathService.numIsInvalid(scope.new_beverage['par']) )
+          {
+            scope.form_ver.error_par=true;
+            all_clear = false;
+          }
         }
+        
+        if (scope.showSales) {
 
-        // Only need to check sale_status validity if it's seasonal, since 
-        // null, inactive, and staple values are standalone
-        if (scope.new_beverage['sale_status'] === 1) 
-        {
-          // verify start_sale and end_sale, if not null, are proper dates
-          // verify start_sale precedes end_sale
-          if (scope.new_beverage['sale_start'] !== null) {
+          scope.form_ver.error_sale_status = false;
+          if ( scope.requiredMissing('sale_status') ) {
+            scope.form_ver.error_sale_status=true;
+            all_clear = false;
+          }
+
+          scope.form_ver.error_sale_start = false;
+          scope.form_ver.error_sale_end = false;
+          // Only need to check sale_status validity if it's seasonal, since 
+          // null, inactive, and staple values are standalone
+          if (scope.new_beverage['sale_status'] === 'Seasonal') 
+          {
+            // sale_start and sale_end are REQUIRED for seasonal bevs
             if (!DateService.isValidDate(scope.new_beverage['sale_start'])) {
               scope.form_ver.error_sale_start = true;
               all_clear = false;
             }
-          }
-
-          if (scope.new_beverage['sale_end'] !== null) {
+            
             if (!DateService.isValidDate(scope.new_beverage['sale_end'])) {
               scope.form_ver.error_sale_end = true;
               all_clear = false;
             }
-          }
 
-          // if both were valid, still need to check end date is after start date
-          if (scope.form_ver.error_sale_end === false && scope.form_ver.error_sale_start === false) {
-            if (scope.new_beverage['sale_end'] < scope.new_beverage['sale_start']) {
-              scope.form_ver.error_sale_end = true;
-              all_clear = false;
+            // if both were valid, still need to check end date is after start date
+            if (scope.form_ver.error_sale_end === false && scope.form_ver.error_sale_start === false) {
+              if (scope.new_beverage['sale_end'] < scope.new_beverage['sale_start']) {
+                scope.form_ver.error_sale_end = true;
+                all_clear = false;
+              }
             }
           }
-        }
 
-        if (scope.new_unit_sale.value !== null && scope.new_unit_sale.value !== '' && MathService.numIsInvalid(scope.new_unit_sale.value) )
-        {
-          scope.form_ver.error_unit_sale=true;
-          all_clear=false;
-        } else {
-          scope.form_ver.error_unit_sale=false;
+          if (scope.new_unit_sale.value !== null && scope.new_unit_sale.value !== '' && MathService.numIsInvalid(scope.new_unit_sale.value) )
+          {
+            scope.form_ver.error_unit_sale=true;
+            all_clear=false;
+          } else {
+            scope.form_ver.error_unit_sale=false;
+          }
         }
 
         // Collect the final list of size prices.  Careful to do the following:
@@ -597,18 +674,9 @@ angular.module('myApp')
         }
 
         // if sale_status was not seasonal, don't post sale_start or sale_end
-        if (scope.new_beverage.sale_status !== 1) {
+        if (scope.new_beverage.sale_status !== 'Seasonal') {
           scope.new_beverage.sale_start = null;
           scope.new_beverage.sale_end = null;
-        }
-
-        // need to convert sale_status from int to string
-        if (scope.new_beverage.sale_status === 0) {
-          scope.new_beverage.sale_status = 'staple';
-        } else if (scope.new_beverage.sale_status === 1) {
-          scope.new_beverage.sale_status = 'seasonal';
-        } else if (scope.new_beverage.sale_status === 2) {
-          scope.new_beverage.sale_status = 'inactive';
         }
 
         if (!scope.is_edit) {
@@ -628,6 +696,8 @@ angular.module('myApp')
             {
               scope.internalControl.clearNewForm();
             }
+            scope.applyPrepopulateVars();
+
             scope.new_beverage.serve_type = restore_serve_type;
 
           },
@@ -645,7 +715,7 @@ angular.module('myApp')
             if (scope.editBeverage.hasOwnProperty(key)) {
               if (key === '__proto__' || key === '$$hashKey') {
                 continue;
-              } else if (key==='distributor' || key==='keg' || key==='sale_status_display') {
+              } else if (key==='distributor' || key==='keg' || key==='unit_cost') {
                 // we ignore these 3 objects, which are only for client-side
                 // convenience
                 continue;
@@ -672,6 +742,14 @@ angular.module('myApp')
                     changedKeys.push(key);
                     continue;
                   }
+                }
+              }
+              // we compare Date objects specially by converting them to an
+              // integer.  Otherwise comparing objects yields different results
+              // even if date is the same.
+              else if (key==='sale_start' || key==='sale_end') {
+                if (scope.editBeverage[key].getTime() !== scope.new_beverage[key].getTime()) {
+                  changedKeys.push(key);
                 }
               }
               else if (scope.editBeverage[key] !== scope.new_beverage[key]) {
@@ -711,6 +789,7 @@ angular.module('myApp')
             {
               scope.internalControl.clearNewForm();
             }
+            scope.applyPrepopulateVars();
 
           },
           function(errorPayload) {

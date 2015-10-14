@@ -18,8 +18,8 @@
     </div>
     <div class="row" ng-if="tap_or_untap==='tap'" style="margin-top:6px; margin-bottom:12px">
       <div class="col-xs-12">
-        <div class="btn-group" dropdown>
-          <button type="button" ng-class="{'my_error': form_ver.error_beverage===true}" class="btn btn-default btn-md dropdown-toggle loc_dropdown;" style="font-size:1.2em; min-width:200px" dropdown-toggle>
+        <div class="btn-group" uib-dropdown>
+          <button type="button" ng-class="{'my_error': form_ver.error_beverage===true}" class="btn btn-default btn-md dropdown-toggle loc_dropdown;" style="font-size:1.2em; min-width:200px" uib-dropdown-toggle>
             <span ng-if="selected_bev !== null" style="float:left; text-align:left; width:90%">
               {{selected_bev.product}} 
             </span>
@@ -36,7 +36,7 @@
             </li>
           </ul>
         </div>
-        <input ng-model="find_bev" class="form-control input-md" style="margin-left:8px; vertical-align:top; width:120px; display:inline-block; height:40px" placeholder="Search..." typeahead="bev.product for bev in add_inv_all_items | filter:$viewValue"  typeahead-editable="false" typeahead-on-select='selectBevName(find_bev)'>
+        <input ng-model="find_bev" class="form-control input-md" style="margin-left:8px; vertical-align:top; width:120px; display:inline-block; height:40px" placeholder="Search..." uib-typeahead="bev.product for bev in add_inv_all_items | filter:$viewValue"  typeahead-editable="false" typeahead-on-select='selectBevName(find_bev)'>
       </div>
     </div>
 
@@ -51,7 +51,7 @@
         <label class="control-label hint_text" ng-if="tap_or_untap==='tap'" style="margin-bottom:6px">When was it put on tap? </label>
         <label class="control-label hint_text" ng-if="tap_or_untap==='untap'" style="margin-bottom:6px">When was the keg untapped? </label>
           <div class="input-group">
-            <input type="text" ng-class="{'my_error': form_ver.error_date===true}" class="form-control" datepicker-popup="{{format}}" ng-model="dt" is-open="opened" min-date="minDate" datepicker-options="dateOptions" ng-required="true" close-text="Close">
+            <input type="text" ng-class="{'my_error': form_ver.error_date===true}" class="form-control" uib-datepicker-popup="{{format}}" ng-model="dt" is-open="opened" min-date="minDate" datepicker-options="dateOptions" ng-required="true" close-text="Close">
             <span class="input-group-btn">
               <button type="button" class="btn btn-default" ng-click="openDate($event)"><span class="glyphicon glyphicon-calendar"></span></button>
             </span>
