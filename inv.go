@@ -105,12 +105,29 @@ func setupInvHandlers() {
 	http.HandleFunc("/export/", exportAPIHandler)
 }
 
+// this is a helper function that should be called before a user accesses
+// their bev's sale_status info, e.g., before /inv GET, or /inv/menu GET
+func inactivateExpiredSeasonals(w http.ResponseWriter, test_user_id string) {
+	cur_time := time.Now().UTC()
+	_, err := db.Exec("UPDATE beverages SET sale_status='Inactive' WHERE sale_status='Seasonal' AND sale_end < $1 AND user_id=$2;", cur_time, test_user_id)
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 // invMenuAPIHandler handles menu planning requests, such as getting
 // staple, seasonal, or inactive sales items.
 func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
+
+		// when getting sales status, we always want to first set any seasonal
+		// bevs whose sale_end period has ended to inactive
+		inactivateExpiredSeasonals(w, test_user_id)
+
 		sale_status := r.URL.Query().Get("sale_status")
 
 		rows, err := db.Query(`
@@ -250,9 +267,10 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		log.Println(bev)
+		log.Println(latest_id)
 
-		// if sale_status is 'seasonal', also update sale_start and sale_end
-		if bev.SaleStatus.Valid && bev.SaleStatus.String == "seasonal" {
+		// if sale_status is 'Seasonal', also update sale_start and sale_end
+		if bev.SaleStatus.Valid && bev.SaleStatus.String == "Seasonal" {
 			_, err = db.Exec("UPDATE beverages SET sale_start=$1, sale_end=$2 WHERE id=$3;", bev.SaleStart, bev.SaleEnd, latest_id)
 			if err != nil {
 				log.Println(err.Error())
@@ -272,6 +290,10 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
+
+		// when getting sales status, we always want to first set any seasonal
+		// bevs whose sale_end period has ended to inactive
+		inactivateExpiredSeasonals(w, test_user_id)
 
 		get_type := r.URL.Query().Get("type")
 		// if type is "names", only return the names, ids, and container types

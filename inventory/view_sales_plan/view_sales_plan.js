@@ -212,6 +212,25 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       item['sale_end_pretty'] = '--';
       item['days_til_end'] = null;
     }
+  };
+
+  $scope.calculateStockColor = function(item) {
+    if (item['par'] === null || item['count'] === null) {
+      item['stock_color'] = '#000000';
+      return;
+    }
+    if (item['par'] <= 0) {
+      item['stock_color'] = '#000000';
+      return;
+    }
+    var stock_pct = (item['count'] / item['par']);
+    if (stock_pct >= .66) {
+      item['stock_color'] = '#22aa00';
+    } else if (stock_pct >= .33) {
+      item['stock_color'] = '#ccaa00; font-weight:bold';
+    } else {
+      item['stock_color'] = '#cc2200; font-weight:bold';
+    }
   }
 
   $scope.getInvData = function() {
@@ -253,6 +272,12 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
         if ($scope.use_mode===1) {
           $scope.calculateDates(item);
         }
+
+        // calculate the color of the stock column
+        // 66%+ stock = green
+        // 33-66% stock = yellow
+        // 0-33% stock = red
+        $scope.calculateStockColor(item);
       }
 
       console.log($scope.inventory_items);
@@ -269,7 +294,44 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
   // this is called when the user uses one of the calendar buttons to change the
   // start or end dates of a seasonal item
-  $scope.editDate = function(item, start_or_end) {
+  // we pass previous_date so if end_date is before today and user decides not
+  // to mvoe to Inactive, can restore to previous_date
+  $scope.editDate = function(item, start_or_end, previous_date, passControl) {
+
+    console.log(passControl);
+
+    // first, check that end_date is not earlier than the current time.  If it
+    // is, warn user that it will change this bev to inactive, and post to
+    // server to change the bev to inactive
+    var today = new Date();
+    if (start_or_end==='end' && item.sale_end < today) {
+
+      swal({
+          title: "Make Beverage Inactive?",
+          text: "This will move <b>" + item.product + "</b> to the <b>Inactive menu</b>, because the sale period has expired.  Proceed?",
+          type: "warning",
+          showCancelButton: true,
+          html: true,
+          confirmButtonColor: "#DD6B55",
+          confirmButtonText: "Yes, move it!"},
+          function(isConfirm) {
+            if (isConfirm) {
+              $scope.postEditDate(item, start_or_end, true);
+              //previous_date = new Date(item.sale_end.getTime());
+              passControl.setPrevDate(item.sale_end);
+            } else {
+              item.sale_end = new Date(previous_date.getTime());
+              passControl.setPrevDate(item.sale_end);
+              $scope.calculateDates(item);
+            }
+        });
+      return;
+    }
+
+    $scope.postEditDate(item, start_or_end, false);
+  };
+
+  $scope.postEditDate = function(item, start_or_end, is_inactive) {
 
     var putObj = {};
     putObj.id = item.id;
@@ -281,6 +343,10 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       change_keys.push('sale_end');
       putObj['sale_end'] = item.sale_end;
     }
+    if (is_inactive) {
+      change_keys.push('sale_status');
+      putObj['sale_status'] = 'Inactive';
+    }
 
     var result = BeveragesService.put(putObj, change_keys);
     result.then(
@@ -288,19 +354,18 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       var new_bev_id = payload.data['id'];
       item.id = new_bev_id;
 
-      // update client display of date
-      $scope.calculateDates(item);
-
-      // reapply sorting
-      // ACTUALLY, don't reapply sorting, since it's kind of confusing to the
-      // user who just clicked on this row, but the item would move to another
-      // row after sorting
-      /*
-      if ($scope.sort_key === 'sale_start' || $scope.sort_key === 'sale_end') {
-        $scope.sortBy($scope.sort_key);
-        $scope.sortBy($scope.sort_key);
+      if (is_inactive) {
+        for (var i in $scope.inventory_items) {
+          var check_item = $scope.inventory_items[i];
+          if (check_item['version_id'] === item['version_id']) {
+            $scope.inventory_items.splice(i, 1);
+            break;
+          }
+        }
+      } else {
+        // update client display of date
+        $scope.calculateDates(item);
       }
-      */
 
     },
     function(errorPayload) {
@@ -363,12 +428,14 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
             id: item.id,
             par:item.par,
             sale_status:type
-          };
+          }
 
           if (menu_type===1) {
             post_params['sale_start'] = item.sale_start;
             post_params['sale_end'] = item.sale_end;
           }
+
+          console.log(post_params);
 
           $http.post('/inv/menu', 
             post_params).
@@ -430,8 +497,6 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
           }).
           error(function(data, status, headers, config) {
           });
-
-          
         }
         
       }, 
@@ -443,7 +508,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
   $scope.sortFunc = function(a, b) {
     var sort_str = $scope.sort_key;
-    var isNum = (sort_str === 'par' || sort_str === 'stock');
+    var isNum = (sort_str === 'par' || sort_str === 'count');
     var isDate = (sort_str === 'sale_start' || sort_str === 'sale_end');
 
     var keyA = a[sort_str];
@@ -553,6 +618,21 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
         if (status === 'save') {
           console.log(edit_bev);
 
+          // if sale_status was changed and no longer matches the current
+          // use_mode, splice the bev
+          if (edit_bev['sale_status'] !== $scope.sale_statuses[$scope.use_mode]) {
+            for (var i in $scope.inventory_items) {
+              var check_item = $scope.inventory_items[i];
+              if (check_item['version_id'] === edit_bev['version_id']) {
+                $scope.inventory_items.splice(i, 1);
+                break;
+              }
+            }
+          } else {
+            // recalculate pretty dates
+            $scope.calculateDates(edit_bev);
+          }
+
           swal({
             title: "Beverage Updated!",
             text: "<b>" + edit_bev.product + "</b> has been updated with your changes.",
@@ -570,7 +650,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
 })
 
-.controller('modalParQuantityCtrl', function($scope, $modalInstance, $modal, MathService, item, is_seasonal) {
+.controller('modalParQuantityCtrl', function($scope, $modalInstance, $modal, DateService, MathService, item, is_seasonal) {
 
   $scope.item = item;
 
@@ -592,7 +672,13 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
   }
 
   $scope.start_date = {'date':null};
+  if (DateService.isValidDate(item.sale_start)) {
+    $scope.start_date.date = item.sale_start;
+  }
   $scope.end_date = {'date':null};
+  if (DateService.isValidDate(item.sale_end)) {
+    $scope.end_date.date = item.sale_end;
+  }
   $scope.dateControl = {};
 
   $scope.initDate = function() {

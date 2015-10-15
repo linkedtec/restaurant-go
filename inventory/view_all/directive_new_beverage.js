@@ -87,7 +87,7 @@ angular.module('myApp')
         scope.new_beverage.sale_start.setHours(0,0,0);
 
         if (scope.new_beverage.sale_end!==null && scope.new_beverage.sale_start > scope.new_beverage.sale_end) {
-          scope.form_ver.error_sale_end = true;
+          scope.form_ver.error_sale_start = true;
           console.log('sale start error');
         }
       };
@@ -102,10 +102,20 @@ angular.module('myApp')
 
         scope.new_beverage.sale_end.setHours(23,59,59);
 
+        // if sale_end is before sale_start, that's an error
         if (scope.new_beverage.sale_start!==null && scope.new_beverage.sale_end < scope.new_beverage.sale_start) {
-          scope.form_ver.error_sale_start= true;
+          scope.form_ver.error_sale_end= true;
           console.log('sale end error');
+          return;
         }
+
+        // if sale_end is earlier than today, set sale_status to 'Inactive'
+        var today = new Date();
+        if (scope.new_beverage.sale_end < today) {
+          scope.new_beverage.sale_status = 'Inactive';
+          return;
+        }
+
       };
 
       scope.addSaleRow = function(unit) {
@@ -331,6 +341,23 @@ angular.module('myApp')
 
       scope.selectSaleStatus = function(status) {
         scope.new_beverage['sale_status'] = status;
+
+        if (!DateService.isValidDate(scope.new_beverage.sale_end)) {
+          scope.new_beverage.sale_end = null;
+        }
+        if (!DateService.isValidDate(scope.new_beverage.sale_start)) {
+          scope.new_beverage.sale_start = null;
+        }
+
+        if (scope.new_beverage.sale_end !== null) {
+          // if sale_end is earlier than today, clear it
+          var today = new Date();
+          if (scope.new_beverage.sale_end < today) {
+            scope.new_beverage.sale_end = null;
+            return;
+          }
+        }
+        
       };
 
       scope.clearSaleStatus = function() {
@@ -674,10 +701,14 @@ angular.module('myApp')
         }
 
         // if sale_status was not seasonal, don't post sale_start or sale_end
+        // XXX This is no longer true, commenting out so sale status is 
+        // preserved even if sale_status changes
+        /*
         if (scope.new_beverage.sale_status !== 'Seasonal') {
           scope.new_beverage.sale_start = null;
           scope.new_beverage.sale_end = null;
         }
+        */
 
         if (!scope.is_edit) {
           // If this is a NEW beverage, just post it
@@ -748,7 +779,12 @@ angular.module('myApp')
               // integer.  Otherwise comparing objects yields different results
               // even if date is the same.
               else if (key==='sale_start' || key==='sale_end') {
-                if (scope.editBeverage[key].getTime() !== scope.new_beverage[key].getTime()) {
+
+                if (DateService.isValidDate(scope.editBeverage[key]) && DateService.isValidDate(scope.new_beverage[key])) {
+                  if (scope.editBeverage[key].getTime() !== scope.new_beverage[key].getTime()) {
+                    changedKeys.push(key);
+                  }
+                } else if (scope.editBeverage[key] !== scope.new_beverage[key]) {
                   changedKeys.push(key);
                 }
               }

@@ -121,9 +121,9 @@
           </div>
         </td>
         <td ng-if="use_mode!==2" class="all_inv_label_span noselect" style="width:70px;">
-          <div class="sort_div" ng-click="sortBy('stock')" uib-popover="Recently recorded quantity in Inventory.  Inventory done more than 3 days ago is not included!" popover-trigger="mouseenter" popover-append-to-body="true">
+          <div class="sort_div" ng-click="sortBy('count')" uib-popover="Recently recorded quantity in Inventory.  Inventory done more than 3 days ago is not included!" popover-trigger="mouseenter" popover-append-to-body="true">
             <span>Stock</span>
-            <span ng-show="sort_key === 'stock'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+            <span ng-show="sort_key === 'count'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
           </div>
         </td>
         <td ng-if="use_mode===2" class="all_inv_span noselect" style="width:130px">
@@ -172,7 +172,7 @@
             </div>
           </div>
           <div style="position:absolute; top:auto; bottom:auto; right:2px;">
-            <date-button date="inv.sale_start" max-date="inv.sale_end" end-of-day="false" on-date-change="editDate(inv, 'start')"/>
+            <date-button date="inv.sale_start" max-date="inv.sale_end" end-of-day="false" on-date-change="editDate(inv, 'start', previous_date, passControl)"/>
           </div>
         </td>
         <td ng-if="use_mode===1" class="all_inv_span" style="width:125px;">
@@ -181,11 +181,14 @@
               {{inv.sale_end_pretty}}
             </div>
             <div ng-if="inv.days_til_end!==null && inv.days_til_end<14" style="font-size:0.8em; margin-top:0; border-radius:4px; padding:1px 2px; background-color:#dd6622; text-align:center; color:white">
-              Ends: {{inv.days_til_end}} days!
+              Ends: 
+              <span ng-if="inv.days_til_end===0">Today!</span>
+              <span ng-if="inv.days_til_end===1">1 day!</span>
+              <span ng-if="inv.days_til_end>1">{{inv.days_til_end}} days!</span>
             </div>
           </div>
           <div style="position:absolute; top:auto; bottom:auto; right:2px;">
-            <date-button date="inv.sale_end" min-date="inv.sale_start" end-of-day="true" on-date-change="editDate(inv, 'end')"/>
+            <date-button date="inv.sale_end" min-date="inv.sale_start" end-of-day="true" on-date-change="editDate(inv, 'end', previous_date, passControl)" control="endDateControl"/>
           </div>
         </td>
         <td class="all_inv_span" style="width:80px;">
@@ -207,7 +210,7 @@
           {{inv.par | number:1}}
         </td>
         <td ng-if="use_mode!==2" class="all_inv_span" style="width:70px;">
-          <span ng-if="inv.count!==null">{{inv.count | number:1}}</span>
+          <span ng-if="inv.count!==null" style="color:{{inv.stock_color}}">{{inv.count | number:1}}</span>
           <span ng-if="inv.count===null" class="glyphicon glyphicon-alert" style="font-size:16px; color:#fce6b0; float:right" uib-popover="No Inventory records in the past 3 days!" popover-trigger="mouseenter" popover-append-to-body="true"></span>
         </td>
         <td class="all_inv_span" ng-if="use_mode===2" style="width:130px; text-align:center">

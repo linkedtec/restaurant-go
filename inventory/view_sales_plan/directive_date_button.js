@@ -9,16 +9,22 @@ angular.module('myApp')
       maxDate: '=',  // date cannot go beyond this date
       onDateChange: '&',
       endOfDay: '=', // true means set hours to 23 59 59, false means 0 0 0 for start of day
-      control: '='
+      control: '=?'
     },
     templateUrl: './view_sales_plan/template_date_button.html',
     link: function(scope, elem, attrs) {
 
       // provides a way of exposing certain functions to outside controllers
       scope.internalControl = scope.control || {};
+
+      // passControl is a way of passing our scope to callback functions in
+      // the controller.  We need this as a way or restoring previous_date
+      // in case the date change was invalid and needs to be reverted.
+      scope.passControl = {};
       scope.form_ver = {
         'error_date': false
-      }
+      };
+      scope.previous_date = new Date(scope.date.getTime());
 
       scope.internalControl.validate = function() {
         scope.form_ver.error_date = false;
@@ -49,6 +55,10 @@ angular.module('myApp')
         
       };
 
+      scope.passControl.setPrevDate = function(prev_date) {
+        scope.previous_date = new Date(prev_date.getTime());
+      };
+
       scope.dateChanged = function() {
 
         scope.form_ver.error_date = false;
@@ -72,12 +82,13 @@ angular.module('myApp')
         } else {
           scope.date.setHours(0,0,0);
         }
-        console.log('date is now: ' + scope.date);
 
         $timeout((function() {
           if (scope.onDateChange!==null) {
-            scope.onDateChange();
+            scope.onDateChange({'previous_date':scope.previous_date, 'passControl':scope.passControl});
           }
+
+          scope.previous_date = new Date(scope.date.getTime());
         }), 0);
 
       };
