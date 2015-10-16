@@ -242,7 +242,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.double_sort = -1;
     }
     $scope.sort_key = sort_str;
-    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_cost' || sort_str === 'purchase_count' || sort_str === 'count' || sort_str === 'inventory' || sort_str === 'price_per_volume' || sort_str === 'serve_type' || sort_str === 'empty_kegs');
+    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_cost' || sort_str === 'purchase_count' || sort_str === 'count' || sort_str === 'inventory' || sort_str === 'price_per_volume' || sort_str === 'serve_type' || sort_str === 'empty_kegs' || sort_str === 'par');
     var isDist = (sort_str === 'distributor');
     var isDep = (sort_str === 'deposit');
     if (isDep) sort_str = 'keg';

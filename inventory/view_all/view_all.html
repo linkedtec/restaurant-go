@@ -81,7 +81,7 @@
   </div>
 
   <table ng-if="inventory_items.length>0" style="width: 100%; table-layout:fixed; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-bottom:120px;">
-    <tr style="font-size:12px; ;background-color: #e0f0ff;">
+    <tr style="font-size:12px; ;background-color: #e3f6fa;">
       <td class="all_inv_label_span noselect" style="width:40px; border-left: 1px solid #dddddd">
       </td>
       <td class="all_inv_label_span noselect" style="width:180px; overflow:auto">
@@ -168,6 +168,18 @@
           <span ng-show="sort_key === 'price_per_volume'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
+      <td class="all_inv_label_span noselect" style="width:60px;" ng-show="col_comps.purchase === true" ng-class="{'col_highlight': highlight_cols==='purchase'}">
+        <div class="sort_div" ng-click="sortBy('par')" uib-popover="Par level of inventory to keep in stock" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+          <span>Par</span>
+          <span ng-show="sort_key === 'par'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:85px;" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">
+        <div class="sort_div" ng-click="sortBy('sale_status')" uib-popover="Current sale status of beverage" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+          <span>Sale Status</span>
+          <span ng-show="sort_key === 'sale_status'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
       <td class="all_inv_span" style="width:90px; border-bottom:none" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">Serv. Size</td>
       <td class="all_inv_span" style="width:70px; border-bottom:none" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">Ret. Price</td>
       <!--td class="all_inv_label_span noselect" style="width:60px;" ng-show="col_comps.inventory === true" ng-class="{'col_highlight': highlight_cols==='inventory'}">
@@ -227,6 +239,12 @@
       <td class="all_inv_span" style="width:70px;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}">{{inv.purchase_count}}</td>
       <td class="all_inv_span" style="width:100px;" ng-if="inv.price_per_volume >= 0 && col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}"><span class="inv_symbol">$</span> {{inv.price_per_volume | number:4}}</td>
       <td class="all_inv_span" style="width:120px;" ng-if="inv.price_per_volume < 0 && col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}"> -- </td>
+      <td class="all_inv_span" style="width:60px;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}">
+        {{inv.par | number:1}}
+      </td>
+      <td class="all_inv_span" style="width:85px;" ng-show="col_comps.retail === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='retail'}" ng-class="{'gray_text': inv.sale_status==='Inactive'}">
+        {{inv.sale_status}}
+      </td>
       <td class="all_inv_span" style="width:90px;" ng-show="col_comps.retail === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='retail'}">
         <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">
           <span style="display:inline-block; min-width:50%">

@@ -732,7 +732,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
     $scope.form_ver.error_start = false;
     $scope.form_ver.error_end = false;
 
-    if ($scope.is_seasonal) {
+    if ($scope.is_seasonal===true) {
 
       var dates_valid = $scope.dateControl.validate();
 
@@ -741,12 +741,17 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
         return;
       }
 
-    }
+      // if end date is before today, error
+      var today = new Date();
+      if ($scope.end_date.date < today) {
+        $scope.new_failure_msg = "The Sale End date has already passed!";
+        $scope.form_ver.error_end = true;
+        return;
+      }
 
-    // if end date is before start date, that's an error
-    if ( $scope.is_seasonal===true) {
-      if ($scope.item.sale_end < $scope.item.sale_start) {
-        $scope.new_failure_msg = "The end date must be after the start date!";
+      // if end date is before start date, that's an error
+      if ($scope.start_date.date > $scope.end_date.date) {
+        $scope.new_failure_msg = "The Sale End date must be after the Start date!";
         $scope.form_ver.error_end = true;
         return;
       }

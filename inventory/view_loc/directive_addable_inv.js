@@ -27,6 +27,10 @@ angular.module('myApp')
         scope.internalControl.applyTypeFilter ();
       });
 
+      if (scope.isDelivery===undefined || scope.isDelivery===null) {
+        scope.isDelivery = false;
+      };
+
       scope.add_types = ['Beverages', 'Empty Kegs'/*, 'Recently Used in This Location'*/];
       scope.add_type = scope.add_types[0];
 

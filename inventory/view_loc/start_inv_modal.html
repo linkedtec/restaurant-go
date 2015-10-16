@@ -13,7 +13,7 @@
           <span style="float:right; margin-right:8px; color:#999999;" ng-if="added_items.length===1">{{added_items.length}} Item</span>
         </div>
         <div style="display:block; position:absolute; height:auto; bottom:48px; top:36px; left: 0; right:0; margin-top:0px; margin-bottom:0px; margin-right:8px; margin-left:6px; padding:0px 4px; padding-bottom:0; background-image:url('/inventory/images/bg_paper.png'); background-size:100%; overflow-y:scroll; overflow-x:hidden;">
-          <added-inv added-items="added_items" remove-item="removeItem(item)"></added-inv>
+          <added-inv added-items="added_items" is-delivery="false" remove-item="removeItem(item)"></added-inv>
         </div>
         <div style="position:absolute; width: auto; bottom:0; left:10px; right:10px; height:42px;">
           <button ng-click="saveInv()" type="button" class="btn btn-primary btn_ok" style="float:right; width:55%; font-size:18px; background-color:#0099cc; border:none">

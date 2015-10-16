@@ -14,6 +14,7 @@ body {
     padding-top:10px !important; 
     padding-bottom:0 !important;
     height: 42px;
+    color:#c0e8f0 !important;
 }
 .navbar {min-height:42px !important;}
 
@@ -25,7 +26,9 @@ body {
 }
 
 .subtoolbar {
-  padding-top:6px;
+  padding-top:4px;
+  background-color: #eaf0f5;
+  border-bottom: 1px solid #e0e0e0;
   /*background-color:#f9f9f9;*/
   /*border-bottom: solid 1px #eeeeee;*/
 }
@@ -61,12 +64,12 @@ body {
   text-decoration: none;
   padding-top:0;
   padding-left:0;
-  color:#a0a0a0;
+  color:#909090;
 }
 
 .menu li a img {
-  opacity: 0.4;
-  filter: alpha(opacity=40); /* For IE8 and earlier */
+  opacity: 0.5;
+  filter: alpha(opacity=50); /* For IE8 and earlier */
 }
 
 .menu li.sub_active a img {
@@ -77,8 +80,9 @@ body {
 }
 
 .menu li {
+  vertical-align:bottom;
   padding-top: 4px;
-  padding-bottom:3px;
+  padding-bottom:4px;
   padding-left:16px;
   padding-right:16px;
   text-align:center;
@@ -99,14 +103,19 @@ body {
 .menu li.sub_active {
   /*border-bottom: 2px solid #ffaa00;*/
   font-size:1.0em;
+  background-color:#ffffff;
+  border: solid 1px #d0dae0;
+  border-bottom:solid 1px white;
+  margin-bottom:-1px;
 }
 
 .menu li.sub_active a{
   padding-top:0;
   padding-bottom:0;
   margin:0;
-  color:#777777;
-  font-weight:bold;
+  color:#296;
+  /*color:#e70;*/
+  /*font-weight:bold;*/
 }
 
 .full_divider {
@@ -121,7 +130,7 @@ body {
 
 .label_row_container {
   /*font-weight:bold;*/
-  background-color: #e0f0ff;
+  background-color: #e3f6fa;
   padding: 0px 4px;
   font-size:1.1em;
 }
@@ -152,7 +161,7 @@ body {
 }
 
 .sort_div:hover {
-  background-color:#d0e5fc;
+  background-color:#d0f0f8;
   z-index:0;
 }
 
@@ -165,7 +174,7 @@ body {
 }
 
 .inv_sort_div:hover {
-  background-color:#d0e5fc;
+  background-color:#d0f0f8;
   z-index:0;
 }
 
@@ -571,29 +580,34 @@ body {
 
 .navbar {
   border-bottom:solid 1px #dddddd;
-  background-color:#f5f7f9 !important;
+  /*background-color:#f5f7f9 !important;*/
+  background-color:#3386c0 !important;
+  border-bottom: 1px solid #206090;
 }
 
 .navbar-default .navbar-nav > li > a:hover {
-  color: #66aacc !important;
+  color: #66aacc;
 }
 
 .main_nav li.active a {
-  color:#000000 !important;
+  color:#ffffff !important;
   text-decoration: none;
-  background-color: #f5f7f9 !important;
-  border-bottom: 3px solid #55b0e8;
+  background-color: #206090 !important;
+  /*border-bottom: 2px solid #000000;*/
   font-size:1.2em;
 }
 
 .main_nav li a {
   font-size:1.1em;
   text-decoration: none;
-  color:#999999 !important;
+  color: #b0d5ea !important;
+
 }
 
 .main_nav li a:hover {
   text-decoration:none;
+  color:#ffffff !important;
+  /*font-size:1.2em;*/
 }
 
 .add_tap_btn {

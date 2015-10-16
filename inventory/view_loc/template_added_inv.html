@@ -19,7 +19,7 @@
       <img ng-if="item.icon==='can'" src="images/bev_can.png" height="34px" width="34px" style="margin-left:0px">
       <img ng-if="item.icon==='liquor'" src="images/bev_xo.png" height="34px" width="34px" style="margin-left:0px">
     </div>
-    <div ng-class="{'col-xs-8': item.type==='keg', 'col-xs-4': item.type==='bev'}" style="padding:0; padding-left:10px">
+    <div ng-class="{'col-xs-8': item.type==='keg', 'col-xs-4': item.type==='bev'}" style="padding:0; padding-left:6px">
       <div style="font-size:0.9em">
         <span ng-if="item.type==='bev'" class="nowrap_span">{{item.product}}</span>
         <span ng-if="item.type==='keg'" class="nowrap_span">{{item.distributor}}</span>
