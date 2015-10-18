@@ -1089,7 +1089,7 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 	filename = strings.Replace(filename, " ", "_", -1)
 
 	xfile := xlsx.NewFile()
-	sheet := xfile.AddSheet("Sheet1")
+	sheet, _ := xfile.AddSheet("Sheet1")
 	// create headers
 	row := sheet.AddRow()
 	cell := row.AddCell()
