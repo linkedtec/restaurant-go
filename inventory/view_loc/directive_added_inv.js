@@ -15,21 +15,6 @@ angular.module('myApp')
     templateUrl: './view_loc/template_added_inv.html',
     link: function(scope, elem, attrs) {
 
-      scope.closePopover = function(e) {
-        var popups = document.querySelectorAll('.popover');
-        if(popups) {
-          for(var i=0; i<popups.length; i++) {
-            var popup = popups[i];
-            var popupElement = angular.element(popup);
-
-            if(popupElement[0].previousSibling!=e.target){
-              popupElement.scope().$parent.isOpen=false;
-              popupElement.remove();
-            }
-          }
-        }
-      };
-
       scope.enterInvQuantity = function(item, is_edit) {
 
         if (!is_edit) {

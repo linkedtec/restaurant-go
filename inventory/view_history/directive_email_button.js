@@ -10,6 +10,7 @@ angular.module('myApp')
     templateUrl: './view_history/template_email_button.html',
     link: function(scope, elem, attrs) {
 
+      scope.show_popover = {value:false};
       scope.custom_email_valid = false;
       scope.custom_email = {email:""};
       scope.default_email = null;
@@ -99,6 +100,7 @@ angular.module('myApp')
       scope.toggleEmailPopover = function() {
         scope.editing_default_email = false;
         scope.default_email_tmp.email = "";
+        scope.show_popover.value = !scope.show_popover.value;
       };
 
       scope.sendDefault = function() {
@@ -136,22 +138,23 @@ angular.module('myApp')
         scope.custom_email.email = "";
         scope.custom_email_valid = false;
 
+        /*
+        // this is the disabled hacky way of closing popovers.  In the new
+        // bootstrap ui popover directive there is a popover-is-open control
+        // which works much better 
         var popups = document.querySelectorAll('.popover');
+        console.log(popups);
         if(popups) {
           for(var i=0; i<popups.length; i++) {
+            console.log('pop');
             var popup = popups[i];
             var popupElement = angular.element(popup);
             popupElement.scope().$parent.isOpen=false;
             popupElement.remove();
-            /*
-            if(popupElement[0].previousSibling!=e.target){
-              popupElement.scope().$parent.isOpen=false;
-              popupElement.remove();
-            }
-            */
           }
         }
-        console.log('closed');
+        */
+        scope.show_popover.value = false;
       };
 
     }
