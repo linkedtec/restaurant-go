@@ -500,6 +500,9 @@ angular.module('myApp')
             scope.form_ver.error_abv=true;
             all_clear = false;
           }
+          if (scope.new_beverage['abv'] === '') {
+            scope.new_beverage['abv'] = null;
+          }
         }
         
         if (scope.showPurchase) {
@@ -512,6 +515,9 @@ angular.module('myApp')
           {
             scope.form_ver.error_pvolume=true;
             all_clear = false;
+          }
+          if (scope.new_beverage['purchase_volume'] === '') {
+            scope.new_beverage['purchase_volume'] = null;
           }
 
           // if purchase unit is not empty but purchase volume is empty, that's a volume error
@@ -548,6 +554,8 @@ angular.module('myApp')
             scope.form_ver.error_pcount=true;
             all_clear = false;
           }
+          // this could have become a string, so need to make sure it's a float
+          scope.new_beverage['purchase_count'] = MathService.fixFloat2(scope.new_beverage['purchase_count']);
 
           scope.form_ver.error_par=false;
           if ( scope.requiredMissing('par') ) {
@@ -559,6 +567,9 @@ angular.module('myApp')
           {
             scope.form_ver.error_par=true;
             all_clear = false;
+          }
+          if (scope.new_beverage['par'] === '') {
+            scope.new_beverage['par'] = null;
           }
         }
         
@@ -602,6 +613,9 @@ angular.module('myApp')
             all_clear=false;
           } else {
             scope.form_ver.error_unit_sale=false;
+          }
+          if (scope.new_unit_sale.value === '') {
+            scope.new_unit_sale.value = null;
           }
         }
 
@@ -711,6 +725,7 @@ angular.module('myApp')
         */
 
         if (!scope.is_edit) {
+          console.log(scope.new_beverage);
           // If this is a NEW beverage, just post it
           var result = BeveragesService.post(scope.new_beverage);
           result.then(

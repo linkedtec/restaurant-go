@@ -52,6 +52,11 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
         $scope.firstTimeSort = false;
         $scope.sortBy('name');
       }
+
+      setInterval(
+        function() {
+          $scope.$apply();
+        }, 0);
     });
   };
   $scope.getDistributors();

@@ -58,12 +58,14 @@ config(['$routeProvider', function($routeProvider) {
     fixFloat2: function(fnum) {
       if (fnum===null || isNaN(fnum))
         return fnum
+      fnum = parseFloat(fnum);
       return parseFloat(fnum.toFixed(2));
     },
 
     fixFloat1: function(fnum) {
       if (fnum===null || isNaN(fnum))
         return fnum
+      fnum = parseFloat(fnum);
       return parseFloat(fnum.toFixed(1));
     },
 

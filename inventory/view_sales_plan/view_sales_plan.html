@@ -1,11 +1,11 @@
 <div ng-include src="'./bev_subnav.html'"></div>
 <div class="container" style="min-width:880px; max-width:960px">
 
-  <div style="width:100%; margin-top:24px; padding-bottom:6px; font-size:1.3em; border-bottom:solid 1px #dddddd">
+  <div style="width:100%; margin-top:24px; padding-bottom:4px; font-size:1.3em; border-bottom:solid 1px #dddddd">
     <img src="images/inv_menu.png" height="32" width="32" style="vertical-align:top"/>
     <div style="display: inline-block; vertical-align:top; margin-top:8px; margin-left:2px">Plan Beverages Menu</div>
   </div>
-  <div class="hint_text" style="width:100%; padding-top:4px;">
+  <div class="hint_text" style="width:100%; padding-top:2px; font-size:1.0em">
     Plan current and upcoming beverages for sale
   </div>
 
@@ -60,7 +60,7 @@
       </uib-tabset>
       <div style="display:block; position:relative; bottom:0; top:0px; left: 0; right:0; margin:0px 12px 12px; padding:4px 8px; padding-bottom:12px; background-color:#ffffff; border:1px solid #dddddd; border-top:none" ng-style="addUIHeight">
         <div ng-if="add_mode===0">
-          <addable-inv all-bevs="add_inv_unadded" all-kegs="[]" added-items="inventory_items" control="addableControl" show-tabs="false" use-override-add-func="true" override-add-func="showParModal(item, use_mode, false)"></addable-inv>
+          <addable-inv all-bevs="add_inv_unadded" all-kegs="[]" added-items="inventory_items" control="addableControl" show-tabs="false" use-override-add-func="true" override-add-func="showParModal(item, use_mode, false, true)"></addable-inv>
         </div>
         <div ng-if="add_mode===1">
           <new-beverage all-distributors="all_distributors" all-breweries="all_breweries" volume-units="volume_units" prepopulate-vars="{'sale_status':sale_statuses[use_mode]}" required-vars="['par','sale_status']" control="newBevControl" edit-mode="'all'" close-on-save="newBeverageCloseOnSave(new_beverage)"></new-beverage>
@@ -85,7 +85,7 @@
     </div>
 
     <table style="width: 100%; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-bottom:24px; margin-top:8px">
-      <tr style="font-size:13px; ;background-color: #e3f6fa;">
+      <tr style="font-size:13px; ;background-color: #e7f7fa;">
         <td class="all_inv_label_span noselect" style="width:20px; border-left: 1px solid #dddddd">
         </td>
         <td class="all_inv_label_span noselect" style="width:190px;">
@@ -207,11 +207,13 @@
             <span ng-if="sp.price === null"> -- </span>
           </div>
         <td ng-if="use_mode!==2" class="all_inv_span" style="width:60px;">
-          {{inv.par | number:1}}
+          <span ng-if="inv.par===null" class="glyphicon glyphicon-alert" style="font-size:13px; color:#dd6622; float:left" uib-popover="No Par specified!  Click 'Fix' to add one." popover-trigger="mouseenter" popover-append-to-body="true"></span>
+          <span ng-if="inv.par===null" style="font-size:12px; padding-left:4px; cursor:pointer; text-decoration:underline; color:#dd6622" ng-click="showParModal(inv, use_mode, false, false)">Fix</span>
+          <span ng-if="inv.par!==null">{{inv.par | number:1}}</span>
         </td>
-        <td ng-if="use_mode!==2" class="all_inv_span" style="width:70px;">
+        <td ng-if="use_mode!==2" class="all_inv_span" style="width:70px; background-color:{{inv.stock_bg_color}}">
           <span ng-if="inv.count!==null" style="color:{{inv.stock_color}}">{{inv.count | number:1}}</span>
-          <span ng-if="inv.count===null" class="glyphicon glyphicon-alert" style="font-size:16px; color:#fce6b0; float:right" uib-popover="No Inventory records in the past 3 days!" popover-trigger="mouseenter" popover-append-to-body="true"></span>
+          <span ng-if="inv.count===null" class="glyphicon glyphicon-alert" style="font-size:16px; color:#dadada; float:right" uib-popover="No Inventory records in the past 3 days!" popover-trigger="mouseenter" popover-append-to-body="true"></span>
         </td>
         <td class="all_inv_span" ng-if="use_mode===2" style="width:130px; text-align:center">
 

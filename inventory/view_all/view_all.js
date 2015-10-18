@@ -148,6 +148,8 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       }
     }
 
+    ItemsService.processBevsForAddable([new_beverage]);
+
     $scope.inventory_items.push(new_beverage);
 
     if ($scope.all_breweries.indexOf(new_beverage['brewery']) < 0) {

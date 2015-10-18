@@ -1,11 +1,11 @@
 <div ng-include src="'./bev_subnav.html'"></div>
 <div style="padding-left:20px;">
 
-  <div style="margin-top:18px; padding-bottom:6px; font-size:1.3em; border-bottom:solid 1px #dddddd">
+  <div style="margin-top:18px; padding-bottom:4px; font-size:1.3em; border-bottom:solid 1px #dddddd">
     <img src="images/inv_all.png" height="32" width="32" style="vertical-align:top"/>
     <div style="display: inline-block; vertical-align:top; margin-top:10px; margin-left:2px">All Beverages Database</div>
   </div>
-  <div class="hint_text" style="width:100%; padding-top:4px;">
+  <div class="hint_text" style="width:100%; padding-top:2px; font-size:1.0em">
     Complete Database of all Beverages in the system.
   </div>
 
@@ -44,7 +44,7 @@
       </button>
     </div>
     <div style="display:inline-block; width:200px; float:left">
-      <input ng-model="all_inv_query.query" class="form-control input-md" placeholder="Search Inventory...">
+      <input ng-model="all_inv_query.query" class="form-control input-md" placeholder="Search Beverages...">
     </div>
     <div style="display:inline-block; margin-left:10px;float:left"  uib-popover="Show / hide columns" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
       <button ng-click="showColumnsCtrl()" type="button" class="btn btn-default btn-md" style="height:34px">
@@ -81,7 +81,7 @@
   </div>
 
   <table ng-if="inventory_items.length>0" style="width: 100%; table-layout:fixed; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-bottom:120px;">
-    <tr style="font-size:12px; ;background-color: #e3f6fa;">
+    <tr style="font-size:12px; ;background-color: #e7f7fa;">
       <td class="all_inv_label_span noselect" style="width:40px; border-left: 1px solid #dddddd">
       </td>
       <td class="all_inv_label_span noselect" style="width:180px; overflow:auto">

@@ -144,6 +144,8 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
   $scope.showAddInv = function() {
     $scope.show_add_ui=true;
 
+    $scope.getInactiveInv();
+
     $scope.selectAddMode($scope.add_modes[0]);
   };
 
@@ -217,19 +219,24 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
   $scope.calculateStockColor = function(item) {
     if (item['par'] === null || item['count'] === null) {
       item['stock_color'] = '#000000';
+      item['stock_bg_color'] = '#f8f8f8;';
       return;
     }
     if (item['par'] <= 0) {
       item['stock_color'] = '#000000';
+      item['stock_bg_color'] = '#f8f8f8;';
       return;
     }
     var stock_pct = (item['count'] / item['par']);
     if (stock_pct >= .66) {
-      item['stock_color'] = '#22aa00';
+      item['stock_color'] = '#228800;';
+      item['stock_bg_color'] = '#D3F3AA;';
     } else if (stock_pct >= .33) {
-      item['stock_color'] = '#ccaa00; font-weight:bold';
+      item['stock_color'] = '#aa8800; font-weight:bold;';
+      item['stock_bg_color'] = '#FFE8A6';
     } else {
-      item['stock_color'] = '#cc2200; font-weight:bold';
+      item['stock_color'] = '#cc2200; font-weight:bold;';
+      item['stock_bg_color'] = '#ffb699';
     }
   }
 
@@ -375,13 +382,16 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
   $scope.moveToMenu = function(item, menu) {
     if (menu === $scope.move_menus[0]) {
-      $scope.showParModal(item, 0, true);
+      $scope.showParModal(item, 0, true, false);
     } else if (menu === $scope.move_menus[1]) {
-      $scope.showParModal(item, 1, true);
+      $scope.showParModal(item, 1, true, false);
     }
   }
 
-  $scope.showParModal = function(item, menu_type, from_inactive) {
+  $scope.showParModal = function(item, menu_type, from_inactive, from_addable) {
+    // this could have come from the inactive menu type (from_inactive),
+    // the addable bev directive (from_addable),
+    // or just as an edit on an existing item (neither)
 
     console.log('show par');
     console.log(item);
@@ -418,9 +428,13 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
           console.log(item);
 
           var type = 'Staple';
-          if (menu_type === 1) {
+          if (menu_type === 0) {
+            item['sale_status'] = 'Staple';
+          } else if (menu_type === 1) {
+            item['sale_status'] = 'Seasonal';
             type = 'Seasonal';
           } else if (menu_type === 2) {
+            item['sale_status'] = 'Staple';
             type = 'Inactive';
           }
 
@@ -469,7 +483,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
             } 
             // otherwise, was added from the addable directive, and need to 
             // splice from there and push into inventory_items
-            else {
+            else if (from_addable === true) {
               $scope.inventory_items.push(item);
 
               for (var i = 0; i < $scope.add_inv_unadded.length; i++) {
@@ -485,13 +499,24 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
               // added inventory_items, we need to call applyTypeFilter to have it
               // properly remove the item we just added from its addable items
               $scope.addableControl.applyTypeFilter();
+            } else {
+              // for simply editing a line item, don't need to do anything
+              ;
             }
 
             // update client date fields for displaying start and end dates
             if (menu_type===1) {
               $scope.calculateDates(item);
             }
+
+            if (menu_type!==2) {
+              console.log('calc stock color');
+              $scope.calculateStockColor(item);
+            }
             
+            
+            // double sort here
+            $scope.sortBy($scope.sort_key);
             $scope.sortBy($scope.sort_key);
 
           }).
@@ -624,13 +649,24 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
             for (var i in $scope.inventory_items) {
               var check_item = $scope.inventory_items[i];
               if (check_item['version_id'] === edit_bev['version_id']) {
+                console.log('splice');
                 $scope.inventory_items.splice(i, 1);
                 break;
               }
             }
+            console.log('push');
+            $scope.add_inv_unadded.push(edit_bev);
+            setInterval(
+              function() {
+                $scope.$apply();
+              }, 0);
+            console.log($scope.inventory_items);
+            console.log($scope.add_inv_unadded);
+            $scope.addableControl.applyTypeFilter();
           } else {
             // recalculate pretty dates
             $scope.calculateDates(edit_bev);
+            $scope.calculateStockColor(edit_bev);
           }
 
           swal({
@@ -646,6 +682,24 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       function() {
         ;
       });
+  };
+
+  $scope.newBeverageCloseOnSave = function(new_beverage) {
+
+    ItemsService.processBevsForAddable([new_beverage]);
+
+    $scope.inventory_items.push(new_beverage);
+
+    if ($scope.all_breweries.indexOf(new_beverage['brewery']) < 0) {
+      $scope.all_breweries.push(new_beverage['brewery']);
+    }
+
+    $scope.calculateDates(new_beverage);
+
+    // finally, reapply sort twice to sort with newly added entry included
+    $scope.sortBy($scope.sort_key);
+    $scope.sortBy($scope.sort_key);
+
   };
 
 })
