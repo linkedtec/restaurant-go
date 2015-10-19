@@ -37,6 +37,7 @@ type InvDateItemHistory struct {
 
 type InvItemSumHistory struct {
 	Product   NullString      `json:"product"`
+	Brewery   NullString      `json:"brewery"`
 	Histories []InvSumHistory `json:"histories"`
 }
 
@@ -1096,6 +1097,8 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 	cell = row.AddCell()
 	cell.Value = "Product"
 	cell = row.AddCell()
+	cell.Value = "Brewery"
+	cell = row.AddCell()
 	cell.Value = "Quantity"
 	cell = row.AddCell()
 	cell.Value = "Wholesale ($)"
@@ -1139,6 +1142,7 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 			daterow.AddCell()
 			daterow.AddCell()
 			daterow.AddCell()
+			daterow.AddCell()
 			date_sum_cell := daterow.AddCell()
 
 			var dateItem InvDateItemHistory
@@ -1160,6 +1164,8 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 				} else {
 					cell.Value = bevInv.Product
 				}
+				cell = bevrow.AddCell()
+				cell.Value = bevInv.Brewery.String
 				cell = bevrow.AddCell()
 				cell.Value = fmt.Sprintf("%.2f", bevInv.Quantity)
 				cell = bevrow.AddCell()
@@ -1197,6 +1203,7 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 			daterow.AddCell()
 			daterow.AddCell()
 			daterow.AddCell()
+			daterow.AddCell()
 			date_sum_cell := daterow.AddCell()
 
 			var aDateInv InvLocSumsByDate
@@ -1216,6 +1223,7 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 				cell = locrow.AddCell()
 				cell = locrow.AddCell()
 				cell = locrow.AddCell()
+				cell = locrow.AddCell()
 				loc_inv_sum_cell := locrow.AddCell()
 				loc_inv_sum := 0.0
 				for _, itemHistory := range locHistory.Histories {
@@ -1227,6 +1235,8 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 					} else {
 						cell.Value = itemHistory.Product
 					}
+					cell = itemrow.AddCell()
+					cell.Value = itemHistory.Brewery.String
 					cell = itemrow.AddCell()
 					cell.Value = fmt.Sprintf("%.2f", itemHistory.Quantity)
 					cell = itemrow.AddCell()
@@ -1753,7 +1763,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					itemInv.Date = a_date
 					for _, id := range id_ints {
 						rows, err := db.Query(`
-							SELECT beverages.id, beverages.product, 
+							SELECT beverages.id, beverages.product, beverages.brewery, 
 								COALESCE(SUM(
 									CASE WHEN locations.type='tap' THEN 
 										CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume 
@@ -1782,6 +1792,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							if err := rows.Scan(
 								&bevInv.ID,
 								&bevInv.Product,
+								&bevInv.Brewery,
 								&bevInv.Quantity,
 								&bevInv.Wholesale,
 								&bevInv.Deposit,
@@ -1816,16 +1827,13 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				for _, item_id := range item_ids {
 
 					var item InvItemSumHistory
-
-					var product NullString
-					err := db.QueryRow("SELECT product FROM beverages WHERE id=$1;", item_id).Scan(&product)
+					err := db.QueryRow("SELECT product, brewery FROM beverages WHERE id=$1;", item_id).Scan(&item.Product, &item.Brewery)
 					if err != nil {
 						log.Println(err.Error())
 						// if query failed will exit here, so loc_id is guaranteed below
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						return
 					}
-					item.Product = product
 					log.Println(item)
 
 					var histories []InvSumHistory
@@ -1924,7 +1932,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				// First get BEVERAGES from location_beverages (not including empty
 				// keg deposits)
 				rows, err = db.Query(`
-					SELECT beverages.id, beverages.product, 
+					SELECT beverages.id, beverages.product, beverages.brewery, 
 					COALESCE(SUM(
 						CASE WHEN locations.type='tap' THEN 
 							CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume 
@@ -1952,6 +1960,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					if err := rows.Scan(
 						&bevInv.ID,
 						&bevInv.Product,
+						&bevInv.Brewery,
 						&bevInv.Quantity,
 						&bevInv.Wholesale,
 						&bevInv.Deposit,
@@ -2107,7 +2116,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 					// First do beverages
 					inv_rows, err := db.Query(`
-						SELECT location_beverages.beverage_id, beverages.product, 
+						SELECT location_beverages.beverage_id, beverages.product, beverages.brewery, 
 							location_beverages.quantity, 
 							location_beverages.wholesale, 
 							location_beverages.deposit, 
@@ -2128,6 +2137,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						if err := inv_rows.Scan(
 							&bevInv.ID,
 							&bevInv.Product,
+							&bevInv.Brewery,
 							&bevInv.Quantity,
 							&bevInv.Wholesale,
 							&bevInv.Deposit,
@@ -2191,7 +2201,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				invLocSum.Location.Valid = true
 
 				inv_rows, err := db.Query(`
-					SELECT beverages.id, beverages.product, 
+					SELECT beverages.id, beverages.product, beverages.brewery, 
 						COALESCE(SUM(CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume ELSE 0 END),0), 
 						location_beverages.wholesale, 
 						location_beverages.deposit, 
@@ -2214,6 +2224,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					if err := inv_rows.Scan(
 						&bevInv.ID,
 						&bevInv.Product,
+						&bevInv.Brewery,
 						&bevInv.Quantity,
 						&bevInv.Wholesale,
 						&bevInv.Deposit,
@@ -2315,7 +2326,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					invTypeSum.Location.Valid = true
 
 					inv_rows, err := db.Query(`
-						SELECT beverages.id, beverages.product, 
+						SELECT beverages.id, beverages.product, beverages.brewery, 
 							COALESCE(SUM(
 								CASE WHEN locations.type='tap' THEN 
 									CASE WHEN COALESCE(beverages.purchase_volume,0)>0 THEN location_beverages.quantity/beverages.purchase_volume 
@@ -2342,6 +2353,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						if err := inv_rows.Scan(
 							&bevInv.ID,
 							&bevInv.Product,
+							&bevInv.Brewery,
 							&bevInv.Quantity,
 							&bevInv.Wholesale,
 							&bevInv.Deposit,

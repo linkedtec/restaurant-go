@@ -110,6 +110,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     for (var item_i in $scope.invData['items']) {
       var item_history = $scope.invData['items'][item_i];
       var product = item_history.product;
+      var brewery = item_history.brewery;
       var histories = item_history.histories;
       if (histories === undefined || histories === null) {
         histories = [];
@@ -128,6 +129,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
         }
         items_by_date[update].push({
           'product': product,
+          'brewery': brewery,
           'quantity': quantity,
           'wholesale': wholesale,
           'deposit': deposit,

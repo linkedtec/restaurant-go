@@ -89,6 +89,7 @@
       <tr>
         <td></td>
         <td style="width:30%">Product</td>
+        <td style="width:20%">Brewery</td>
         <td>Quantity</td>
         <td>Wholesale</td>
         <td>Deposit</td>
@@ -101,23 +102,25 @@
           <td></td>
           <td></td>
           <td></td>
+          <td></td>
           <td>{{inv.inv_sum | number:2}}</td>
         </tr>
         <tr ng-repeat="dinv in inv.date_inv" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'">
           <td></td>
           <td ng-if="dinv.type!=='keg'" style="width:30%">{{dinv.product}}</td>
           <td ng-if="dinv.type==='keg'" style="width:30%">Keg Deposit - {{dinv.distributor}} {{dinv.volume | number:1}} {{dinv.unit}}</td>
+          <td style="width:20%">{{dinv.brewery | limitTo:20}}</td>
           <td>{{dinv.quantity | number:2}}</td>
           <td>{{dinv.wholesale | number:2}}</td>
           <td>{{dinv.deposit | number:2}}</td>
           <td>{{dinv.inventory | number:2}}</td>
-          <td></td>
         </tr>
-        <tr><td colspan="6"></td></tr>
+        <tr><td colspan="7"></td></tr>
       </tbody>
       <tbody ng-if="sort_type===sort_types[1] || sort_type===sort_types[2]" ng-repeat="inv in display_items">
         <tr style="font-weight:bold; font-style:italic">
           <td>{{inv.pretty_date}}</td>
+          <td></td>
           <td></td>
           <td></td>
           <td></td>
@@ -130,12 +133,14 @@
           <td></td>
           <td></td>
           <td></td>
+          <td></td>
           <td style="font-weight:bold">{{loc.inv_sum | number:2}}</td>
         </tr>
         <tr ng-repeat-start="item in loc.histories" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'">
           <td></td>
           <td ng-if="item.type!=='keg'" style="width:30%">{{item.product}}</td>
           <td ng-if="item.type==='keg'" style="width:30%">Keg Deposit - {{item.distributor}} {{item.volume | number:1}} {{item.unit}}</td>
+          <td style="width:20%">{{item.brewery | limitTo:20}}</td>
           <td>{{item.quantity | number:2}}</td>
           <td>{{item.wholesale | number:2}}</td>
           <td>{{item.deposit | number:2}}</td>
@@ -143,7 +148,7 @@
         </tr>
         <tr ng-repeat-end ng-if="false"><td colspan="0"></td></tr>
         <tr ng-repeat-end ng-if="false"><td colspan="0"></td></tr>
-        <tr><td colspan="6"></td></tr>
+        <tr><td colspan="7"></td></tr>
       </tbody>
     </table>
 

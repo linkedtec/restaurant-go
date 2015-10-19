@@ -55,6 +55,7 @@ type BeverageSalePlan struct {
 type BeverageInv struct {
 	ID          int         `json:"id"`
 	Product     string      `json:"product"`
+	Brewery     NullString  `json:"brewery"`
 	Distributor NullString  `json:"distributor"`
 	Volume      NullFloat64 `json:"volume"`
 	Unit        NullString  `json:"unit"`
