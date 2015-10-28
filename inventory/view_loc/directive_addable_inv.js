@@ -9,8 +9,9 @@ angular.module('myApp')
       addedItems: '=', // shares this with added inv directive to pass common state
       addBev: '&',      // pass added bev to caller
       addKeg: '&',      // pass added keg to caller
-      control: '=',
+      control: '=?',
       showTabs: '=',
+      showPurchase: '=?',
       isDelivery: '=',
       refreshDelivery: '&',
       useOverrideAddFunc: '=',
@@ -24,7 +25,7 @@ angular.module('myApp')
       // directive updates accordingly.  Had a big headache with the allBevs
       // showing up null on start.
       scope.$watch('allBevs', function() {
-        scope.internalControl.applyTypeFilter ();
+        scope.internalControl.applyTypeFilter();
       });
 
       if (scope.isDelivery===undefined || scope.isDelivery===null) {
@@ -58,6 +59,14 @@ angular.module('myApp')
       scope.filter_query = {
         query: ''
       };
+
+      if (scope.showPurchase === true) {
+        scope.productCol = 'col-xs-3';
+        scope.breweryCol = 'col-xs-3';
+      } else {
+        scope.productCol = 'col-xs-5';
+        scope.breweryCol = 'col-xs-4';
+      }
 
       // inserts an item into the addable list, e.g., when an item was
       // removed from the added list and needs to be re-inserted into the

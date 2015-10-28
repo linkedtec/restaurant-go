@@ -6,6 +6,7 @@ angular.module('myApp', [
   'myApp.viewAllInv',
   'myApp.viewDistributors',
   'myApp.viewSalesPlan',
+  'myApp.viewPurchaseOrders',
 //  'myApp.viewInvByLoc',
   'myApp.viewInvByLocNew',
 //  'myApp.viewOnTap',

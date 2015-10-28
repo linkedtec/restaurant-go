@@ -391,6 +391,10 @@ angular.module('myApp.viewHistory', ['ngRoute'])
 
   $scope.getAllInventoryItemized = function() {
 
+    console.log($scope.startDateLocal());
+    console.log($scope.endDateLocal());
+    console.log(DateService.timeZoneOffset());
+
     $http.get('/inv/history', {
       params: { 
         type: 'all_itemized',

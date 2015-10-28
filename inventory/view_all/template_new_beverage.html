@@ -277,7 +277,7 @@
           Retail Price
         </div>
       </div>
-      <div ng-show="new_beverage.container_type !== 'Keg'" class="row" style="margin:8px 0px; background-color:#e5f5ea; padding:8px 0px">
+      <div ng-show="new_beverage.container_type !== 'Keg'" class="row green_row" style="margin:8px 0px; padding:8px 0px">
         <div class="col-xs-3 min_padding" style="font-size:1.1em; padding-top:4px; padding-left:6px">
           1 {{new_beverage.container_type}}
         </div>
@@ -288,7 +288,7 @@
           </div>
         </div>
       </div>
-      <div ng-show="new_beverage.serve_type===serve_types[2]" ng-repeat="size_price in new_beverage.size_prices" class="row" style="margin:4px 0px; background-color:#e5f5ea; padding:8px 0px;">
+      <div ng-show="new_beverage.serve_type===serve_types[2]" ng-repeat="size_price in new_beverage.size_prices" class="row green_row" style="margin:6px 0px; padding:8px 0px;">
         <div class="col-xs-3 min_padding">
           <div class="form-group" ng-class="{'has-error': form_ver.errors_sale_volume[$index]===true}" style="width:100%; margin-bottom:0">
             <input ng-model="size_price.volume" type="number" min="0" class="form-control input_small" style="width:60%; float:left" placeholder="pour size">

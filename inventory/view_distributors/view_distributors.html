@@ -1,8 +1,8 @@
 <div ng-include src="'./bev_subnav.html'"></div>
-<div class="container" style="min-width:620px; max-width:880px">
+<div class="container" style="min-width:760px; max-width:880px">
 
   <div style="width:100%; margin-top:24px; padding-bottom:4px; font-size:1.3em; border-bottom:solid 1px #dddddd">
-    <img src="images/inv_box.png" height="32" width="32" style="vertical-align:top"/>
+    <img src="images/inv_delivery.png" height="32" width="32" style="vertical-align:top"/>
     <div style="display: inline-block; vertical-align:top; margin-top:8px; margin-left:2px">Distributors and Kegs</div>
   </div>
   <div class="hint_text" style="width:100%; padding-top:2px; font-size:1.0em">
@@ -32,9 +32,10 @@
           <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Distributor
         </button>
       </div>
-      <div class="col-xs-9" style="font-size:1.1em">
+      <div class="col-xs-9" style="font-size:1.0em">
         Adding Distributors allows you to associate distributor information with 
-        your beverages, and to track deliveries and keg deposits.
+        your beverages, make purchase orders, and track deliveries and keg 
+        deposits.
       </div>
     </div>
   </div>
@@ -51,15 +52,20 @@
     </div>
   </div>
 
-
   <table style="width: 100%; min-width:720px; table-layout:fixed; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-top:6px; margin-bottom:120px; font-size:13px">
     <tr style="background-color: #e7f7fa;">
-      <td class="all_inv_label_span noselect" style="width:35px; border-left: 1px solid #dddddd">
+      <td class="all_inv_label_span noselect" style="width:30px; border-left: 1px solid #dddddd">
       </td>
-      <td class="all_inv_label_span noselect" style="width:175px; overflow:auto">
+      <td class="all_inv_label_span noselect" style="width:140px; overflow:auto">
         <div class="sort_div" ng-click="sortBy('name')">
           <span>Distributor</span>
           <span ng-show="sort_key === 'name'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:140px; overflow:auto">
+        <div class="sort_div" ng-click="sortBy('email')">
+          <span>Email</span>
+          <span ng-show="sort_key === 'email'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:40px; overflow:auto">
@@ -69,12 +75,12 @@
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:2px; overflow:auto"></td>
-      <td class="all_inv_label_span noselect" style="width:90px; overflow:auto">
+      <td class="all_inv_label_span noselect" style="width:80px; overflow:auto">
         <div class="sort_div">
           <span>Keg Volume</span>
         </div>
       </td>
-      <td class="all_inv_label_span noselect" style="width:75px; overflow:auto">
+      <td class="all_inv_label_span noselect" style="width:70px; overflow:auto">
         <div class="sort_div">
           <span>Keg Deposit</span>
         </div>
@@ -93,6 +99,7 @@
           </button>
         </td>
         <td class="all_inv_span">{{dist.name}}</td>
+        <td class="all_inv_span">{{dist.email}}</td>
         <td class="all_inv_span">{{dist.bev_count}}</td>
         <td class="all_inv_span"></td>
         <td class="all_inv_span">
@@ -111,6 +118,7 @@
         <td class="all_inv_span"></td>
         <td class="all_inv_span"></td>
         <td class="all_inv_span"></td>
+        <td class="all_inv_span"></td>
         <td class="all_inv_span">
           <div ng-if="dist.kegs!==null && dist.kegs.length>0">
             <div style="width:50%; display:inline-block">{{dist.kegs[$index].volume | number:2}}</div>
@@ -123,7 +131,7 @@
     </tbody>
     <!-- Empty row -->
     <tr ng-if="distributors.length===0" style="width:100%">
-      <td class="hint_text" colspan="4" style="text-align:center; font-size:1.4em; padding:16px 0px; border-left: 1px solid #dddddd; border-right: 1px solid #dddddd">
+      <td class="hint_text" colspan="8" style="text-align:center; font-size:1.4em; padding:16px 0px; border-left: 1px solid #dddddd; border-right: 1px solid #dddddd">
         Empty
       </td>
     </tr>

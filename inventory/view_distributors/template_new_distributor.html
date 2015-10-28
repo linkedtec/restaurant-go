@@ -1,16 +1,22 @@
 <div style="margin-top:12px; margin-left:8px">
-  <div class="row" style="margin-top:8px; padding-left:10px">
+  <div class="row" style="margin-top:8px; padding-left:10px; margin-right:0px">
     <div class="col-xs-6">
       <div class="form-group" ng-class="{'has-error': form_ver.error_name===true}">
-        <label class="control-label bold"> Distributor Name</label>
-        <input ng-model="new_distributor.name" class="form-control input_add" placeholder="e.g., California Beer & Beverage">
+        <label class="control-label label_small bold"> Distributor Name</label>
+        <input ng-model="new_distributor.name" class="form-control input_add input_small" placeholder="e.g., California Beer & Beverage">
+      </div>
+    </div>
+    <div class="col-xs-6">
+      <div class="form-group" ng-class="{'has-error': form_ver.error_email===true}">
+        <label class="control-label label_small"> Email</label><span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd; margin-left:6px"  uib-popover="This email will be used when sending Purchase Orders to the Distributor from this app.  It is highly recommended to enter your Distributor's email." popover-trigger="mouseenter"></span>
+        <input ng-model="new_distributor.email" class="form-control input_add input_small" placeholder="e.g., mike@distributor.com">
       </div>
     </div>
   </div>
 
   <div style="margin-top:0px; padding-left:10px;">
-    <span>Kegs & Deposits</span><span style="color:#aaaaaa; font-style:italic; margin-left:8px">Optional</span>
-    <span style="float:right; margin-right:24px"><a class="help_link" ng-click="showKegHelp()"> What is this?</a></span>
+    <span class="label_small">Kegs & Deposits</span><span class="label_small" style="color:#aaaaaa; font-style:italic; margin-left:8px">Optional</span>
+    <span style="float:right; margin-right:24px"><a class="help_link label_small" ng-click="showKegHelp()"> What is this?</a></span>
   </div>
   <!--div class="row" style="padding-left:10px; margin-bottom:4px; margin-top:8px">
     <div class="col-xs-4 optional">
@@ -20,12 +26,12 @@
       Deposit
     </div>
   </div-->
-  <div ng-repeat="keg in new_distributor.kegs" class="row" style="margin:4px 10px; background-color:#d0ece2; padding:8px 0px;">
+  <div ng-repeat="keg in new_distributor.kegs" class="row green_row" style="margin:4px 10px; padding:6px 0px;">
     <div class="col-xs-4 min_padding">
       <div class="form-group" ng-class="{'has-error': form_ver.errors_kegs_volume[$index]===true}">
-        <input ng-model="keg.volume" type="number" min="0" class="form-control input_add" style="width:90px; margin-right:6px; float:left" placeholder="Keg Vol.">
+        <input ng-model="keg.volume" type="number" min="0" class="form-control input_add input_small" style="width:90px; margin-right:6px; float:left" placeholder="Keg Vol.">
         <div>
-          <select ng-model="keg.unit" class="form-control input_add" ng-options="aunit for aunit in volume_units" style="width:60px; float:left"></select>
+          <select ng-model="keg.unit" class="form-control input_add input_small" ng-options="aunit for aunit in volume_units" style="width:60px; float:left"></select>
         </div>
       </div>
     </div>
@@ -33,15 +39,15 @@
       <div class="form-group" ng-class="{'has-error': form_ver.errors_kegs_deposit[$index]===true}" style="margin-bottom:0px">
         <div class="input-group">
           <span class="input-group-addon">$</span>
-          <input ng-model="keg.deposit" type="number" min="0" class="form-control input_add" style="width:100px;" placeholder="Deposit">
+          <input ng-model="keg.deposit" type="number" min="0" class="form-control input_add input_small" style="width:100px;" placeholder="Deposit">
         </div>
       </div>
     </div>
     <div class="col-xs-4 min_padding">
-      <button ng-show="new_distributor.kegs.length > 1" ng-click="removeKegRow($index)" type="button" class="btn btn-default btn-sm add_transparent_btn" style="font-size:14px; height:32px">
+      <button ng-show="new_distributor.kegs.length > 1" ng-click="removeKegRow($index)" type="button" class="btn btn-default btn-sm add_transparent_btn">
         <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
       </button>
-      <button ng-show="$index===new_distributor.kegs.length-1" ng-click="addKegRow(new_distributor.kegs[$index].unit)" type="button" class="btn btn-default btn-sm add_transparent_btn" style="font-size:14px; margin-left:6px">
+      <button ng-show="$index===new_distributor.kegs.length-1" ng-click="addKegRow(new_distributor.kegs[$index].unit)" type="button" class="btn btn-default btn-sm add_transparent_btn" style="margin-left:6px">
         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> More Kegs
       </button>
     </div>
@@ -62,6 +68,11 @@
   <div ng-show="dist_name_msg !== null" class="row" style="margin:4px 10px;">
     <div class=" col-xs-12 alert alert-danger" data-html="true" role="alert" style="margin-bottom:6px">
       {{dist_name_msg}}
+    </div>
+  </div>
+  <div ng-show="email_failure_msg !== null" class="row" style="margin:4px 10px;">
+    <div class=" col-xs-12 alert alert-danger" data-html="true" role="alert" style="margin-bottom:6px">
+      {{email_failure_msg}}
     </div>
   </div>
   

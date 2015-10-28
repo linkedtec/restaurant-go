@@ -292,6 +292,8 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 
+		log.Println(r)
+
 		// when getting sales status, we always want to first set any seasonal
 		// bevs whose sale_end period has ended to inactive
 		inactivateExpiredSeasonals(w, test_user_id)

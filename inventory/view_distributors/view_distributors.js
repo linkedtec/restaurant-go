@@ -217,7 +217,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
 
 })
 
-.controller('editDistModalCtrl', function($scope, $modalInstance, $modal, $http, $filter, DistributorsService, MathService, distributor, distributors, volume_units) {
+.controller('editDistModalCtrl', function($scope, $modalInstance, $modal, $http, $filter, DistributorsService, EmailService, MathService, distributor, distributors, volume_units) {
 
   $scope.volume_units = volume_units;
 
@@ -246,6 +246,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
   $scope.distributors = distributors;
 
   $scope.edit_name = $scope.distributor.name;
+  $scope.edit_email = $scope.distributor.email;
 
   // form verification
   $scope.form_ver = {};
@@ -295,6 +296,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
       function(payload) {
         $scope.original_distributor.name = new_name;
 
+        /*
         swal({
           title: "Distributor Name Saved!",
           text: "Distributor " + old_name + " has been renamed to <b>" + new_name + "</b>!",
@@ -302,6 +304,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
           timer: 4000,
           allowOutsideClick: true,
           html: true});
+        */
       },
       function(errorPayload) {
         $scope.distributor.name = old_name;
@@ -310,9 +313,59 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
 
   };
 
+  $scope.saveDistEmail = function(new_email) {
+
+    $scope.form_ver.error_email = false;
+
+    if (new_email===null || new_email.length===0) {
+      // it is okay to have empty email
+      new_email = null;
+    } else if (new_email.length >= 64) {
+      $scope.new_failure_msg = "Email is too long (64 character limit)!";
+      $scope.form_ver.error_email = true;
+      return;
+    } else if (!EmailService.isValidEmail(new_email)) {
+      $scope.new_failure_msg = "Email is not valid!  Please fix and try again.";
+      $scope.form_ver.error_email = true;
+      return;
+    }
+
+    var old_email = $scope.distributor.email;
+
+    $scope.distributor.email = new_email;
+    $scope.edit_email = new_email;
+
+    var result = DistributorsService.put($scope.distributor, ['email']);
+    result.then(
+      function(payload) {
+        $scope.original_distributor.email = new_email;
+
+        /*
+        swal({
+          title: "Distributor Email Saved!",
+          text: "Distributor email has been changed to <b>" + new_email + "</b>!",
+          type: "success",
+          timer: 4000,
+          allowOutsideClick: true,
+          html: true});
+        */
+      },
+      function(errorPayload) {
+        $scope.distributor.email = old_email;
+        $scope.edit_email = old_email;
+      });
+
+  };
+
   $scope.revertDistName = function() {
     $scope.edit_name = $scope.distributor.name;
     $scope.form_ver.error_name = false;
+    $scope.new_failure_msg = null;
+  };
+
+  $scope.revertDistEmail = function() {
+    $scope.edit_email = $scope.distributor.email;
+    $scope.form_ver.error_email = false;
     $scope.new_failure_msg = null;
   };
 

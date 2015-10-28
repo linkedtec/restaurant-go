@@ -8,11 +8,12 @@ import (
 )
 
 type Distributor struct {
-	ID          int       `json:"id"`
-	Name        string    `json:"name"`
-	DateCreated time.Time `json:"date_created"`
-	Kegs        []DistKeg `json:"kegs"`
-	BevCount    int       `json:"bev_count"`
+	ID          int        `json:"id"`
+	Name        string     `json:"name"`
+	Email       NullString `json:"email"`
+	DateCreated time.Time  `json:"date_created"`
+	Kegs        []DistKeg  `json:"kegs"`
+	BevCount    int        `json:"bev_count"`
 }
 
 type DistBev struct {
@@ -461,7 +462,7 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
-		rows, err := db.Query("SELECT id, name, date_created FROM distributors WHERE user_id=$1 AND active=TRUE;", test_user_id)
+		rows, err := db.Query("SELECT id, name, email, date_created FROM distributors WHERE user_id=$1 AND active=TRUE;", test_user_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -475,6 +476,7 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 			if err := rows.Scan(
 				&dist.ID,
 				&dist.Name,
+				&dist.Email,
 				&dist.DateCreated); err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -586,7 +588,7 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		} else {
-			_, err = db.Exec("INSERT INTO distributors(name, user_id, date_created, active) VALUES ($1, $2, $3, TRUE);", dist.Name, test_user_id, cur_time)
+			_, err = db.Exec("INSERT INTO distributors(name, user_id, email, date_created, active) VALUES ($1, $2, $3, $4, TRUE);", dist.Name, test_user_id, dist.Email, cur_time)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -665,10 +667,13 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		dist_id := dist_update.Dist.ID
 		nameChanged := false
+		emailChanged := false
 		kegsChanged := false
 		for _, key := range dist_update.ChangeKeys {
 			if key == "name" {
 				nameChanged = true
+			} else if key == "email" {
+				emailChanged = true
 			} else if key == "kegs" {
 				kegsChanged = true
 			}
@@ -689,6 +694,14 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		if nameChanged {
 			_, err = db.Exec("UPDATE distributors SET name=$1 WHERE id=$2;", dist_update.Dist.Name, dist_id)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+		if emailChanged {
+			_, err = db.Exec("UPDATE distributors SET email=$1 WHERE id=$2;", dist_update.Dist.Email, dist_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)

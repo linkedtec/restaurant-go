@@ -36,6 +36,7 @@
   <script src="/inventory/view_distributors/directive_new_distributor.js"></script>
   <script src="/inventory/view_sales_plan/view_sales_plan.js"></script>
   <script src="/inventory/view_sales_plan/directive_date_button.js"></script>
+  <script src="/inventory/view_pos/view_pos.js"></script>
   <script src="/inventory/view_loc/view_loc_new.js"></script>
   <script src="/inventory/view_loc/directive_new_location.js"></script>
   <!--script src="/inventory/view_loc/directive_loc_add_inv.js"></script-->
@@ -69,8 +70,9 @@
 
     <div class="collapse navbar-collapse" id="main-navbar-collapse">
       <ul class="nav navbar-nav" ng-controller="myAppCtrl" style="font-size:1.0em;">
-        <li ng-class="{ 'active': isActive('/viewAllInv') || isActive('/viewDistributors') || isActive('/viewSalesPlan')}"><a href="#/viewAllInv">Manage</a></li>
-        <li ng-class="{ 'active': isActive('/viewInvByLoc') || isActive('/viewInvByLocNew') || isActive('/viewOnTap') || isActive('/viewHistory') || isActive('/viewDeliveries')}"><a href="#/viewInvByLocNew">Inventory</a></li>
+        <li ng-class="{ 'active': isActive('/viewAllInv') || isActive('/viewDistributors') }"><a href="#/viewAllInv">Overview</a></li>
+        <li ng-class="{ 'active': isActive('/viewSalesPlan') || isActive('/viewPurchaseOrders') }"><a href="#/viewSalesPlan">Menu & Purchasing</a></li>
+        <li ng-class="{ 'active': isActive('/viewInvByLoc') || isActive('/viewInvByLocNew') || isActive('/viewOnTap') || isActive('/viewHistory') || isActive('/viewDeliveries') }"><a href="#/viewInvByLocNew">Inventory</a></li>
         <!--li ng-class="{ 'active': isActive('/') }"><a href="#/viewDeliveries">Deliveries</a></li-->
       </ul>
     </div>

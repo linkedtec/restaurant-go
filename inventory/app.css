@@ -333,7 +333,6 @@ body {
   border-width:2px;
 }
 
-
 .main_container {
   min-width:560px;
   max-width:800px;
@@ -526,8 +525,8 @@ body {
 }
 
 .btn_ok {
-  font-size:15px;
-  padding: 7px 10px;
+  font-size:14px;
+  padding: 6px 10px;
 }
 
 .btn_edit {
@@ -601,7 +600,7 @@ body {
   text-decoration: none;
   background-color: #206090 !important;
   /*border-bottom: 2px solid #000000;*/
-  font-size:1.2em;
+  font-size:1.1em;
 }
 
 .main_nav li a {
@@ -919,6 +918,22 @@ like enclosed space */
   background-color:#33cc00;
 }
 
+.btn_x_circle_gray {
+  width:28px;
+  height:28px;
+  border-radius:14px;
+  color:#dadada;
+  font-size:14px;
+  padding: 0;
+  background-color:#fcfcfc;
+  border: 1px solid #e0e0e0;
+}
+
+.btn_x_circle_gray:hover {
+  color:#cc8844;
+  border-color:#dd8844;
+}
+
 .btn_clear {
   background-color: red !important;
   color:red;
@@ -945,10 +960,16 @@ like enclosed space */
 
 .green_row {
   background-color: #e5f5ea;
+  border: 1px solid #d6e8da;
 }
 
 .gray_row {
   background-color:#f8f8f8; 
+}
+
+.white_row {
+  background-color:#ffffff;
+  border: 1px solid #f0f0f0;
 }
 
 .inner_btn_left {
@@ -1007,11 +1028,13 @@ like enclosed space */
 .modal-header {
   background-color:#eeeeee;
   color:#777777;
+  border-bottom:1px solid #dadada;
 }
 
 .modal-footer {
   background-color:#eeeeee;
-  padding: 8px 16px;
+  padding: 6px 16px;
+  border-top:1px solid #dadada;
 }
 
 .start-count-modal .modal-dialog{
@@ -1132,6 +1155,41 @@ like enclosed space */
   cursor:pointer;
 }
 
+.clickable_box {
+  border: 1px solid #dddddd;
+  cursor:pointer;
+}
+
+.clickable_box:hover {
+  background-color:#f8fcff;
+  border-color:#a0daff;
+}
+
+.po_box {
+  border: 1px solid #e0e0e0;
+  margin: 8px 4px;
+  padding: 16px 16px;
+  background-color:#fcfcfc;
+}
+
+.po_add_box {
+  border-color:#c0efff;
+  font-size:1.4em;
+  background-color:#fafdff;
+  color:#9ad0f0;
+  cursor:pointer;
+}
+
+.po_add_box:hover {
+  border-color:#a0e0ff;
+  background-color:#f6fbff;
+  color: #70c0d0;
+}
+
+.gray_shadow {
+  box-shadow: 0px 0px 5px #f0f0f0;
+}
+
 .edit-dist-modal .modal-dialog{
   margin-top: 140px;
   min-width:640px;
@@ -1241,6 +1299,8 @@ input[type=checkbox]:checked + label:before {
   position: relative;
 }
 .center_date_popover .dropdown-menu {
-   left: auto !important;
-   right: -140px;
- }
+  left: auto !important;
+  right: -140px;
+}
+
+

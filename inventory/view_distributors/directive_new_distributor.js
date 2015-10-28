@@ -119,7 +119,7 @@ angular.module('myApp')
   
 })
 
-.directive('newDistributor', function(DistributorsService, VolUnitsService, MathService) {
+.directive('newDistributor', function(DistributorsService, EmailService, VolUnitsService, MathService) {
   return {
     restrict: 'AE',
     scope: {
@@ -147,11 +147,13 @@ angular.module('myApp')
         // form verification
         scope.form_ver = {};
         scope.form_ver.error_name = false;
+        scope.form_ver.error_email = false;
         scope.form_ver.errors_kegs_volume = [];
         scope.form_ver.errors_kegs_deposit = [];
 
         scope.new_failure_msg = null;
         scope.dist_name_msg = null;
+        scope.email_failure_msg = null;
       };
 
       // On start, re-initialize state!
@@ -178,6 +180,7 @@ angular.module('myApp')
         scope.new_success_msg = null;
         scope.new_failure_msg = null;
         scope.dist_name_msg = null;
+        scope.email_failure_msg = null;
 
         var all_clear = true;
 
@@ -190,7 +193,7 @@ angular.module('myApp')
           scope.form_ver.error_name = true;
           scope.dist_name_msg = "Distributor name is too long!  Please limit name to 32 characters or less."
           all_clear = false;
-        }else {
+        } else {
           scope.form_ver.error_name = false;
         }
 
@@ -202,6 +205,20 @@ angular.module('myApp')
             scope.dist_name_msg = "Distributor name already exists!  Please provide a unique name for this distributor."
             break;
           }
+        }
+
+        scope.form_ver.error_email = false;
+        if (scope.new_distributor['email']===null || scope.new_distributor['email'].length===0) {
+          // it is okay to have empty email
+          scope.new_distributor['email'] = null;
+        } else if (scope.new_distributor['email'].length >= 64) {
+          scope.email_failure_msg = "Email is too long (64 character limit)!";
+          scope.form_ver.error_email = true;
+          all_clear = false;
+        } else if (!EmailService.isValidEmail(scope.new_distributor['email'])) {
+          scope.email_failure_msg = "Email is not valid!  Please fix and try again.";
+          scope.form_ver.error_email = true;
+          all_clear = false;
         }
 
         // Collect the final list of kegs.
