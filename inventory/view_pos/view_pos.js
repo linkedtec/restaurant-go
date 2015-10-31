@@ -10,7 +10,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     });
 }])
 
-.controller('ViewPurchaseOrdersCtrl', function($scope, $modal, $http, DistributorsService, ItemsService) {
+.controller('ViewPurchaseOrdersCtrl', function($scope, $modal, $http, DateService, DistributorsService, ItemsService, MathService) {
 
   // showMode shows the different stages of the purchase order process,
   // 0 being the "choose automatic vs manual"
@@ -21,7 +21,66 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
   $scope.all_bevs = [];
 
   $scope.order = {};
+  $scope.order['restaurant_name'] = null;
+  $scope.order['purchase_contact'] = null;
+  $scope.order['purchase_email'] = null;
+  $scope.order['purchase_phone'] = null;
+  $scope.order['purchase_fax'] = null;
+  $scope.showPurchaseSave = false;
+  $scope.defaultContactChecked = true;
   $scope.order['dist_orders'] = [];
+  $scope.order['order_date'] = new Date();
+  $scope.order['order_date_pretty'] = DateService.getPrettyDate((new Date()).toString(), false, true);
+
+
+  $scope.getRestaurant = function() {
+    $http.get('/restaurant/name').
+    success(function(data, status, headers, config) {
+      // this callback will be called asynchronously when the response
+      // is available
+      console.log(data);
+      if (data != null) {
+        $scope.order['restaurant_name'] = data['name'];
+      }
+      else {
+        $scope.order['restaurant_name'] = null;
+      }
+    }).
+    error(function(data, status, headers, config) {
+
+    });
+
+    $http.get('/restaurant/purchase').
+    success(function(data, status, headers, config) {
+      // this callback will be called asynchronously when the response
+      // is available
+      console.log(data);
+      if (data != null) {
+        $scope.order['purchase_contact'] = data['purchase_contact'];
+        $scope.order['purchase_contact_edit'] = data['purchase_contact'];
+        $scope.order['purchase_email'] = data['purchase_email'];
+        $scope.order['purchase_email_edit'] = data['purchase_email'];
+        $scope.order['purchase_phone'] = data['purchase_phone'];
+        $scope.order['purchase_phone_edit'] = data['purchase_phone'];
+        $scope.order['purchase_fax'] = data['purchase_fax'];
+        $scope.order['purchase_fax_edit'] = data['purchase_fax'];
+      }
+      else {
+        $scope.order['purchase_contact'] = null;
+        $scope.order['purchase_contact_edit'] = null;
+        $scope.order['purchase_email'] = null;
+        $scope.order['purchase_email_edit'] = null;
+        $scope.order['purchase_phone'] = null;
+        $scope.order['purchase_phone_edit'] = null;
+        $scope.order['purchase_fax'] = null;
+        $scope.order['purchase_fax_edit'] = null;
+      }
+    }).
+    error(function(data, status, headers, config) {
+
+    });
+
+  };
 
   $scope.initManualForm = function() {
     $scope.order['dist_orders'] = [{
@@ -34,6 +93,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     }];
 
     console.log($scope.order['dist_orders']);
+    $scope.getRestaurant();
 
   };
 
@@ -80,6 +140,40 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     
   };
 
+  $scope.orderDateChanged = function() {
+    var date_str = $scope.order['order_date'].toString();
+    $scope.order['order_date_pretty'] = DateService.getPrettyDate(date_str, false, true);
+    setInterval(
+      function() {
+        $scope.$apply();
+      }, 0);
+  };
+
+  $scope.purchasingChanged = function() {
+    if ($scope.order['purchase_contact_edit'] === '') {
+      $scope.order['purchase_contact_edit'] = null;
+    }
+    if ($scope.order['purchase_email_edit'] === '') {
+      $scope.order['purchase_email_edit'] = null;
+    }
+    if ($scope.order['purchase_phone_edit'] === '') {
+      $scope.order['purchase_phone_edit'] = null;
+    }
+    if ($scope.order['purchase_fax_edit'] === '') {
+      $scope.order['purchase_fax_edit'] = null;
+    }
+
+    if ($scope.order['purchase_contact'] !== $scope.order['purchase_contact_edit'] ||
+      $scope.order['purchase_email'] !== $scope.order['purchase_email_edit'] ||
+      $scope.order['purchase_phone'] !== $scope.order['purchase_phone_edit'] || 
+      $scope.order['purchase_fax'] !== $scope.order['purchase_fax_edit']) {
+      $scope.showPurchaseSave = true;
+    } else {
+      console.log("NO CHANGE");
+      $scope.showPurchaseSave = false
+    }
+  };
+
   $scope.showAddInv = function(dist_order) {
     dist_order.show_add_ui = true;
   };
@@ -120,6 +214,19 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
         }
       }
     }
+  };
+
+  $scope.updateQuantity = function(item) {
+    if (item['quantity'] === '') {
+      item['quantity'] = null;
+      return;
+    }
+
+    if (MathService.numIsInvalid(item['quantity'])) {
+      return;
+    }
+
+    item['subtotal'] = item['purchase_cost_full'] * item['quantity'];
   };
 
   $scope.getAllDistributors = function() {

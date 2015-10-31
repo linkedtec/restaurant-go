@@ -175,25 +175,26 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 		for i := range beverages {
 			bev := beverages[i]
 
-			// get count of inventory in all bev locations
+			// get RECENT count of inventory in all bev locations
 			var exists bool
-			err := db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update AND location_beverages.type='bev');", bev.VersionID).Scan(&exists)
+			err := db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update AND location_beverages.type='bev' AND location_beverages.active);", bev.VersionID).Scan(&exists)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
 			}
 			if !exists {
-				bev.Count.Float64 = 0
-				bev.Count.Valid = false
+				bev.CountRecent.Float64 = 0
+				bev.CountRecent.Valid = false
 			} else {
-				// Now get the total count of this beverage.  Note that we want to find
-				// all the version_id that match, in case this beverage was updated
-				// recently
-				err = db.QueryRow("SELECT SUM(location_beverages.quantity) FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update AND date_part('day', age(locations.last_update)) < 3 AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$1 AND location_beverages.type='bev';", bev.VersionID).Scan(&beverages[i].Count)
+				// Now get the count of this beverage in inventory which was done
+				// within the past 3 days.  We get the EPOCH between the inventory
+				// time and the current time to get the time difference in seconds.
+				seconds_three_days := 60 * 60 * 24 * 3
+				err = db.QueryRow("SELECT SUM(location_beverages.quantity) FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update AND EXTRACT(EPOCH FROM (now() AT TIME ZONE 'UTC' - location_beverages.update)) < $1 AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$2 AND location_beverages.type='bev' AND location_beverages.active;", seconds_three_days, bev.VersionID).Scan(&beverages[i].CountRecent)
 				switch {
 				case err == sql.ErrNoRows:
-					bev.Count.Float64 = 0
-					bev.Count.Valid = false
+					bev.CountRecent.Float64 = 0
+					bev.CountRecent.Valid = false
 				case err != nil:
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -401,7 +402,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			// get count of inventory in all bev locations
+			// get count and RECENT count of inventory in all bev locations
 			var exists bool
 			err := db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update AND location_beverages.type='bev');", bev.VersionID).Scan(&exists)
 			if err != nil {
@@ -411,7 +412,23 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			//log.Println(bev.Product)
 			if !exists {
 				bev.Count = 0
+				bev.CountRecent.Float64 = 0
+				bev.CountRecent.Valid = false
 			} else {
+
+				// get recent count
+				seconds_three_days := 60 * 60 * 24 * 3
+				err = db.QueryRow("SELECT SUM(location_beverages.quantity) FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update AND EXTRACT(EPOCH FROM (now() AT TIME ZONE 'UTC' - location_beverages.update)) < $1 AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$2 AND location_beverages.type='bev';", seconds_three_days, bev.VersionID).Scan(&bev.CountRecent)
+				switch {
+				case err == sql.ErrNoRows:
+					bev.CountRecent.Float64 = 0
+					bev.CountRecent.Valid = false
+				case err != nil:
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+
 				// Now get the total count of this beverage.  Note that we want to find
 				// all the version_id that match, in case this beverage was updated
 				// recently

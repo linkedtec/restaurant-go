@@ -17,6 +17,7 @@ import (
 
 var db *sql.DB
 var test_user_id string = "1"
+var test_restaurant_id string = "1"
 
 type VolumeUnit struct {
 	FullName string  `json:"full_name"`
@@ -49,7 +50,7 @@ type BeverageSalePlan struct {
 	SaleEnd        NullTime    `json:"sale_end"`
 	Par            NullFloat64 `json:"par"`
 	SalePrices     []SalePrice `json:"size_prices"`
-	Count          NullFloat64 `json:"count"`
+	CountRecent    NullFloat64 `json:"count_recent"`
 }
 
 type BeverageInv struct {
@@ -86,6 +87,7 @@ type Beverage struct {
 	FlavorProfile  NullString  `json:"flavor_profile"`
 	SalePrices     []SalePrice `json:"size_prices"`
 	Count          float32     `json:"count"`
+	CountRecent    NullFloat64 `json:"count_recent"`
 	Inventory      NullFloat64 `json:"inventory"`
 	SaleStatus     NullString  `json:"sale_status"`
 	SaleStart      NullTime    `json:"sale_start"`

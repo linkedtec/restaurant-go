@@ -11,7 +11,18 @@ angular.module('myApp')
       endOfDay: '=', // true means set hours to 23 59 59, false means 0 0 0 for start of day
       control: '=?'
     },
-    templateUrl: './view_sales_plan/template_date_button.html',
+    //templateUrl: './view_sales_plan/template_date_button.html',
+    templateUrl: function (tElement, tAttrs) {
+      if (tAttrs.type) {
+        if (tAttrs.type === 'input') {
+          return './view_sales_plan/template_date_input.html';
+        } else {
+          return './view_sales_plan/template_date_button.html';
+        }
+      } else {
+        return './view_sales_plan/template_date_button.html';
+      }
+    },
     link: function(scope, elem, attrs) {
 
       // provides a way of exposing certain functions to outside controllers
@@ -46,6 +57,7 @@ angular.module('myApp')
       scope.clear = function () {
         scope.date = null;
       };
+
 
       scope.openDate = function($event) {
         $event.preventDefault();

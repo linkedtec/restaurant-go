@@ -117,8 +117,12 @@
         <div ng-class="{'col-xs-4':showPurchase!==true, 'col-xs-3':showPurchase===true}" style="font-size:0.9em; padding-left:6px; padding-right:4px; color:#888888">
           {{bev.brewery}}
         </div>
-        <div class="min_padding col-xs-2" ng-if="showPurchase===true" ng-click="sortBevsBy('par')" style="font-size:0.9em">
-          {{bev.count}} / {{bev.par}}
+        <div class="min_padding col-xs-2" ng-if="showPurchase===true" ng-click="sortBevsBy('par')" style="font-size:0.9em; padding-top:6px">
+          <span ng-if="bev.count_recent!==null" style="color:{{bev.stock_color}}">{{bev.count_recent | number:1}}</span>
+          <span ng-if="bev.count_recent===null" class="glyphicon glyphicon-alert" style="font-size:16px; color:#dadada;" uib-popover="No Inventory records in the past 3 days!" popover-trigger="mouseenter" popover-append-to-body="true"> </span>
+          <span style="font-size: 1.1em; padding-left:4px"> / </span>
+          <span ng-if="bev.par !== null">{{bev.par | number:1}}</span>
+          <span ng-if="bev.par === null" style="color:#999999">None</span>
         </div>
         <div class="min_padding col-xs-2" ng-if="showPurchase===true" ng-click="sortBevsBy('purchase_cost')" style="font-size:0.9em">
           $ {{bev.purchase_cost | number:2}}

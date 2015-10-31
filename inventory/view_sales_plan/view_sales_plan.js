@@ -216,30 +216,6 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
     }
   };
 
-  $scope.calculateStockColor = function(item) {
-    if (item['par'] === null || item['count'] === null) {
-      item['stock_color'] = '#000000';
-      item['stock_bg_color'] = '#f8f8f8;';
-      return;
-    }
-    if (item['par'] <= 0) {
-      item['stock_color'] = '#000000';
-      item['stock_bg_color'] = '#f8f8f8;';
-      return;
-    }
-    var stock_pct = (item['count'] / item['par']);
-    if (stock_pct >= .66) {
-      item['stock_color'] = '#228800;';
-      item['stock_bg_color'] = '#D3F3AA;';
-    } else if (stock_pct >= .33) {
-      item['stock_color'] = '#aa8800; font-weight:bold;';
-      item['stock_bg_color'] = '#FFE8A6';
-    } else {
-      item['stock_color'] = '#cc2200; font-weight:bold;';
-      item['stock_bg_color'] = '#ffb699';
-    }
-  }
-
   $scope.getInvData = function() {
 
     var type = 'Inactive';
@@ -284,7 +260,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
         // 66%+ stock = green
         // 33-66% stock = yellow
         // 0-33% stock = red
-        $scope.calculateStockColor(item);
+        ItemsService.calculateStockColor(item);
       }
 
       console.log($scope.inventory_items);
@@ -511,7 +487,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
             if (menu_type!==2) {
               console.log('calc stock color');
-              $scope.calculateStockColor(item);
+              ItemsService.calculateStockColor(item);
             }
             
             
@@ -533,7 +509,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
   $scope.sortFunc = function(a, b) {
     var sort_str = $scope.sort_key;
-    var isNum = (sort_str === 'par' || sort_str === 'count');
+    var isNum = (sort_str === 'par' || sort_str === 'count_recent');
     var isDate = (sort_str === 'sale_start' || sort_str === 'sale_end');
 
     var keyA = a[sort_str];
@@ -666,7 +642,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
           } else {
             // recalculate pretty dates
             $scope.calculateDates(edit_bev);
-            $scope.calculateStockColor(edit_bev);
+            ItemsService.calculateStockColor(edit_bev);
           }
 
           swal({

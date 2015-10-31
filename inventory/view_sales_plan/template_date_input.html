@@ -1,0 +1,8 @@
+<div class="center_date_popover">
+  <div class="input-group input-group-sm" style="max-width:180px;">
+    <input type="text" ng-class="{'my_error': form_ver.error_date===true}" class="form-control" uib-datepicker-popup="{{format}}" ng-model="date" is-open="opened.value" min-date="minDate" datepicker-options="dateOptions" ng-required="true" close-text="Close" ng-change="dateChanged()">
+    <span class="input-group-btn">
+      <button type="button" class="btn btn-default" ng-click="openDate($event)"><span class="glyphicon glyphicon-calendar"></span></button>
+    </span>
+  </div>
+</div>

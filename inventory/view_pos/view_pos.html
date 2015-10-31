@@ -69,46 +69,49 @@
           Basic Information
         </div>
         <div class="col-xs-8" style="text-align:right">
-          
-          <div class="input-group" style="float:right; width:200px">
-            <input type="text" ng-class="{'my_error': form_ver.error_sale_start===true}" class="form-control input_small" uib-datepicker-popup="{{date_format}}" ng-model="new_beverage.sale_start" is-open="date_opened.start" datepicker-options="date_options" ng-required="true" close-text="Close" ng-change="saleStartChanged()">
-            <span class="input-group-btn">
-              <button type="button" class="btn btn-default input_small" ng-click="openSaleStart($event)"><span class="glyphicon glyphicon-calendar"></span></button>
-            </span>
+
+          <div style="display:inline-block; float:right; margin-top:4px; margin-left:10px">
+            
+            <date-button date="order.order_date" end-of-day="false" on-date-change="orderDateChanged()"/>
           </div>
-          <div style="display:inline-block; float:right; margin-right:6px; font-size:1.2em; color:#999999; margin-top:2px">Order Date: </div>
+          <div style="display:inline-block; float:right; font-size:1.2em; margin-top:2px">
+            {{order.order_date_pretty}}
+          </div>
+          <div style="display:inline-block; float:right; font-size:1.2em; color:#999999; margin-top:2px; margin-right:8px">
+            Order Date:
+          </div>
         </div>
       </div>  
 
       <hr style="margin:6px 0px"/>
-      <div class="row" style="margin-top:16px; padding-left:0px">
+      <div class="row" style="margin-top:16px; padding-left:0px; padding-bottom:16px">
         <div class="col-xs-3">
           <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_contact===true}">
             <label class="control-label bold label_small"> Restaurant Contact</label>
-            <input ng-model="new_order.contact" class="form-control input_small" placeholder="Your name">
+            <input ng-model="order.purchase_contact_edit" class="form-control input_small" placeholder="Your name" ng-change="purchasingChanged()">
           </div>
         </div>
         <div class="col-xs-3">
           <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_contact_email===true}">
             <label class="control-label bold label_small"> Restaurant Email</label>
-            <input ng-model="new_order.contact_fax" class="form-control input_small" placeholder="Email">
+            <input ng-model="order.purchase_email_edit" class="form-control input_small" placeholder="Email" ng-change="purchasingChanged()">
           </div>
         </div>
         <div class="col-xs-3">
           <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_contact_phone===true}">
             <label class="control-label optional label_small"> Restaurant Phone</label>
-            <input ng-model="new_order.contact_phone" class="form-control input_small" placeholder="Phone number">
+            <input ng-model="order.purchase_phone_edit" class="form-control input_small" placeholder="(123) 456-7890" ng-change="purchasingChanged()">
           </div>
         </div>
         <div class="col-xs-3">
           <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_contact_fax===true}">
             <label class="control-label optional label_small"> Restaurant Fax</label>
-            <input ng-model="new_order.contact_fax" class="form-control input_small" placeholder="Fax number">
+            <input ng-model="order.purchase_fax_edit" class="form-control input_small" placeholder="(123) 456-7890" ng-change="purchasingChanged()">
           </div>
         </div>
       </div>
-      <div class="row" style="margin:0; margin-top:8px; text-align:right">
-        <input ng-checked="default_contact_checked" type="checkbox" id="cb_default_contact" class="customCbSqr" style="z-index:-99;" ng-click="toggleDefaultContact()"/>
+      <div class="row" ng-if="showPurchaseSave===true" style="margin:0; margin-top:-4px; text-align:right">
+        <input ng-checked="defaultContactChecked" type="checkbox" id="cb_default_contact" class="customCbSqr" style="z-index:-99;" ng-click="toggleDefaultContact()"/>
           <label for="cb_default_contact" ng-click="toggleDefaultContact()" style="margin-left:28px"></label>
         <span style="float:right; margin-top:4px; margin-left:6px"> Save changes to default P/O contact info </span>
       </div>
@@ -159,19 +162,14 @@
             <label class="control-label label_small"> 
               Est. Delivery Date
             </label>
-            <div class="input-group">
-              <input type="text" ng-class="{'my_error': form_ver.error_sale_start===true}" class="form-control input_small" uib-datepicker-popup="{{date_format}}" ng-model="new_beverage.sale_start" is-open="date_opened.start" datepicker-options="date_options" ng-required="true" close-text="Close" ng-change="saleStartChanged()">
-              <span class="input-group-btn">
-                <button type="button" class="btn btn-default input_small" ng-click="openSaleStart($event)"><span class="glyphicon glyphicon-calendar"></span></button>
-              </span>
-            </div>
+            <date-button date="dorder.delivery_date" end-of-day="false" type="input"/>
           </div>
         </div>
       </div>
 
       <hr ng-if="dorder.distributor!==null"/>
 
-      <div ng-if="dorder.distributor!==null" style="margin-bottom:32px;">
+      <div ng-if="dorder.distributor!==null" style="margin-bottom:24px;">
 
         <div class="row" style="margin-top:24px">
           <div class="col-xs-4">
@@ -206,9 +204,9 @@
             <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="dorder.sort_key === 'product'" ng-class="{'glyphicon-menu-down': dorder.double_sort<0, 'glyphicon-menu-up':dorder.double_sort>0}" style="color:#cccccc;">
             </span>
           </div>
-          <div class="col-xs-2 add_inv_sort_div_lt min_padding" ng-click="sortKegsBy('purchase_cost')">
-            Unit Cost
-            <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="dorder.sort_key === 'purchase_cost'" ng-class="{'glyphicon-menu-down': dorder.double_sort<0, 'glyphicon-menu-up':dorder.double_sort>0}" style="color:#cccccc;">
+          <div class="col-xs-2 add_inv_sort_div_lt min_padding" ng-click="sortBevsBy('purchase_cost_full')">
+            Purchase Cost
+            <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="dorder.sort_key === 'purchase_cost_full'" ng-class="{'glyphicon-menu-down': dorder.double_sort<0, 'glyphicon-menu-up':dorder.double_sort>0}" style="color:#cccccc;">
             </span>
           </div>
           <div class="col-xs-2 add_inv_sort_div_lt min_padding" ng-click="sortBevsBy('par')" style="padding-left:0px">
@@ -224,7 +222,6 @@
             <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="dorder.sort_key === 'subtotal'" ng-class="{'glyphicon-menu-down': dorder.double_sort<0, 'glyphicon-menu-up': dorder.double_sort>0}" style="color:#cccccc;">
             </span>
           </div>
-          <div class="col-xs-1 add_inv_sort_div_lt_nosort noselect" style="padding-left:0px"></div>
         </div>
         <hr style="margin:0 0;"/>
         <div ng-if="dorder.items.length === 0" style="text-align:center; color:#cccccc; background-color: #ffffff; font-style:italic; padding:24px 0px; margin-bottom:12px">
@@ -246,7 +243,7 @@
             </div>
           </div>
           <div class="col-xs-2 min_padding">
-            <div><span ng-if="item.purchase_cost!==null" style="color:#999999">$ </span>{{item.purchase_cost | number:2}}</div>
+            <div><span ng-if="item.purchase_cost_full!==null" style="color:#999999">$ </span>{{item.purchase_cost_full | number:2}}</div>
             <div style="font-size:0.9em; color:#999999">
               <span ng-if="item.purchase_unit!==null">
                 {{item.purchase_volume | number:1}} {{item.purchase_unit}}
@@ -256,15 +253,22 @@
               </span>
             </div>
           </div>
-          <div class="col-xs-2 min_padding">
-            {{item.count | number:1}} / {{item.par | number:1}}
+          <div class="col-xs-2 min_padding" style="padding-top:6px">
+            <span ng-if="item.count_recent!==null" style="color:{{item.stock_color}}">{{item.count_recent | number:1}}</span>
+            <span ng-if="item.count_recent===null" class="glyphicon glyphicon-alert" style="font-size:16px; color:#dadada; margin-right:4px" uib-popover="No Inventory records in the past 3 days!" popover-trigger="mouseenter" popover-append-to-body="true"> </span>
+            <span style="font-size: 1.1em"> / {{item.par | number:1}}</span>
           </div>
           <div class="col-xs-2">
-            <input ng-model="item.quantity" class="form-control input_small" style="max-width:80px" placeholder="">
+            <input ng-model="item.quantity" class="form-control" style="max-width:80px; text-align:center;" placeholder="" ng-change="updateQuantity(item)">
           </div>
-          <div class="col-xs-2 min_padding">
-            --
-            <div style="float:right">
+          <div class="col-xs-2 min_padding" style="padding-top:6px">
+            <span ng-if="item.quantity===null" style="color:#999999">
+              --
+            </span>
+            <span ng-if="item.quantity!==null">
+              <span style="color:#999999">$</span> {{item.subtotal | number:2}}
+            </span>
+            <div style="float:right; margin-top:-2px">
               <a tabindex="0" popover-trigger="focus" type="button" ng-model="item" uib-popover-template="'popoverRemoveItem.html'" popover-placement="left" popover-title="Remove from list?" popover-append-to-body="true" type="button" class="btn btn-sm btn_frameless hover_red" style="font-size:20px; float:right; padding:0;">
                 <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
               </a>

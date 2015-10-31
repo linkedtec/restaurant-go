@@ -4,13 +4,13 @@
     <span style="font-size:1.2em;margin-left:6px">Delete Keg: <b>{{distributor.name}} {{keg.volume}} {{keg.unit}}</b></span>
   </div-->
   <div class="modal-body">
-    <div class="row" style="font-size:1.4em; margin-top:12px; font-style:italic">
+    <div class="row" style="font-size:1.2em; margin-top:12px; font-style:italic">
       <div class="col-xs-12">
-        Before we delete the {{distributor.name}} <b>{{keg.volume}} {{keg.unit}}</b> Keg, 
+        Before deleting the {{distributor.name}} <b>{{keg.volume}} {{keg.unit}}</b> Keg, 
         we need one final confirmation from you!
       </div>
     </div>
-    <div class="row" style="font-size:1.1em; margin-top:24px; margin-bottom:16px">
+    <div class="row" style="font-size:1.0em; margin-top:24px; margin-bottom:16px">
       <div class="col-xs-12">
         There are currently Beverages associated with this Keg.  
         To proceed, please check-off all the beverages below to signify you 
@@ -28,12 +28,8 @@
       </div>
       <div class="col-xs-3">
         Check all:
-        <form role="form" style="float:right">
-          <div class="checkbox checkbox-primary checkbox-single" style="margin:0">
-            <input type="checkbox" id="democheckbox" checked disabled>
-              <label></label>
-          </div>
-        </form>
+        <input ng-checked="true" type="checkbox" id="democheckbox" class="customCbSqr" style="z-index:-99;" check disabled/>
+          <label for="democheckbox" style="margin:0; height:0; margin-top:-10px"></label>
       </div>
     </div>
     <div ng-repeat="bev in keg_beverages" class="row" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="margin-left:0px; margin-right:0px; padding: 8px 0px">
@@ -43,14 +39,9 @@
       <div class="col-xs-4">
         {{bev.brewery}}
       </div>
-      <div class="col-xs-3">
-        <form role="form" style="float:right">
-          <div class="checkbox checkbox-primary" style="margin:0px">
-            <input type="checkbox" id="checkbox{{$index}}" style="z-index:-99;" ng-click="checkedBeverage($index)">
-              <label for="checkbox{{$index}}">
-              </label>
-          </div>
-        </form>
+      <div class="col-xs-3" style="text-align:center">
+        <input ng-checked="false" type="checkbox" id="checkbox{{$index}}" class="customCbSqr" style="z-index:-99;" ng-click="checkedBeverage($index)"/>
+        <label for="checkbox{{$index}}" style="margin:0; height:0; margin-top:-6px;"></label>
       </div>
     </div>
 

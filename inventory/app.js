@@ -5,6 +5,7 @@ angular.module('myApp', [
   'ngRoute',
   'myApp.viewAllInv',
   'myApp.viewDistributors',
+  'myApp.viewRestaurant',
   'myApp.viewSalesPlan',
   'myApp.viewPurchaseOrders',
 //  'myApp.viewInvByLoc',
@@ -187,6 +188,30 @@ config(['$routeProvider', function($routeProvider) {
     return purchase_cost / purchase_count + deposit;
   }
 
+  var calculateStockColor = function(item) {
+    if (item['par'] === null || item['count_recent'] === null) {
+      item['stock_color'] = '#000000';
+      item['stock_bg_color'] = '#f8f8f8;';
+      return;
+    }
+    if (item['par'] <= 0) {
+      item['stock_color'] = '#000000';
+      item['stock_bg_color'] = '#f8f8f8;';
+      return;
+    }
+    var stock_pct = (item['count_recent'] / item['par']);
+    if (stock_pct >= .66) {
+      item['stock_color'] = '#228800;';
+      item['stock_bg_color'] = '#D3F3AA;';
+    } else if (stock_pct >= .33) {
+      item['stock_color'] = '#aa8800; font-weight:bold;';
+      item['stock_bg_color'] = '#FFE8A6';
+    } else {
+      item['stock_color'] = '#cc2200; font-weight:bold;';
+      item['stock_bg_color'] = '#ffb699';
+    }
+  }
+
   return {
 
     getItemIcon: function(item) {
@@ -223,6 +248,14 @@ config(['$routeProvider', function($routeProvider) {
             item[fix_key] = MathService.fixFloat2(item[fix_key]);
           }
         }
+
+        // add a purchase_cost_full for purchase_cost + deposit
+        if (item['deposit'] == null || MathService.numIsInvalid(item['deposit'])) {
+          item['purchase_cost_full'] = item['purchase_cost'];
+        } else {
+          item['purchase_cost_full'] = item['purchase_cost'] + item['deposit'];
+        }
+
         // now fix a list of known single precision
         fix_num_keys = [
           'purchase_count',
@@ -277,6 +310,8 @@ config(['$routeProvider', function($routeProvider) {
 
         item['icon'] = getItemIcon(item);
 
+        calculateStockColor(item);
+
       }
     },
 
@@ -312,6 +347,10 @@ config(['$routeProvider', function($routeProvider) {
         keg['display_name'] = getDisplayName(keg);
         keg['icon'] = getItemIcon(keg);
       }
+    },
+
+    calculateStockColor: function(item) {
+      return calculateStockColor(item);
     }
   }
 })
