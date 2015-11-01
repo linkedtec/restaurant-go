@@ -15,6 +15,7 @@ angular.module('myApp')
       isDelivery: '=',
       refreshDelivery: '&',
       useOverrideAddFunc: '=',
+      distributorFilter: '=?', // only show bevs from this distributor
       overrideAddFunc: '&' // by default adding will bring up inv quantity modal, if override callback is specified will call that instead
     },
     templateUrl: './view_loc/template_addable_inv.html',
@@ -72,8 +73,6 @@ angular.module('myApp')
       // removed from the added list and needs to be re-inserted into the
       // addable list
       scope.internalControl.addItemToList = function( item ) {
-        console.log('ADD TO LIST');
-        console.log(item);
         
         // Check type and container filter to determine if should add back to
         // filtered_bevs
@@ -123,8 +122,7 @@ angular.module('myApp')
           scope.double_sort_bev = -1;
         }
         scope.sort_key_bev = sort_str;
-        //var isNum = (sort_str === 'unit_cost' || sort_str === 'quantity' || sort_str === 'inventory' || sort_str === 'deposit');
-        var isNum = false;
+        var isNum = (sort_str === 'batch_cost' || sort_str === 'par');
 
         scope.filtered_bevs.sort(function(a, b) {
           var keyA = a[sort_str];
@@ -291,19 +289,30 @@ angular.module('myApp')
         // filter by eg Beer, Cider, Wine, etc
         // all beverages
 
-        console.log("apply type filter");
-        console.log(scope.allBevs);
         if (scope.add_type===scope.add_types[0]) {
 
           scope.filtered_bevs = [];
 
-          if (scope.type_filter===scope.type_filters[0]) {
-            console.log("all");
-            scope.filtered_bevs = scope.allBevs;
-            console.log(scope.allBevs);
-          } else {
+          var distBevs = [];
+          if (scope.distributorFilter !== null && scope.distributorFilter !== undefined) {
             for (var i in scope.allBevs) {
               var item = scope.allBevs[i];
+              if (item['distributor_id']===null) {
+                continue;
+              }
+              if (item['distributor_id'] === scope.distributorFilter['id']) {
+                distBevs.push(item);
+              }
+            }
+          } else {
+            distBevs = scope.allBevs;
+          }
+
+          if (scope.type_filter===scope.type_filters[0]) {
+            scope.filtered_bevs = distBevs;
+          } else {
+            for (var i in distBevs) {
+              var item = distBevs[i];
               if (item.alcohol_type===scope.type_filter) {
                 scope.filtered_bevs.push(item);
               }
@@ -321,7 +330,6 @@ angular.module('myApp')
 
           if (scope.container_filter===scope.container_filters[0]) {
             // With All Containers selected there is nothing to do
-            console.log("Z");
             ;
           } else {
             var container_bevs = [];
@@ -337,7 +345,6 @@ angular.module('myApp')
 
         scope.excludeAddedBevs();
 
-        console.log(scope.filtered_bevs);
         setInterval(
           function() {
             scope.$apply();

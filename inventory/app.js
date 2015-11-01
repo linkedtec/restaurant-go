@@ -170,8 +170,10 @@ config(['$routeProvider', function($routeProvider) {
     return null;
   }
 
-  var getBevUnitCost = function(bev) {
-    // locally calculate unit_cost for sorting purposes
+  var getBevCost = function(bev, type) {
+    // UNIT COST is the cost of each individual unit (as opposed to BATCH COST)
+    // purchase_cost / purchase_count + deposit / purchase_count
+    // @type can be 'unit' or 'batch'
     var purchase_cost = 0;
     var purchase_count = 1;
     var deposit = 0;
@@ -185,7 +187,11 @@ config(['$routeProvider', function($routeProvider) {
       deposit = bev['deposit'];
     }
 
-    return purchase_cost / purchase_count + deposit;
+    if (type === 'unit') {
+      return ( purchase_cost + deposit ) / purchase_count;
+    }
+
+    return purchase_cost + deposit;
   }
 
   var calculateStockColor = function(item) {
@@ -223,7 +229,11 @@ config(['$routeProvider', function($routeProvider) {
     },
 
     getBevUnitCost: function(bev) {
-      return getBevUnitCost(bev);
+      return getBevCost(bev, 'unit');
+    },
+
+    getBevBatchCost: function(bev) {
+      return getBevCost(bev, 'batch');
     },
 
     processBevsForAddable: function(bevs) {
@@ -247,13 +257,6 @@ config(['$routeProvider', function($routeProvider) {
           if ( item[fix_key] !== undefined && item[fix_key] !== null ) {
             item[fix_key] = MathService.fixFloat2(item[fix_key]);
           }
-        }
-
-        // add a purchase_cost_full for purchase_cost + deposit
-        if (item['deposit'] == null || MathService.numIsInvalid(item['deposit'])) {
-          item['purchase_cost_full'] = item['purchase_cost'];
-        } else {
-          item['purchase_cost_full'] = item['purchase_cost'] + item['deposit'];
         }
 
         // now fix a list of known single precision
@@ -304,7 +307,9 @@ config(['$routeProvider', function($routeProvider) {
           item['type'] = 'bev';
         }
 
-        item['unit_cost'] = getBevUnitCost(item);
+        item['unit_cost'] = getBevCost(item, 'unit');
+
+        item['batch_cost'] = getBevCost(item, 'batch');
 
         item['display_name'] = getDisplayName(item);
 

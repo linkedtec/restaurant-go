@@ -88,6 +88,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       delivery_date: new Date(),
       addable_items: [],
       items: [],
+      total: null,
       show_add_ui:false,
       addableControl: {}
     }];
@@ -210,6 +211,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
           item['quantity'] = null;
           dorder.addable_items.push(item);
           dorder.addableControl.applyTypeFilter();
+          $scope.updateDistOrderTotal(dorder);
           break;
         }
       }
@@ -223,10 +225,11 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     }
 
     if (MathService.numIsInvalid(item['quantity'])) {
+      item['subtotal'] = null;
       return;
     }
 
-    item['subtotal'] = item['purchase_cost_full'] * item['quantity'];
+    item['subtotal'] = item['batch_cost'] * item['quantity'];
   };
 
   $scope.getAllDistributors = function() {
@@ -245,9 +248,15 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
   $scope.getAllDistributors();
 
   $scope.selectDistributor = function(dist_order, dist) {
+
+    if (dist === dist_order['distributor']) {
+      return;
+    }
+
     dist_order['distributor'] = dist;
 
     dist_order['addable_items'] = JSON.parse(JSON.stringify($scope.all_bevs));
+    dist_order['items'] = [];
   }
 
   $scope.addDistributorOrder = function() {
@@ -255,6 +264,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       distributor:null, 
       delivery_date: new Date(), 
       items:[],
+      total:null,
       show_add_ui:false});
   };
 
@@ -279,6 +289,30 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     });
   };
   $scope.getAllInv();
+
+  $scope.updateDistOrderTotal = function(dorder) {
+    dorder.total = 0;
+    for ( var i in dorder.items ) {
+      var item = dorder.items[i];
+      if (!MathService.numIsInvalid(item['quantity'])) {
+        dorder.total += item['batch_cost'] * item['quantity'];
+      }
+    }
+  };
+
+  $scope.reviewAndSave = function() {
+    // do these checks:
+    // Restaurant Basic Info:
+    //   - restaurant contact is not null, at least 2 characters
+    //   - restaurant email is not null, valid email
+    //
+    // Distributor Orders:
+    //   - if no distributor selected, just splice and omit
+    //   - if has no added items, error
+    //   - if items missing quantity, error
+    //   - if est delivery date invalid, error
+    //   - if no email or email is invalid, error
+  }
 
 
 });

@@ -129,8 +129,8 @@
         </div>
         <div class="col-xs-6" style="text-align:right">
           
-          <div class="btn-group" style="width:200px !important" uib-dropdown>
-            <button type="button" class="btn btn-default btn-md dropdown-toggle" style="width:100%" uib-dropdown-toggle>
+          <div class="btn-group" style="width:240px !important; margin-top:-6px" uib-dropdown>
+            <button type="button" class="btn btn-default btn-md dropdown-toggle" style="width:100%; font-size:16px" uib-dropdown-toggle>
               <span ng-if="dorder.distributor !== null" style="float:left; text-align:left; width:90%;">
                 {{dorder.distributor.name}} 
               </span>
@@ -140,9 +140,6 @@
               <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:12px; color:#888888"></span>
             </button>
             <ul class="loc_dropdown dropdown-menu" role="menu">
-              <li class="inv_dropdown_li" ng-if="new_beverage.distributor!==null">
-                <a ng-click="clearDistributor()" class="noselect" style="color:#aaaaaa">None</a>
-              </li>
               <li class="inv_dropdown_li" ng-repeat="dist in all_distributors">
                 <a ng-click="selectDistributor(dorder, dist)" class="noselect">{{dist.name}}</a>
               </li>
@@ -157,8 +154,17 @@
         </div>
       </div>
       <div class="row" ng-if="dorder.distributor !== null">
+        <div class="col-xs-6">
+          <div class="form-group" style="margin-bottom:0px; width:200px" ng-class="{'has-error': dorder.error_dist_email===true}">
+            <label class="control-label label_small bold"> 
+              Distributor Email
+            </label>
+            <input ng-model="dorder.distributor.email" class="form-control input_small" placeholder="Distributor email" ng-change="purchasingChanged()">
+          </div>
+        </div>
+        <div class="col-xs-3"></div>
         <div class="col-xs-3">
-          <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_sale_start===true}">
+          <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': dorder.error_sale_start===true}">
             <label class="control-label label_small"> 
               Est. Delivery Date
             </label>
@@ -169,7 +175,7 @@
 
       <hr ng-if="dorder.distributor!==null"/>
 
-      <div ng-if="dorder.distributor!==null" style="margin-bottom:24px;">
+      <div ng-if="dorder.distributor!==null" style="margin-bottom:16px;">
 
         <div class="row" style="margin-top:24px">
           <div class="col-xs-4">
@@ -194,7 +200,7 @@
               <br/>
             </div>
             <div style="display:block; position:relative; bottom:0; top:12px; left: 0; right:0; margin:0px; padding:4px 8px; padding-bottom:12px; height:420px">
-              <addable-inv all-bevs="dorder.addable_items" all-kegs="[]" added-items="dorder.items" show-tabs="false" show-purchase="true" use-override-add-func="true" override-add-func="addItem(dorder, item)" control="dorder.addableControl"></addable-inv>
+              <addable-inv all-bevs="dorder.addable_items" all-kegs="[]" added-items="dorder.items" show-tabs="false" show-purchase="true" use-override-add-func="true" override-add-func="addItem(dorder, item)" control="dorder.addableControl" distributor-filter="dorder.distributor"></addable-inv>
             </div>
           </div>
         </div>
@@ -204,9 +210,9 @@
             <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="dorder.sort_key === 'product'" ng-class="{'glyphicon-menu-down': dorder.double_sort<0, 'glyphicon-menu-up':dorder.double_sort>0}" style="color:#cccccc;">
             </span>
           </div>
-          <div class="col-xs-2 add_inv_sort_div_lt min_padding" ng-click="sortBevsBy('purchase_cost_full')">
+          <div class="col-xs-2 add_inv_sort_div_lt min_padding" ng-click="sortBevsBy('batch_cost')">
             Purchase Cost
-            <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="dorder.sort_key === 'purchase_cost_full'" ng-class="{'glyphicon-menu-down': dorder.double_sort<0, 'glyphicon-menu-up':dorder.double_sort>0}" style="color:#cccccc;">
+            <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="dorder.sort_key === 'batch_cost'" ng-class="{'glyphicon-menu-down': dorder.double_sort<0, 'glyphicon-menu-up':dorder.double_sort>0}" style="color:#cccccc;">
             </span>
           </div>
           <div class="col-xs-2 add_inv_sort_div_lt min_padding" ng-click="sortBevsBy('par')" style="padding-left:0px">
@@ -243,7 +249,7 @@
             </div>
           </div>
           <div class="col-xs-2 min_padding">
-            <div><span ng-if="item.purchase_cost_full!==null" style="color:#999999">$ </span>{{item.purchase_cost_full | number:2}}</div>
+            <div><span ng-if="item.batch_cost!==null" style="color:#999999">$ </span>{{item.batch_cost | number:2}}</div>
             <div style="font-size:0.9em; color:#999999">
               <span ng-if="item.purchase_unit!==null">
                 {{item.purchase_volume | number:1}} {{item.purchase_unit}}
@@ -259,13 +265,13 @@
             <span style="font-size: 1.1em"> / {{item.par | number:1}}</span>
           </div>
           <div class="col-xs-2">
-            <input ng-model="item.quantity" class="form-control" style="max-width:80px; text-align:center;" placeholder="" ng-change="updateQuantity(item)">
+            <input ng-model="item.quantity" class="form-control" style="max-width:80px; text-align:center; font-size:16px" placeholder="" ng-change="updateQuantity(item); updateDistOrderTotal(dorder)">
           </div>
           <div class="col-xs-2 min_padding" style="padding-top:6px">
             <span ng-if="item.quantity===null" style="color:#999999">
               --
             </span>
-            <span ng-if="item.quantity!==null">
+            <span ng-if="item.quantity!==null && item.subtotal!==null">
               <span style="color:#999999">$</span> {{item.subtotal | number:2}}
             </span>
             <div style="float:right; margin-top:-2px">
@@ -276,13 +282,29 @@
           </div>
           
         </div>
+        <div ng-if="dorder.items.length > 0" class="row" style="padding-top:12px; margin:0; margin-bottom:-8px;">
+          <div class="col-xs-10" style="text-align:right; font-size:1.2em; color:#999999">Purchase Total: </div>
+          <div class="col-xs-2 min_padding" style="font-weight:bold; font-size:1.2em; color:#31AF31">
+            <span ng-if="dorder.total===null">--</span>
+            <span ng-if="dorder.total!==null"> $ {{dorder.total | number:2}}</span>
+          </div>
+        </div>
 
       </div>
     </div>
   </div>
 
-  <div ng-if="showMode===1" class="gray_shadow po_box po_add_box" style="margin-top:16px; margin-bottom:256px" ng-click="addDistributorOrder()">
-    <span class="glyphicon glyphicon-plus"></span> Add another Distributor Order
+  <div ng-if="showMode===1" class="row" style="margin-bottom:256px">
+    <div class="col-xs-6" style="padding-right:4px; text-align:center">
+      <div class="gray_shadow po_box po_add_box" ng-click="addDistributorOrder()">
+        <span class="glyphicon glyphicon-plus"></span> Add another Distributor Order
+      </div>
+    </div>
+    <div class="col-xs-6" style="padding-left:4px; text-align:center">
+      <div class="gray_shadow po_box po_save_box" ng-click="reviewAndSave()">
+        <span class="glyphicon glyphicon-ok"></span> Review and Send
+      </div>
+    </div>
   </div>
 
 

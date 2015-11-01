@@ -848,10 +848,9 @@ like enclosed space */
 }
 
 .input_small {
-  font-size:13px;
+  font-size:14px;
   height:30px;
-  padding-left:8px;
-  padding-right:4px;
+  padding: 2px 4px 2px 8px;
 }
 
 .hint_text {
@@ -1173,17 +1172,31 @@ like enclosed space */
 }
 
 .po_add_box {
-  border-color:#c0efff;
+  border-color:#B4E4F5;
   font-size:1.4em;
-  background-color:#fafdff;
-  color:#9ad0f0;
+  background-color:#F4FCFF;
+  color:#7FC6F1;
   cursor:pointer;
 }
 
 .po_add_box:hover {
-  border-color:#a0e0ff;
-  background-color:#f6fbff;
-  color: #70c0d0;
+  border-color:#8BD6F1;
+  background-color:#E4F8FF;
+  color:#53ACE2;
+}
+
+.po_save_box {
+  border-color:#A1E88F;
+  font-size:1.4em;
+  background-color:#F3FFF3;
+  color:#8CD27D;
+  cursor:pointer;
+}
+
+.po_save_box:hover {
+  border-color:#72D658;
+  background-color:#DEFDD4;
+  color:#5CB948;
 }
 
 .gray_shadow {

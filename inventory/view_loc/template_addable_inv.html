@@ -4,6 +4,11 @@
   </uib-tab>
 </uib-tabset>
 <div ng-class="{'new_inv_border_box': showTabs===true, 'addable_tab_margin': showTabs===true}" style="display:block; position:absolute; height:auto; top:0; bottom:0; left: 0; right:0; margin-top:0px; margin-bottom:0px; margin-right:0px; margin-left:0px !important; padding:4px 12px; padding-bottom:12px">
+  <div class="row" style="margin-top:-6px" ng-if="distributorFilter!==null&&distributorFilter!==undefined">
+    <div class="col-xs-12" style="text-align:right; color:#449046">
+      <span class="glyphicon glyphicon-info-sign" style="color:#449046; font-size:18px; vertical-align:middle; margin-top:-4px"></span> Showing <b>{{distributorFilter.name}}</b> beverages only.
+    </div>
+  </div>
   <div class="row" style="margin-bottom:6px; margin-top:6px">
     <div class="col-xs-4" style="padding-right:0">
       <div ng-if="add_type===add_types[0]" class="btn-group" uib-dropdown style="width:100%">
@@ -86,9 +91,11 @@
     </div>
     <div class="col-xs-2 add_inv_sort_div_lt" ng-if="showPurchase===true" ng-click="sortBevsBy('par')" style="padding-left:0">
       Inv / Par
+      <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_bev === 'par'" ng-class="{'glyphicon-menu-down': double_sort_bev<0, 'glyphicon-menu-up':double_sort_bev>0}" style="color:#cccccc;">
     </div>
-    <div class="col-xs-2 add_inv_sort_div_lt" ng-if="showPurchase===true" ng-click="sortBevsBy('unit_cost')" style="padding-left:0">
-      Unit Cost
+    <div class="col-xs-2 add_inv_sort_div_lt" ng-if="showPurchase===true" ng-click="sortBevsBy('batch_cost')" style="padding-left:0">
+      Purchase Cost
+      <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_bev === 'batch_cost'" ng-class="{'glyphicon-menu-down': double_sort_bev<0, 'glyphicon-menu-up':double_sort_bev>0}" style="color:#cccccc;">
     </div>
   </div>
   <hr style="margin:0 0;"/>
@@ -117,15 +124,20 @@
         <div ng-class="{'col-xs-4':showPurchase!==true, 'col-xs-3':showPurchase===true}" style="font-size:0.9em; padding-left:6px; padding-right:4px; color:#888888">
           {{bev.brewery}}
         </div>
-        <div class="min_padding col-xs-2" ng-if="showPurchase===true" ng-click="sortBevsBy('par')" style="font-size:0.9em; padding-top:6px">
+        <div class="min_padding col-xs-2" ng-if="showPurchase===true" style="font-size:0.9em; padding-top:6px">
           <span ng-if="bev.count_recent!==null" style="color:{{bev.stock_color}}">{{bev.count_recent | number:1}}</span>
           <span ng-if="bev.count_recent===null" class="glyphicon glyphicon-alert" style="font-size:16px; color:#dadada;" uib-popover="No Inventory records in the past 3 days!" popover-trigger="mouseenter" popover-append-to-body="true"> </span>
           <span style="font-size: 1.1em; padding-left:4px"> / </span>
           <span ng-if="bev.par !== null">{{bev.par | number:1}}</span>
           <span ng-if="bev.par === null" style="color:#999999">None</span>
         </div>
-        <div class="min_padding col-xs-2" ng-if="showPurchase===true" ng-click="sortBevsBy('purchase_cost')" style="font-size:0.9em">
-          $ {{bev.purchase_cost | number:2}}
+        <div class="min_padding col-xs-2" ng-if="showPurchase===true">
+          <div style="font-size:0.9em">
+            <span style="color:#999999">$</span> {{bev.purchase_cost | number:2}}
+          </div>
+          <div ng-if="bev.deposit!==null" style="font-size:0.9em; color:#999999;">
+            <span style="color:#999999">$</span> {{bev.deposit | number:2}} Dpst.
+          </div>
         </div>
         <div ng-class="{'col-xs-2':showPurchase!==true, 'col-xs-1':showPurchase===true}" style="padding-left:4px; padding-right:6px">
           <button ng-click="enterInvQuantity(bev, false)" type="button" class="btn btn-sm btn-success" style="font-size:12px; float:right; width:60px; height:30px; border-radius:4px; margin-top:4px;">

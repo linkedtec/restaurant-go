@@ -1,6 +1,6 @@
 angular.module('myApp')
 
-.directive('newDelivery', function($modal, $http, $timeout, MathService, DateService, DeliveriesService) {
+.directive('newDelivery', function($modal, $http, $timeout, MathService, DateService, DeliveriesService, ItemsService) {
   return {
     restrict: 'AE',
     scope: {
@@ -411,24 +411,6 @@ angular.module('myApp')
       };
       scope.getVolUnits();
 
-      scope.getBevUnitCost = function(inv) {
-        // locally calculate unit_cost for sorting purposes
-        var purchase_cost = 0;
-        var purchase_count = 1;
-        var deposit = 0;
-        if (inv['purchase_cost'] !== null) {
-          purchase_cost = inv['purchase_cost'];
-        }
-        if (inv['purchase_count'] !== null) {
-          purchase_count = inv['purchase_count'];
-        }
-        if (inv['deposit'] !== null) {
-          deposit = inv['deposit'];
-        }
-
-        return purchase_cost / purchase_count + deposit;
-      };
-
       // get all inventory from the server.  If location type is bev, get /inv
       // items.  If location type is kegs, get /kegs.
       scope.getAllInv = function() {
@@ -444,7 +426,7 @@ angular.module('myApp')
               inv['type'] = 'bev';
 
               // locally calculate unit_cost for sorting purposes
-              inv['unit_cost'] = scope.getBevUnitCost(inv);
+              inv['unit_cost'] = ItemsService.getBevUnitCost(inv);
             }
           }
           else {
