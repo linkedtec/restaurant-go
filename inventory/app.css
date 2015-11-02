@@ -863,6 +863,10 @@ like enclosed space */
   color: #aaaaaa;
 }
 
+.red_text {
+  color: #aa0000 !important;
+}
+
 .gray_bg {
   background-color: #f0f0f0;
 }
@@ -1167,7 +1171,7 @@ like enclosed space */
 .po_box {
   border: 1px solid #e0e0e0;
   margin: 8px 4px;
-  padding: 16px 16px;
+  padding: 0px 0px;
   background-color:#fcfcfc;
 }
 
@@ -1214,7 +1218,7 @@ like enclosed space */
 }
 
 .my_error {
-  border-color: #aa0000;
+  border-color: #aa0000 !important;
 }
 
 .cursor_disabled {

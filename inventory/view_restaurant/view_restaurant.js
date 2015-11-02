@@ -10,7 +10,7 @@ angular.module('myApp.viewRestaurant', ['ngRoute'])
     });
 }])
 
-.controller('ViewRestaurantCtrl', function($scope, $modal, $http, EmailService) {
+.controller('ViewRestaurantCtrl', function($scope, $modal, $http, ContactService) {
 
   $scope.form_ver = {};
   $scope.name_failure_msg = null;
@@ -152,7 +152,7 @@ angular.module('myApp.viewRestaurant', ['ngRoute'])
       $scope.form_ver.error_purchase_contact = true;
     }
 
-    if ($scope.purchaseInfo['email_edit']===null || !EmailService.isValidEmail($scope.purchaseInfo['email_edit'])) {
+    if ($scope.purchaseInfo['email_edit']===null || !ContactService.isValidEmail($scope.purchaseInfo['email_edit'])) {
       all_clear = false;
       $scope.form_ver.error_purchase_contact_email = true;
     }

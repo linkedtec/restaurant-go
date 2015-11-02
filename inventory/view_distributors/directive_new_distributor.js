@@ -119,7 +119,7 @@ angular.module('myApp')
   
 })
 
-.directive('newDistributor', function(DistributorsService, EmailService, VolUnitsService, MathService) {
+.directive('newDistributor', function(DistributorsService, ContactService, VolUnitsService, MathService) {
   return {
     restrict: 'AE',
     scope: {
@@ -215,7 +215,7 @@ angular.module('myApp')
           scope.email_failure_msg = "Email is too long (64 character limit)!";
           scope.form_ver.error_email = true;
           all_clear = false;
-        } else if (!EmailService.isValidEmail(scope.new_distributor['email'])) {
+        } else if (!ContactService.isValidEmail(scope.new_distributor['email'])) {
           scope.email_failure_msg = "Email is not valid!  Please fix and try again.";
           scope.form_ver.error_email = true;
           all_clear = false;

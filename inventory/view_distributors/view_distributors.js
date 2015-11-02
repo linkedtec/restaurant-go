@@ -217,7 +217,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
 
 })
 
-.controller('editDistModalCtrl', function($scope, $modalInstance, $modal, $http, $filter, DistributorsService, EmailService, MathService, distributor, distributors, volume_units) {
+.controller('editDistModalCtrl', function($scope, $modalInstance, $modal, $http, $filter, DistributorsService, ContactService, MathService, distributor, distributors, volume_units) {
 
   $scope.volume_units = volume_units;
 
@@ -324,7 +324,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
       $scope.new_failure_msg = "Email is too long (64 character limit)!";
       $scope.form_ver.error_email = true;
       return;
-    } else if (!EmailService.isValidEmail(new_email)) {
+    } else if (!ContactService.isValidEmail(new_email)) {
       $scope.new_failure_msg = "Email is not valid!  Please fix and try again.";
       $scope.form_ver.error_email = true;
       return;

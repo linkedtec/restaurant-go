@@ -10,7 +10,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     });
 }])
 
-.controller('ViewPurchaseOrdersCtrl', function($scope, $modal, $http, DateService, DistributorsService, ItemsService, MathService) {
+.controller('ViewPurchaseOrdersCtrl', function($scope, $modal, $http, ContactService, DateService, DistributorsService, ItemsService, MathService) {
 
   // showMode shows the different stages of the purchase order process,
   // 0 being the "choose automatic vs manual"
@@ -19,6 +19,9 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
   $scope.useMode = null;
 
   $scope.all_bevs = [];
+
+  $scope.all_distributors = [];
+  $scope.sel_distributors = [];
 
   $scope.order = {};
   $scope.order['restaurant_name'] = null;
@@ -32,6 +35,8 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
   $scope.order['order_date'] = new Date();
   $scope.order['order_date_pretty'] = DateService.getPrettyDate((new Date()).toString(), false, true);
 
+  $scope.form_ver = {};
+  $scope.new_failure_msg = null;
 
   $scope.getRestaurant = function() {
     $http.get('/restaurant/name').
@@ -82,7 +87,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
   };
 
-  $scope.initManualForm = function() {
+  $scope.initDistOrders = function() {
     $scope.order['dist_orders'] = [{
       distributor: null,
       delivery_date: new Date(),
@@ -92,6 +97,10 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       show_add_ui:false,
       addableControl: {}
     }];
+  };
+
+  $scope.initManualForm = function() {
+    $scope.initDistOrders();
 
     console.log($scope.order['dist_orders']);
     $scope.getRestaurant();
@@ -238,7 +247,12 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     result.then(function(payload) {
       var data = payload.data;
       
-      $scope.all_distributors = data;
+      for (var i in data) {
+        var dist = data[i];
+        $scope.all_distributors.push(dist);
+        $scope.sel_distributors.push(dist);
+      }
+
       console.log(data);
       },
       function(errorPayload) {
@@ -246,6 +260,29 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       });
   };
   $scope.getAllDistributors();
+
+  $scope.refreshSelectableDistributors = function() {
+    // refresh the selectable distributors list based on which distributors
+    // have not yet been added to dist orders
+    $scope.sel_distributors = [];
+    for (var i in $scope.all_distributors) {
+      var d = $scope.all_distributors[i];
+      var d_added = false;
+      for (var j in $scope.order.dist_orders) {
+        var dorder = $scope.order.dist_orders[j];
+        if (dorder.distributor === null) {
+          continue;
+        }
+        if (dorder.distributor.id === d.id) {
+          d_added = true;
+          break;
+        }
+      }
+      if (!d_added) {
+        $scope.sel_distributors.push(d);
+      }
+    }
+  }
 
   $scope.selectDistributor = function(dist_order, dist) {
 
@@ -257,7 +294,9 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
     dist_order['addable_items'] = JSON.parse(JSON.stringify($scope.all_bevs));
     dist_order['items'] = [];
-  }
+
+    $scope.refreshSelectableDistributors();
+  };
 
   $scope.addDistributorOrder = function() {
     $scope.order['dist_orders'].push({
@@ -267,6 +306,17 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       total:null,
       show_add_ui:false});
   };
+
+  $scope.deleteDistOrder = function(index) {
+    if ($scope.order['dist_orders'].length === 1) {
+      return;
+    }
+    if ($scope.order['dist_orders'].length <= index) {
+      return;
+    }
+    $scope.order['dist_orders'].splice(index,1);
+    $scope.refreshSelectableDistributors();
+  }
 
   $scope.getAllInv = function() {
 
@@ -301,17 +351,110 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
   };
 
   $scope.reviewAndSave = function() {
-    // do these checks:
+    var all_clear = true;
+    $scope.form_ver.error_contact = false;
+    $scope.form_ver.error_email = false;
+    $scope.form_ver.error_phone = false;
+    $scope.form_ver.error_fax = false;
+    $scope.new_failure_msg = null;
+
+    // =========================================================================
+    // CHECK BASIC INFO
+    // =========================================================================
     // Restaurant Basic Info:
     //   - restaurant contact is not null, at least 2 characters
     //   - restaurant email is not null, valid email
-    //
+    //   - if phone is not null, phone is valid
+    //   - if fax is not null, fax is valid
+    if ($scope.order['purchase_contact_edit'] === null || $scope.order['purchase_contact_edit'].length < 2) {
+      $scope.form_ver.error_contact = true;
+      all_clear = false;
+    }
+    if ($scope.order['purchase_email_edit'] === null || !ContactService.isValidEmail($scope.order['purchase_email_edit'])) {
+      $scope.form_ver.error_email = true;
+      all_clear = false;
+    }
+    if ($scope.order['purchase_phone_edit'] !== null && $scope.order['purchase_phone_edit'].length > 0 && !ContactService.isValidPhone($scope.order['purchase_phone_edit'])) {
+      $scope.form_ver.error_phone = true;
+      all_clear = false;
+    }
+    if ($scope.order['purchase_fax_edit'] !== null && $scope.order['purchase_fax_edit'].length > 0 && !ContactService.isValidPhone($scope.order['purchase_fax_edit'])) {
+      $scope.form_ver.error_fax = true;
+      all_clear = false;
+    }
+
+    /*
+    if (!all_clear) {
+      $scope.new_failure_msg = "Whoops!  Some fields are missing or incorrect, please fix them and try again.";
+      return;
+    }
+    */
+    
+    // =========================================================================
+    // CHECK DISTRIBUTOR ORDERS
+    // =========================================================================
     // Distributor Orders:
     //   - if no distributor selected, just splice and omit
+    //   - if no email or email is invalid, error
+    //   - if est delivery date invalid, error
     //   - if has no added items, error
     //   - if items missing quantity, error
-    //   - if est delivery date invalid, error
-    //   - if no email or email is invalid, error
+    //   - if items quantity invalid, error
+
+    // first remove any dist_orders which don't have a distributor selected
+    var valid_dorders = []
+    for (var i in $scope.order['dist_orders']) {
+      var dorder = $scope.order.dist_orders[i];
+      if (dorder.distributor === null) {
+        continue;
+      }
+      valid_dorders.push(dorder);
+    }
+    if (valid_dorders.length == 0) {
+      $scope.initDistOrders();
+      $scope.new_failure_msg = "Please add items to your empty Distributor Orders and try again!";
+      return;
+    }
+
+    $scope.order['dist_orders'] = valid_dorders;
+
+    for (var i in $scope.order['dist_orders']) {
+      var dorder = $scope.order.dist_orders[i];
+      dorder.error_dist_email = false;
+      dorder.error_delivery_date = false;
+      dorder.error_empty_items = false;
+
+      if (dorder.distributor.email === null || !ContactService.isValidEmail(dorder.distributor.email)) {
+        all_clear = false;
+        dorder.error_dist_email = true;
+      }
+
+      if (dorder.delivery_date === null || !DateService.isValidDate(dorder.delivery_date)) {
+        all_clear = false;
+        dorder.error_delivery_date = true;
+      }
+
+      if (dorder.items === null || dorder.items.length===0) {
+        all_clear = false;
+        dorder.error_empty_items = true;
+        dorder.items = [];
+      }
+
+      for (var j in dorder.items) {
+        var item = dorder.items[j];
+        item.error_quantity = false;
+        if (item.quantity === null || MathService.numIsInvalid(item.quantity)) {
+          item.error_quantity = true;
+          all_clear = false;
+        }
+      }
+    }
+
+    if (!all_clear) {
+      $scope.new_failure_msg = "Whoops!  Some fields are missing or incorrect, please fix them and try again.";
+      return;
+    }
+    
   }
 
 

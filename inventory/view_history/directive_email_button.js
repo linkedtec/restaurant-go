@@ -1,6 +1,6 @@
 angular.module('myApp')
 
-.directive('emailButton', function($modal, $http, EmailService) {
+.directive('emailButton', function($modal, $http, ContactService) {
   return {
     restrict: 'AE',
     scope: {
@@ -80,7 +80,7 @@ angular.module('myApp')
       };
 
       scope.emailTmpChanged = function(email) {
-        return EmailService.isValidEmail(email);
+        return ContactService.isValidEmail(email);
       };
 
       scope.defaultEmailTmpChanged = function() {
