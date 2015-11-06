@@ -1,0 +1,103 @@
+<div ng-if="editMode===false" style="position:relative">
+  <button ng-click="editAddress()" type="button" class="btn btn-default btn-sm btn_frameless hover_blue" style="position:absolute; top:0; right:0; z-index:99">
+    <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> Edit
+  </button>
+
+  <div class="row" ng-if="addressLineOne!==null && addressLineOne!==undefined">
+    <div class="col-xs-12">
+      {{addressLineOne}}
+    </div>
+  </div>
+  <div class="row" ng-if="addressLineTwo!==null && addressLineTwo!==undefined">
+    <div class="col-xs-12">
+      {{addressLineTwo}}
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-xs-12">
+      <span ng-if="city!==null">
+        {{city}}, 
+      </span>
+      <span ng-if="state!==null">
+        {{state}}
+      </span>
+      <span ng-if="zipcode!==null">
+        {{zipcode}}
+      </span>
+    </div>
+  </div>
+  <!--div class="row" ng-if="phone_edit!==null && phone_edit!==undefined">
+    <div class="col-xs-12">
+      Phone: {{phone_edit}}
+    </div>
+  </div>
+  <div class="row" ng-if="fax_edit!==null && fax_edit!==undefined">
+    <div class="col-xs-12">
+      Fax: {{fax_edit}}
+    </div>
+  </div-->
+</div>
+<div ng-if="editMode===true" style="position:relative">
+  <div class="row" ng-if="isDelivery===true">
+    <div class="col-xs-12" style="padding-top:6px; padding-bottom:6px">
+      <input ng-checked="deliverySameChecked" type="checkbox" id="cb_delivery_address" class="customCbSqr" style="z-index:-99;" ng-click="toggleDeliverySame()"/>
+      <label for="cb_default_contact" ng-click="toggleDeliverySame()" style="margin-left:8px; margin-top:-6px"></label>
+      <span style="margin-left:6px; vertical-align:top"> Same as Restaurant Address</span>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-xs-6" style="padding-right:4px">
+      <div class="form-group" style="margin-bottom:0px;" ng-class="{'has-error': form_ver.error_address_one===true}">
+        <label class="control-label bold label_small" style="margin-left:6px"> Address 1</label>
+        <input ng-model="edit.addressLineOne" class="form-control input_small" placeholder="Address Line 1">
+      </div>
+    </div>
+    <div class="col-xs-6" style="padding-left:4px">
+      <div class="form-group" style="margin-bottom:0;" ng-class="{'has-error': form_ver.error_address_two===true}">
+        <label class="control-label label_small" style="margin-left:6px"> Address 2</label>
+        <input ng-model="edit.addressLineTwo" class="form-control input_small" placeholder="Address Line 2">
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:6px">
+    <div class="col-xs-6" style="padding-right:4px">
+      <div class="form-group" ng-class="{'has-error': form_ver.error_city===true}">
+        <label class="control-label bold label_small" style="margin-left:6px"> City</label>
+        <input ng-model="edit.city" class="form-control input_small" placeholder="City">
+      </div>
+    </div>
+    <div class="col-xs-2" style="padding-left:4px; padding-right:4px;">
+      <div class="form-group" ng-class="{'has-error': form_ver.error_state===true}">
+        <label class="control-label bold label_small" style="margin-left:6px"> State</label>
+        <input ng-model="edit.state" class="form-control input_small" placeholder="State">
+      </div>
+    </div>
+    <div class="col-xs-4" style="padding-left:4px">
+      <div class="form-group" ng-class="{'has-error': form_ver.error_zipcode===true}">
+        <label class="control-label bold label_small" style="margin-left:6px"> Zipcode</label>
+        <input ng-model="edit.zipcode" class="form-control input_small" placeholder="Zipcode">
+      </div>
+    </div>
+  </div>
+  
+  <div ng-show="new_failure_msg !== null" class="row" style="margin:4px 0px">
+    <div class="alert alert-danger" data-html="true" role="alert" style="margin-bottom:6px">
+      {{new_failure_msg}}
+    </div>
+  </div>
+  
+  <div class="row" style="margin-top:4px">
+    <div class="col-xs-12" style="text-align:right">
+      <button ng-if="hideCancelButton!==true" ng-click="cancelEdit()" type="button" class="btn btn-default btn-sm">
+        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Cancel
+      </button>
+      <button ng-click="saveEdit()" type="button" class="btn btn-success btn-sm">
+        <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> Save
+      </button>
+      
+    </div>
+  </div>
+
+
+</div>

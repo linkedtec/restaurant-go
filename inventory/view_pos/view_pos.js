@@ -87,16 +87,22 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
   };
 
-  $scope.initDistOrders = function() {
-    $scope.order['dist_orders'] = [{
-      distributor: null,
-      delivery_date: new Date(),
+  $scope.addDistributorOrder = function() {
+    $scope.order['dist_orders'].push({
+      distributor:null, 
+      delivery_date: new Date(), 
       addable_items: [],
-      items: [],
-      total: null,
+      items:[],
+      total:null,
       show_add_ui:false,
-      addableControl: {}
-    }];
+      addableControl: {},
+      sort_key: null,
+      double_sort: -1});
+  };
+
+  $scope.initDistOrders = function() {
+    $scope.order['dist_orders'] = [];
+    $scope.addDistributorOrder();
   };
 
   $scope.initManualForm = function() {
@@ -241,6 +247,21 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     item['subtotal'] = item['batch_cost'] * item['quantity'];
   };
 
+
+  $scope.matchQuantityToPar = function(item) {
+    if (item['count_recent']===null || item['par']===null) {
+      return;
+    }
+    var diff = item['par'] - item['count_recent'];
+    if (diff <= 0) {
+      item['quantity'] = 0;
+    } else {
+      item['quantity'] = Math.round(diff);
+    }
+    $scope.updateQuantity(item);
+    
+  };
+
   $scope.getAllDistributors = function() {
 
     var result = DistributorsService.get();
@@ -298,15 +319,6 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     $scope.refreshSelectableDistributors();
   };
 
-  $scope.addDistributorOrder = function() {
-    $scope.order['dist_orders'].push({
-      distributor:null, 
-      delivery_date: new Date(), 
-      items:[],
-      total:null,
-      show_add_ui:false});
-  };
-
   $scope.deleteDistOrder = function(index) {
     if ($scope.order['dist_orders'].length === 1) {
       return;
@@ -348,6 +360,46 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
         dorder.total += item['batch_cost'] * item['quantity'];
       }
     }
+  };
+
+  $scope.sortDistOrderBevs = function(dorder, sort_str) {
+    var double_sort = sort_str === dorder.sort_key;
+    if (double_sort) {
+      dorder.double_sort *= -1;
+    } else {
+      dorder.double_sort = -1;
+    }
+    dorder.sort_key = sort_str;
+    var isNum = (sort_str === 'batch_cost' || sort_str === 'par' || sort_str === 'quantity' || sort_str === 'subtotal');
+
+    dorder.items.sort(function(a, b) {
+      var keyA = a[sort_str];
+      var keyB = b[sort_str];
+      if (dorder.double_sort > 0) {
+        if (keyA === null) {
+          return -1;
+        } else if (keyB === null) {
+          return 1;
+        }
+        if (isNum)
+        {
+          return parseFloat(keyA) - parseFloat(keyB);
+        } else {
+          return -keyA.localeCompare(keyB);
+        }
+      }
+      if (keyA === null) {
+        return 1;
+      } else if (keyB === null) {
+        return -1;
+      }
+      if (isNum)
+      {
+        return parseFloat(keyB) - parseFloat(keyA);
+      } else {
+        return keyA.localeCompare(keyB);
+      }
+    });
   };
 
   $scope.reviewAndSave = function() {
@@ -400,6 +452,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     //   - if has no added items, error
     //   - if items missing quantity, error
     //   - if items quantity invalid, error
+    //   - if item has 0 quantity, error
 
     // first remove any dist_orders which don't have a distributor selected
     var valid_dorders = []
@@ -443,7 +496,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       for (var j in dorder.items) {
         var item = dorder.items[j];
         item.error_quantity = false;
-        if (item.quantity === null || MathService.numIsInvalid(item.quantity)) {
+        if (item.quantity === null || MathService.numIsInvalid(item.quantity) || item.quantity===0) {
           item.error_quantity = true;
           all_clear = false;
         }

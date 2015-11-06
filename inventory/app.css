@@ -333,6 +333,18 @@ body {
   border-width:2px;
 }
 
+.blue_btn {
+  color: #27b6da;
+  background-color: #f6fdff;
+  border-color:#81cae0;
+}
+
+.blue_btn:hover {
+  background-color:#27b6da;
+  color:white;
+  border-color:#27b6da;
+}
+
 .main_container {
   min-width:560px;
   max-width:800px;
@@ -925,11 +937,11 @@ like enclosed space */
   width:28px;
   height:28px;
   border-radius:14px;
-  color:#dadada;
+  color:#d0d0d0;
   font-size:14px;
   padding: 0;
   background-color:#fcfcfc;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #d0d0d0;
 }
 
 .btn_x_circle_gray:hover {
