@@ -632,13 +632,13 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
             }
             console.log('push');
             $scope.add_inv_unadded.push(edit_bev);
-            setInterval(
-              function() {
-                $scope.$apply();
-              }, 0);
+            //$scope.$apply();
             console.log($scope.inventory_items);
             console.log($scope.add_inv_unadded);
-            $scope.addableControl.applyTypeFilter();
+            if ($scope.addableControl.applyTypeFilter!==undefined && $scope.addableControl.applyTypeFilter!==null) {
+              $scope.addableControl.applyTypeFilter();  
+            }
+            
           } else {
             // recalculate pretty dates
             $scope.calculateDates(edit_bev);

@@ -1,6 +1,6 @@
 angular.module('myApp')
 
-.directive('addressField', function($modal, $http, BeveragesService, DateService, VolUnitsService, MathService) {
+.directive('addressField', function($modal, $http, $timeout) {
   return {
     restrict: 'AE',
     scope: {
@@ -16,16 +16,65 @@ angular.module('myApp')
       deliveryCopyAddrTwo: '=?',
       deliveryCopyCity: '=?',
       deliveryCopyState: '=?',
-      deliveryCopyZipcode: '=?'
+      deliveryCopyZipcode: '=?',
+      callerSave: '&',
+      control: '=',
+      deliverySaved: '&'
     },
     templateUrl: './view_restaurant/template_address.html',
     link: function(scope, elem, attrs) {
+
+      scope.$watch('control', function(newVal, oldVal) {
+        scope.internalControl = scope.control || {};
+        // This will check that the address is ready for use for e.g., purchase
+        // orders, and is functionally a little different from addressIsValid()
+        scope.internalControl.validateAddress = function() {
+          scope.new_failure_msg = null;
+          // if address is in edit mode it is not ready for use, needs
+          // to be saved first
+          if (scope.editMode === true) {
+            scope.new_failure_msg = "Please save address first, then try again!"
+            return false;
+          }
+          var addressValid = scope.addressIsValid(false);
+          return addressValid;
+        };
+      }, true);
 
       scope.editMode = false;
       scope.edit = {};
       scope.hideCancelButton = false; // if there's no valid address to revert
                                       // to, don't allow canceling
       scope.new_failure_msg = null;
+      scope.deliverySameChecked = {value:false};
+      scope.deliveryEmpty = false;
+
+      scope.$watch('addressLineOne + addressLineTwo + city + state + zipcode', function(newVal, oldVal) {
+        console.log(scope.addressLineOne);
+        scope.edit.addressLineOne = scope.addressLineOne;
+        scope.edit.addressLineTwo = scope.addressLineTwo;
+        scope.edit.city = scope.city;
+        scope.edit.state = scope.state;
+        scope.edit.zipcode = scope.zipcode;
+        if (scope.addressLineOne===null && 
+          (scope.addressLineTwo===null || scope.addressLineTwo===undefined) && 
+          scope.city===null &&
+          scope.state===null &&
+          scope.zipcode===null) {
+          if (scope.isDelivery === true) {
+            scope.deliveryEmpty = true;
+          } else {
+            scope.editAddress();
+            scope.hideCancelButton = true;
+          }
+          
+        } else {
+          scope.editMode = false;
+          scope.hideCancelButton = false;
+          scope.deliveryEmpty = false;
+        }
+      }, true);
+
 
       scope.editAddress = function() {
         scope.editMode = true;
@@ -42,19 +91,8 @@ angular.module('myApp')
       };
 
 
-      if (scope.addressLineOne===null && 
-        (scope.addressLineTwo===null || scope.addressLineTwo===undefined) && 
-        scope.city===null &&
-        scope.state===null &&
-        scope.zipcode===null) {
-        scope.editAddress();
-        scope.hideCancelButton = true;
-      };
-
-      scope.deliverySameChecked = false;
-
       scope.copyDeliveryAddress = function() {
-        if (scope.isDelivery!==true || scope.deliverySameChecked!==true) {
+        if (scope.isDelivery!==true || scope.deliverySameChecked.value!==true) {
           return;
         }
 
@@ -66,7 +104,7 @@ angular.module('myApp')
       };
 
       scope.uncopyDeliveryAddress = function() {
-        if (scope.isDelivery!==true || scope.deliverySameChecked!==false) {
+        if (scope.isDelivery!==true || scope.deliverySameChecked.value!==false) {
           return;
         }
 
@@ -78,9 +116,8 @@ angular.module('myApp')
       }
       
       scope.toggleDeliverySame = function() {
-        scope.deliverySameChecked = !scope.deliverySameChecked;
 
-        if (scope.deliverySameChecked === true) {
+        if (scope.deliverySameChecked.value === true) {
           scope.copyDeliveryAddress();
         } else {
           scope.uncopyDeliveryAddress();
@@ -88,9 +125,7 @@ angular.module('myApp')
         
       };
 
-      scope.saveEdit = function() {
-
-        var all_clear = true;
+      scope.clearFormVer = function() {
         scope.form_ver = {
           error_address_one: false,
           error_address_two: false,
@@ -99,6 +134,12 @@ angular.module('myApp')
           error_zipcode: false
         }
         scope.new_failure_msg = null;
+      }
+
+      scope.addressIsValid = function( update_ui ) {
+        scope.clearFormVer();
+
+        var all_clear = true;
 
         if (scope.edit.addressLineOne === null || scope.edit.addressLineOne.length < 3) {
           scope.form_ver.error_address_one = true;
@@ -122,10 +163,30 @@ angular.module('myApp')
 
         if (all_clear !== true) {
           scope.new_failure_msg = "Whoops!  Some fields are missing or incorrect, please fix them and try again.";
-          return;
         }
 
+        if (update_ui !== true) {
+          scope.clearFormVer();
+        }
+
+        if (all_clear === true) {
+          return true;
+        }
+        return false;
+      };
+
+      scope.saveEdit = function() {
+
+        var addressValid = scope.addressIsValid(true);
+        if (addressValid !== true) {
+          return;
+        }
+        
         scope.editMode = false;
+        scope.deliveryEmpty = false;
+        if (scope.deliverySaved!==undefined && scope.deliverySaved!==null) {
+          scope.deliverySaved();
+        }
 
         scope.addressLineOne = scope.edit.addressLineOne;
         scope.addressLineTwo = scope.edit.addressLineTwo;
@@ -134,6 +195,13 @@ angular.module('myApp')
         scope.zipcode = scope.edit.zipcode;
 
         scope.hideCancelButton = false;
+
+        $timeout((function() {
+          if (scope.callerSave!==undefined && scope.callerSave !== null) {
+            scope.callerSave();
+          }
+        }), 0);
+        
       };
 
       scope.cancelEdit = function() {

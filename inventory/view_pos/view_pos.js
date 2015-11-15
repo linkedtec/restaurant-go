@@ -34,6 +34,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
   $scope.order['dist_orders'] = [];
   $scope.order['order_date'] = new Date();
   $scope.order['order_date_pretty'] = DateService.getPrettyDate((new Date()).toString(), false, true);
+  $scope.deliveryAddressControl = {};
 
   $scope.form_ver = {};
   $scope.new_failure_msg = null;
@@ -136,7 +137,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     if (queryCancel === true) {
       swal({
           title: "Discard Purchase Order?",
-          text: "Are you sure you want to discard your changes and cancel this Purchase Order?",
+          text: "Candeling this Purchase Order will discard any changes you've made.  Are you sure?",
           type: "warning",
           showCancelButton: true,
           html: true,
@@ -145,10 +146,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
           },
           function() {
             $scope.setShowMode(0, null);
-            setInterval(
-              function() {
-                $scope.$apply();
-              }, 0);
+            $scope.$apply();
         });
     } else {
       $scope.setShowMode(0, null);
@@ -159,10 +157,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
   $scope.orderDateChanged = function() {
     var date_str = $scope.order['order_date'].toString();
     $scope.order['order_date_pretty'] = DateService.getPrettyDate(date_str, false, true);
-    setInterval(
-      function() {
-        $scope.$apply();
-      }, 0);
+    $scope.$apply();
   };
 
   $scope.purchasingChanged = function() {
@@ -432,6 +427,11 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     }
     if ($scope.order['purchase_fax_edit'] !== null && $scope.order['purchase_fax_edit'].length > 0 && !ContactService.isValidPhone($scope.order['purchase_fax_edit'])) {
       $scope.form_ver.error_fax = true;
+      all_clear = false;
+    }
+
+    var addressValid = $scope.deliveryAddressControl.validateAddress();
+    if (addressValid !== true) {
       all_clear = false;
     }
 

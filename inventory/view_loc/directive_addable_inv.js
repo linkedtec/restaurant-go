@@ -93,11 +93,8 @@ angular.module('myApp')
             scope.reSort();
           }
         }
-        
-        setInterval(
-          function() {
-            scope.$apply();
-          }, 0);
+
+        //scope.$apply();
         
       };
 
@@ -345,10 +342,7 @@ angular.module('myApp')
 
         scope.excludeAddedBevs();
 
-        setInterval(
-          function() {
-            scope.$apply();
-          }, 0);
+        //scope.$apply();
       };
 
       scope.excludeAddedBevs = function() {

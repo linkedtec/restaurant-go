@@ -113,6 +113,12 @@
           <label for="cb_default_contact" ng-click="toggleDefaultContact()" style="margin-left:28px"></label>
         <span style="float:right; margin-top:4px; margin-left:6px"> Save changes to default P/O contact info </span>
       </div>
+
+      <hr/>
+
+      <div style="margin-top:8px">
+        <delivery-address choosable="true" control="deliveryAddressControl"></delivery-address>
+      </div>
     </div>
 
     <div ng-repeat='dorder in order.dist_orders' class="gray_shadow po_box" style="padding-bottom:8px; margin-top:16px; position:relative">

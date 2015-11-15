@@ -28,21 +28,6 @@ angular.module('myApp.viewRestaurant', ['ngRoute'])
     'fax_edit': null
   };
 
-  $scope.address = {
-    'addressOne': null,
-    'addressTwo': null,
-    'city': null,
-    'state': null,
-    'zipcode': null
-  };
-
-  $scope.addressDelivery = {
-    'addressOne': null,
-    'addressTwo': null,
-    'city': null,
-    'state': null,
-    'zipcode': null
-  };
 
   $scope.saveRestaurantName = function(new_name) {
     $scope.form_ver.error_name = false;

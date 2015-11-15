@@ -1,0 +1,28 @@
+<div class="row" style="margin:0; margin-top:16px; font-size:1.0em;">
+  <div class="col-xs-6">
+    Restaurant Address
+    <span ng-if="choosable===true" style="float:right">
+      -- Deliver here:
+      <my-checkbox value="deliverToRestaurant.value" is-toggle="false" callback="deliverToRestaurantAddress()"></my-checkbox>
+    </span>
+  </div>
+  <div class="col-xs-6">
+    Delivery Address
+    <span ng-if="choosable===true && deliveryEmpty!==true" style="float:right">
+      -- Deliver here:
+      <my-checkbox value="deliverToDelivery.value" is-toggle="false" callback="deliverToDeliveryAddress()"></my-checkbox>
+    </span>
+  </div>
+</div>
+<div class="row" style="margin:0; margin-top:3px">
+  <div class="col-xs-6">
+    <div class="gray_shadow" ng-class="{'my_error':form_ver.error_restaurant===true}" style="background-color:#fdfdfd; padding:8px; border: 1px solid #ECE0C8;">
+      <address-field address-line-one="address.addressOne" address-line-two="address.addressTwo" city="address.city" state="address.state" zipcode="address.zipcode" caller-save="saveRestaurantAddress()" control="restaurantControl"></address-field>
+    </div>
+  </div>
+  <div class="col-xs-6">
+    <div class="gray_shadow" ng-class="{'my_error':form_ver.error_delivery===true}" style="background-color:#fdfdfd; padding:8px; border: 1px solid #ECE0C8;">
+      <address-field address-line-one="addressDelivery.addressOne" address-line-two="addressDelivery.addressTwo" city="addressDelivery.city" state="addressDelivery.state" zipcode="addressDelivery.zipcode" is-delivery="true" delivery-copy-addr-one="address.addressOne" delivery-copy-addr-two="address.addressTwo" delivery-copy-city="address.city" delivery-copy-state="address.state" delivery-copy-zipcode="address.zipcode" caller-save="saveDeliveryAddress()" control="deliveryControl" delivery-saved="deliverySaved()"></address-field>
+    </div>
+  </div>
+</div>

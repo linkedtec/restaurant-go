@@ -27,10 +27,21 @@ type Restaurant struct {
 	PurchaseFax     NullString `json:"purchase_fax"`
 }
 
+type RestaurantAddress struct {
+	Type             NullString `json:"type"`
+	AddressOne       NullString `json:"address_one"`
+	AddressTwo       NullString `json:"address_two"`
+	City             NullString `json:"city"`
+	State            NullString `json:"state"`
+	Zipcode          NullString `json:"zipcode"`
+	DeliveryAddrSame NullBool   `json:"delivery_addr_same"`
+}
+
 func setupUsersHandlers() {
 	http.HandleFunc("/users/inv_email", usersInvEmailAPIHandler)
 	// we separate name and purchase because the privilege levels for these differ
 	http.HandleFunc("/restaurant/name", restaurantNameAPIHandler)
+	http.HandleFunc("/restaurant/address", restaurantAddressAPIHandler)
 	http.HandleFunc("/restaurant/purchase", restaurantPurchaseAPIHandler)
 
 }
@@ -102,6 +113,83 @@ func restaurantNameAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+	}
+}
+
+func restaurantAddressAPIHandler(w http.ResponseWriter, r *http.Request) {
+	privilege := checkUserPrivilege()
+
+	switch r.Method {
+	case "GET":
+		// privilege: anyone can GET restaurant address
+
+		addr_type := r.URL.Query().Get("type")
+
+		var address RestaurantAddress
+
+		var err error
+		if addr_type == "delivery" {
+			err = db.QueryRow("SELECT delivery_addr1, delivery_addr2, delivery_city, delivery_state, delivery_zipcode, delivery_addr_same FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
+				&address.AddressOne,
+				&address.AddressTwo,
+				&address.City,
+				&address.State,
+				&address.Zipcode,
+				&address.DeliveryAddrSame)
+		} else {
+			err = db.QueryRow("SELECT addr1, addr2, city, state, zipcode FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
+				&address.AddressOne,
+				&address.AddressTwo,
+				&address.City,
+				&address.State,
+				&address.Zipcode)
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(&address)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+
+	case "POST":
+		// privilege: only the admin can post restaurant name
+		if !hasAdminPrivilege(privilege) {
+			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
+			return
+		}
+
+		var address RestaurantAddress
+
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&address)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		log.Println(address)
+
+		if address.Type.Valid && address.Type.String == "delivery" {
+			_, err = db.Exec("UPDATE restaurants SET delivery_addr1=$1, delivery_addr2=$2, delivery_city=$3, delivery_state=$4, delivery_zipcode=$5, delivery_addr_same=$6 WHERE id=$7", address.AddressOne, address.AddressTwo, address.City, address.State, address.Zipcode, address.DeliveryAddrSame, test_restaurant_id)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		} else {
+			_, err = db.Exec("UPDATE restaurants SET addr1=$1, addr2=$2, city=$3, state=$4, zipcode=$5 WHERE id=$6", address.AddressOne, address.AddressTwo, address.City, address.State, address.Zipcode, test_restaurant_id)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
 	}
 }
 

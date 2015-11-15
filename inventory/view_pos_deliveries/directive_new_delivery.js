@@ -610,11 +610,7 @@ angular.module('myApp')
         item['value'] = 0;
         scope.refreshAddInv();
 
-        setInterval(
-          function() {
-            scope.$apply();
-            //scope.addInvControl.reSort();
-          }, 0);
+        scope.$apply();
 
         if (scope.is_edit) {
           swal({
