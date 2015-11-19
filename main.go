@@ -190,6 +190,7 @@ func main() {
 	setupTapsHandlers()
 	setupDistributorHandlers()
 	setupDeliveriesHandlers()
+	setupPurchaseOrderHandlers()
 
 	log.Printf("Listening on port 8080...")
 	log.Print("Current time is: " + getCurrentTime())

@@ -98,6 +98,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       show_add_ui:false,
       addableControl: {},
       sort_key: null,
+      save_default_email: null,
       double_sort: -1});
   };
 
@@ -265,6 +266,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       
       for (var i in data) {
         var dist = data[i];
+        dist['email_edit'] = dist['email'];
         $scope.all_distributors.push(dist);
         $scope.sel_distributors.push(dist);
       }
@@ -276,6 +278,20 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       });
   };
   $scope.getAllDistributors();
+
+  $scope.distEmailChanged = function(dorder) {
+    var dist = dorder.distributor;
+    if (dist===undefined || dist===null) {
+      return;
+    }
+    if (dist.email_edit === '') {
+      dist.email_edit = null;
+    }
+
+    if (dorder.save_default_email===null && dist.email_edit !==dist.email) {
+      dorder.save_default_email = true;
+    }
+  };
 
   $scope.refreshSelectableDistributors = function() {
     // refresh the selectable distributors list based on which distributors
@@ -397,7 +413,58 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     });
   };
 
+  $scope.reviewPurchaseOrders = function(pdf_url) {
+    var modalEditInstance = $modal.open({
+      templateUrl: 'reviewPurchaseOrderModal.html',
+      controller: 'reviewPurchaseOrderModalCtrl',
+      windowClass: 'review-purch-modal',
+      backdropClass: 'white-modal-backdrop',
+      backdrop : 'static',
+      resolve: {
+        pdf_url: function() {
+          return pdf_url;
+        }
+      }
+    });
+
+    modalEditInstance.result.then(
+      // success status
+      function( result ) {
+        // result is a list, first item is string for status, e.g.,
+        // 'save' or 'delete'
+        // second item is the affected beverage
+        var status = result[0];
+        //var edit_bev = result[1];
+        
+        // after a save, we want to re-calculate cost per mL, for instance
+        if (status === 'save') {
+        }
+
+      }, 
+      // error status
+      function() {
+        ;
+      });
+  };
+
   $scope.reviewAndSave = function() {
+
+    // testing
+    /*
+    $http.get('/purchase').
+    success(function(data, status, headers, config) {
+      console.log(data);
+      var URL = data['url'];
+      $scope.reviewPurchaseOrders(URL);      
+    }).
+    error(function(data, status, headers, config) {
+
+    });
+
+    return;
+    */
+
+    /* COMMENTED OUT FOR TESTING ONLY
     var all_clear = true;
     $scope.form_ver.error_contact = false;
     $scope.form_ver.error_email = false;
@@ -435,13 +502,6 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       all_clear = false;
     }
 
-    /*
-    if (!all_clear) {
-      $scope.new_failure_msg = "Whoops!  Some fields are missing or incorrect, please fix them and try again.";
-      return;
-    }
-    */
-    
     // =========================================================================
     // CHECK DISTRIBUTOR ORDERS
     // =========================================================================
@@ -477,7 +537,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       dorder.error_delivery_date = false;
       dorder.error_empty_items = false;
 
-      if (dorder.distributor.email === null || !ContactService.isValidEmail(dorder.distributor.email)) {
+      if (dorder.distributor.email_edit === null || !ContactService.isValidEmail(dorder.distributor.email_edit)) {
         all_clear = false;
         dorder.error_dist_email = true;
       }
@@ -507,8 +567,105 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       $scope.new_failure_msg = "Whoops!  Some fields are missing or incorrect, please fix them and try again.";
       return;
     }
-    
+    */
+
+    // We need to post the following:
+    // Order Information:
+    //     - order date
+    //     - purchase contact
+    //     - purchase email
+    //     - purchase phone
+    //     - purchase fax
+    //     - purchase save default
+    //     - restautant delivery address type (restaurant or delivery)
+    // Distributor Orders
+    //     - distributor id
+    //     - distributor email
+    //     - distributor overwrite default email
+    //     - delivery date
+    //     - ordered items:
+    //         - item id
+    //         - item quantity
+    //         - item subtotal
+    //     - purchase total
+
+    // Basic Order Info --------------------------------------------------------
+    var post_order = {};
+    post_order['order'] = {};
+    post_order['order']['order_date'] = $scope.order['order_date_pretty'];  // pass the prettified date string instead of the date itself
+    post_order['order']['purchase_contact'] = $scope.order['purchase_contact_edit'];
+    post_order['order']['purchase_email'] = $scope.order['purchase_email_edit'];
+    post_order['order']['purchase_phone'] = $scope.order['purchase_phone_edit'];
+    post_order['order']['purchase_fax'] = $scope.order['purchase_fax_edit'];
+    // should server save posted purchase info as default?
+    post_order['order']['purchase_save_default'] = ($scope.showPurchaseSave===true && $scope.defaultContactChecked===true);
+    post_order['order']['delivery_address_type'] = $scope.deliveryAddressControl.getChosenAddressType();
+
+    // Distributor Orders ------------------------------------------------------
+    post_order['dist_orders'] = [];
+    for (var i in $scope.order['dist_orders']) {
+      var copy_dorder = $scope.order['dist_orders'][i];
+      var dorder = {};
+      dorder['distributor'] = copy_dorder['distributor']['name'];
+      dorder['distributor_id'] = copy_dorder['distributor']['id'];
+      dorder['distributor_email'] = copy_dorder['distributor']['email_edit'];
+      dorder['distributor_email_save_default'] = copy_dorder['save_default_email'];
+      dorder['delivery_date'] = DateService.getPrettyDate(copy_dorder['delivery_date'].toString(), false, true);
+      dorder['items'] = [];
+      dorder['total'] = copy_dorder['total'];
+      post_order['dist_orders'].push(dorder);
+    }
+
+    console.log(post_order);
+
+    //return;
+
+    $http.post('/purchase', {
+      order: post_order['order'],
+      distributor_orders: post_order['dist_orders']
+    }).
+    success(function(data, status, headers, config) {
+      console.log(data);
+      var URL = data['url'];
+      $scope.reviewPurchaseOrders(URL);      
+    }).
+    error(function(data, status, headers, config) {
+
+    });
   }
 
+})
+
+.controller('reviewPurchaseOrderModalCtrl', function($scope, $modalInstance, $http, $filter, pdf_url) {
+
+  $scope.loadPdf = function() {
+    var iframe = document.getElementById("pdf_embed");
+    iframe.setAttribute("src", pdf_url);
+  }
+  
+
+  $scope.cancel = function() {
+    console.log("cancel edit");
+    $modalInstance.dismiss('cancel');
+  };
+
+  /*
+  $scope.closeOnSave = function(new_beverage) {
+    // clone our tmp beverage to the original beverage object to commit the
+    // changes on the client side.
+
+    for (var key in new_beverage) {
+      if ($scope.edit_beverage.hasOwnProperty(key)) {
+        $scope.edit_beverage[key] = new_beverage[key];
+      }
+    }
+
+    $modalInstance.close(['save', $scope.edit_beverage]);
+  };
+  */
 
 });
+
+
+
+

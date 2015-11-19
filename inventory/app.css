@@ -1040,6 +1040,35 @@ like enclosed space */
   max-width:620px;
 }
 
+.review-purch-modal .modal-dialog {
+  display:block;
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:0;
+  right:0;
+  margin-top: 10px;
+  margin-bottom:20px;
+  min-width:860px;
+  max-width:960px;
+  width:98%;
+  /*height:100%;*/
+  min-height: 640px;
+}
+
+.review-purch-modal .modal-content{
+  height:100% !important;
+}
+
+.review-purch-modal .modal-body{
+  position:absolute;
+  top:44px;
+  bottom:0;
+  left:0;
+  right:0;
+  padding:0px;
+}
+
 .modal-header {
   background-color:#eeeeee;
   color:#777777;

@@ -632,6 +632,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
             }
             console.log('push');
             $scope.add_inv_unadded.push(edit_bev);
+            // XXX Triggered inprog error, don't think we need this
             //$scope.$apply();
             console.log($scope.inventory_items);
             console.log($scope.add_inv_unadded);

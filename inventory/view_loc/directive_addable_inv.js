@@ -94,6 +94,7 @@ angular.module('myApp')
           }
         }
 
+        // XXX triggered inprog error, don't think we need this
         //scope.$apply();
         
       };

@@ -17,7 +17,7 @@ angular.module('myApp')
         } else {
           scope.value = true;
         }
-        console.log(scope.value);
+        //console.log(scope.value);
         $timeout((function() {
           if (scope.callback!==undefined && scope.callback!==null) {
             scope.callback();

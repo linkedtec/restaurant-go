@@ -179,6 +179,13 @@ angular.module('myApp')
           return valid;
         }
         return false;
+      };
+
+      scope.internalControl.getChosenAddressType = function() {
+        if (scope.deliverToRestaurant.value===true) {
+          return 'restaurant';
+        }
+        return 'delivery';
       }
 
     }

@@ -53,7 +53,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
         $scope.sortBy('name');
       }
 
-      //$scope.$apply();
+      $scope.$apply();
 
     });
   };

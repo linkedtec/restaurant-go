@@ -28,13 +28,12 @@ type Restaurant struct {
 }
 
 type RestaurantAddress struct {
-	Type             NullString `json:"type"`
-	AddressOne       NullString `json:"address_one"`
-	AddressTwo       NullString `json:"address_two"`
-	City             NullString `json:"city"`
-	State            NullString `json:"state"`
-	Zipcode          NullString `json:"zipcode"`
-	DeliveryAddrSame NullBool   `json:"delivery_addr_same"`
+	Type       NullString `json:"type"`
+	AddressOne NullString `json:"address_one"`
+	AddressTwo NullString `json:"address_two"`
+	City       NullString `json:"city"`
+	State      NullString `json:"state"`
+	Zipcode    NullString `json:"zipcode"`
 }
 
 func setupUsersHandlers() {
@@ -129,13 +128,12 @@ func restaurantAddressAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		var err error
 		if addr_type == "delivery" {
-			err = db.QueryRow("SELECT delivery_addr1, delivery_addr2, delivery_city, delivery_state, delivery_zipcode, delivery_addr_same FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
+			err = db.QueryRow("SELECT delivery_addr1, delivery_addr2, delivery_city, delivery_state, delivery_zipcode FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
 				&address.AddressOne,
 				&address.AddressTwo,
 				&address.City,
 				&address.State,
-				&address.Zipcode,
-				&address.DeliveryAddrSame)
+				&address.Zipcode)
 		} else {
 			err = db.QueryRow("SELECT addr1, addr2, city, state, zipcode FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
 				&address.AddressOne,
@@ -176,7 +174,7 @@ func restaurantAddressAPIHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(address)
 
 		if address.Type.Valid && address.Type.String == "delivery" {
-			_, err = db.Exec("UPDATE restaurants SET delivery_addr1=$1, delivery_addr2=$2, delivery_city=$3, delivery_state=$4, delivery_zipcode=$5, delivery_addr_same=$6 WHERE id=$7", address.AddressOne, address.AddressTwo, address.City, address.State, address.Zipcode, address.DeliveryAddrSame, test_restaurant_id)
+			_, err = db.Exec("UPDATE restaurants SET delivery_addr1=$1, delivery_addr2=$2, delivery_city=$3, delivery_state=$4, delivery_zipcode=$5 WHERE id=$6", address.AddressOne, address.AddressTwo, address.City, address.State, address.Zipcode, test_restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
