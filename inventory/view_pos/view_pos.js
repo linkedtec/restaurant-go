@@ -91,13 +91,14 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
   $scope.addDistributorOrder = function() {
     $scope.order['dist_orders'].push({
       distributor:null, 
-      delivery_date: new Date(), 
+      delivery_date: null, 
       addable_items: [],
       items:[],
       total:null,
       show_add_ui:false,
       addableControl: {},
       sort_key: null,
+      additional_notes: null,
       save_default_email: null,
       double_sort: -1});
   };
@@ -108,7 +109,9 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
   };
 
   $scope.initManualForm = function() {
+    $scope.getAllDistributors();
     $scope.initDistOrders();
+    $scope.refreshSelectableDistributors();
 
     console.log($scope.order['dist_orders']);
     $scope.getRestaurant();
@@ -125,7 +128,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     }
   };
 
-  $scope.cancelPurchaseOrder = function() {
+  $scope.cancelPurchaseOrder = function(force) {
 
     var queryCancel = false;
     for (var i in $scope.order['dist_orders']) {
@@ -135,7 +138,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       }
     }
 
-    if (queryCancel === true) {
+    if (queryCancel === true && force!==true) {
       swal({
           title: "Discard Purchase Order?",
           text: "Candeling this Purchase Order will discard any changes you've made.  Are you sure?",
@@ -229,6 +232,10 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     }
   };
 
+  $scope.addAdditionalNote = function(dorder) {
+    dorder['additional_notes'] = '';
+  };
+
   $scope.updateQuantity = function(item) {
     if (item['quantity'] === '') {
       item['quantity'] = null;
@@ -260,6 +267,8 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
   $scope.getAllDistributors = function() {
 
+    $scope.all_distributors = [];
+
     var result = DistributorsService.get();
     result.then(function(payload) {
       var data = payload.data;
@@ -277,7 +286,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
         ; // do nothing for now
       });
   };
-  $scope.getAllDistributors();
+  //$scope.getAllDistributors();
 
   $scope.distEmailChanged = function(dorder) {
     var dist = dorder.distributor;
@@ -413,7 +422,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     });
   };
 
-  $scope.reviewPurchaseOrders = function(pdf_url) {
+  $scope.reviewPurchaseOrders = function(pdf_url, post_order) {
     var modalEditInstance = $modal.open({
       templateUrl: 'reviewPurchaseOrderModal.html',
       controller: 'reviewPurchaseOrderModalCtrl',
@@ -423,6 +432,9 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       resolve: {
         pdf_url: function() {
           return pdf_url;
+        },
+        post_order: function() {
+          return post_order;
         }
       }
     });
@@ -434,10 +446,27 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
         // 'save' or 'delete'
         // second item is the affected beverage
         var status = result[0];
-        //var edit_bev = result[1];
         
-        // after a save, we want to re-calculate cost per mL, for instance
+        // after a save, we want to show a success dialogue with an optional
+        // CC email address
         if (status === 'save') {
+          swal({
+            title: "Purchase Orders Sent!",
+            text: "Your Purchase Order(s) were sent to your Distributors!  You can view past orders in the Purchase History page.",
+            type: "success",
+            allowOutsideClick: true,
+            html: true});
+
+          // cancel purchase order with force=true to clear the form
+          $scope.cancelPurchaseOrder(true);
+
+        } else if (status === 'error') {
+          swal({
+            title: "Error Encountered!",
+            text: "There was an error sending your Purchase Orders, please try again later.",
+            type: "error",
+            allowOutsideClick: true,
+            html: true});
         }
 
       }, 
@@ -449,22 +478,6 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
   $scope.reviewAndSave = function() {
 
-    // testing
-    /*
-    $http.get('/purchase').
-    success(function(data, status, headers, config) {
-      console.log(data);
-      var URL = data['url'];
-      $scope.reviewPurchaseOrders(URL);      
-    }).
-    error(function(data, status, headers, config) {
-
-    });
-
-    return;
-    */
-
-    /* COMMENTED OUT FOR TESTING ONLY
     var all_clear = true;
     $scope.form_ver.error_contact = false;
     $scope.form_ver.error_email = false;
@@ -567,8 +580,8 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       $scope.new_failure_msg = "Whoops!  Some fields are missing or incorrect, please fix them and try again.";
       return;
     }
-    */
 
+    // POSTING
     // We need to post the following:
     // Order Information:
     //     - order date
@@ -590,19 +603,19 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     //     - purchase total
 
     // Basic Order Info --------------------------------------------------------
-    var post_order = {};
-    post_order['order'] = {};
-    post_order['order']['order_date'] = $scope.order['order_date_pretty'];  // pass the prettified date string instead of the date itself
-    post_order['order']['purchase_contact'] = $scope.order['purchase_contact_edit'];
-    post_order['order']['purchase_email'] = $scope.order['purchase_email_edit'];
-    post_order['order']['purchase_phone'] = $scope.order['purchase_phone_edit'];
-    post_order['order']['purchase_fax'] = $scope.order['purchase_fax_edit'];
+    $scope.post_order = {};
+    $scope.post_order['order'] = {};
+    $scope.post_order['order']['order_date'] = $scope.order['order_date_pretty'];  // pass the prettified date string instead of the date itself
+    $scope.post_order['order']['purchase_contact'] = $scope.order['purchase_contact_edit'];
+    $scope.post_order['order']['purchase_email'] = $scope.order['purchase_email_edit'];
+    $scope.post_order['order']['purchase_phone'] = $scope.order['purchase_phone_edit'];
+    $scope.post_order['order']['purchase_fax'] = $scope.order['purchase_fax_edit'];
     // should server save posted purchase info as default?
-    post_order['order']['purchase_save_default'] = ($scope.showPurchaseSave===true && $scope.defaultContactChecked===true);
-    post_order['order']['delivery_address_type'] = $scope.deliveryAddressControl.getChosenAddressType();
+    $scope.post_order['order']['purchase_save_default'] = ($scope.showPurchaseSave===true && $scope.defaultContactChecked===true);
+    $scope.post_order['order']['delivery_address_type'] = $scope.deliveryAddressControl.getChosenAddressType();
 
     // Distributor Orders ------------------------------------------------------
-    post_order['dist_orders'] = [];
+    $scope.post_order['dist_orders'] = [];
     for (var i in $scope.order['dist_orders']) {
       var copy_dorder = $scope.order['dist_orders'][i];
       var dorder = {};
@@ -611,23 +624,36 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       dorder['distributor_email'] = copy_dorder['distributor']['email_edit'];
       dorder['distributor_email_save_default'] = copy_dorder['save_default_email'];
       dorder['delivery_date'] = DateService.getPrettyDate(copy_dorder['delivery_date'].toString(), false, true);
-      dorder['items'] = [];
       dorder['total'] = copy_dorder['total'];
-      post_order['dist_orders'].push(dorder);
+      dorder['additional_notes'] = copy_dorder['additional_notes'];
+      if (dorder['additional_notes']==='' || dorder['additional_notes']===' ') {
+        dorder['additional_notes'] = null;
+      }
+      // handle items in distributor order
+      dorder['items'] = [];
+      for (var j in copy_dorder['items']) {
+        var copy_item = copy_dorder['items'][j];
+        var ditem = {};
+        ditem['beverage_id'] = copy_item['id'];
+        ditem['quantity'] = parseFloat(copy_item['quantity']);
+        ditem['batch_cost'] = copy_item['batch_cost'];
+        ditem['subtotal'] = copy_item['subtotal'];
+        dorder['items'].push(ditem);
+      }
+      $scope.post_order['dist_orders'].push(dorder);
     }
 
-    console.log(post_order);
-
-    //return;
+    console.log($scope.post_order);
 
     $http.post('/purchase', {
-      order: post_order['order'],
-      distributor_orders: post_order['dist_orders']
+      order: $scope.post_order['order'],
+      distributor_orders: $scope.post_order['dist_orders'],
+      do_send: false
     }).
     success(function(data, status, headers, config) {
       console.log(data);
       var URL = data['url'];
-      $scope.reviewPurchaseOrders(URL);      
+      $scope.reviewPurchaseOrders(URL, $scope.post_order);      
     }).
     error(function(data, status, headers, config) {
 
@@ -636,33 +662,41 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
 })
 
-.controller('reviewPurchaseOrderModalCtrl', function($scope, $modalInstance, $http, $filter, pdf_url) {
+.controller('reviewPurchaseOrderModalCtrl', function($scope, $modalInstance, $http, $filter, pdf_url, post_order) {
 
   $scope.loadPdf = function() {
     var iframe = document.getElementById("pdf_embed");
     iframe.setAttribute("src", pdf_url);
   }
   
-
   $scope.cancel = function() {
     console.log("cancel edit");
     $modalInstance.dismiss('cancel');
   };
 
-  /*
-  $scope.closeOnSave = function(new_beverage) {
-    // clone our tmp beverage to the original beverage object to commit the
-    // changes on the client side.
+  $scope.disableSend = false;
 
-    for (var key in new_beverage) {
-      if ($scope.edit_beverage.hasOwnProperty(key)) {
-        $scope.edit_beverage[key] = new_beverage[key];
-      }
-    }
+  $scope.saveAndSend = function() {
+    // This is called when the user is done reviewing the PDF files
+    // and sends to all distributors.
 
-    $modalInstance.close(['save', $scope.edit_beverage]);
+    $scope.disableSend = true;
+    $http.post('/purchase', {
+      order: post_order['order'],
+      distributor_orders: post_order['dist_orders'],
+      do_send: true
+    }).
+    success(function(data, status, headers, config) {
+      $scope.disableSend = false;
+      $modalInstance.close(['save', null]);
+    }).
+    error(function(data, status, headers, config) {
+      $scope.disableSend = false;
+      $modalInstance.close(['error', null]);
+    });
+
+    
   };
-  */
 
 });
 

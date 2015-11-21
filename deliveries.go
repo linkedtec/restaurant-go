@@ -188,7 +188,7 @@ func createDeliveryXlsxFile(data []byte, sorted_keys []string, suffix string, us
 		file_location := filename
 		file_name := "Deliveries_" + title_date_title + ".xlsx"
 
-		err = sendAttachmentEmail(email, email_title, email_body, file_location, file_name)
+		err = sendAttachmentEmail(email, email_title, email_body, file_location, file_name, "application/xlsx")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

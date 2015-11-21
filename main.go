@@ -281,7 +281,7 @@ func updateBeverageVersion(old_id int) (int, error) {
 	return new_id, nil
 }
 
-func sendAttachmentEmail(email_address string, email_title string, email_body string, file_location string, file_name string) error {
+func sendAttachmentEmail(email_address string, email_title string, email_body string, file_location string, file_name string, attachment_type string) error {
 	from := "bevappdaemon@gmail.com"
 	to := email_address
 	to_name := "Recipient"
@@ -314,7 +314,7 @@ func sendAttachmentEmail(email_address string, email_title string, email_body st
 	buf.WriteString(encoded[nbrLines*lineMaxLength:])
 
 	//part 3 will be the attachment
-	part3 := fmt.Sprintf("\r\nContent-Type: application/xlsx; name=\"%s\"\r\nContent-Transfer-Encoding:base64\r\nContent-Disposition: attachment; filename=\"%s\"\r\n\r\n%s\r\n--%s--", file_location, file_name, buf.String(), marker)
+	part3 := fmt.Sprintf("\r\nContent-Type: %s; name=\"%s\"\r\nContent-Transfer-Encoding:base64\r\nContent-Disposition: attachment; filename=\"%s\"\r\n\r\n%s\r\n--%s--", attachment_type, file_location, file_name, buf.String(), marker)
 
 	//send the email
 	auth := smtp.PlainAuth(

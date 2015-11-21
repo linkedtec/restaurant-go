@@ -35,8 +35,10 @@ angular.module('myApp')
       scope.form_ver = {
         'error_date': false
       };
-      scope.previous_date = new Date(scope.date.getTime());
-
+      if (scope.date !== null) {
+        scope.previous_date = new Date(scope.date.getTime());
+      }
+      
       scope.internalControl.validate = function() {
         scope.form_ver.error_date = false;
 
