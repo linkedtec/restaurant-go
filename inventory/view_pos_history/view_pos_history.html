@@ -1,0 +1,59 @@
+<div ng-include src="'./purch_subnav.html'"></div>
+<div class="container" style="min-width:880px; max-width:880px">
+
+  <div style="width:100%; margin-top:24px; padding-bottom:4px; font-size:1.3em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_delivery.png" height="32" width="32" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:8px; margin-left:2px">Purchase History</div>
+  </div>
+  <div class="hint_text" style="width:100%; padding-top:2px; font-size:1.0em">
+    Review past Purchase Orders
+  </div>
+
+  <div class="row" style="margin:32px 0px; margin-bottom:0px">
+    <div class="col-xs-8" style="text-align:left; padding:0">
+
+      <date-range start-date="start_date" end-date="end_date" on-start-change="startDateChanged()" on-end-change="endDateChanged()" show-helpers="true"></date_range>
+
+    </div>
+  </div>
+
+  <table id="purchaseOrdersTable" summary="Data table for Purchase Orders history." rules="groups" frame="hsides" border="2" style="width:100%; margin-top:8px; margin-bottom:120px">
+    <tr>
+      <td></td> <!--For view button-->
+      <td>Order Date</td> <!--For date-->
+      <td>Distributor</td>
+      <td># Items</td>
+      <td>Total ($)</td>
+    </tr>
+    <tbody ng-repeat="po in purchase_orders">
+      <tr class="inv_loc_row" style="font-weight:bold; font-style:italic">
+        <td>
+          <button ng-click="viewPurchaseOrder(po)" type="button" class="btn btn-md btn_frameless hover_blue" style="font-size:16px; margin-top:1px; padding:2px 4px;">
+            <span class="glyphicon glyphicon-eye-open"></span>
+          </button>
+        </td>
+        <td>{{po.order.order_date}}</td>
+        <td></td>
+        <td></td>
+        <td>{{po.order.total | number:2}}</td>
+      </tr>
+      <tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'">
+        <td></td>
+        <td></td>
+        <td>{{dorder.distributor}}</td>
+        <td>{{dorder.item_count}}</td>
+        <td>{{dorder.total | number:2}}</td>
+      </tr>
+      <tr><td colspan="5"></td></tr>
+    </tbody>
+  </table>
+
+  <div class="row" ng-if="purchase_orders.length===0" style="margin-bottom:120px">
+    <div class="col-xs-12 hint_text" style="font-size:1.5em; text-align:center">
+      No data for selected time period.
+    </div> 
+  </div>
+
+</div>
+
+<div ng-include src="'./view_pos/review_purchase_order_modal.html'">

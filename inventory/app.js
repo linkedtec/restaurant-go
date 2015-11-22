@@ -8,6 +8,7 @@ angular.module('myApp', [
   'myApp.viewRestaurant',
   'myApp.viewSalesPlan',
   'myApp.viewPurchaseOrders',
+  'myApp.viewPurchaseHistory',
 //  'myApp.viewInvByLoc',
   'myApp.viewInvByLocNew',
 //  'myApp.viewOnTap',

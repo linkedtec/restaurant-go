@@ -9,7 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	//"time"
+	"time"
 
 	"github.com/jung-kurt/gofpdf"
 )
@@ -21,6 +21,10 @@ type PurchaseOrder struct {
 }
 
 type PO_Order struct {
+	// these are used for GETting
+	ID      int       `json:"id"`
+	Created time.Time `json:"created"`
+	// only these are used for POSTing
 	OrderDate           string     `json:"order_date"`
 	PurchaseContact     string     `json:"purchase_contact"`
 	PurchaseEmail       string     `json:"purchase_email"`
@@ -39,6 +43,10 @@ type PO_Item struct {
 }
 
 type DistributorOrder struct {
+	ID              int `json:"id"`
+	PurchaseOrderID int `json:"purchase_order_id"`
+	ItemCount       int `json:"item_count"`
+	// only these are used for POSTing
 	Distributor                 string     `json:"distributor"`
 	DistributorID               int        `json:"distributor_id"`
 	DistributorEmail            string     `json:"distributor_email"`
@@ -51,10 +59,11 @@ type DistributorOrder struct {
 
 func setupPurchaseOrderHandlers() {
 	http.HandleFunc("/purchase", purchaseOrderAPIHandler)
+	http.HandleFunc("/purchase/all", purchaseOrderAllAPIHandler)
 }
 
 //func createPurchaseOrderPDFFile(data []byte, sorted_keys []string, suffix string, user_id string, w http.ResponseWriter, r *http.Request, email string, args map[string]string) {
-func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_order PurchaseOrder, do_send bool, w http.ResponseWriter, r *http.Request) {
+func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_order PurchaseOrder, delivery_address RestaurantAddress, do_send bool, w http.ResponseWriter, r *http.Request) {
 	export_dir := "./export/"
 	if os.MkdirAll(export_dir, 0755) != nil {
 		http.Error(w, "Unable to find or create export directory!", http.StatusInternalServerError)
@@ -65,28 +74,6 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 	err := db.QueryRow("SELECT name FROM restaurants WHERE id=$1;", restaurant_id).Scan(&restaurant.Name)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	var address RestaurantAddress
-
-	if purchase_order.Order.DeliveryAddressType == "delivery" {
-		err = db.QueryRow("SELECT delivery_addr1, delivery_addr2, delivery_city, delivery_state, delivery_zipcode FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
-			&address.AddressOne,
-			&address.AddressTwo,
-			&address.City,
-			&address.State,
-			&address.Zipcode)
-	} else {
-		err = db.QueryRow("SELECT addr1, addr2, city, state, zipcode FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
-			&address.AddressOne,
-			&address.AddressTwo,
-			&address.City,
-			&address.State,
-			&address.Zipcode)
-	}
-	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -195,13 +182,13 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 		pdf.SetFont("helvetica", "", 11)
 		pdf.MultiCell(content_width/2.6, 5, purchase_order.Order.PurchaseContact, "", "", false)
 		pdf.SetX(-wd)
-		pdf.MultiCell(content_width/2.6, 5, address.AddressOne.String, "", "", false)
-		if address.AddressTwo.Valid && len(address.AddressTwo.String) > 0 {
+		pdf.MultiCell(content_width/2.6, 5, delivery_address.AddressOne.String, "", "", false)
+		if delivery_address.AddressTwo.Valid && len(delivery_address.AddressTwo.String) > 0 {
 			pdf.SetX(-wd)
-			pdf.MultiCell(content_width/2.6, 5, address.AddressTwo.String, "", "", false)
+			pdf.MultiCell(content_width/2.6, 5, delivery_address.AddressTwo.String, "", "", false)
 		}
 		pdf.SetX(-wd)
-		pdf.MultiCell(content_width/2.6, 5, fmt.Sprintf("%s, %s %s", address.City.String, address.State.String, address.Zipcode.String), "", "", false)
+		pdf.MultiCell(content_width/2.6, 5, fmt.Sprintf("%s, %s %s", delivery_address.City.String, delivery_address.State.String, delivery_address.Zipcode.String), "", "", false)
 		pdf.Ln(2)
 		pdf.SetX(-wd)
 		contact_email := fmt.Sprintf("Email: %s", purchase_order.Order.PurchaseEmail)
@@ -381,15 +368,193 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 
 }
 
+func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
+
+	privilege := checkUserPrivilege()
+
+	switch r.Method {
+
+	case "GET":
+		if !hasBasicPrivilege(privilege) {
+			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
+			return
+		}
+
+		start_date := r.URL.Query().Get("start_date")
+		end_date := r.URL.Query().Get("end_date")
+		_tz_offset := r.URL.Query().Get("tz_offset")
+		tz_offset := _tz_offset
+		if tz_offset == "0" {
+			tz_offset = "UTC"
+		} else if !strings.HasPrefix(tz_offset, "-") {
+			tz_offset = "+" + tz_offset
+		}
+
+		var purchase_orders []PurchaseOrder
+		rows, err := db.Query(`
+			SELECT (created AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update, id, order_date 
+				FROM purchase_orders 
+				WHERE created AT TIME ZONE 'UTC' BETWEEN $2 AND $3 AND restaurant_id=$4 
+			ORDER BY local_update;`,
+			tz_offset, start_date, end_date, test_restaurant_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var purchase_order PurchaseOrder
+			if err := rows.Scan(
+				&purchase_order.Order.Created,
+				&purchase_order.Order.ID,
+				&purchase_order.Order.OrderDate); err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+
+			drows, err := db.Query(`
+				SELECT id, distributor_id, distributor, total 
+					FROM distributor_orders WHERE purchase_order_id=$1;`, purchase_order.Order.ID)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+			defer drows.Close()
+			for drows.Next() {
+				var distributor_order DistributorOrder
+				if err := drows.Scan(
+					&distributor_order.ID,
+					&distributor_order.DistributorID,
+					&distributor_order.Distributor,
+					&distributor_order.Total); err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+
+				err = db.QueryRow("SELECT COUNT(beverage_id) FROM distributor_order_items WHERE distributor_order_id=$1;", distributor_order.ID).Scan(
+					&distributor_order.ItemCount)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+				purchase_order.DistributorOrders = append(purchase_order.DistributorOrders, distributor_order)
+			}
+
+			purchase_orders = append(purchase_orders, purchase_order)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(purchase_orders)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+	}
+
+}
+
 func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	privilege := checkUserPrivilege()
 
 	switch r.Method {
 
-	// XXX Just for testing
 	case "GET":
-		//createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, false, w, r)
+		if !hasBasicPrivilege(privilege) {
+			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
+			return
+		}
+
+		// gets a single purchase order PDF via id
+		po_id := r.URL.Query().Get("id")
+
+		var purchase_order PurchaseOrder
+		err := db.QueryRow(`
+			SELECT order_date, purchase_contact, purchase_email, purchase_phone, purchase_fax FROM purchase_orders WHERE id=$1;`, po_id).Scan(
+			&purchase_order.Order.OrderDate,
+			&purchase_order.Order.PurchaseContact,
+			&purchase_order.Order.PurchaseEmail,
+			&purchase_order.Order.PurchasePhone,
+			&purchase_order.Order.PurchaseFax)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		var delivery_address RestaurantAddress
+		err = db.QueryRow("SELECT addr1, addr2, city, state, zipcode FROM purchase_orders WHERE id=$1;", po_id).Scan(
+			&delivery_address.AddressOne,
+			&delivery_address.AddressTwo,
+			&delivery_address.City,
+			&delivery_address.State,
+			&delivery_address.Zipcode)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		rows, err := db.Query(`
+			SELECT id, distributor, distributor_id, distributor_email, 
+				delivery_date, total, additional_notes FROM distributor_orders 
+			WHERE purchase_order_id=$1`,
+			po_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var distributor_order DistributorOrder
+			if err := rows.Scan(
+				&distributor_order.ID,
+				&distributor_order.Distributor,
+				&distributor_order.DistributorID,
+				&distributor_order.DistributorEmail,
+				&distributor_order.DeliveryDate,
+				&distributor_order.Total,
+				&distributor_order.AdditionalNotes); err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+
+			irows, err := db.Query(`
+				SELECT beverage_id, quantity, batch_cost, subtotal 
+					FROM distributor_order_items WHERE distributor_order_id=$1;`, distributor_order.ID)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+			defer irows.Close()
+			for irows.Next() {
+				var item PO_Item
+				if err := irows.Scan(
+					&item.BeverageID,
+					&item.Quantity,
+					&item.BatchCost,
+					&item.Subtotal); err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+
+				distributor_order.Items = append(distributor_order.Items, item)
+			}
+			purchase_order.DistributorOrders = append(purchase_order.DistributorOrders, distributor_order)
+
+			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, delivery_address, false, w, r)
+
+		}
 
 	case "POST":
 		if !hasBasicPrivilege(privilege) {
@@ -433,6 +598,29 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		log.Println(order)
 
+		var delivery_address RestaurantAddress
+		if order.Order.DeliveryAddressType == "delivery" {
+			err = db.QueryRow("SELECT delivery_addr1, delivery_addr2, delivery_city, delivery_state, delivery_zipcode FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
+				&delivery_address.AddressOne,
+				&delivery_address.AddressTwo,
+				&delivery_address.City,
+				&delivery_address.State,
+				&delivery_address.Zipcode)
+		} else {
+			err = db.QueryRow("SELECT addr1, addr2, city, state, zipcode FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
+				&delivery_address.AddressOne,
+				&delivery_address.AddressTwo,
+				&delivery_address.City,
+				&delivery_address.State,
+				&delivery_address.Zipcode)
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// -------------------------------------------------------------------------
+		// Update the default emails / contact info if specified
 		// order.DoSend is true only when saving & committing to email Distributors
 		// only commit the overwrites if this is the case
 		if order.DoSend == true {
@@ -456,9 +644,84 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
-		}
 
-		createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, order, order.DoSend, w, r)
+			// -----------------------------------------------------------------------
+			// Save the entire Purchase Order into history so we can view history in
+			// the future
+			var restaurant Restaurant
+			err := db.QueryRow("SELECT name FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(&restaurant.Name)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			cur_time := time.Now().UTC()
+			_, err = db.Exec(`
+				INSERT INTO purchase_orders 
+					(restaurant_name, restaurant_id, user_id, created, order_date, 
+					purchase_contact, purchase_email, purchase_phone, purchase_fax,
+					addr1, addr2, city, state, zipcode) 
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+				restaurant.Name.String, test_restaurant_id, test_user_id, cur_time,
+				order.Order.OrderDate, order.Order.PurchaseContact,
+				order.Order.PurchaseEmail, order.Order.PurchasePhone, order.Order.PurchaseFax,
+				delivery_address.AddressOne, delivery_address.AddressTwo,
+				delivery_address.City, delivery_address.State, delivery_address.Zipcode)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			var po_id int
+			err = db.QueryRow("SELECT last_value FROM purchase_orders_id_seq;").Scan(&po_id)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			for _, dorder := range order.DistributorOrders {
+
+				_, err = db.Exec(`
+				INSERT INTO distributor_orders 
+					(purchase_order_id, distributor_id, distributor, distributor_email, 
+					delivery_date, total, additional_notes) 
+				VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+					po_id, dorder.DistributorID, dorder.Distributor, dorder.DistributorEmail,
+					dorder.DeliveryDate, dorder.Total, dorder.AdditionalNotes)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+
+				var do_id int
+				err = db.QueryRow("SELECT last_value FROM distributor_orders_id_seq;").Scan(&do_id)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+
+				for _, item := range dorder.Items {
+					_, err = db.Exec(`
+					INSERT INTO distributor_order_items 
+						(distributor_order_id, beverage_id, batch_cost, quantity, subtotal) 
+					VALUES ($1, $2, $3, $4, $5)`,
+						do_id, item.BeverageID, item.BatchCost, item.Quantity, item.Subtotal)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+				} // end for Items
+
+			} // end for DistributorOrders
+
+		} // end if doSend
+
+		createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, order, delivery_address, order.DoSend, w, r)
 
 	}
 }
