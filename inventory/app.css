@@ -34,13 +34,13 @@ body {
 }
 
 .subtoolbar_item a img {
-  width:22px;
-  height:22px;
+  width:24px;
+  height:24px;
 }
 
 .subtoolbar_item:hover a img {
-  width:22px;
-  height:22px;
+  width:24px;
+  height:24px;
 }
 
 .subtoolbar_item:hover a {
@@ -93,8 +93,8 @@ body {
 .menu li.sub_active a img {
   opacity: 1.0;
   filter: alpha(opacity=100); /* For IE8 and earlier */
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
 }
 
 .menu li.active {

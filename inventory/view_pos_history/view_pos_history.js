@@ -97,6 +97,9 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
           },
           post_order: function() {
             return null;
+          },
+          read_only: function() {
+            return true;
           }
         }
       });
@@ -104,10 +107,6 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
     .error(function(data, status, headers, config) {
 
     });
-  };
-
-  $scope.reviewPurchaseOrders = function(pdf_url, post_order) {
-    
   };
 
 

@@ -395,7 +395,7 @@ func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 			SELECT (created AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update, id, order_date 
 				FROM purchase_orders 
 				WHERE created AT TIME ZONE 'UTC' BETWEEN $2 AND $3 AND restaurant_id=$4 
-			ORDER BY local_update;`,
+			ORDER BY local_update DESC;`,
 			tz_offset, start_date, end_date, test_restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
@@ -552,9 +552,8 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			purchase_order.DistributorOrders = append(purchase_order.DistributorOrders, distributor_order)
 
-			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, delivery_address, false, w, r)
-
 		}
+		createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, delivery_address, false, w, r)
 
 	case "POST":
 		if !hasBasicPrivilege(privilege) {

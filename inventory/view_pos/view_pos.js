@@ -435,6 +435,9 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
         },
         post_order: function() {
           return post_order;
+        },
+        read_only: function() {
+          return false;
         }
       }
     });
@@ -662,7 +665,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
 })
 
-.controller('reviewPurchaseOrderModalCtrl', function($scope, $modalInstance, $http, $filter, pdf_url, post_order) {
+.controller('reviewPurchaseOrderModalCtrl', function($scope, $modalInstance, $http, $filter, pdf_url, post_order, read_only) {
 
   $scope.loadPdf = function() {
     var iframe = document.getElementById("pdf_embed");
@@ -674,6 +677,10 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     $modalInstance.dismiss('cancel');
   };
 
+  // read only hides the send button, and allows reviewing past purchase orders
+  $scope.read_only = read_only;
+  // disableSend temporarily disables the send button while the PDF is being
+  // sent on the server
   $scope.disableSend = false;
 
   $scope.saveAndSend = function() {
