@@ -175,32 +175,15 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 		for i := range beverages {
 			bev := beverages[i]
 
-			// get RECENT count of inventory in all bev locations
-			var exists bool
-			err := db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update AND location_beverages.type='bev' AND location_beverages.active);", bev.VersionID).Scan(&exists)
+			var err error
+			count_recent, err := getBeverageRecentInventory(bev.VersionID)
 			if err != nil {
+				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
 			}
-			if !exists {
-				bev.CountRecent.Float64 = 0
-				bev.CountRecent.Valid = false
-			} else {
-				// Now get the count of this beverage in inventory which was done
-				// within the past 3 days.  We get the EPOCH between the inventory
-				// time and the current time to get the time difference in seconds.
-				seconds_three_days := 60 * 60 * 24 * 3
-				err = db.QueryRow("SELECT SUM(location_beverages.quantity) FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update AND EXTRACT(EPOCH FROM (now() AT TIME ZONE 'UTC' - location_beverages.update)) < $1 AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$2 AND location_beverages.type='bev' AND location_beverages.active;", seconds_three_days, bev.VersionID).Scan(&beverages[i].CountRecent)
-				switch {
-				case err == sql.ErrNoRows:
-					bev.CountRecent.Float64 = 0
-					bev.CountRecent.Valid = false
-				case err != nil:
-					log.Println(err.Error())
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					continue
-				}
-			}
+			beverages[i].CountRecent = count_recent
+
 			// get size_prices
 			rows, err := db.Query("SELECT id, serving_size, serving_unit, serving_price FROM size_prices WHERE beverage_id=$1;", bev.ID)
 			if err != nil {

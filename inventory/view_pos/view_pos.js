@@ -39,6 +39,19 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
   $scope.form_ver = {};
   $scope.new_failure_msg = null;
 
+  $scope.showAutoHelp = function($event) {
+    $event.preventDefault();
+    $event.stopPropagation();
+
+    swal({
+      title: "Test!",
+      text: "hi.",
+      type: "success",
+      timer: 4000,
+      allowOutsideClick: true,
+      html: true});
+  };
+
   $scope.getRestaurant = function() {
     $http.get('/restaurant/name').
     success(function(data, status, headers, config) {
@@ -236,7 +249,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     dorder['additional_notes'] = '';
   };
 
-  $scope.updateQuantity = function(item) {
+  $scope.updateQuantity = function(item, dorder) {
     if (item['quantity'] === '') {
       item['quantity'] = null;
       return;
@@ -248,10 +261,12 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     }
 
     item['subtotal'] = item['batch_cost'] * item['quantity'];
+
+    $scope.updateDistOrderTotal(dorder);
   };
 
 
-  $scope.matchQuantityToPar = function(item) {
+  $scope.matchQuantityToPar = function(item, dorder) {
     if (item['count_recent']===null || item['par']===null) {
       return;
     }
@@ -261,7 +276,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     } else {
       item['quantity'] = Math.round(diff);
     }
-    $scope.updateQuantity(item);
+    $scope.updateQuantity(item, dorder);
     
   };
 

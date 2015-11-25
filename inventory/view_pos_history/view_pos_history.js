@@ -43,7 +43,11 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
       // this callback will be called asynchronously when the response
       // is available
       console.log(data);
-      $scope.purchase_orders = data;
+      if (data === null) {
+        $scope.purchase_orders = [];
+      } else {
+        $scope.purchase_orders = data;
+      }
 
       for (var i in $scope.purchase_orders) {
         var total = 0.0;

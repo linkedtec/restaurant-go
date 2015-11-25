@@ -60,6 +60,7 @@ type DistributorOrder struct {
 func setupPurchaseOrderHandlers() {
 	http.HandleFunc("/purchase", purchaseOrderAPIHandler)
 	http.HandleFunc("/purchase/all", purchaseOrderAllAPIHandler)
+	http.HandleFunc("/purchase/auto", purchaseOrderAutoAPIHandler)
 }
 
 //func createPurchaseOrderPDFFile(data []byte, sorted_keys []string, suffix string, user_id string, w http.ResponseWriter, r *http.Request, email string, args map[string]string) {
@@ -366,6 +367,100 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 		w.Write(js)
 	}
 
+}
+
+// For creating the Automatic Purchase Order
+// Returns DistributorOrders populated with active menu PO_Items which have
+// had inventory entries recently.  Calls getBeverageRecentInventory to
+// determine which beverages have had recent inventory
+func purchaseOrderAutoAPIHandler(w http.ResponseWriter, r *http.Request) {
+	privilege := checkUserPrivilege()
+
+	switch r.Method {
+
+	case "GET":
+		if !hasBasicPrivilege(privilege) {
+			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
+			return
+		}
+
+		// XXX in the future need to validate poster is authenticated to query
+		// for this restaurant.  Need to replace user_id in query with restaurant_id
+		//restaurant_id := r.URL.Query().Get("restaurant_id")
+
+		var dist_orders []DistributorOrder
+		var processed_dist_ids []int
+
+		// get all beverages for restaurant whose sale_status not Inactive or NULL
+		rows, err := db.Query(`
+			SELECT id, version_id, distributor_id FROM beverages WHERE user_id=$1 AND sale_status IS NOT NULL AND sale_status!='Inactive';`,
+			test_user_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var bev Beverage
+			if err := rows.Scan(
+				&bev.ID,
+				&bev.VersionID,
+				&bev.DistributorID); err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+
+			// if bev.DistributorID not in processed_dist_ids, create a new
+			// DistributorOrder and add bev to its Items, and add bev.DistributorID
+			// to processed_dist_ids
+			//
+			// otherwise, get the existing DistributorOrder from dist_orders
+			// and add bev to its Items
+			dist_already_added := false
+			for _, b := range processed_dist_ids {
+				if b == int(bev.DistributorID.Int64) {
+					dist_already_added = true
+					break
+				}
+			}
+
+			if !dist_already_added {
+				var new_dorder DistributorOrder
+				var new_item PO_Item
+				new_item.BeverageID = bev.ID
+				new_dorder.Items = append(new_dorder.Items, new_item)
+				new_dorder.DistributorID = int(bev.DistributorID.Int64)
+
+				dist_orders = append(dist_orders, new_dorder)
+				processed_dist_ids = append(processed_dist_ids, int(bev.DistributorID.Int64))
+
+			} else {
+				// get the existing dist order
+				var dist_i int
+				for i, b := range dist_orders {
+					if b.DistributorID == int(bev.DistributorID.Int64) {
+						dist_i = i
+						break
+					}
+				}
+				// add the bev to its Items
+				var new_item PO_Item
+				new_item.BeverageID = bev.ID
+				dist_orders[dist_i].Items = append(dist_orders[dist_i].Items, new_item)
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(&dist_orders)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+
+	}
 }
 
 func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {

@@ -20,6 +20,9 @@
           <div style="text-align:center; margin-top:24px; font-size:1.5em; color:#4499cc">
             Automatic / Match Par
           </div>
+          <div style="text-align:center; margin-top:24px">
+            <img src="images/po_auto.png" height="88px" width="88px">
+          </div>
           <div style="position:absolute; bottom:0; padding:20px">
             <span style="font-size:1.1em">
               Easily bulk order beverages on your menu, using 
@@ -27,7 +30,7 @@
             </span>
             <span style="font-style:italic; font-size:1.0em">
               Requires up-to-date <b>Menu Plan</b> and <b>Inventory</b>.</br>
-              For more info, <a ng-click="showHelp()" class="help_link">click here</a>.
+              For more info, <a ng-click="showAutoHelp($event)" class="help_link">click here</a>.
             </span>
           </div>
         </div>
@@ -211,7 +214,7 @@
               <br/>
             </div>
             <div style="display:block; position:relative; bottom:0; top:12px; left: 0; right:0; margin:0px; padding:4px 8px; padding-bottom:12px; height:420px">
-              <addable-inv all-bevs="dorder.addable_items" all-kegs="[]" added-items="dorder.items" show-tabs="false" show-purchase="true" use-override-add-func="true" override-add-func="addItem(dorder, item)" control="dorder.addableControl" distributor-filter="dorder.distributor"></addable-inv>
+              <addable-inv all-bevs="dorder.addable_items" all-kegs="[]" added-items="dorder.items" show-tabs="false" show-purchase="true" use-override-add-func="true" override-add-func="addItem(dorder, item)" control="dorder.addableControl" distributor-filter="dorder.distributor" sale-status-filter="true"></addable-inv>
             </div>
           </div>
         </div>
@@ -282,14 +285,14 @@
           </div>
           <div class="col-xs-2 min_padding" style="padding-left:0">
             <div ng-if="item.count_recent!==null && item.quantity===null && item.par !== null" style="width:32px; display:inline-block; float:left">
-              <button ng-click="matchQuantityToPar(item)" type="button" class="btn btn-sm btn-default blue_btn" style="float:left; font-size:18px; padding: 4px 5px 0px; margin-right:4px;" uib-popover="Match Par" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">
+              <button ng-click="matchQuantityToPar(item, dorder)" type="button" class="btn btn-sm btn-default blue_btn" style="float:left; font-size:18px; padding: 4px 5px 0px; margin-right:4px;" uib-popover="Match Par" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">
                 <span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span>
               </button>
             </div>
             <div ng-if="item.count_recent===null || item.quantity!==null || item.par === null" style="width:32px; display:inline-block; float:left">
               &nbsp
             </div>
-            <input ng-model="item.quantity" class="form-control" ng-class="{'input_error': item.error_quantity===true}" style="max-width:70px; text-align:center; font-size:16px; float:left" placeholder="" ng-change="updateQuantity(item); updateDistOrderTotal(dorder)">
+            <input ng-model="item.quantity" class="form-control" ng-class="{'input_error': item.error_quantity===true}" style="max-width:70px; text-align:center; font-size:16px; float:left" placeholder="" ng-change="updateQuantity(item, dorder)">
           </div>
           <div class="col-xs-2 min_padding" style="padding-top:6px">
             <span ng-if="item.quantity===null" style="color:#999999">

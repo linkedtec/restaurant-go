@@ -16,6 +16,7 @@ angular.module('myApp')
       refreshDelivery: '&',
       useOverrideAddFunc: '=',
       distributorFilter: '=?', // only show bevs from this distributor
+      saleStatusFilter: '=?', // only show bevs with active (Staple, Seasonal) sale_status
       overrideAddFunc: '&' // by default adding will bring up inv quantity modal, if override callback is specified will call that instead
     },
     templateUrl: './view_loc/template_addable_inv.html',
@@ -38,6 +39,11 @@ angular.module('myApp')
 
       scope.filtered_bevs = JSON.parse(JSON.stringify(scope.allBevs));
       scope.filtered_kegs = JSON.parse(JSON.stringify(scope.allKegs));
+
+      scope.hideInactive = {value: false};
+      if (scope.saleStatusFilter===true) {
+        scope.hideInactive.value = true;
+      }
 
       // provides a way of exposing certain functions to outside controllers
       scope.internalControl = scope.control || {};
@@ -287,6 +293,8 @@ angular.module('myApp')
         // filter by eg Beer, Cider, Wine, etc
         // all beverages
 
+        console.log('applyTypeFilter');
+
         if (scope.add_type===scope.add_types[0]) {
 
           scope.filtered_bevs = [];
@@ -341,9 +349,32 @@ angular.module('myApp')
           }
         }
 
-        scope.excludeAddedBevs();
+        if (scope.hideInactive.value===true) {
+          scope.applySaleStatusFilter();
+        } else {
+          scope.excludeAddedBevs();
+        }
 
         //scope.$apply();
+      };
+
+      scope.applySaleStatusFilter = function() {
+        console.log('apply sale status');
+        var active_bevs = [];
+        for (var i in scope.filtered_bevs) {
+          var item = scope.filtered_bevs[i];
+          if (item.sale_status===null || item.sale_status==='Inactive') {
+            ;
+          } else {
+            active_bevs.push(item);
+          }
+        }
+
+        scope.filtered_bevs = active_bevs;
+
+        console.log(scope.filtered_bevs);
+
+        scope.excludeAddedBevs();
       };
 
       scope.excludeAddedBevs = function() {
