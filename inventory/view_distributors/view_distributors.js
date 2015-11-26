@@ -245,6 +245,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
 
   $scope.edit_name = $scope.distributor.name;
   $scope.edit_email = $scope.distributor.email;
+  $scope.edit_phone = $scope.distributor.phone;
 
   // form verification
   $scope.form_ver = {};
@@ -355,6 +356,41 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
 
   };
 
+  $scope.saveDistPhone = function(new_phone) {
+
+    $scope.form_ver.error_phone = false;
+
+    if (new_phone===null || new_phone.length===0) {
+      // it is okay to have empty phone
+      new_phone = null;
+    } else if (new_phone.length >= 16) {
+      $scope.new_failure_msg = "Phone number is too long (16 character limit)!";
+      $scope.form_ver.error_phone = true;
+      return;
+    } else if (!ContactService.isValidPhone(new_phone)) {
+      $scope.new_failure_msg = "Phone number is not valid!  Please fix and try again.";
+      $scope.form_ver.error_phone = true;
+      return;
+    }
+
+    var old_phone = $scope.distributor.phone;
+
+    $scope.distributor.phone = new_phone;
+    $scope.edit_phone = new_phone;
+
+    var result = DistributorsService.put($scope.distributor, ['phone']);
+    result.then(
+      function(payload) {
+        $scope.original_distributor.phone = new_phone;
+
+      },
+      function(errorPayload) {
+        $scope.distributor.phone = old_phone;
+        $scope.edit_phone = old_phone;
+      });
+
+  };
+
   $scope.revertDistName = function() {
     $scope.edit_name = $scope.distributor.name;
     $scope.form_ver.error_name = false;
@@ -364,6 +400,12 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
   $scope.revertDistEmail = function() {
     $scope.edit_email = $scope.distributor.email;
     $scope.form_ver.error_email = false;
+    $scope.new_failure_msg = null;
+  };
+
+  $scope.revertDistPhone = function() {
+    $scope.edit_phone = $scope.distributor.phone;
+    $scope.form_ver.error_phone = false;
     $scope.new_failure_msg = null;
   };
 

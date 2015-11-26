@@ -32,6 +32,7 @@ type PO_Order struct {
 	PurchaseFax         NullString `json:"purchase_fax"`
 	PurchaseSaveDefault NullBool   `json:"purchase_save_default"`
 	DeliveryAddressType string     `json:"delivery_address_type"`
+	SendMethod          NullString `json:"send_method"`
 }
 
 type PO_Item struct {
@@ -49,8 +50,10 @@ type DistributorOrder struct {
 	// only these are used for POSTing
 	Distributor                 string     `json:"distributor"`
 	DistributorID               int        `json:"distributor_id"`
-	DistributorEmail            string     `json:"distributor_email"`
+	DistributorEmail            NullString `json:"distributor_email"`
 	DistributorEmailSaveDefault NullBool   `json:"distributor_email_save_default"`
+	DistributorPhone            NullString `json:"distributor_phone"`
+	DistributorPhoneSaveDefault NullBool   `json:"distributor_phone_save_default"`
 	DeliveryDate                string     `json:"delivery_date"`
 	Items                       []PO_Item  `json:"items"`
 	Total                       float32    `json:"total"`
@@ -63,7 +66,10 @@ func setupPurchaseOrderHandlers() {
 	http.HandleFunc("/purchase/auto", purchaseOrderAutoAPIHandler)
 }
 
-//func createPurchaseOrderPDFFile(data []byte, sorted_keys []string, suffix string, user_id string, w http.ResponseWriter, r *http.Request, email string, args map[string]string) {
+func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order PurchaseOrder, delivery_address RestaurantAddress, do_send bool, w http.ResponseWriter, r *http.Request) {
+
+}
+
 func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_order PurchaseOrder, delivery_address RestaurantAddress, do_send bool, w http.ResponseWriter, r *http.Request) {
 	export_dir := "./export/"
 	if os.MkdirAll(export_dir, 0755) != nil {
@@ -158,7 +164,7 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 		pdf.SetFont("helvetica", "", 13)
 		pdf.MultiCell(content_width/2.6, 6, dorder.Distributor, "", "", false)
 		pdf.SetFont("helvetica", "", 11)
-		pdf.MultiCell(content_width/2.6, 5, dorder.DistributorEmail, "", "", false)
+		pdf.MultiCell(content_width/2.6, 5, dorder.DistributorEmail.String, "", "", false)
 
 		pdf.SetFont("helvetica", "", 10)
 		pdf.SetTextColor(255, 255, 255)
@@ -340,7 +346,7 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 			email_title := fmt.Sprintf("New Purchase Order from %s", restaurant.Name.String)
 			email_body := fmt.Sprintf("Please review the attached Purchase Order from %s for fulfillment.", restaurant.Name.String)
 			file_name := fmt.Sprintf("PurchaseOrder_%s.pdf", restaurant.Name.String)
-			err = sendAttachmentEmail(dorder.DistributorEmail, email_title, email_body, file_location, file_name, "application/pdf")
+			err = sendAttachmentEmail(dorder.DistributorEmail.String, email_title, email_body, file_location, file_name, "application/pdf")
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -571,12 +577,13 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		var purchase_order PurchaseOrder
 		err := db.QueryRow(`
-			SELECT order_date, purchase_contact, purchase_email, purchase_phone, purchase_fax FROM purchase_orders WHERE id=$1;`, po_id).Scan(
+			SELECT order_date, purchase_contact, purchase_email, purchase_phone, purchase_fax, send_method FROM purchase_orders WHERE id=$1;`, po_id).Scan(
 			&purchase_order.Order.OrderDate,
 			&purchase_order.Order.PurchaseContact,
 			&purchase_order.Order.PurchaseEmail,
 			&purchase_order.Order.PurchasePhone,
-			&purchase_order.Order.PurchaseFax)
+			&purchase_order.Order.PurchaseFax,
+			&purchase_order.Order.SendMethod)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -597,7 +604,7 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		rows, err := db.Query(`
-			SELECT id, distributor, distributor_id, distributor_email, 
+			SELECT id, distributor, distributor_id, distributor_email, distributor_phone, 
 				delivery_date, total, additional_notes FROM distributor_orders 
 			WHERE purchase_order_id=$1`,
 			po_id)
@@ -614,6 +621,7 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 				&distributor_order.Distributor,
 				&distributor_order.DistributorID,
 				&distributor_order.DistributorEmail,
+				&distributor_order.DistributorPhone,
 				&distributor_order.DeliveryDate,
 				&distributor_order.Total,
 				&distributor_order.AdditionalNotes); err != nil {
@@ -736,6 +744,13 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						return
 					}
+				} else if dorder.DistributorPhoneSaveDefault.Valid && dorder.DistributorPhoneSaveDefault.Bool == true {
+					_, err = db.Exec("UPDATE distributors SET phone=$1 WHERE id=$2", dorder.DistributorPhone, dorder.DistributorID)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
 				}
 			}
 
@@ -754,13 +769,14 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 				INSERT INTO purchase_orders 
 					(restaurant_name, restaurant_id, user_id, created, order_date, 
 					purchase_contact, purchase_email, purchase_phone, purchase_fax,
-					addr1, addr2, city, state, zipcode) 
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+					addr1, addr2, city, state, zipcode, send_method) 
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
 				restaurant.Name.String, test_restaurant_id, test_user_id, cur_time,
 				order.Order.OrderDate, order.Order.PurchaseContact,
 				order.Order.PurchaseEmail, order.Order.PurchasePhone, order.Order.PurchaseFax,
 				delivery_address.AddressOne, delivery_address.AddressTwo,
-				delivery_address.City, delivery_address.State, delivery_address.Zipcode)
+				delivery_address.City, delivery_address.State, delivery_address.Zipcode,
+				order.Order.SendMethod)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -780,10 +796,10 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 				_, err = db.Exec(`
 				INSERT INTO distributor_orders 
 					(purchase_order_id, distributor_id, distributor, distributor_email, 
-					delivery_date, total, additional_notes) 
-				VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+					distributor_phone, delivery_date, total, additional_notes) 
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 					po_id, dorder.DistributorID, dorder.Distributor, dorder.DistributorEmail,
-					dorder.DeliveryDate, dorder.Total, dorder.AdditionalNotes)
+					dorder.DistributorPhone, dorder.DeliveryDate, dorder.Total, dorder.AdditionalNotes)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -815,7 +831,11 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		} // end if doSend
 
-		createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, order, delivery_address, order.DoSend, w, r)
+		if order.Order.SendMethod.String == "email" {
+			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, order, delivery_address, order.DoSend, w, r)
+		} else if order.Order.SendMethod.String == "text" {
+			createPurchaseOrderSMS(test_user_id, test_restaurant_id, order, delivery_address, order.DoSend, w, r)
+		}
 
 	}
 }

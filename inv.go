@@ -50,6 +50,10 @@ type ExportFile struct {
 	URL string `json:"url"`
 }
 
+type ActiveMenuCount struct {
+	Count int `json:"count"`
+}
+
 type BeverageInvs []BeverageInv
 
 // ===================================================
@@ -100,6 +104,7 @@ func setupInvHandlers() {
 	http.HandleFunc("/inv", invAPIHandler)
 	http.HandleFunc("/loc", locAPIHandler)
 	http.HandleFunc("/inv/menu", invMenuAPIHandler)
+	http.HandleFunc("/inv/menu/count", invMenuCountAPIHandler)
 	http.HandleFunc("/inv/loc", invLocAPIHandler)
 	http.HandleFunc("/inv/locnew", invLocNewAPIHandler)
 	http.HandleFunc("/inv/history", invHistoryAPIHandler)
@@ -115,6 +120,35 @@ func inactivateExpiredSeasonals(w http.ResponseWriter, test_user_id string) {
 		log.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+}
+
+func invMenuCountAPIHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		// just returns the count of active menu items
+
+		// when getting sales status, we always want to first set any seasonal
+		// bevs whose sale_end period has ended to inactive
+		inactivateExpiredSeasonals(w, test_user_id)
+
+		var active_count ActiveMenuCount
+		err := db.QueryRow("SELECT COUNT (DISTINCT id) FROM beverages WHERE user_id=$1 AND current AND COALESCE(sale_status, 'Inactive')!='Inactive';", test_user_id).Scan(&active_count.Count)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+
+		js, err := json.Marshal(active_count)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+
 	}
 }
 

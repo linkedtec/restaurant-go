@@ -11,6 +11,8 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
 .controller('ViewSalesPlanCtrl', function($scope, $modal, $http, ItemsService, DateService, BeveragesService, DistributorsService, MathService) {
 
+  $scope.active_menu_count = 0;
+
   $scope.use_modes = ['Staples', 'Seasonal', 'Inactive'];
   $scope.use_mode = 1; // XXX hacky initialization to get sorting correct on
                        // startup by switching to mode 0
@@ -50,6 +52,26 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
   $scope.sort_key_seasonal = null;
   $scope.double_sort_seasonal = 1;
   $scope.firstTimeSortSeasonal = true;
+
+  // gets the count of active menu items (Staples, Seasonals)
+  // we use this to decide whether to show the Online Menu button
+  $scope.getActiveMenuCount = function() {
+
+    $http.get('/inv/menu/count')
+    .success(function(data, status, headers, config) {
+      // this callback will be called asynchronously when the response
+      // is available
+      console.log(data);
+
+      $scope.active_menu_count = data['count'];
+      
+    })
+    .error(function(data, status, headers, config) {
+
+    });
+
+  };
+  $scope.getActiveMenuCount();
 
   $scope.selectUseMode = function(use_mode) {
 
@@ -243,7 +265,6 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       }
 
       ItemsService.processBevsForAddable($scope.inventory_items);
-
 
       for (var i in $scope.inventory_items) {
         var item = $scope.inventory_items[i];
@@ -495,6 +516,8 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
             $scope.sortBy($scope.sort_key);
             $scope.sortBy($scope.sort_key);
 
+            $scope.getActiveMenuCount();
+
           }).
           error(function(data, status, headers, config) {
           });
@@ -654,6 +677,8 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
             allowOutsideClick: true,
             html: true});
         }
+
+        $scope.getActiveMenuCount();
       }, 
       // error status
       function() {
@@ -677,6 +702,17 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
     $scope.sortBy($scope.sort_key);
     $scope.sortBy($scope.sort_key);
 
+    $scope.getActiveMenuCount();
+
+  };
+
+  $scope.viewOnlineMenu = function() {
+
+    // POST to server, /inv/menu/page
+    // get back URL for page link to web page
+    // navigate with window.open
+
+    window.open('#/viewOnlineMenu','_blank');
   };
 
 })

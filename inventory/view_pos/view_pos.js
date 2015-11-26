@@ -34,7 +34,10 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
   $scope.order['dist_orders'] = [];
   $scope.order['order_date'] = new Date();
   $scope.order['order_date_pretty'] = DateService.getPrettyDate((new Date()).toString(), false, true);
+  $scope.order['send_method'] = null;
   $scope.deliveryAddressControl = {};
+
+  $scope.send_methods = ['Send via Email', 'Send via Text', "Save & Don't Send"]
 
   $scope.form_ver = {};
   $scope.new_failure_msg = null;
@@ -113,6 +116,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       sort_key: null,
       additional_notes: null,
       save_default_email: null,
+      save_default_phone: null,
       double_sort: -1});
   };
 
@@ -130,6 +134,14 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     $scope.getRestaurant();
 
   };
+
+  $scope.selectSendMethod = function(method_i, change_show) {
+    $scope.order['send_method'] = $scope.send_methods[method_i];
+
+    if (change_show===true) {
+      $scope.setShowMode(2, $scope.useMode);
+    }
+  }
 
   $scope.setShowMode = function(mode, use_mode) {
     $scope.showMode = mode;
@@ -291,6 +303,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       for (var i in data) {
         var dist = data[i];
         dist['email_edit'] = dist['email'];
+        dist['phone_edit'] = dist['phone'];
         $scope.all_distributors.push(dist);
         $scope.sel_distributors.push(dist);
       }
@@ -316,6 +329,21 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       dorder.save_default_email = true;
     }
   };
+
+  $scope.distPhoneChanged = function(dorder) {
+    var dist = dorder.distributor;
+    if (dist===undefined || dist===null) {
+      return;
+    }
+    if (dist.phone_edit === '') {
+      dist.phone_edit = null;
+    }
+
+    if (dorder.save_default_phone===null && dist.phone_edit !==dist.phone) {
+      dorder.save_default_phone = true;
+    }
+  };
+
 
   $scope.refreshSelectableDistributors = function() {
     // refresh the selectable distributors list based on which distributors
@@ -437,7 +465,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     });
   };
 
-  $scope.reviewPurchaseOrders = function(pdf_url, post_order) {
+  $scope.reviewPDFPurchaseOrders = function(pdf_url, post_order) {
     var modalEditInstance = $modal.open({
       templateUrl: 'reviewPurchaseOrderModal.html',
       controller: 'reviewPurchaseOrderModalCtrl',
@@ -492,6 +520,14 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       function() {
         ;
       });
+  };
+
+  $scope.reviewSMSPurchaseOrders = function(sms_url, post_order) {
+
+  };
+
+  $scope.reviewNoSendLocal = function(post_order) {
+
   };
 
   $scope.reviewAndSave = function() {
@@ -565,13 +601,23 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     for (var i in $scope.order['dist_orders']) {
       var dorder = $scope.order.dist_orders[i];
       dorder.error_dist_email = false;
+      dorder.error_dist_phone = false;
       dorder.error_delivery_date = false;
       dorder.error_empty_items = false;
 
-      if (dorder.distributor.email_edit === null || !ContactService.isValidEmail(dorder.distributor.email_edit)) {
-        all_clear = false;
-        dorder.error_dist_email = true;
+      if ($scope.order['send_method']===$scope.send_methods[0]) {
+        if (dorder.distributor.email_edit === null || !ContactService.isValidEmail(dorder.distributor.email_edit)) {
+          all_clear = false;
+          dorder.error_dist_email = true;
+        }
       }
+
+      if ($scope.order['send_method']===$scope.send_methods[1]) {
+        if (dorder.distributor.phone_edit === null || !ContactService.isValidPhone(dorder.distributor.phone_edit)) {
+          all_clear = false;
+          dorder.error_dist_phone = true;
+        }
+      }      
 
       if (dorder.delivery_date === null || !DateService.isValidDate(dorder.delivery_date)) {
         all_clear = false;
@@ -631,7 +677,12 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     // should server save posted purchase info as default?
     $scope.post_order['order']['purchase_save_default'] = ($scope.showPurchaseSave===true && $scope.defaultContactChecked===true);
     $scope.post_order['order']['delivery_address_type'] = $scope.deliveryAddressControl.getChosenAddressType();
-
+    $scope.post_order['order']['send_method'] = null;
+    if ($scope.order['send_method']===$scope.send_methods[0]) {
+      $scope.post_order['order']['send_method'] = 'email';
+    } else if ($scope.order['send_method']===$scope.send_methods[1]) {
+      $scope.post_order['order']['send_method'] = 'text';
+    }
     // Distributor Orders ------------------------------------------------------
     $scope.post_order['dist_orders'] = [];
     for (var i in $scope.order['dist_orders']) {
@@ -639,8 +690,15 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       var dorder = {};
       dorder['distributor'] = copy_dorder['distributor']['name'];
       dorder['distributor_id'] = copy_dorder['distributor']['id'];
-      dorder['distributor_email'] = copy_dorder['distributor']['email_edit'];
-      dorder['distributor_email_save_default'] = copy_dorder['save_default_email'];
+      if ($scope.order['send_method'] === $scope.send_methods[0]) {
+        // send via email
+        dorder['distributor_email'] = copy_dorder['distributor']['email_edit'];
+        dorder['distributor_email_save_default'] = copy_dorder['save_default_email'];
+      } else if ($scope.order['send_method'] === $scope.send_methods[1]) {
+        dorder['distributor_phone'] = copy_dorder['distributor']['phone_edit'];
+        dorder['distributor_phone_save_default'] = copy_dorder['save_default_phone'];
+      }
+      
       dorder['delivery_date'] = DateService.getPrettyDate(copy_dorder['delivery_date'].toString(), false, true);
       dorder['total'] = copy_dorder['total'];
       dorder['additional_notes'] = copy_dorder['additional_notes'];
@@ -663,19 +721,28 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
     console.log($scope.post_order);
 
-    $http.post('/purchase', {
-      order: $scope.post_order['order'],
-      distributor_orders: $scope.post_order['dist_orders'],
-      do_send: false
-    }).
-    success(function(data, status, headers, config) {
-      console.log(data);
-      var URL = data['url'];
-      $scope.reviewPurchaseOrders(URL, $scope.post_order);      
-    }).
-    error(function(data, status, headers, config) {
+    if ($scope.order['send_method']===$scope.send_methods[2]) {
+      $scope.reviewNoSendLocal($scope.post_order);
+    } else {
+      $http.post('/purchase', {
+        order: $scope.post_order['order'],
+        distributor_orders: $scope.post_order['dist_orders'],
+        do_send: false // we just want documents back for review, not to commit sending yet
+      }).
+      success(function(data, status, headers, config) {
+        console.log(data);
+        var URL = data['url'];
+        if ($scope.order['send_method']===$scope.send_methods[0]) {
+          $scope.reviewPDFPurchaseOrders(URL, $scope.post_order); 
+        } else if ($scope.order['send_method']===$scope.send_methods[1]) {
+          $scope.reviewSMSPurchaseOrders(URL, $scope.post_order); 
+        }
+             
+      }).
+      error(function(data, status, headers, config) {
 
-    });
+      });
+    } 
   }
 
 })
