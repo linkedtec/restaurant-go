@@ -187,10 +187,14 @@ func main() {
 
 	// handle inventory pages
 	setupInvHandlers()
+	setupMenuHandlers()
 	setupTapsHandlers()
 	setupDistributorHandlers()
 	setupDeliveriesHandlers()
 	setupPurchaseOrderHandlers()
+
+	// cron job for refreshing online menu pages
+	setupMenuPagesCron()
 
 	log.Printf("Listening on port 8080...")
 	log.Print("Current time is: " + getCurrentTime())

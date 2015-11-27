@@ -11,6 +11,7 @@ ADD . /go/src/github.com/core433/restaurant-go
 RUN go get github.com/lib/pq
 RUN go get github.com/tealeg/xlsx
 RUN go get github.com/jung-kurt/gofpdf
+RUN go get github.com/robfig/cron
 
 # Docker is currently only run on production server, setting this env
 # will let it know to use the correct production DB
