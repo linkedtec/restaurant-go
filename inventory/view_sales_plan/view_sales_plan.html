@@ -13,8 +13,7 @@
   orders to your Distributors, assuming you've done inventory.-->
   <div ng-if="active_menu_count > 0" class="row">
     <div class="col-xs-12" style="text-align:right">
-      <span class="glyphicon glyphicon-question-sign" style="font-size:20px; color:#88ccdd; vertical-align:middle; margin-right:2px"  uib-popover="View a nicely formatted web page of your Menu Items for your website / customers." popover-trigger="mouseenter"></span>
-      <button ng-click="viewOnlineMenu()" type="button" class="btn btn-default btn_small">
+      <button ng-click="viewOnlineMenu()" type="button" class="btn btn-default btn_small" uib-popover="View a nicely formatted web page of your Menu Items for your website / customers." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="300">
         <span class="glyphicon glyphicon-eye-open" aria-hidden="true"></span> Online Menu
       </button>
     </div>

@@ -708,11 +708,24 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
   $scope.viewOnlineMenu = function() {
 
-    // POST to server, /inv/menu/page
+    // GET to server, /inv/menu/page
     // get back URL for page link to web page
     // navigate with window.open
 
-    window.open('#/viewOnlineMenu','_blank');
+    $http.get('/inv/menu/create')
+    .success(function(data, status, headers, config) {
+      // this callback will be called asynchronously when the response
+      // is available
+      console.log(data);
+
+      var URL = data['url'];
+      window.open(URL,'_blank');
+      
+    })
+    .error(function(data, status, headers, config) {
+
+    });
+
   };
 
 })

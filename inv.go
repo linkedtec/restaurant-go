@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
+	"io/ioutil"
 	"log"
 	"math"
 	//"net"
@@ -105,10 +106,12 @@ func setupInvHandlers() {
 	http.HandleFunc("/loc", locAPIHandler)
 	http.HandleFunc("/inv/menu", invMenuAPIHandler)
 	http.HandleFunc("/inv/menu/count", invMenuCountAPIHandler)
+	http.HandleFunc("/inv/menu/create", invMenuCreateAPIHandler)
 	http.HandleFunc("/inv/loc", invLocAPIHandler)
 	http.HandleFunc("/inv/locnew", invLocNewAPIHandler)
 	http.HandleFunc("/inv/history", invHistoryAPIHandler)
 	http.HandleFunc("/export/", exportAPIHandler)
+	http.HandleFunc("/menu_pages/", menuPagesAPIHandler)
 }
 
 // this is a helper function that should be called before a user accesses
@@ -121,6 +124,216 @@ func inactivateExpiredSeasonals(w http.ResponseWriter, test_user_id string) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func createMenuBevHTML(bev_type string, w http.ResponseWriter, r *http.Request) string {
+
+	html_content := ""
+
+	var query string
+	var title string
+
+	if bev_type == "seasonal draft" {
+		query = `
+			SELECT id, product, brewery, abv FROM beverages 
+			WHERE user_id=$1 AND current AND container_type='Keg' 
+			AND COALESCE(sale_status, 'Inactive')='Seasonal';`
+		title = "SEASONAL DRAFTS"
+	} else if bev_type == "staple draft" {
+		query = `
+			SELECT id, product, brewery, abv FROM beverages 
+			WHERE user_id=$1 AND current AND container_type='Keg' 
+			AND COALESCE(sale_status, 'Inactive')='Staple';`
+		title = "STAPLE DRAFTS"
+	} else if bev_type == "bottled beer" {
+		query = `
+			SELECT id, product, brewery, abv FROM beverages 
+			WHERE user_id=$1 AND current AND container_type='Bottle' AND alcohol_type IN ('Beer', 'Cider') 
+			AND COALESCE(sale_status, 'Inactive')!='Inactive';`
+		title = "BOTTLED BEER"
+	} else if bev_type == "wine" {
+		query = `
+			SELECT id, product, brewery, abv FROM beverages 
+			WHERE user_id=$1 AND current AND alcohol_type='Wine' 
+			AND COALESCE(sale_status, 'Inactive')!='Inactive';`
+		title = "WINE"
+	} else if bev_type == "liquor" {
+		query = `
+			SELECT id, product, brewery, abv FROM beverages 
+			WHERE user_id=$1 AND current AND alcohol_type='Liquor' 
+			AND COALESCE(sale_status, 'Inactive')!='Inactive';`
+		title = "LIQUOR"
+	} else if bev_type == "non alcoholic" {
+		query = `
+			SELECT id, product, brewery, abv FROM beverages 
+			WHERE user_id=$1 AND current AND alcohol_type='Non Alcoholic' 
+			AND COALESCE(sale_status, 'Inactive')!='Inactive';`
+		title = "NON-ALCOHOLIC"
+	}
+
+	rows, err := db.Query(query, test_restaurant_id)
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return html_content
+	}
+
+	var beverages []Beverage
+
+	defer rows.Close()
+	for rows.Next() {
+		var bev Beverage
+		if err := rows.Scan(
+			&bev.ID,
+			&bev.Product,
+			&bev.Brewery,
+			&bev.ABV); err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			continue
+		}
+
+		srows, err := db.Query("SELECT serving_price FROM size_prices WHERE beverage_id=$1;", bev.ID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			continue
+		}
+		for srows.Next() {
+			var sp SalePrice
+			if err := srows.Scan(
+				&sp.Price); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+			bev.SalePrices = append(bev.SalePrices, sp)
+		}
+
+		beverages = append(beverages, bev)
+	}
+
+	if len(beverages) > 0 {
+		html_content += `
+			<div class="row" style="margin-top:36px; margin-bottom:6px">
+        <div class="col-xs-12" style="color:#777777; text-align:center; font-size:1.0em; font-weight:bold">
+          ` + title + `
+        </div>
+      </div>`
+
+		for _, bev := range beverages {
+			bev_line := fmt.Sprintf(`<span style="font-weight:400">%s</span>`, bev.Product)
+			if bev.ABV.Valid == true {
+				bev_line += fmt.Sprintf(` &nbsp;<span style="font-weight:400">%.1f%%</span>`, bev.ABV.Float64)
+			}
+			if bev.Brewery.Valid == true {
+				bev_line += `<span style="color:#a0a0a0"> . . . . . ` + bev.Brewery.String + `</span>`
+			}
+
+			if len(bev.SalePrices) > 0 {
+				bev_line += `<span style="float:right">`
+
+				for i, sp := range bev.SalePrices {
+					if sp.Price.Valid != true {
+						continue
+					}
+					if i == 0 {
+						bev_line += fmt.Sprintf("%.1f", sp.Price.Float64)
+					} else {
+						bev_line += fmt.Sprintf(" &nbsp;/ &nbsp;%.1f", sp.Price.Float64)
+					}
+
+				}
+
+				bev_line += `</span>`
+			}
+
+			html_content += fmt.Sprintf(`
+				<div class="row" style="padding-top:1px">
+	        <div class="col-xs-12" style="font-size:0.9em">
+	          %s
+	        </div>
+	      </div>`, bev_line)
+		}
+	}
+
+	return html_content
+}
+
+func invMenuCreateAPIHandler(w http.ResponseWriter, r *http.Request) {
+
+	privilege := checkUserPrivilege()
+
+	// Creates a static Menu Page for customers to see
+	// creates page in /menu_pages and returns a link
+	switch r.Method {
+	case "GET":
+
+		if !hasBasicPrivilege(privilege) {
+			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
+			return
+		}
+
+		// when getting sales status, we always want to first set any seasonal
+		// bevs whose sale_end period has ended to inactive
+		inactivateExpiredSeasonals(w, test_user_id)
+
+		menu_dir := "./menu_pages/"
+		if os.MkdirAll(menu_dir, 0755) != nil {
+			http.Error(w, "Unable to find or create menu_pages directory!", http.StatusInternalServerError)
+			return
+		}
+
+		var restaurant string
+		err := db.QueryRow("SELECT name FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(&restaurant)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// create a hash from user id as the filename extension
+		h := fnv.New32a()
+		h.Write([]byte(test_restaurant_id))
+		hash := strconv.FormatUint(uint64(h.Sum32()), 10)
+		filename := menu_dir + restaurant + "_" + hash + ".html"
+		filename = strings.Replace(filename, " ", "_", -1)
+
+		template_file := menu_dir + "menu_template.html"
+		template, _ := ioutil.ReadFile(template_file)
+
+		page_content := template
+
+		page_content = bytes.Replace(page_content, []byte("[TITLE]"), []byte(restaurant+" Beverage Menu"), 1)
+		page_content = bytes.Replace(page_content, []byte("[RESTAURANT]"), []byte(restaurant), 1)
+
+		// get any Seasonal Beers / Ciders on tap
+		// sale_status=="Seasonal"
+		// container_type=="Keg"
+
+		html_content := ""
+		html_content += createMenuBevHTML("seasonal draft", w, r)
+		html_content += createMenuBevHTML("staple draft", w, r)
+		html_content += createMenuBevHTML("bottled beer", w, r)
+		html_content += createMenuBevHTML("wine", w, r)
+		html_content += createMenuBevHTML("liquor", w, r)
+		html_content += createMenuBevHTML("non alcoholic", w, r)
+
+		page_content = bytes.Replace(page_content, []byte("[CONTENT]"), []byte(html_content), 1)
+
+		ioutil.WriteFile(filename, page_content, 0600)
+
+		var export ExportFile
+		export.URL = filename[1:] // remove the . at the beginning
+
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(export)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+
+	}
+
 }
 
 func invMenuCountAPIHandler(w http.ResponseWriter, r *http.Request) {
@@ -1108,6 +1321,13 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 func exportAPIHandler(w http.ResponseWriter, r *http.Request) {
 	filename := r.URL.Path[len("/export/"):]
 	http.ServeFile(w, r, "export/"+filename)
+}
+
+// responsible for serving online menu pages
+// Expects r.URL to contain the filename, e.g., /export/myfile.txt
+func menuPagesAPIHandler(w http.ResponseWriter, r *http.Request) {
+	filename := r.URL.Path[len("/menu_pages/"):]
+	http.ServeFile(w, r, "menu_pages/"+filename)
 }
 
 func createXlsxFile(data []byte, sorted_keys []string, history_type string, suffix string, user_id string, w http.ResponseWriter, r *http.Request, email string, args map[string]string) {
