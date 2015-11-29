@@ -57,7 +57,7 @@ func tapsInvAPIHandler(w http.ResponseWriter, r *http.Request) {
 		var all_taps []Location
 		most_recent_update := time.Time{}
 
-		rows, err := db.Query("SELECT id, last_update FROM locations WHERE user_id=$1 AND type='tap' AND active;", test_user_id)
+		rows, err := db.Query("SELECT id, last_update FROM locations WHERE restaurant_id=$1 AND type='tap' AND active;", test_restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -201,7 +201,7 @@ func tapsInvAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 			// check location exists
 			var loc_exists bool
-			err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM locations WHERE user_id=$1 AND id=$2);", test_user_id, bev.LocationID).Scan(&loc_exists)
+			err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM locations WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, bev.LocationID).Scan(&loc_exists)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -226,10 +226,10 @@ func tapsInvAPIHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// XXX in future need to check that the posting user's ID matches each
-			// item to be updated's user_id
+			// item to be updated's restaurant_id
 			// check that the item id exists
 			var bev_exists bool
-			err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM beverages WHERE user_id=$1 AND id=$2);", test_user_id, bev.ID).Scan(&bev_exists)
+			err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, bev.ID).Scan(&bev_exists)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -330,7 +330,7 @@ func tapsBevsAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// 3. Push into an array and return it
 
 			var tap_exists bool
-			err := db.QueryRow("SELECT EXISTS(SELECT * FROM locations WHERE user_id=$1 AND id=$2 AND active);", test_user_id, tap_id).Scan(&tap_exists)
+			err := db.QueryRow("SELECT EXISTS(SELECT * FROM locations WHERE restaurant_id=$1 AND id=$2 AND active);", test_restaurant_id, tap_id).Scan(&tap_exists)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				log.Println(err.Error())
@@ -406,7 +406,7 @@ func tapsBevsAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Verify Tap exists or quit
 		var tap_exists bool
-		err = db.QueryRow("SELECT EXISTS(SELECT * FROM locations WHERE user_id=$1 AND id=$2 AND active);", test_user_id, tapBev.TapID).Scan(&tap_exists)
+		err = db.QueryRow("SELECT EXISTS(SELECT * FROM locations WHERE restaurant_id=$1 AND id=$2 AND active);", test_restaurant_id, tapBev.TapID).Scan(&tap_exists)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -418,7 +418,7 @@ func tapsBevsAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Verify Beverage exists
 		var bev_exists bool
-		err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM beverages WHERE user_id=$1 AND id=$2);", test_user_id, tapBev.BevID).Scan(&bev_exists)
+		err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, tapBev.BevID).Scan(&bev_exists)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -495,8 +495,7 @@ func tapsAPIHandler(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		var locations []Location
 
-		log.Println(test_user_id)
-		rows, err := db.Query("SELECT locations.id, locations.name, taps_last_update.last_update FROM locations, taps_last_update WHERE locations.id=taps_last_update.tap_id AND locations.user_id=$1 AND locations.type='tap' AND locations.active ORDER BY id;", test_user_id)
+		rows, err := db.Query("SELECT locations.id, locations.name, taps_last_update.last_update FROM locations, taps_last_update WHERE locations.id=taps_last_update.tap_id AND locations.restaurant_id=$1 AND locations.type='tap' AND locations.active ORDER BY id;", test_restaurant_id)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -529,7 +528,7 @@ func tapsAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = db.Exec("INSERT INTO locations(name, last_update, user_id, type, active) VALUES ($1, $2, $3, 'tap', TRUE);", newLoc.Name, time.Time{}, test_user_id)
+		_, err = db.Exec("INSERT INTO locations(name, last_update, restaurant_id, type, active) VALUES ($1, $2, $3, 'tap', TRUE);", newLoc.Name, time.Time{}, test_restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 		}
@@ -567,7 +566,7 @@ func tapsAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Verify Tap exists or quit
 		var exists bool
-		err := db.QueryRow("SELECT EXISTS (SELECT * FROM locations WHERE id=$1 AND user_id=$2);", tap_id, test_user_id).Scan(&exists)
+		err := db.QueryRow("SELECT EXISTS (SELECT * FROM locations WHERE id=$1 AND restaurant_id=$2);", tap_id, test_restaurant_id).Scan(&exists)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)

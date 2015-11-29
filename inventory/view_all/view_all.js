@@ -408,11 +408,11 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       console.log(data);
 
       // after loading all distributors, load inventory
-        $scope.getAllInv();
-      },
-      function(errorPayload) {
-        ; // do nothing for now
-      });
+      $scope.getAllInv();
+    },
+    function(errorPayload) {
+      ; // do nothing for now
+    });
   };
 
   $scope.getVolUnits = function() {

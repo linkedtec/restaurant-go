@@ -58,7 +58,7 @@ func kegsAPIHandler(w http.ResponseWriter, r *http.Request) {
 		var kegs []DistKeg
 
 		// return all the kegs
-		rows, err := db.Query("SELECT kegs.id, kegs.version_id, kegs.distributor_id, distributors.name, kegs.volume, kegs.unit, kegs.deposit FROM kegs, distributors WHERE current=TRUE AND kegs.distributor_id=distributors.id AND distributors.user_id=$1;", test_user_id)
+		rows, err := db.Query("SELECT kegs.id, kegs.version_id, kegs.distributor_id, distributors.name, kegs.volume, kegs.unit, kegs.deposit FROM kegs, distributors WHERE current=TRUE AND kegs.distributor_id=distributors.id AND distributors.restaurant_id=$1;", test_restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -107,7 +107,7 @@ func kegsAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// First check distributor_id belongs to user to authenticate
 		var exists bool
-		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM distributors WHERE user_id=$1 AND id=$2);", test_user_id, keg.DistributorID).Scan(&exists)
+		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM distributors WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, keg.DistributorID).Scan(&exists)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -230,7 +230,7 @@ func kegsAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// gather all beverages which currently reference this keg_id
 		var keg_bevs []DistBev
-		rows, err := db.Query("SELECT id, product, brewery FROM beverages WHERE current=TRUE AND keg_id=$1 AND user_id=$2;", old_keg_id, test_user_id)
+		rows, err := db.Query("SELECT id, product, brewery FROM beverages WHERE current=TRUE AND keg_id=$1 AND restaurant_id=$2;", old_keg_id, test_restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -343,7 +343,7 @@ func kegsAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Do any CURRENT beverages reference this keg_id?
 		var keg_bevs []DistBev
-		rows, err := db.Query("SELECT id, product, brewery FROM beverages WHERE current=TRUE AND keg_id=$1 AND user_id=$2;", keg_id, test_user_id)
+		rows, err := db.Query("SELECT id, product, brewery FROM beverages WHERE current=TRUE AND keg_id=$1 AND restaurant_id=$2;", keg_id, test_restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -389,7 +389,7 @@ func kegsAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Step 1
 		var version_id int
-		err = db.QueryRow("SELECT version_id FROM kegs, distributors WHERE kegs.distributor_id=distributors.id AND distributors.user_id=$1 AND kegs.id=$2;", test_user_id, keg_id).Scan(&version_id)
+		err = db.QueryRow("SELECT version_id FROM kegs, distributors WHERE kegs.distributor_id=distributors.id AND distributors.restaurant_id=$1 AND kegs.id=$2;", test_restaurant_id, keg_id).Scan(&version_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -463,7 +463,7 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
-		rows, err := db.Query("SELECT id, name, email, phone, date_created FROM distributors WHERE user_id=$1 AND active=TRUE;", test_user_id)
+		rows, err := db.Query("SELECT id, name, email, phone, date_created FROM distributors WHERE restaurant_id=$1 AND active=TRUE;", test_restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -507,7 +507,7 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 				}
 
 				bev_count := 0
-				err = db.QueryRow("SELECT COUNT (DISTINCT id) FROM beverages WHERE current=TRUE and user_id=$1 AND keg_id=$2;", test_user_id, keg.ID).Scan(&bev_count)
+				err = db.QueryRow("SELECT COUNT (DISTINCT id) FROM beverages WHERE current=TRUE and restaurant_id=$1 AND keg_id=$2;", test_restaurant_id, keg.ID).Scan(&bev_count)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -519,7 +519,7 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			bev_count := 0
-			err = db.QueryRow("SELECT COUNT (DISTINCT id) FROM beverages WHERE current=TRUE AND user_id=$1 AND distributor_id=$2;", test_user_id, dist.ID).Scan(&bev_count)
+			err = db.QueryRow("SELECT COUNT (DISTINCT id) FROM beverages WHERE current=TRUE AND restaurant_id=$1 AND distributor_id=$2;", test_restaurant_id, dist.ID).Scan(&bev_count)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -550,9 +550,9 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Println(dist)
 
-		// first check name and user_id pair doesn't exist
+		// first check name and restaurant_id pair doesn't exist
 		var exists bool
-		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM distributors WHERE name=$1 AND user_id=$2);", dist.Name, test_user_id).Scan(&exists)
+		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM distributors WHERE name=$1 AND restaurant_id=$2);", dist.Name, test_restaurant_id).Scan(&exists)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -565,7 +565,7 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// restore its active to TRUE.
 			// if an existing distributor which is active exists, return error
 			var old_is_active bool
-			err = db.QueryRow("SELECT active FROM distributors WHERE name=$1 AND user_id=$2;", dist.Name, test_user_id).Scan(&old_is_active)
+			err = db.QueryRow("SELECT active FROM distributors WHERE name=$1 AND restaurant_id=$2;", dist.Name, test_restaurant_id).Scan(&old_is_active)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -575,14 +575,14 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Distributor already exists!", http.StatusInternalServerError)
 				return
 			} else {
-				_, err = db.Exec("UPDATE distributors SET active=TRUE WHERE name=$1 AND user_id=$2;", dist.Name, test_user_id)
+				_, err = db.Exec("UPDATE distributors SET active=TRUE WHERE name=$1 AND restaurant_id=$2;", dist.Name, test_restaurant_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
 				// now return the old distributor
-				err = db.QueryRow("SELECT id, date_created FROM distributors WHERE name=$1 AND user_id=$2;", dist.Name, test_user_id).Scan(&dist.ID, &dist.DateCreated)
+				err = db.QueryRow("SELECT id, date_created FROM distributors WHERE name=$1 AND restaurant_id=$2;", dist.Name, test_restaurant_id).Scan(&dist.ID, &dist.DateCreated)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -590,7 +590,7 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		} else {
-			_, err = db.Exec("INSERT INTO distributors(name, user_id, email, phone, date_created, active) VALUES ($1, $2, $3, $4, $5, TRUE);", dist.Name, test_user_id, dist.Email, dist.Phone, cur_time)
+			_, err = db.Exec("INSERT INTO distributors(name, restaurant_id, email, phone, date_created, active) VALUES ($1, $2, $3, $4, $5, TRUE);", dist.Name, test_restaurant_id, dist.Email, dist.Phone, cur_time)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -685,7 +685,7 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		var dist_exists bool
-		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM distributors WHERE id=$1 AND user_id=$2);", dist_id, test_user_id).Scan(&dist_exists)
+		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM distributors WHERE id=$1 AND restaurant_id=$2);", dist_id, test_restaurant_id).Scan(&dist_exists)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -761,7 +761,7 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// (Note: don't have to check individual keg ids, bevs can't point to a
 		// distributor's kegs without point to its distributor_id)
 		var dist_bevs []DistBev
-		rows, err := db.Query("SELECT id, product, brewery FROM beverages WHERE current=TRUE AND distributor_id=$1 AND user_id=$2;", dist_id, test_user_id)
+		rows, err := db.Query("SELECT id, product, brewery FROM beverages WHERE current=TRUE AND distributor_id=$1 AND restaurant_id=$2;", dist_id, test_restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -834,7 +834,7 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// Step 2: Check history and delete accordingly.  NOTE that any CURRENT bevs
 		// in Step 1 will already have historical versions of this dist_id
 		var dist_history_exists bool
-		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE user_id=$1 AND distributor_id=$2);", test_user_id, dist_id).Scan(&dist_history_exists)
+		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE restaurant_id=$1 AND distributor_id=$2);", test_restaurant_id, dist_id).Scan(&dist_history_exists)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)

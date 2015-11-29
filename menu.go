@@ -17,8 +17,11 @@ import (
 
 func setupMenuPagesCron() {
 	c := cron.New()
+
+	// testing, run every minute
+	//c.AddFunc("0 * * * * *", func() { go refreshMenuPages() })
 	// run twice a day at 12 am and 12 pm
-	c.AddFunc("0 0 0,11 * * *", func() { refreshMenuPages() })
+	c.AddFunc("0 0 0,11 * * *", func() { go refreshMenuPages() })
 	c.Start()
 }
 
@@ -31,7 +34,7 @@ func refreshMenuPages() {
 	rows, err := db.Query(`
     SELECT DISTINCT restaurants.id FROM restaurants, beverages 
     WHERE (SELECT COUNT(DISTINCT beverages.id) 
-            FROM beverages WHERE beverages.user_id=restaurants.id AND beverages.current AND COALESCE(beverages.sale_status, 'Inactive')!='Inactive') > 0;`)
+            FROM beverages WHERE beverages.restaurant_id=restaurants.id AND beverages.current AND COALESCE(beverages.sale_status, 'Inactive')!='Inactive') > 0;`)
 	if err != nil {
 		log.Println("ERROR getting restaurant IDs in refreshMenuPages")
 		return
@@ -45,7 +48,7 @@ func refreshMenuPages() {
 			continue
 		}
 
-		createRestaurantMenuPage(restaurant_id, nil, nil)
+		createRestaurantMenuPage(restaurant_id, nil, false)
 	}
 
 }
@@ -59,22 +62,25 @@ func setupMenuHandlers() {
 
 // this is a helper function that should be called before a user accesses
 // their bev's sale_status info, e.g., before /inv GET, or /inv/menu GET
-func inactivateExpiredSeasonals(w http.ResponseWriter, test_user_id string) {
+func inactivateExpiredSeasonals(w http.ResponseWriter, restaurant_id string) {
+
 	cur_time := time.Now().UTC()
-	_, err := db.Exec("UPDATE beverages SET sale_status='Inactive' WHERE sale_status='Seasonal' AND sale_end < $1 AND user_id=$2;", cur_time, test_user_id)
+	result, err := db.Exec("UPDATE beverages SET sale_status='Inactive' WHERE sale_status='Seasonal' AND sale_end < $1 AND restaurant_id=$2;", cur_time, restaurant_id)
 	if err != nil {
 		log.Println(err.Error())
-		if w != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	createRestaurantMenuPage(test_restaurant_id, w, nil)
+	rows_affected, _ := result.RowsAffected()
+
+	if rows_affected > 0 {
+		go createRestaurantMenuPage(restaurant_id, w, false)
+	}
+
 }
 
-func createMenuBevHTML(bev_type string, w http.ResponseWriter, r *http.Request) string {
+func createMenuBevHTML(bev_type string, w http.ResponseWriter) string {
 
 	html_content := ""
 
@@ -84,37 +90,37 @@ func createMenuBevHTML(bev_type string, w http.ResponseWriter, r *http.Request) 
 	if bev_type == "seasonal draft" {
 		query = `
       SELECT id, product, brewery, abv FROM beverages 
-      WHERE user_id=$1 AND current AND container_type='Keg' 
+      WHERE restaurant_id=$1 AND current AND container_type='Keg' 
       AND COALESCE(sale_status, 'Inactive')='Seasonal';`
 		title = "SEASONAL DRAFTS"
 	} else if bev_type == "staple draft" {
 		query = `
       SELECT id, product, brewery, abv FROM beverages 
-      WHERE user_id=$1 AND current AND container_type='Keg' 
+      WHERE restaurant_id=$1 AND current AND container_type='Keg' 
       AND COALESCE(sale_status, 'Inactive')='Staple';`
 		title = "STAPLE DRAFTS"
 	} else if bev_type == "bottled beer" {
 		query = `
       SELECT id, product, brewery, abv FROM beverages 
-      WHERE user_id=$1 AND current AND container_type='Bottle' AND alcohol_type IN ('Beer', 'Cider') 
+      WHERE restaurant_id=$1 AND current AND container_type='Bottle' AND alcohol_type IN ('Beer', 'Cider') 
       AND COALESCE(sale_status, 'Inactive')!='Inactive';`
 		title = "BOTTLED BEER"
 	} else if bev_type == "wine" {
 		query = `
       SELECT id, product, brewery, abv FROM beverages 
-      WHERE user_id=$1 AND current AND alcohol_type='Wine' 
+      WHERE restaurant_id=$1 AND current AND alcohol_type='Wine' 
       AND COALESCE(sale_status, 'Inactive')!='Inactive';`
 		title = "WINE"
 	} else if bev_type == "liquor" {
 		query = `
       SELECT id, product, brewery, abv FROM beverages 
-      WHERE user_id=$1 AND current AND alcohol_type='Liquor' 
+      WHERE restaurant_id=$1 AND current AND alcohol_type='Liquor' 
       AND COALESCE(sale_status, 'Inactive')!='Inactive';`
 		title = "LIQUOR"
 	} else if bev_type == "non alcoholic" {
 		query = `
       SELECT id, product, brewery, abv FROM beverages 
-      WHERE user_id=$1 AND current AND alcohol_type='Non Alcoholic' 
+      WHERE restaurant_id=$1 AND current AND alcohol_type='Non Alcoholic' 
       AND COALESCE(sale_status, 'Inactive')!='Inactive';`
 		title = "NON-ALCOHOLIC"
 	}
@@ -214,24 +220,21 @@ func createMenuBevHTML(bev_type string, w http.ResponseWriter, r *http.Request) 
 	return html_content
 }
 
-func createRestaurantMenuPage(restaurant_id string, w http.ResponseWriter, r *http.Request) {
+func createRestaurantMenuPage(restaurant_id string, w http.ResponseWriter, do_http bool) {
+
 	menu_dir := "./menu_pages/"
 	if os.MkdirAll(menu_dir, 0755) != nil {
-		if w != nil {
+		if do_http == true {
 			http.Error(w, "Unable to find or create menu_pages directory!", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	// when getting sales status, we always want to first set any seasonal
-	// bevs whose sale_end period has ended to inactive
-	inactivateExpiredSeasonals(w, test_user_id)
-
 	var restaurant string
 	err := db.QueryRow("SELECT name FROM restaurants WHERE id=$1;", restaurant_id).Scan(&restaurant)
 	if err != nil {
 		log.Println(err.Error())
-		if w != nil {
+		if do_http == true {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 		return
@@ -257,20 +260,22 @@ func createRestaurantMenuPage(restaurant_id string, w http.ResponseWriter, r *ht
 	// container_type=="Keg"
 
 	html_content := ""
-	html_content += createMenuBevHTML("seasonal draft", w, r)
-	html_content += createMenuBevHTML("staple draft", w, r)
-	html_content += createMenuBevHTML("bottled beer", w, r)
-	html_content += createMenuBevHTML("wine", w, r)
-	html_content += createMenuBevHTML("liquor", w, r)
-	html_content += createMenuBevHTML("non alcoholic", w, r)
+	html_content += createMenuBevHTML("seasonal draft", w)
+	html_content += createMenuBevHTML("staple draft", w)
+	html_content += createMenuBevHTML("bottled beer", w)
+	html_content += createMenuBevHTML("wine", w)
+	html_content += createMenuBevHTML("liquor", w)
+	html_content += createMenuBevHTML("non alcoholic", w)
 
 	page_content = bytes.Replace(page_content, []byte("[CONTENT]"), []byte(html_content), 1)
 
 	ioutil.WriteFile(filename, page_content, 0600)
 
-	if w != nil {
+	if do_http == true {
 		var export ExportFile
 		export.URL = filename[1:] // remove the . at the beginning
+
+		log.Println(export)
 
 		w.Header().Set("Content-Type", "application/json")
 		js, err := json.Marshal(export)
@@ -297,7 +302,7 @@ func invMenuCreateAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		createRestaurantMenuPage(test_restaurant_id, w, r)
+		createRestaurantMenuPage(test_restaurant_id, w, true)
 
 	}
 
@@ -310,10 +315,10 @@ func invMenuCountAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// when getting sales status, we always want to first set any seasonal
 		// bevs whose sale_end period has ended to inactive
-		inactivateExpiredSeasonals(w, test_user_id)
+		go inactivateExpiredSeasonals(w, test_restaurant_id)
 
 		var active_count ActiveMenuCount
-		err := db.QueryRow("SELECT COUNT (DISTINCT id) FROM beverages WHERE user_id=$1 AND current AND COALESCE(sale_status, 'Inactive')!='Inactive';", test_user_id).Scan(&active_count.Count)
+		err := db.QueryRow("SELECT COUNT (DISTINCT id) FROM beverages WHERE restaurant_id=$1 AND current AND COALESCE(sale_status, 'Inactive')!='Inactive';", test_restaurant_id).Scan(&active_count.Count)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -341,7 +346,7 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// when getting sales status, we always want to first set any seasonal
 		// bevs whose sale_end period has ended to inactive
-		inactivateExpiredSeasonals(w, test_user_id)
+		go inactivateExpiredSeasonals(w, test_restaurant_id)
 
 		sale_status := r.URL.Query().Get("sale_status")
 
@@ -349,8 +354,8 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
       SELECT id, version_id, product, container_type, serve_type, brewery, alcohol_type, 
       purchase_volume, purchase_unit, purchase_cost, purchase_count, 
       sale_status, sale_start, sale_end, par 
-      FROM beverages WHERE user_id=$1 AND current 
-      AND COALESCE(sale_status, 'Inactive')=$2;`, test_user_id, sale_status)
+      FROM beverages WHERE restaurant_id=$1 AND current 
+      AND COALESCE(sale_status, 'Inactive')=$2;`, test_restaurant_id, sale_status)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -438,7 +443,7 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		var exists bool
-		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE user_id=$1 AND id=$2);", test_user_id, bev.ID).Scan(&exists)
+		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, bev.ID).Scan(&exists)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -478,7 +483,7 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		createRestaurantMenuPage(test_restaurant_id, w, r)
+		createRestaurantMenuPage(test_restaurant_id, w, false)
 
 	default:
 		http.Error(w, "Invalid request", http.StatusBadRequest)

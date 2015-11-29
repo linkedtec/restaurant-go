@@ -17,7 +17,7 @@ import (
 
 type Delivery struct {
 	ID            int            `json:"id"`
-	UserID        int            `json:"user_id"`
+	RestaurantID  int            `json:"restaurant_id"`
 	DistributorID NullInt64      `json:"distributor_id"`
 	Distributor   NullString     `json:"distributor"`
 	DeliveryTime  time.Time      `json:"delivery_time"`
@@ -51,7 +51,7 @@ func setupDeliveriesHandlers() {
 	http.HandleFunc("/deliveries", deliveriesAPIHandler)
 }
 
-func createDeliveryXlsxFile(data []byte, sorted_keys []string, suffix string, user_id string, w http.ResponseWriter, r *http.Request, email string, args map[string]string) {
+func createDeliveryXlsxFile(data []byte, sorted_keys []string, suffix string, restaurant_id string, w http.ResponseWriter, r *http.Request, email string, args map[string]string) {
 
 	export_dir := "./export/"
 	if os.MkdirAll(export_dir, 0755) != nil {
@@ -61,7 +61,7 @@ func createDeliveryXlsxFile(data []byte, sorted_keys []string, suffix string, us
 
 	// create a hash from user id as the filename extension
 	h := fnv.New32a()
-	h.Write([]byte(test_user_id))
+	h.Write([]byte(restaurant_id))
 	hash := strconv.FormatUint(uint64(h.Sum32()), 10)
 	filename := export_dir + "history_" + suffix + hash + ".xlsx"
 	filename = strings.Replace(filename, " ", "_", -1)
@@ -250,9 +250,9 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
         FROM deliveries 
         LEFT OUTER JOIN distributors ON (distributors.id=deliveries.distributor_id) 
         WHERE deliveries.delivery_time BETWEEN $1 AND $2 
-          AND deliveries.user_id=$3 
+          AND deliveries.restaurant_id=$3 
         ORDER BY delivery_time DESC;`,
-			start_date, end_date, test_user_id)
+			start_date, end_date, test_restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -315,7 +315,7 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 			switch export {
 			case "xlsx":
 				log.Println("create xlsx")
-				createDeliveryXlsxFile(js, sorted_keys, "all_", test_user_id, w, r, email, extra_args)
+				createDeliveryXlsxFile(js, sorted_keys, "all_", test_restaurant_id, w, r, email, extra_args)
 			}
 		} else {
 			w.Header().Set("Content-Type", "application/json")
@@ -338,7 +338,7 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// check distributor id is valid if not null
 		if batch.DistributorID.Valid {
 			var exists bool
-			err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM distributors WHERE user_id=$1 AND id=$2);", test_user_id, batch.DistributorID).Scan(&exists)
+			err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM distributors WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, batch.DistributorID).Scan(&exists)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -351,7 +351,7 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		// first, insert delivery into deliveries
 		cur_time := time.Now().UTC()
-		_, err = db.Exec("INSERT INTO deliveries(user_id, distributor_id, delivery_time, update) VALUES ($1, $2, $3, $4);", test_user_id, batch.DistributorID, batch.DeliveryTime, cur_time)
+		_, err = db.Exec("INSERT INTO deliveries(restaurant_id, distributor_id, delivery_time, update) VALUES ($1, $2, $3, $4);", test_restaurant_id, batch.DistributorID, batch.DeliveryTime, cur_time)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -373,7 +373,7 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 			bev_id := bev.BeverageID
 			var exists bool
-			err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE user_id=$1 AND id=$2);", test_user_id, bev_id).Scan(&exists)
+			err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, bev_id).Scan(&exists)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -417,7 +417,7 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// first make sure the posted delivery_id belongs to the user
 		var exists bool
-		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM deliveries WHERE user_id=$1 AND id=$2);", test_user_id, dlv_update.Dlv.ID).Scan(&exists)
+		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM deliveries WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, dlv_update.Dlv.ID).Scan(&exists)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -488,7 +488,7 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 			for _, bev := range dlv_update.Dlv.DeliveryItems {
 				bev_id := bev.BeverageID
 				var exists bool
-				err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE user_id=$1 AND id=$2);", test_user_id, bev_id).Scan(&exists)
+				err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, bev_id).Scan(&exists)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -542,7 +542,7 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// First check that user is authenticated to delete this delivery id
 		var exists bool
-		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM deliveries WHERE user_id=$1 AND id=$2);", test_user_id, dlv_id).Scan(&exists)
+		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM deliveries WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, dlv_id).Scan(&exists)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)

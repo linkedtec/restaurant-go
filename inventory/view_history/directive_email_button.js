@@ -20,12 +20,12 @@ angular.module('myApp')
       scope.default_email_tmp = {email:""};
       scope.default_email_valid = false;
 
-      var test_user_id = 1;
+      var test_restaurant_id = 1;
 
       scope.getDefaultEmail = function() {
         $http.get('/users/inv_email', {
           params: {
-            user_id: test_user_id
+            restaurant_id: test_restaurant_id
           }
         }).
         success(function(data, status, headers, config) {
@@ -60,9 +60,9 @@ angular.module('myApp')
           return;
         }
 
-        var test_user_id = 1;
+        var test_restaurant_id = 1;
         $http.post('/users/inv_email', {
-            user_id: test_user_id,
+            restaurant_id: test_restaurant_id,
             email: scope.default_email_tmp.email
           }).
           success(function(data, status, headers, config) {

@@ -60,6 +60,11 @@ type DistributorOrder struct {
 	AdditionalNotes             NullString `json:"additional_notes"`
 }
 
+type PO_SMS struct {
+	DistributorEmail string `json:"distributor_email"`
+	Content          string `json:"content"`
+}
+
 func setupPurchaseOrderHandlers() {
 	http.HandleFunc("/purchase", purchaseOrderAPIHandler)
 	http.HandleFunc("/purchase/all", purchaseOrderAllAPIHandler)
@@ -67,6 +72,75 @@ func setupPurchaseOrderHandlers() {
 }
 
 func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order PurchaseOrder, delivery_address RestaurantAddress, do_send bool, w http.ResponseWriter, r *http.Request) {
+	// just need to construct a JSON list of distributor order strings and return
+
+	var restaurant Restaurant
+	err := db.QueryRow("SELECT name FROM restaurants WHERE id=$1;", restaurant_id).Scan(&restaurant.Name)
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var po_texts []PO_SMS
+	for _, dorder := range purchase_order.DistributorOrders {
+
+		var po_text PO_SMS
+		po_text.DistributorEmail = dorder.DistributorEmail
+
+		sms_str := "Automated PO; DO NOT REPLY\n\n"
+		sms_str += "Need by " + dorder.DeliveryDate + ":\n\n"
+
+		for i, item := range dorder.Items {
+
+			log.Println(item)
+			var bev Beverage
+			err := db.QueryRow("SELECT id, version_id, product, purchase_count, container_type FROM beverages WHERE restaurant_id=$1 AND id=$2;", restaurant_id, item.BeverageID).Scan(
+				&bev.ID,
+				&bev.VersionID,
+				&bev.Product,
+				&bev.PurchaseCount,
+				&bev.ContainerType)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+			unit_str := bev.ContainerType
+			if bev.PurchaseCount > 1 {
+				unit_str = "case"
+			}
+			sms_str += fmt.Sprintf("%d - %s %s\n", int(item.Quantity), unit_str, bev.Product)
+		}
+
+		sms_str += purchase_order.Order.PurchaseContact + "\n"
+		sms_str += restaurant.Name.String + "\n"
+
+		if purchase_order.Order.PurchasePhone.Valid == true {
+			sms_str += purchase_order.Order.PurchasePhone.String + "\n"
+		} else {
+			sms_str += purchase_order.Order.PurchaseEmail.String
+		}
+
+		po_text.Content = sms_str
+
+		if do_send == true {
+			// send the SMS via twilio
+		} else {
+			po_texts = append(po_texts, po_text)
+		}
+	}
+
+	// if do_send is false, return a JSON with the po_texts so user can review
+	// them on the client
+	if do_send == false {
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(&po_texts)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+	}
 
 }
 
@@ -85,9 +159,9 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 		return
 	}
 
-	// create a hash from user id as the filename extension
+	// create a hash from restaurant id as the filename extension
 	h := fnv.New32a()
-	h.Write([]byte(test_user_id))
+	h.Write([]byte(restaurant_id))
 	hash := strconv.FormatUint(uint64(h.Sum32()), 10)
 	filename := export_dir + "purch_" + hash
 	filename = strings.Replace(filename, " ", "_", -1)
@@ -239,7 +313,7 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 
 			log.Println(item)
 			var bev Beverage
-			err := db.QueryRow("SELECT id, version_id, product, brewery, container_type, purchase_volume, purchase_unit, purchase_count FROM beverages WHERE user_id=$1 AND id=$2;", test_user_id, item.BeverageID).Scan(
+			err := db.QueryRow("SELECT id, version_id, product, brewery, container_type, purchase_volume, purchase_unit, purchase_count FROM beverages WHERE restaurant_id=$1 AND id=$2;", restaurant_id, item.BeverageID).Scan(
 				&bev.ID,
 				&bev.VersionID,
 				&bev.Product,
@@ -399,8 +473,8 @@ func purchaseOrderAutoAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// get all beverages for restaurant whose sale_status not Inactive or NULL
 		rows, err := db.Query(`
-			SELECT id, version_id, distributor_id FROM beverages WHERE user_id=$1 AND sale_status IS NOT NULL AND sale_status!='Inactive';`,
-			test_user_id)
+			SELECT id, version_id, distributor_id FROM beverages WHERE restaurant_id=$1 AND sale_status IS NOT NULL AND sale_status!='Inactive';`,
+			test_restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -118,7 +118,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// when getting sales status, we always want to first set any seasonal
 		// bevs whose sale_end period has ended to inactive
-		inactivateExpiredSeasonals(w, test_user_id)
+		go inactivateExpiredSeasonals(w, test_restaurant_id)
 
 		get_type := r.URL.Query().Get("type")
 		// if type is "names", only return the names, ids, and container types
@@ -129,9 +129,9 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		var beverages []Beverage
 		var beverages_light []BeverageLight
 
-		query := "SELECT id, version_id, container_type, serve_type, distributor_id, keg_id, product, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, purchase_count, flavor_profile, sale_status, sale_start, sale_end, par FROM beverages WHERE user_id=" + test_user_id + " AND current"
+		query := "SELECT id, version_id, container_type, serve_type, distributor_id, keg_id, product, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, purchase_count, flavor_profile, sale_status, sale_start, sale_end, par FROM beverages WHERE restaurant_id=" + test_restaurant_id + " AND current"
 		if names_only {
-			query = "SELECT id, version_id, container_type, product FROM beverages WHERE user_id=" + test_user_id + " AND current"
+			query = "SELECT id, version_id, container_type, product FROM beverages WHERE restaurant_id=" + test_restaurant_id + " AND current"
 		}
 		// this is a hackery to prevent injection attacks
 		if len(container_type) != 0 && len(container_type) < 8 {
@@ -336,8 +336,8 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Println(bev)
 		cur_time := time.Now().UTC()
-		_, err = db.Exec("INSERT INTO beverages(product, container_type, serve_type, distributor_id, keg_id, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, purchase_count, flavor_profile, user_id, start_date, current, sale_status, sale_start, sale_end, par) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, TRUE, $16, $17, $18, $19);",
-			bev.Product, bev.ContainerType, bev.ServeType, bev.DistributorID, bev.KegID, bev.Brewery, bev.AlcoholType, bev.ABV, bev.PurchaseVolume, bev.PurchaseUnit, bev.PurchaseCost, bev.PurchaseCount, bev.FlavorProfile, test_user_id, cur_time, bev.SaleStatus, bev.SaleStart, bev.SaleEnd, bev.Par)
+		_, err = db.Exec("INSERT INTO beverages(product, container_type, serve_type, distributor_id, keg_id, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, purchase_count, flavor_profile, restaurant_id, start_date, current, sale_status, sale_start, sale_end, par) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, TRUE, $16, $17, $18, $19);",
+			bev.Product, bev.ContainerType, bev.ServeType, bev.DistributorID, bev.KegID, bev.Brewery, bev.AlcoholType, bev.ABV, bev.PurchaseVolume, bev.PurchaseUnit, bev.PurchaseCost, bev.PurchaseCount, bev.FlavorProfile, test_restaurant_id, cur_time, bev.SaleStatus, bev.SaleStart, bev.SaleEnd, bev.Par)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -410,7 +410,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// first verify this beverage belongs to the user
 		var exists bool
-		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE user_id=$1 AND id=$2);", test_user_id, bev_update.Bev.ID).Scan(&exists)
+		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, bev_update.Bev.ID).Scan(&exists)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -661,7 +661,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
-			createRestaurantMenuPage(test_restaurant_id, w, r)
+			createRestaurantMenuPage(test_restaurant_id, w, false)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -688,7 +688,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		//   delete all beverages with version_id
 
 		var version_id int
-		err := db.QueryRow("SELECT version_id FROM beverages WHERE user_id=$1 AND id=$2;", test_user_id, bev_id).Scan(&version_id)
+		err := db.QueryRow("SELECT version_id FROM beverages WHERE restaurant_id=$1 AND id=$2;", test_restaurant_id, bev_id).Scan(&version_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -784,8 +784,8 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		var locations []Location
 
-		log.Println(test_user_id)
-		rows, err := db.Query("SELECT id, name, last_update FROM locations WHERE user_id=$1 AND type=$2 AND active ORDER BY id;", test_user_id, loc_type)
+		log.Println(test_restaurant_id)
+		rows, err := db.Query("SELECT id, name, last_update FROM locations WHERE restaurant_id=$1 AND type=$2 AND active ORDER BY id;", test_restaurant_id, loc_type)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -818,7 +818,7 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = db.Exec("INSERT INTO locations(name, last_update, user_id, type, active) VALUES ($1, $2, $3, $4, TRUE);", newLoc.Name, time.Time{}, test_user_id, newLoc.Type)
+		_, err = db.Exec("INSERT INTO locations(name, last_update, restaurant_id, type, active) VALUES ($1, $2, $3, $4, TRUE);", newLoc.Name, time.Time{}, test_restaurant_id, newLoc.Type)
 		if err != nil {
 			log.Println(err.Error())
 		}
@@ -834,7 +834,7 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Verify Location exists or quit
 		var loc_id int
-		err = db.QueryRow("SELECT id FROM locations WHERE user_id=$1 AND name=$2 AND type=$3;", test_user_id, rename.Name, rename.Type).Scan(&loc_id)
+		err = db.QueryRow("SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type=$3;", test_restaurant_id, rename.Name, rename.Type).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
 			log.Println(err.Error())
@@ -856,7 +856,7 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Verify Location exists or quit
 		var loc_id int
-		err := db.QueryRow("SELECT id FROM locations WHERE user_id=$1 AND name=$2 AND type=$3;", test_user_id, loc_name, loc_type).Scan(&loc_id)
+		err := db.QueryRow("SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type=$3;", test_restaurant_id, loc_name, loc_type).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -922,7 +922,7 @@ func menuPagesAPIHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "menu_pages/"+filename)
 }
 
-func createXlsxFile(data []byte, sorted_keys []string, history_type string, suffix string, user_id string, w http.ResponseWriter, r *http.Request, email string, args map[string]string) {
+func createXlsxFile(data []byte, sorted_keys []string, history_type string, suffix string, restaurant_id string, w http.ResponseWriter, r *http.Request, email string, args map[string]string) {
 
 	export_dir := "./export/"
 	if os.MkdirAll(export_dir, 0755) != nil {
@@ -932,7 +932,7 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 
 	// create a hash from user id as the filename extension
 	h := fnv.New32a()
-	h.Write([]byte(test_user_id))
+	h.Write([]byte(restaurant_id))
 	hash := strconv.FormatUint(uint64(h.Sum32()), 10)
 	filename := export_dir + "history_" + suffix + hash + ".xlsx"
 	filename = strings.Replace(filename, " ", "_", -1)
@@ -1300,9 +1300,9 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				SELECT SUM(COALESCE(location_beverages.inventory,0)), (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
 				FROM location_beverages, locations 
 				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3
-					AND locations.id=location_beverages.location_id AND locations.user_id=$4
+					AND locations.id=location_beverages.location_id AND locations.restaurant_id=$4
 				GROUP BY local_update ORDER BY local_update;`,
-				tz_offset, start_date, end_date, test_user_id)
+				tz_offset, start_date, end_date, test_restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1338,9 +1338,9 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			loc_rows, err := db.Query(`
 				SELECT DISTINCT locations.id, locations.name 
 				FROM location_beverages, locations 
-				WHERE locations.user_id=$1 
+				WHERE locations.restaurant_id=$1 
 					AND location_beverages.location_id=locations.id 
-					AND locations.type!='tap';`, test_user_id)
+					AND locations.type!='tap';`, test_restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1402,9 +1402,9 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				FROM locations, location_beverages 
 				WHERE locations.type='tap' AND location_beverages.location_id=locations.id 
 					AND location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
-					AND locations.user_id=$4 
+					AND locations.restaurant_id=$4 
 				GROUP BY local_update ORDER BY local_update;`,
-				tz_offset, start_date, end_date, test_user_id)
+				tz_offset, start_date, end_date, test_restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1442,10 +1442,10 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 			type_rows, err := db.Query(`
 				SELECT DISTINCT beverages.alcohol_type FROM beverages, location_beverages, locations 
 				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $1 AND $2 
-					AND locations.id=location_beverages.location_id AND locations.user_id=$3 
+					AND locations.id=location_beverages.location_id AND locations.restaurant_id=$3 
 					AND beverages.id=location_beverages.beverage_id AND location_beverages.type='bev' 
 				ORDER BY beverages.alcohol_type ASC;`,
-				start_date, end_date, test_user_id)
+				start_date, end_date, test_restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1567,11 +1567,11 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						SELECT DISTINCT (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
 						FROM location_beverages, locations 
 						WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
-							AND locations.id=location_beverages.location_id AND locations.user_id=$4 
+							AND locations.id=location_beverages.location_id AND locations.restaurant_id=$4 
 							AND location_beverages.type='bev' 
 							AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$5) 
 						ORDER BY local_update DESC;`,
-						tz_offset, start_date, end_date, test_user_id, id)
+						tz_offset, start_date, end_date, test_restaurant_id, id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1624,10 +1624,10 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
 								AND location_beverages.beverage_id=beverages.id 
 								AND location_beverages.location_id=locations.id 
-								AND locations.user_id=$3 AND location_beverages.type='bev' 
+								AND locations.restaurant_id=$3 AND location_beverages.type='bev' 
 								AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$4) 
 							GROUP BY beverages.id ORDER BY beverages.product ASC;`,
-							tz_offset, a_date, test_user_id, id)
+							tz_offset, a_date, test_restaurant_id, id)
 						if err != nil {
 							log.Println(err.Error())
 							http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1666,7 +1666,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				switch export {
 				case "xlsx":
 					log.Println("create xlsx")
-					createXlsxFile(js, sorted_keys, "all_itemized", "items_", test_user_id, w, r, email, extra_args)
+					createXlsxFile(js, sorted_keys, "all_itemized", "items_", test_restaurant_id, w, r, email, extra_args)
 				}
 
 			} else {
@@ -1700,9 +1700,9 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							AND location_beverages.type='bev' 
 							AND location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
 							AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$4) 
-							AND locations.user_id=$5 
+							AND locations.restaurant_id=$5 
 						GROUP BY beverages.id, local_update ORDER BY local_update DESC;`,
-						tz_offset, start_date, end_date, item_id, test_user_id)
+						tz_offset, start_date, end_date, item_id, test_restaurant_id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1754,9 +1754,9 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				FROM location_beverages, locations 
 				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
 					AND locations.id=location_beverages.location_id 
-					AND locations.user_id=$4 
+					AND locations.restaurant_id=$4 
 				ORDER BY local_update DESC;`,
-				tz_offset, start_date, end_date, test_user_id)
+				tz_offset, start_date, end_date, test_restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1793,8 +1793,8 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
 					AND location_beverages.beverage_id=beverages.id 
 					AND location_beverages.location_id=locations.id 
-					AND locations.user_id=$3 AND location_beverages.type='bev' 
-				GROUP BY beverages.id ORDER BY beverages.product ASC;`, tz_offset, a_date, test_user_id)
+					AND locations.restaurant_id=$3 AND location_beverages.type='bev' 
+				GROUP BY beverages.id ORDER BY beverages.product ASC;`, tz_offset, a_date, test_restaurant_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1834,8 +1834,8 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					location_beverages.beverage_id=kegs.id 
 						AND kegs.distributor_id=distributors.id 
 						AND location_beverages.location_id=locations.id 
-						AND locations.user_id=$3 AND location_beverages.type='keg' 
-					GROUP BY kegs.id,distributors.name ORDER BY distributors.name ASC;`, tz_offset, a_date, test_user_id)
+						AND locations.restaurant_id=$3 AND location_beverages.type='keg' 
+					GROUP BY kegs.id,distributors.name ORDER BY distributors.name ASC;`, tz_offset, a_date, test_restaurant_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1878,7 +1878,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				switch export {
 				case "xlsx":
 					log.Println("create xlsx")
-					createXlsxFile(js, sorted_keys, history_type, "all_", test_user_id, w, r, email, extra_args)
+					createXlsxFile(js, sorted_keys, history_type, "all_", test_restaurant_id, w, r, email, extra_args)
 				}
 			} else {
 				w.Header().Set("Content-Type", "application/json")
@@ -1906,9 +1906,9 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				SELECT DISTINCT (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
 				FROM location_beverages, locations 
 				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
-					AND locations.id=location_beverages.location_id AND locations.user_id=$4 
+					AND locations.id=location_beverages.location_id AND locations.restaurant_id=$4 
 				ORDER BY local_update DESC;`,
-				tz_offset, start_date, end_date, test_user_id)
+				tz_offset, start_date, end_date, test_restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1936,9 +1936,9 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				rows, err = db.Query(`
 					SELECT DISTINCT location_beverages.location_id FROM location_beverages, locations 
 					WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
-						AND locations.id=location_beverages.location_id AND locations.user_id=$3 
+						AND locations.id=location_beverages.location_id AND locations.restaurant_id=$3 
 						AND locations.type!='tap' 
-					ORDER BY location_beverages.location_id ASC;`, tz_offset, a_date, test_user_id)
+					ORDER BY location_beverages.location_id ASC;`, tz_offset, a_date, test_restaurant_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2058,9 +2058,9 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
 						AND location_beverages.beverage_id=beverages.id 
 						AND location_beverages.location_id=locations.id 
-						AND locations.user_id=$3 AND locations.type='tap' 
+						AND locations.restaurant_id=$3 AND locations.type='tap' 
 					GROUP BY beverages.id, location_beverages.inventory, location_beverages.wholesale, location_beverages.deposit  
-					ORDER BY beverages.product ASC;`, tz_offset, a_date, test_user_id)
+					ORDER BY beverages.product ASC;`, tz_offset, a_date, test_restaurant_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2101,7 +2101,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				switch export {
 				case "xlsx":
 					log.Println("create xlsx")
-					createXlsxFile(js, sorted_keys, history_type, "loc_", test_user_id, w, r, email, extra_args)
+					createXlsxFile(js, sorted_keys, history_type, "loc_", test_restaurant_id, w, r, email, extra_args)
 				}
 			} else {
 				w.Header().Set("Content-Type", "application/json")
@@ -2123,9 +2123,9 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				SELECT DISTINCT (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update 
 				FROM location_beverages, locations 
 				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
-					AND locations.id=location_beverages.location_id AND locations.user_id=$4 
+					AND locations.id=location_beverages.location_id AND locations.restaurant_id=$4 
 				ORDER BY local_update DESC;`,
-				tz_offset, start_date, end_date, test_user_id)
+				tz_offset, start_date, end_date, test_restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2153,9 +2153,9 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					SELECT DISTINCT beverages.alcohol_type FROM beverages, location_beverages, locations 
 					WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
 						AND locations.id=location_beverages.location_id 
-						AND locations.user_id=$3 AND beverages.id=location_beverages.beverage_id 
+						AND locations.restaurant_id=$3 AND beverages.id=location_beverages.beverage_id 
 						AND location_beverages.type='bev' 
-					ORDER BY beverages.alcohol_type ASC;`, tz_offset, a_date, test_user_id)
+					ORDER BY beverages.alcohol_type ASC;`, tz_offset, a_date, test_restaurant_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2187,9 +2187,9 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
 							AND location_beverages.beverage_id=beverages.id 
 							AND location_beverages.location_id=locations.id 
-							AND beverages.alcohol_type=$3 AND locations.user_id=$4 
+							AND beverages.alcohol_type=$3 AND locations.restaurant_id=$4 
 							AND location_beverages.type='bev' 
-						GROUP BY beverages.id ORDER BY beverages.product ASC;`, tz_offset, a_date, type_name, test_user_id)
+						GROUP BY beverages.id ORDER BY beverages.product ASC;`, tz_offset, a_date, type_name, test_restaurant_id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2244,11 +2244,11 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						FROM kegs, distributors, location_beverages, locations 
 						WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
 							AND location_beverages.location_id=locations.id 
-							AND locations.user_id=$3 AND location_beverages.type='keg' 
+							AND locations.restaurant_id=$3 AND location_beverages.type='keg' 
 							AND location_beverages.beverage_id=kegs.id 
 							AND kegs.distributor_id=distributors.id 
 						GROUP BY kegs.id, distributors.name 
-						ORDER BY distributors.name;`, tz_offset, a_date, test_user_id)
+						ORDER BY distributors.name;`, tz_offset, a_date, test_restaurant_id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2291,7 +2291,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				switch export {
 				case "xlsx":
 					log.Println("create xlsx")
-					createXlsxFile(js, sorted_keys, history_type, "type_", test_user_id, w, r, email, extra_args)
+					createXlsxFile(js, sorted_keys, history_type, "type_", test_restaurant_id, w, r, email, extra_args)
 				}
 			} else {
 				w.Header().Set("Content-Type", "application/json")
@@ -2322,7 +2322,7 @@ func invLocNewAPIHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(batch)
 		// check location exists
 		var loc_id int
-		err = db.QueryRow("SELECT id FROM locations WHERE user_id=$1 AND name=$2 AND type=$3;", test_user_id, batch.Location, batch.Type).Scan(&loc_id)
+		err = db.QueryRow("SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type=$3;", test_restaurant_id, batch.Location, batch.Type).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2417,9 +2417,9 @@ func invLocNewAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// check that the item id exists
 			var exists bool
 			if anItem.Type == "bev" {
-				err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM beverages WHERE user_id=$1 AND id=$2);", test_user_id, anItem.ID).Scan(&exists)
+				err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, anItem.ID).Scan(&exists)
 			} else { //keg
-				err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM kegs INNER JOIN distributors ON (distributors.id=kegs.distributor_id) WHERE kegs.id=$1 AND distributors.user_id=$2);", anItem.ID, test_user_id).Scan(&exists)
+				err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM kegs INNER JOIN distributors ON (distributors.id=kegs.distributor_id) WHERE kegs.id=$1 AND distributors.restaurant_id=$2);", anItem.ID, test_restaurant_id).Scan(&exists)
 			}
 			if err != nil {
 				log.Println(err.Error())
@@ -2560,7 +2560,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Verify Location exists or quit
 		var loc_id int
-		err := db.QueryRow("SELECT id FROM locations WHERE user_id=$1 AND name=$2 AND type=$3;", test_user_id, loc_name, loc_type).Scan(&loc_id)
+		err := db.QueryRow("SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type=$3;", test_restaurant_id, loc_name, loc_type).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2747,7 +2747,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// Note that locations are either 'bev' or 'tap', and kegs are stored in
 		// 'bev' type locations.  This is not to be confused with locBev.Type,
 		// which is beverage type of 'bev' or 'keg'.
-		err = db.QueryRow("SELECT id FROM locations WHERE user_id=$1 AND name=$2 AND type='bev';", test_user_id, locBev.Location).Scan(&loc_id)
+		err = db.QueryRow("SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type='bev';", test_restaurant_id, locBev.Location).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
 			log.Println(err.Error())
@@ -2767,9 +2767,9 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("About the check if exists by checking version id")
 		var version_id int
 		if locBev.Type == "bev" {
-			err = db.QueryRow("SELECT version_id FROM beverages WHERE user_id=$1 AND id=$2;", test_user_id, locBev.ID).Scan(&version_id)
+			err = db.QueryRow("SELECT version_id FROM beverages WHERE restaurant_id=$1 AND id=$2;", test_restaurant_id, locBev.ID).Scan(&version_id)
 		} else { // keg
-			err = db.QueryRow("SELECT kegs.version_id FROM kegs INNER JOIN distributors ON (distributors.id=kegs.distributor_id) WHERE kegs.id=$1 AND distributors.user_id=$2;", locBev.ID, test_user_id).Scan(&version_id)
+			err = db.QueryRow("SELECT kegs.version_id FROM kegs INNER JOIN distributors ON (distributors.id=kegs.distributor_id) WHERE kegs.id=$1 AND distributors.restaurant_id=$2;", locBev.ID, test_restaurant_id).Scan(&version_id)
 		}
 		if err != nil {
 			log.Println(err.Error())
@@ -2862,7 +2862,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(batch)
 		// check location exists
 		var loc_id int
-		err = db.QueryRow("SELECT id FROM locations WHERE user_id=$1 AND name=$2 AND type=$3;", test_user_id, batch.Location, batch.Type).Scan(&loc_id)
+		err = db.QueryRow("SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type=$3;", test_restaurant_id, batch.Location, batch.Type).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2964,9 +2964,9 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// check that the item id exists
 			var exists bool
 			if anItem.Type == "bev" {
-				err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM beverages WHERE user_id=$1 AND id=$2);", test_user_id, anItem.ID).Scan(&exists)
+				err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, anItem.ID).Scan(&exists)
 			} else { //keg
-				err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM kegs INNER JOIN distributors ON (distributors.id=kegs.distributor_id) WHERE kegs.id=$1 AND distributors.user_id=$2);", anItem.ID, test_user_id).Scan(&exists)
+				err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM kegs INNER JOIN distributors ON (distributors.id=kegs.distributor_id) WHERE kegs.id=$1 AND distributors.restaurant_id=$2);", anItem.ID, test_restaurant_id).Scan(&exists)
 			}
 			if err != nil {
 				log.Println(err.Error())
@@ -3099,7 +3099,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Verify Location exists or quit
 		var loc_id int
-		err := db.QueryRow("SELECT id FROM locations WHERE user_id=$1 AND name=$2 AND type='bev';", test_user_id, loc_name).Scan(&loc_id)
+		err := db.QueryRow("SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type='bev';", test_restaurant_id, loc_name).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -3109,9 +3109,9 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// Verify beverage exists or quit
 		var existing_item_id int
 		if item_type == "bev" {
-			err = db.QueryRow("SELECT id FROM beverages WHERE user_id=$1 AND id=$2;", test_user_id, item_id).Scan(&existing_item_id)
+			err = db.QueryRow("SELECT id FROM beverages WHERE restaurant_id=$1 AND id=$2;", test_restaurant_id, item_id).Scan(&existing_item_id)
 		} else { //keg
-			err = db.QueryRow("SELECT kegs.id FROM kegs INNER JOIN distributors ON (distributors.id=kegs.distributor_id) WHERE kegs.id=$1 AND distributors.user_id=$2;", item_id, test_user_id).Scan(&existing_item_id)
+			err = db.QueryRow("SELECT kegs.id FROM kegs INNER JOIN distributors ON (distributors.id=kegs.distributor_id) WHERE kegs.id=$1 AND distributors.restaurant_id=$2;", item_id, test_restaurant_id).Scan(&existing_item_id)
 		}
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
