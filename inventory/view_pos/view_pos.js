@@ -14,7 +14,9 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
   // showMode shows the different stages of the purchase order process,
   // 0 being the "choose automatic vs manual"
-  // 1 being actually filling out the purchase order forms
+  // 1 being the "choose delivery date"
+  // 2 being email / sms / save & don't send
+  // 3 being actually filling out the purchase order forms
   $scope.showMode = 0;
   $scope.useMode = null;
 
@@ -31,6 +33,8 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
   $scope.order['purchase_fax'] = null;
   $scope.showPurchaseSave = false;
   $scope.defaultContactChecked = true;
+  // the global delivery date which will be applied to dorders at start
+  $scope.order['delivery_date'] = null;
   $scope.order['dist_orders'] = [];
   $scope.order['order_date'] = new Date();
   $scope.order['order_date_pretty'] = DateService.getPrettyDate((new Date()).toString(), false, true);
@@ -41,6 +45,8 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
   $scope.form_ver = {};
   $scope.new_failure_msg = null;
+
+  $scope.note_char_limit = 140;
 
   $scope.showAutoHelp = function($event) {
     $event.preventDefault();
@@ -138,22 +144,43 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
   $scope.selectSendMethod = function(method_i, change_show) {
     $scope.order['send_method'] = $scope.send_methods[method_i];
 
+    // if text only, have a shorter comment char limit
+    if (method_i == 1) {
+      $scope.note_char_limit = 64;
+    } else {
+      $scope.note_char_limit = 140;
+    }
+
+    // enforce note character limit
+    for (var j in $scope.order.dist_orders) {
+      var dorder = $scope.order.dist_orders[j];
+      console.log(dorder['additional_notes']);
+      if (dorder['additional_notes'] !== null && dorder['additional_notes'].length > $scope.note_char_limit) {
+        console.log('TRUNCATe');
+        dorder['additional_notes'] = dorder['additional_notes'].substring(0, $scope.note_char_limit);
+      }
+    }
+
     if (change_show===true) {
-      $scope.setShowMode(2, $scope.useMode);
+      $scope.setShowMode(3, $scope.useMode);
     }
   }
 
   $scope.setShowMode = function(mode, use_mode) {
     $scope.showMode = mode;
 
-    $scope.useMode = use_mode;
+    if (use_mode !== null) {
+      $scope.useMode = use_mode;
+    }
 
-    if (use_mode === 'manual') {
+    if (use_mode === 'manual' && mode===3) {
       $scope.initManualForm();
     }
   };
 
   $scope.cancelPurchaseOrder = function(force) {
+
+    $scope.order['delivery_date'] = null;
 
     var queryCancel = false;
     for (var i in $scope.order['dist_orders']) {
@@ -166,7 +193,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     if (queryCancel === true && force!==true) {
       swal({
           title: "Discard Purchase Order?",
-          text: "Candeling this Purchase Order will discard any changes you've made.  Are you sure?",
+          text: "Discarding this Purchase Order will lose any changes you've made.  Are you sure?",
           type: "warning",
           showCancelButton: true,
           html: true,
@@ -181,6 +208,14 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       $scope.setShowMode(0, null);
     }
     
+  };
+
+  $scope.confirmDeliveryDate = function() {
+    if (!DateService.isValidDate($scope.order['delivery_date'])) {
+      return;
+    }
+
+    $scope.setShowMode(2, null);
   };
 
   $scope.orderDateChanged = function() {
@@ -379,6 +414,8 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     dist_order['addable_items'] = JSON.parse(JSON.stringify($scope.all_bevs));
     dist_order['items'] = [];
 
+    dist_order['delivery_date'] = $scope.order['delivery_date'];
+
     $scope.refreshSelectableDistributors();
   };
 
@@ -473,7 +510,10 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       backdropClass: 'white-modal-backdrop',
       backdrop : 'static',
       resolve: {
-        pdf_url: function() {
+        content_type: function() {
+          return "pdf";
+        },
+        review_obj: function() {
           return pdf_url;
         },
         post_order: function() {
@@ -522,12 +562,129 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       });
   };
 
-  $scope.reviewSMSPurchaseOrders = function(sms_url, post_order) {
+  $scope.reviewSMSPurchaseOrders = function(sms_obj, post_order) {
+    // sms_obj is an array of objects:
+    // [{content, distributor_phone}, {content, distributor_phone}]
+    var modalEditInstance = $modal.open({
+      templateUrl: 'reviewPurchaseOrderModal.html',
+      controller: 'reviewPurchaseOrderModalCtrl',
+      windowClass: 'review-purch-modal',
+      backdropClass: 'white-modal-backdrop',
+      backdrop : 'static',
+      resolve: {
+        content_type: function() {
+          return "sms";
+        },
+        review_obj: function() {
+          return sms_obj;
+        },
+        post_order: function() {
+          return post_order;
+        },
+        read_only: function() {
+          return false;
+        }
+      }
+    });
 
+    modalEditInstance.result.then(
+      // success status
+      function( result ) {
+        // result is a list, first item is string for status, e.g.,
+        // 'save' or 'delete'
+        // second item is the affected beverage
+        var status = result[0];
+        
+        // after a save, we want to show a success dialogue with an optional
+        // CC email address
+        if (status === 'save') {
+          swal({
+            title: "Purchase Orders Sent!",
+            text: "Your Purchase Order(s) were sent to your Distributors!  You can view past orders in the Purchase History page.",
+            type: "success",
+            allowOutsideClick: true,
+            html: true});
+
+          // cancel purchase order with force=true to clear the form
+          $scope.cancelPurchaseOrder(true);
+
+        } else if (status === 'error') {
+          swal({
+            title: "Error Encountered!",
+            text: "There was an error sending your Purchase Orders, please try again later.",
+            type: "error",
+            allowOutsideClick: true,
+            html: true});
+        }
+
+      }, 
+      // error status
+      function() {
+        ;
+      });
   };
 
-  $scope.reviewNoSendLocal = function(post_order) {
 
+  $scope.reviewSaveOnlyPurchaseOrder = function(po_obj, post_order) {
+    // po_obj is a JSON object holding the po info we need to construct
+    // an HTML template form of the purchase order for review
+    var modalEditInstance = $modal.open({
+      templateUrl: 'reviewPurchaseOrderModal.html',
+      controller: 'reviewPurchaseOrderModalCtrl',
+      windowClass: 'review-purch-modal',
+      backdropClass: 'white-modal-backdrop',
+      backdrop : 'static',
+      resolve: {
+        content_type: function() {
+          return "html";
+        },
+        review_obj: function() {
+          return po_obj;
+        },
+        post_order: function() {
+          return post_order;
+        },
+        read_only: function() {
+          return false;
+        }
+      }
+    });
+
+    modalEditInstance.result.then(
+      // success status
+      function( result ) {
+        // result is a list, first item is string for status, e.g.,
+        // 'save' or 'delete'
+        // second item is the affected beverage
+        var status = result[0];
+        
+        // after a save, we want to show a success dialogue with an optional
+        // CC email address
+        if (status === 'save') {
+          swal({
+            title: "Purchase Orders Saved!",
+            text: "Your Purchase Order(s) was saved in our records!  You can view past orders in the Purchase History page.",
+            type: "success",
+            allowOutsideClick: true,
+            html: true});
+
+          // cancel purchase order with force=true to clear the form
+          $scope.cancelPurchaseOrder(true);
+
+        } else if (status === 'error') {
+          swal({
+            title: "Error Encountered!",
+            text: "There was an error saving your Purchase Orders, please try again later.",
+            type: "error",
+            allowOutsideClick: true,
+            html: true});
+        }
+
+      }, 
+      // error status
+      function() {
+        ;
+      });
   };
 
   $scope.reviewAndSave = function() {
@@ -564,9 +721,13 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       all_clear = false;
     }
 
-    var addressValid = $scope.deliveryAddressControl.validateAddress();
-    if (addressValid !== true) {
-      all_clear = false;
+    // only email option has delivery address, so only need to validate for that
+    // send_method
+    if ($scope.send_method === $scope.send_methods[0]) {
+      var addressValid = $scope.deliveryAddressControl.validateAddress();
+      if (addressValid !== true) {
+        all_clear = false;
+      }
     }
 
     // =========================================================================
@@ -676,12 +837,16 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     $scope.post_order['order']['purchase_fax'] = $scope.order['purchase_fax_edit'];
     // should server save posted purchase info as default?
     $scope.post_order['order']['purchase_save_default'] = ($scope.showPurchaseSave===true && $scope.defaultContactChecked===true);
-    $scope.post_order['order']['delivery_address_type'] = $scope.deliveryAddressControl.getChosenAddressType();
+    if ($scope.order['send_method'] === $scope.send_methods[0]) {
+      $scope.post_order['order']['delivery_address_type'] = $scope.deliveryAddressControl.getChosenAddressType();
+    }
     $scope.post_order['order']['send_method'] = null;
     if ($scope.order['send_method']===$scope.send_methods[0]) {
       $scope.post_order['order']['send_method'] = 'email';
     } else if ($scope.order['send_method']===$scope.send_methods[1]) {
       $scope.post_order['order']['send_method'] = 'text';
+    } else {
+      $scope.post_order['order']['send_method'] = 'save';
     }
     // Distributor Orders ------------------------------------------------------
     $scope.post_order['dist_orders'] = [];
@@ -721,49 +886,70 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
     console.log($scope.post_order);
 
-    if ($scope.order['send_method']===$scope.send_methods[2]) {
-      $scope.reviewNoSendLocal($scope.post_order);
-    } else {
-      $http.post('/purchase', {
-        order: $scope.post_order['order'],
-        distributor_orders: $scope.post_order['dist_orders'],
-        do_send: false // we just want documents back for review, not to commit sending yet
-      }).
-      success(function(data, status, headers, config) {
-        console.log(data);
+    $http.post('/purchase', {
+      order: $scope.post_order['order'],
+      distributor_orders: $scope.post_order['dist_orders'],
+      do_send: false // we just want documents back for review, not to commit sending yet
+    }).
+    success(function(data, status, headers, config) {
+      console.log(data);
+      // we pass post_order to these review methods just so we can
+      // repost to server once user confirms
+      if ($scope.order['send_method']===$scope.send_methods[0]) {
         var URL = data['url'];
-        if ($scope.order['send_method']===$scope.send_methods[0]) {
-          $scope.reviewPDFPurchaseOrders(URL, $scope.post_order); 
-        } else if ($scope.order['send_method']===$scope.send_methods[1]) {
-          $scope.reviewSMSPurchaseOrders(URL, $scope.post_order); 
-        }
-             
-      }).
-      error(function(data, status, headers, config) {
+        $scope.reviewPDFPurchaseOrders(URL, $scope.post_order); 
+      } else if ($scope.order['send_method']===$scope.send_methods[1]) {
+        $scope.reviewSMSPurchaseOrders(data, $scope.post_order); 
+      } else {
+        $scope.reviewSaveOnlyPurchaseOrder(data, $scope.post_order)
+      }
+           
+    }).
+    error(function(data, status, headers, config) {
 
-      });
-    } 
+    });
+    
   }
 
 })
 
-.controller('reviewPurchaseOrderModalCtrl', function($scope, $modalInstance, $http, $filter, pdf_url, post_order, read_only) {
+.controller('reviewPurchaseOrderModalCtrl', function($scope, $modalInstance, $http, $filter, $sce, content_type, review_obj, post_order, read_only) {
+
+  $scope.trustAsHtml = $sce.trustAsHtml;
+
+  $scope.content_type = content_type;
+  // read only hides the send button, and allows reviewing past purchase orders
+  $scope.read_only = read_only;
+  // disableSend temporarily disables the send button while the PDF is being
+  // sent on the server
+  $scope.disableSend = false;
+  $scope.review_obj = review_obj;
+
+  if ($scope.content_type==="sms") {
+    for (var i in $scope.review_obj) {
+      var dist_sms = $scope.review_obj[i];
+      dist_sms['content'] = dist_sms['content'].replace(/\n/g, '<br/>');
+    }
+  }
 
   $scope.loadPdf = function() {
+
+    if ($scope.content_type !== "pdf") {
+      return;
+    }
+
+    var pdf_url = $scope.review_obj;
     var iframe = document.getElementById("pdf_embed");
     iframe.setAttribute("src", pdf_url);
-  }
+  };
+
   
   $scope.cancel = function() {
     console.log("cancel edit");
     $modalInstance.dismiss('cancel');
   };
 
-  // read only hides the send button, and allows reviewing past purchase orders
-  $scope.read_only = read_only;
-  // disableSend temporarily disables the send button while the PDF is being
-  // sent on the server
-  $scope.disableSend = false;
+  
 
   $scope.saveAndSend = function() {
     // This is called when the user is done reviewing the PDF files

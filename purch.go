@@ -31,7 +31,7 @@ type PO_Order struct {
 	PurchasePhone       NullString `json:"purchase_phone"`
 	PurchaseFax         NullString `json:"purchase_fax"`
 	PurchaseSaveDefault NullBool   `json:"purchase_save_default"`
-	DeliveryAddressType string     `json:"delivery_address_type"`
+	DeliveryAddressType NullString `json:"delivery_address_type"`
 	SendMethod          NullString `json:"send_method"`
 }
 
@@ -41,6 +41,14 @@ type PO_Item struct {
 	BatchCost          float64 `json:"batch_cost"`
 	Quantity           float64 `json:"quantity"`
 	Subtotal           float64 `json:"subtotal"`
+	// only for saving & not sending PO form:
+	Product        string      `json:"product"`
+	Brewery        NullString  `json:"brewery"`
+	PurchaseVolume NullFloat64 `json:"purchase_volume"`
+	PurchaseUnit   NullString  `json:"purchase_unit"`
+	PurchaseCost   float32     `json:"purchase_cost"`
+	PurchaseCount  int         `json:"purchase_count"`
+	ContainerType  string      `json:"container_type"`
 }
 
 type DistributorOrder struct {
@@ -61,7 +69,8 @@ type DistributorOrder struct {
 }
 
 type PO_SMS struct {
-	DistributorEmail string `json:"distributor_email"`
+	DistributorPhone string `json:"distributor_phone"`
+	Distributor      string `json:"distributor"`
 	Content          string `json:"content"`
 }
 
@@ -71,7 +80,41 @@ func setupPurchaseOrderHandlers() {
 	http.HandleFunc("/purchase/auto", purchaseOrderAutoAPIHandler)
 }
 
-func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order PurchaseOrder, delivery_address RestaurantAddress, do_send bool, w http.ResponseWriter, r *http.Request) {
+func createPurchaseOrderSaveOnly(user_id string, restaurant_id string, purchase_order PurchaseOrder, do_send bool, w http.ResponseWriter, r *http.Request) {
+	// Simply return the purchase_order object with a few added params
+	if do_send == false {
+
+		// first get the additional params the client needs for display
+		for i, dorder := range purchase_order.DistributorOrders {
+
+			for j, item := range dorder.Items {
+				err := db.QueryRow("SELECT product, brewery, purchase_volume, purchase_unit, purchase_cost, purchase_count, container_type FROM beverages WHERE id=$1;", item.BeverageID).Scan(
+					&purchase_order.DistributorOrders[i].Items[j].Product,
+					&purchase_order.DistributorOrders[i].Items[j].Brewery,
+					&purchase_order.DistributorOrders[i].Items[j].PurchaseVolume,
+					&purchase_order.DistributorOrders[i].Items[j].PurchaseUnit,
+					&purchase_order.DistributorOrders[i].Items[j].PurchaseCost,
+					&purchase_order.DistributorOrders[i].Items[j].PurchaseCount,
+					&purchase_order.DistributorOrders[i].Items[j].ContainerType)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(&purchase_order)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+	}
+}
+
+func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order PurchaseOrder, do_send bool, w http.ResponseWriter, r *http.Request) {
 	// just need to construct a JSON list of distributor order strings and return
 
 	var restaurant Restaurant
@@ -86,12 +129,13 @@ func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order
 	for _, dorder := range purchase_order.DistributorOrders {
 
 		var po_text PO_SMS
-		po_text.DistributorEmail = dorder.DistributorEmail
+		po_text.DistributorPhone = dorder.DistributorPhone.String
+		po_text.Distributor = dorder.Distributor
 
-		sms_str := "Automated PO; DO NOT REPLY\n\n"
+		sms_str := "Automated SMS; DO NOT REPLY\n"
 		sms_str += "Need by " + dorder.DeliveryDate + ":\n\n"
 
-		for i, item := range dorder.Items {
+		for _, item := range dorder.Items {
 
 			log.Println(item)
 			var bev Beverage
@@ -107,24 +151,35 @@ func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order
 			}
 			unit_str := bev.ContainerType
 			if bev.PurchaseCount > 1 {
-				unit_str = "case"
+				unit_str = "Case"
+			}
+			if item.Quantity > 1 {
+				unit_str += "s"
 			}
 			sms_str += fmt.Sprintf("%d - %s %s\n", int(item.Quantity), unit_str, bev.Product)
 		}
 
-		sms_str += purchase_order.Order.PurchaseContact + "\n"
+		if dorder.AdditionalNotes.Valid && len(dorder.AdditionalNotes.String) > 0 {
+			sms_str += "\n* " + dorder.AdditionalNotes.String + "\n"
+		}
+		sms_str += "\n" + purchase_order.Order.PurchaseContact + "\n"
 		sms_str += restaurant.Name.String + "\n"
 
 		if purchase_order.Order.PurchasePhone.Valid == true {
 			sms_str += purchase_order.Order.PurchasePhone.String + "\n"
 		} else {
-			sms_str += purchase_order.Order.PurchaseEmail.String
+			sms_str += purchase_order.Order.PurchaseEmail
 		}
 
 		po_text.Content = sms_str
 
 		if do_send == true {
 			// send the SMS via twilio
+			_, err := twilioSendSMS(dorder.DistributorPhone.String, sms_str, test_restaurant_id)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		} else {
 			po_texts = append(po_texts, po_text)
 		}
@@ -567,7 +622,7 @@ func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		var purchase_orders []PurchaseOrder
 		rows, err := db.Query(`
-			SELECT (created AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update, id, order_date 
+			SELECT (created AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update, id, order_date, send_method 
 				FROM purchase_orders 
 				WHERE created AT TIME ZONE 'UTC' BETWEEN $2 AND $3 AND restaurant_id=$4 
 			ORDER BY local_update DESC;`,
@@ -583,7 +638,8 @@ func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 			if err := rows.Scan(
 				&purchase_order.Order.Created,
 				&purchase_order.Order.ID,
-				&purchase_order.Order.OrderDate); err != nil {
+				&purchase_order.Order.OrderDate,
+				&purchase_order.Order.SendMethod); err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
@@ -730,7 +786,14 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 			purchase_order.DistributorOrders = append(purchase_order.DistributorOrders, distributor_order)
 
 		}
-		createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, delivery_address, false, w, r)
+
+		if purchase_order.Order.SendMethod.String == "email" {
+			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, delivery_address, false, w, r)
+		} else if purchase_order.Order.SendMethod.String == "text" {
+			createPurchaseOrderSMS(test_user_id, test_restaurant_id, purchase_order, false, w, r)
+		} else if purchase_order.Order.SendMethod.String == "save" {
+			createPurchaseOrderSaveOnly(test_user_id, test_restaurant_id, purchase_order, false, w, r)
+		}
 
 	case "POST":
 		if !hasBasicPrivilege(privilege) {
@@ -775,58 +838,61 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(order)
 
 		var delivery_address RestaurantAddress
-		if order.Order.DeliveryAddressType == "delivery" {
-			err = db.QueryRow("SELECT delivery_addr1, delivery_addr2, delivery_city, delivery_state, delivery_zipcode FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
-				&delivery_address.AddressOne,
-				&delivery_address.AddressTwo,
-				&delivery_address.City,
-				&delivery_address.State,
-				&delivery_address.Zipcode)
-		} else {
-			err = db.QueryRow("SELECT addr1, addr2, city, state, zipcode FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
-				&delivery_address.AddressOne,
-				&delivery_address.AddressTwo,
-				&delivery_address.City,
-				&delivery_address.State,
-				&delivery_address.Zipcode)
-		}
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		if order.Order.DeliveryAddressType.Valid && len(order.Order.DeliveryAddressType.String) > 0 {
+			if order.Order.DeliveryAddressType.String == "delivery" {
+				err = db.QueryRow("SELECT delivery_addr1, delivery_addr2, delivery_city, delivery_state, delivery_zipcode FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
+					&delivery_address.AddressOne,
+					&delivery_address.AddressTwo,
+					&delivery_address.City,
+					&delivery_address.State,
+					&delivery_address.Zipcode)
+			} else {
+				err = db.QueryRow("SELECT addr1, addr2, city, state, zipcode FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
+					&delivery_address.AddressOne,
+					&delivery_address.AddressTwo,
+					&delivery_address.City,
+					&delivery_address.State,
+					&delivery_address.Zipcode)
+			}
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 
-		// -------------------------------------------------------------------------
-		// Update the default emails / contact info if specified
-		// order.DoSend is true only when saving & committing to email Distributors
-		// only commit the overwrites if this is the case
-		if order.DoSend == true {
-			// If save default, overwrite restaurant contact info
-			if order.Order.PurchaseSaveDefault.Valid && order.Order.PurchaseSaveDefault.Bool == true {
-				_, err = db.Exec("UPDATE restaurants SET purchase_contact=$1, purchase_email=$2, purchase_phone=$3, purchase_fax=$4 WHERE id=$5", order.Order.PurchaseContact, order.Order.PurchaseEmail, order.Order.PurchasePhone, order.Order.PurchaseFax, test_restaurant_id)
+		// Note: we ALWAYS save default emails / contact info if specified,
+		// even if doSend is not specified.  This is because if the user intends
+		// to save default, it doesn't matter if it's pre-send review.  It's
+		// annoying to review, cancel, and have save default info lost.
+		// If save default, overwrite restaurant contact info
+		if order.Order.PurchaseSaveDefault.Valid && order.Order.PurchaseSaveDefault.Bool == true {
+			_, err = db.Exec("UPDATE restaurants SET purchase_contact=$1, purchase_email=$2, purchase_phone=$3, purchase_fax=$4 WHERE id=$5", order.Order.PurchaseContact, order.Order.PurchaseEmail, order.Order.PurchasePhone, order.Order.PurchaseFax, test_restaurant_id)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+
+		for _, dorder := range order.DistributorOrders {
+			if dorder.DistributorEmailSaveDefault.Valid && dorder.DistributorEmailSaveDefault.Bool == true {
+				_, err = db.Exec("UPDATE distributors SET email=$1 WHERE id=$2", dorder.DistributorEmail, dorder.DistributorID)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			} else if dorder.DistributorPhoneSaveDefault.Valid && dorder.DistributorPhoneSaveDefault.Bool == true {
+				_, err = db.Exec("UPDATE distributors SET phone=$1 WHERE id=$2", dorder.DistributorPhone, dorder.DistributorID)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
 			}
+		}
 
-			for _, dorder := range order.DistributorOrders {
-				if dorder.DistributorEmailSaveDefault.Valid && dorder.DistributorEmailSaveDefault.Bool == true {
-					_, err = db.Exec("UPDATE distributors SET email=$1 WHERE id=$2", dorder.DistributorEmail, dorder.DistributorID)
-					if err != nil {
-						log.Println(err.Error())
-						http.Error(w, err.Error(), http.StatusInternalServerError)
-						return
-					}
-				} else if dorder.DistributorPhoneSaveDefault.Valid && dorder.DistributorPhoneSaveDefault.Bool == true {
-					_, err = db.Exec("UPDATE distributors SET phone=$1 WHERE id=$2", dorder.DistributorPhone, dorder.DistributorID)
-					if err != nil {
-						log.Println(err.Error())
-						http.Error(w, err.Error(), http.StatusInternalServerError)
-						return
-					}
-				}
-			}
+		if order.DoSend == true {
 
 			// -----------------------------------------------------------------------
 			// Save the entire Purchase Order into history so we can view history in
@@ -908,7 +974,9 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		if order.Order.SendMethod.String == "email" {
 			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, order, delivery_address, order.DoSend, w, r)
 		} else if order.Order.SendMethod.String == "text" {
-			createPurchaseOrderSMS(test_user_id, test_restaurant_id, order, delivery_address, order.DoSend, w, r)
+			createPurchaseOrderSMS(test_user_id, test_restaurant_id, order, order.DoSend, w, r)
+		} else if order.Order.SendMethod.String == "save" {
+			createPurchaseOrderSaveOnly(test_user_id, test_restaurant_id, order, order.DoSend, w, r)
 		}
 
 	}

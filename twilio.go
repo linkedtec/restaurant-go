@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -11,7 +14,7 @@ func twilioSendSMS(to_phone, content, restaurant_id string) (result string, err 
 
 	// first check content is not beyond 1600 chars
 	SMS_CHAR_LIMIT := 1600
-	if content == nil || len(content) == 0 {
+	if len(content) == 0 {
 		return "error", errors.New("SMS content is empty.")
 	}
 
@@ -68,24 +71,24 @@ func twilioSendSMS(to_phone, content, restaurant_id string) (result string, err 
 		// update sms_limits table with how many texts were sent.
 		// we could do len(content) / 160 to get a rough estimate,
 		// or we could somehow get the # texts from twilio's response?
-		num_sent = 1
+		num_sent := 1
 		_, _err := db.Exec("UPDATE sms_limits SET sent_today=$1 WHERE restaurant_id=$2;", sent_today+num_sent, test_restaurant_id)
 		if _err != nil {
 			log.Println(_err.Error())
-			http.Error(w, _err.Error(), http.StatusInternalServerError)
+			return "db error", _err
 		}
 
 		log.Println(data["sid"])
 
 		_err = json.Unmarshal(bodyBytes, &data)
 		if _err != nil {
-			return "response error", _err.Error()
+			return "response error", _err
 		}
-		return "success", data["sid"]
+		return "success", nil
 	} else {
 		log.Println(resp.Status)
 	}
 
-	return "error", "Twilio message unsuccessful."
+	return "error", errors.New("Twilio message unsuccessful.")
 
 }

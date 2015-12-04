@@ -9,7 +9,8 @@ angular.module('myApp')
       maxDate: '=',  // date cannot go beyond this date
       onDateChange: '&',
       endOfDay: '=', // true means set hours to 23 59 59, false means 0 0 0 for start of day
-      control: '=?'
+      control: '=?',
+      large: '=?'
     },
     //templateUrl: './view_sales_plan/template_date_button.html',
     templateUrl: function (tElement, tAttrs) {

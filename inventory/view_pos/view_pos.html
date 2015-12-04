@@ -58,7 +58,35 @@
   <!--============================ SHOW MODE 1 ==============================-->
   <div ng-if="showMode===1">
     <div class="row" style="font-size:1.6em; margin-top:48px; text-align:center">
-      <div class="col-xs-2 help_link" ng-click="cancelPurchaseOrder(false)">
+      <div class="col-xs-2 help_link" ng-click="cancelPurchaseOrder(true)">
+        <span class="glyphicon glyphicon-remove" style="font-size:16px;"></span>
+        <span style="font-size:0.9em">Cancel</span>
+      </div>
+      <div class="col-xs-8">
+        When do you need your Purchase delivered by?
+      </div>
+    </div>
+    <div class="row" style="margin-top:36px;">
+      <div class="col-xs-4"></div>
+      <div class="col-xs-4" style="text-align:center">
+        <date-button date="order.delivery_date" end-of-day="false" type="input" style="width:100%" large="true"/>
+      </div>
+      <div ng-if="order.delivery_date != null" class="col-xs-4" style="text-align:left">
+        <button class="btn btn-lg btn-primary"  ng-click="confirmDeliveryDate()">
+          Next <span class="glyphicon glyphicon-menu-right"></span>
+        </button>
+      </div>
+    </div>
+    <div class="row" style="text-align:center; margin-top:16px">
+
+    </div>
+
+  </div>
+
+  <!--============================ SHOW MODE 2 ==============================-->
+  <div ng-if="showMode===2">
+    <div class="row" style="font-size:1.6em; margin-top:48px; text-align:center">
+      <div class="col-xs-2 help_link" ng-click="cancelPurchaseOrder(true)">
         <span class="glyphicon glyphicon-remove" style="font-size:16px;"></span>
         <span style="font-size:0.9em">Cancel</span>
       </div>
@@ -112,9 +140,9 @@
 
   </div>
 
-  <!--============================ SHOW MODE 2 ==============================-->
+  <!--============================ SHOW MODE 3 ==============================-->
 
-  <div ng-if="showMode===2" style="margin-top:24px;">
+  <div ng-if="showMode===3" style="margin-top:24px;">
     <div class="row" style="border-bottom:1px solid #e0e0e0; margin:0; margin-bottom:16px;">
       <div class="col-xs-4 help_link" style="font-size:1.4em; margin-top:6px;" ng-click="cancelPurchaseOrder(false)">
         <span class="glyphicon glyphicon-remove" style="font-size:16px;"></span>
@@ -196,14 +224,14 @@
         </div>
       </div>
 
-      <hr style="margin-top:8px;"/>
+      <hr ng-if="order.send_method===send_methods[0]" style="margin-top:8px;"/>
 
-      <div style="margin-top:8px">
+      <div ng-if="order.send_method===send_methods[0]" style="margin-top:8px">
         <delivery-address choosable="true" control="deliveryAddressControl"></delivery-address>
       </div>
     </div>
 
-    <div ng-repeat='dorder in order.dist_orders' class="gray_shadow po_box" style="padding-bottom:8px; margin-top:16px; position:relative">
+    <div ng-repeat='dorder in order.dist_orders' class="gray_shadow po_box" style="padding-bottom:8px; margin-top:24px; position:relative">
       <div style="position:absolute; top:-12px; left:-12px" ng-if="order.dist_orders.length > 1">
         <button ng-click="deleteDistOrder($index)" type="button" class="btn btn-sm btn_x_circle_gray">
           <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -414,19 +442,19 @@
             </button>
           </div>
           <div ng-if="dorder.additional_notes!==null" class="col-xs-12" style="text-align:right; padding-top:12px">
-            <textarea ng-model="dorder.additional_notes" placeholder="Enter additional notes for Distributor here.  (140 characters max)" rows="2" cols="70" maxlength="140"></textarea>
+            <textarea ng-model="dorder.additional_notes" placeholder="Enter additional notes for Distributor here.  ({{note_char_limit}} characters max)" rows="2" cols="70" maxlength="{{note_char_limit}}"></textarea>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div ng-show="showMode===2 && new_failure_msg !== null" class="row" style="margin:8px 4px 0px">
+  <div ng-show="showMode===3 && new_failure_msg !== null" class="row" style="margin:8px 4px 0px">
     <div class="alert alert-danger" data-html="true" role="alert" style="margin-bottom:0px">
       {{new_failure_msg}}
     </div>
   </div>
-  <div ng-if="showMode===2" class="row" style="margin-bottom:256px">
+  <div ng-if="showMode===3" class="row" style="margin-bottom:256px">
     <div class="col-xs-6" style="padding-right:4px; text-align:center">
       <div class="gray_shadow po_box po_add_box" ng-click="addDistributorOrder()" style="padding:8px">
         <span class="glyphicon glyphicon-plus"></span> Add another Distributor Order

@@ -87,7 +87,6 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
       {params: params })
     .success(function(data, status, headers, config) {
       console.log(data);
-      var URL = data['url'];
       
       var modalEditInstance = $modal.open({
         templateUrl: 'reviewPurchaseOrderModal.html',
@@ -96,8 +95,24 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
         backdropClass: 'white-modal-backdrop',
         backdrop : 'static',
         resolve: {
-          pdf_url: function() {
-            return URL;
+          content_type: function() {
+            if (purchase_order.order.send_method==="email") {
+              return "pdf";
+            } else if (purchase_order.order.send_method==="text") {
+              return "sms";
+            } else {
+              return "html";
+            }
+            
+          },
+          review_obj: function() {
+            if (purchase_order.order.send_method==="email") {
+              var URL = data['url'];
+              return URL;
+            } else {
+              return data;
+            }
+            
           },
           post_order: function() {
             return null;

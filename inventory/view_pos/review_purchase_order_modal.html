@@ -14,20 +14,123 @@
     <span style="font-size:1.2em;margin-left:8px; color:#555555; font-weight:bold">Review Purchase Order</span>
     <span ng-if="read_only!==true" style="float:right; margin-top:-6px">
       <button ng-click="saveAndSend()" type="button" class="btn btn-success btn-sm" style="padding:4px 10px; font-size:14px;" ng-disabled="disableSend===true">
-        <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> Save & Email to Distributors
+        <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> 
+        <span ng-if="content_type==='pdf'"> Save & Email to Distributors</span>
+        <span ng-if="content_type==='sms'"> Save & Text to Distributors</span>
+        <span ng-if="content_type==='html'"> Save in Purchase History</span>
       </button>
     </span>
     <span style="float:right; font-size:1.0em; margin-top:4px; margin-right:8px; font-style:italic;">
       <span ng-if="read_only!==true">
-        Please review the PDFs below before emailing to Distributor(s).
+        <span ng-if="content_type==='pdf'">
+          Please review the PDFs below before emailing to Distributor(s).
+        </span>
+        <span ng-if="content_type==='sms'">
+          Please review the SMS below before texting to Distributor(s).
+        </span>
+        <span ng-if="content_type==='html'">
+          Please review the order below before saving in our records.
+        </span>
       </span>
       <span ng-if="read_only===true">
-        You are reviewing PDFs which have already been emailed to Distributor(s).
+        <span ng-if="content_type==='pdf'">
+          You are reviewing PDFs which have already been emailed to Distributor(s).
+        </span>
+        <span ng-if="content_type==='sms'">
+          You are reviewing SMS which have already been texted to Distributor(s).
+        </span>
+        <span ng-if="content_type==='html'">
+          You are reviewing a record which was saved (but not sent to Distributors).
+        </span>
       </span>
     </span>
     
   </div>
-  <div class="modal-body" style="background-color:#777777;">
-    <embed id="pdf_embed" ng-init="loadPdf()" width="100%" height="100%" style="background-color:#777777"/>
+  <div class="modal-body" style="background-color:#eaeaea; overflow-y: scroll">
+    <embed ng-if="content_type==='pdf'" id="pdf_embed" ng-init="loadPdf()" width="100%" height="100%" style="background-color:#eaeaea"/>
+    <div ng-if="content_type==='sms'" width="100%" height="100%" style="margin:24px">
+      <div ng-repeat="sms_obj in review_obj" style="padding:12px; max-width:380px; margin: 0 auto;">
+        <div style="background-color:#3698E2; color:white; padding: 4px 8px; border-radius:8px; text-align:right; margin-bottom:6px">Send to <b>{{sms_obj.distributor}}</b> : {{sms_obj.distributor_phone}}</div>
+        <div ng-bind-html="trustAsHtml(sms_obj.content)" style="background-color:white; border-radius:12px; padding:16px; box-shadow: 0px 0px 5px #c0c0c0; margin-top:2px">
+        </div>
+        <div style="margin-top:0px; margin-left:18px">
+          <img src="images/chat_bottom.png" height="22" width="22" style="vertical-align:top">
+        </div>
+      </div>
+    </div>
+    <div ng-if="content_type==='html'" width="100%" height="100%" style="margin:24px; padding:24px; padding-bottom:36px; border-radius:6px; background-color:white; box-shadow: 0px 0px 5px #c0c0c0; font-size:1.1em;">
+      <div style="font-size:1.3em; margin-bottom:6px">PURCHASE ORDER </div>
+      <hr style="margin-top:0px; margin-bottom:12px"/>
+      <div class="row">
+        <div class="col-xs-3" style="text-align:right;">Ordered On:</div>
+        <div class="col-xs-9">{{review_obj.order.order_date}}</div>
+      </div>
+      <div class="row">
+        <div class="col-xs-3" style="text-align:right;">Restaurant Contact:</div>
+        <div class="col-xs-9">{{review_obj.order.purchase_contact}}</div>
+      </div>
+      <div class="row">
+        <div class="col-xs-3" style="text-align:right;">Contact Email:</div>
+        <div class="col-xs-9">{{review_obj.order.purchase_email}}</div>
+      </div>
+      <div class="row" ng-if="review_obj.order.purchase_phone!==null">
+        <div class="col-xs-3" style="text-align:right;">Contact Phone:</div>
+        <div class="col-xs-9">{{review_obj.order.purchase_phone}}</div>
+      </div>
+      <div class="row" ng-if="review_obj.order.purchase_fax!==null">
+        <div class="col-xs-3" style="text-align:right;">Contact Fax:</div>
+        <div class="col-xs-9">{{review_obj.order.purchase_fax}}</div>
+      </div>
+      <div ng-repeat="dorder in review_obj.distributor_orders">
+        <div style="font-size:1.2em; margin-bottom:6px; margin-top:24px">Order to: {{dorder.distributor}}</div>
+        <hr style="margin-top:0px; margin-bottom:12px"/>
+        <div class="row" ng-repeat="item in dorder.items" style="font-size:0.9em">
+          <div class="col-xs-7">
+            <span>{{item.product}} </span>
+            <span ng-if="item.purchase_count > 1"> - {{item.purchase_count}} COUNT </span>
+            <span ng-if="item.purchase_volume!==null && item.purchase_unit !== null" style="margin-left:12px">
+              | {{item.purchase_volume | number:1}} {{item.purchase_unit}} {{item.container_type}}
+            </span>
+            <span ng-if="item.purchase_volume===null || item.purchase_unit === null">
+              | {{item.container_type}}
+            </span>
+            <span ng-if="item.brewery !== null" style="float:right">
+               . . . {{item.brewery}}
+            </span>
+          </div>
+          <div class="col-xs-2" style="text-align:center">
+            $ {{item.batch_cost | number:2}}
+          </div>
+          <div class="col-xs-1 min_padding" style="text-align:center">
+            x {{item.quantity | number:1}}
+          </div>
+          <div class="col-xs-2" style="text-align:right">
+            $ {{item.subtotal | number:2}}
+          </div>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <div class="col-xs-12" style="text-align:right">
+            <div style="display: inline-block; float:right"><b> $ {{dorder.total | number:2}}</b></div>
+            <div style="display: inline-block; margin-right:12px; float:right">Order Total: </div>
+          </div>
+        </div>
+        <div ng-if="dorder.additional_notes!==null && dorder.additional_notes.length>0" class="row">
+          <div class="col-xs-12 gray_text" style="font-style:italic;">
+            Additional Notes: {{dorder.additional_notes}}
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </script>
+
+
+
+
+
+
+
+
+
+
