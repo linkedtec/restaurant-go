@@ -21,30 +21,33 @@
     <tr>
       <td></td> <!--For view button-->
       <td>Order Date</td> <!--For date-->
+      <td>Sent via</td>
       <td>Distributor</td>
       <td># Items</td>
       <td>Total ($)</td>
     </tr>
     <tbody ng-repeat="po in purchase_orders">
-      <tr class="inv_loc_row" style="font-weight:bold; font-style:italic">
+      <tr class="inv_loc_row" style="font-style:italic">
         <td>
           <button ng-click="viewPurchaseOrder(po)" type="button" class="btn btn-md btn_frameless hover_blue" style="font-size:16px; margin-top:1px; padding:2px 4px;">
             <span class="glyphicon glyphicon-eye-open"></span>
           </button>
         </td>
-        <td>{{po.order.order_date}}</td>
+        <td style="font-weight:bold">{{po.order.order_date}}</td>
+        <td>{{po.order.send_method_pretty}}</td>
         <td></td>
         <td></td>
-        <td>{{po.order.total | number:2}}</td>
+        <td style="font-weight:bold">{{po.order.total | number:2}}</td>
       </tr>
       <tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'">
+        <td></td>
         <td></td>
         <td></td>
         <td>{{dorder.distributor}}</td>
         <td>{{dorder.item_count}}</td>
         <td>{{dorder.total | number:2}}</td>
       </tr>
-      <tr><td colspan="5"></td></tr>
+      <tr><td colspan="6"></td></tr>
     </tbody>
   </table>
 

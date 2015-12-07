@@ -57,6 +57,14 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
           total += dist_order['total'];
         }
         po.order['total'] = total;
+
+        if (po.order['send_method'] === 'email') {
+          po.order['send_method_pretty'] = 'Email';
+        } else if (po.order['send_method'] === 'text') {
+          po.order['send_method_pretty'] = 'SMS Text';
+        } else if (po.order['send_method'] === 'save') {
+          po.order['send_method_pretty'] = 'Save Only'
+        }
       }
 
     })

@@ -40,7 +40,7 @@
           You are reviewing SMS which have already been texted to Distributor(s).
         </span>
         <span ng-if="content_type==='html'">
-          You are reviewing a record which was saved (but not sent to Distributors).
+          You are reviewing a record which was saved but not sent to Distributors.
         </span>
       </span>
     </span>
@@ -87,11 +87,11 @@
         <div class="row" ng-repeat="item in dorder.items" style="font-size:0.9em">
           <div class="col-xs-7">
             <span>{{item.product}} </span>
-            <span ng-if="item.purchase_count > 1"> - {{item.purchase_count}} COUNT </span>
-            <span ng-if="item.purchase_volume!==null && item.purchase_unit !== null" style="margin-left:12px">
+            <span ng-if="item.purchase_count > 1"> x{{item.purchase_count}} COUNT </span>
+            <span ng-if="item.purchase_volume!==null && item.purchase_unit !== null" style="margin-left:12px; color:#999999">
               | {{item.purchase_volume | number:1}} {{item.purchase_unit}} {{item.container_type}}
             </span>
-            <span ng-if="item.purchase_volume===null || item.purchase_unit === null">
+            <span ng-if="item.purchase_volume===null || item.purchase_unit === null" style="margin-left:12px; color:#999999">
               | {{item.container_type}}
             </span>
             <span ng-if="item.brewery !== null" style="float:right">

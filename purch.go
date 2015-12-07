@@ -156,7 +156,13 @@ func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order
 			if item.Quantity > 1 {
 				unit_str += "s"
 			}
-			sms_str += fmt.Sprintf("%d - %s %s\n", int(item.Quantity), unit_str, bev.Product)
+			var QtyStr string
+			if item.Quantity-float64(int(item.Quantity)) > 0.01 {
+				QtyStr = fmt.Sprintf("%.1f", item.Quantity)
+			} else {
+				QtyStr = fmt.Sprintf("%d", int(item.Quantity))
+			}
+			sms_str += fmt.Sprintf("%s - %s %s\n", QtyStr, unit_str, bev.Product)
 		}
 
 		if dorder.AdditionalNotes.Valid && len(dorder.AdditionalNotes.String) > 0 {
@@ -177,6 +183,7 @@ func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order
 			// send the SMS via twilio
 			_, err := twilioSendSMS(dorder.DistributorPhone.String, sms_str, test_restaurant_id)
 			if err != nil {
+				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}

@@ -3,12 +3,28 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"github.com/robfig/cron"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 )
+
+func setupSMSLimitsCron() {
+	c := cron.New()
+
+	// run once a day at 12 am
+	c.AddFunc("0 0 0 * * *", func() { go resetAllRestaurantSMSLimits() })
+	c.Start()
+}
+
+func resetAllRestaurantSMSLimits() {
+	_, _err := db.Exec("UPDATE sms_limits SET sent_today=0;")
+	if _err != nil {
+		log.Println(_err.Error())
+	}
+}
 
 func twilioSendSMS(to_phone, content, restaurant_id string) (result string, err error) {
 

@@ -399,16 +399,21 @@
             
           </div>
           <div class="col-xs-2 min_padding" style="padding-left:0">
-            <div ng-if="item.count_recent!==null && item.quantity===null && item.par !== null" style="width:32px; display:inline-block; float:left">
-              <button ng-click="matchQuantityToPar(item, dorder)" type="button" class="btn btn-sm btn-default blue_btn" style="float:left; font-size:18px; padding: 4px 5px 0px; margin-right:4px;" uib-popover="Match Par" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">
-                <span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span>
-              </button>
+            <div>
+              <div ng-if="item.count_recent!==null && item.quantity===null && item.par !== null" style="width:32px; display:inline-block; float:left">
+                <button ng-click="matchQuantityToPar(item, dorder)" type="button" class="btn btn-sm btn-default blue_btn" style="float:left; font-size:18px; padding: 4px 5px 0px; margin-right:4px;" uib-popover="Match Par" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">
+                  <span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span>
+                </button>
+              </div>
+              <div ng-if="item.count_recent===null || item.quantity!==null || item.par === null" style="width:32px; display:inline-block; float:left">
+                &nbsp
+              </div>
+              <input ng-model="item.quantity" class="form-control" ng-class="{'input_error': item.error_quantity===true}" style="max-width:70px; text-align:center; font-size:16px; float:left" placeholder="" ng-change="updateQuantity(item, dorder)">
             </div>
-            <div ng-if="item.count_recent===null || item.quantity!==null || item.par === null" style="width:32px; display:inline-block; float:left">
-              &nbsp
+            <div ng-if="item.purchase_count > 1" style="background-color:#dd6622; border-radius:2px; font-size:0.8em; float:left; color:white; text-align:center; margin-left:24px; width:86px; padding:2px; margin-top:3px;" uib-popover="This item is purchased by cases of {{item.purchase_count}} units." popover-trigger="mouseenter" popover-append-to-body="true">
+              By the Case ({{item.purchase_count | number:0}})
             </div>
-            <input ng-model="item.quantity" class="form-control" ng-class="{'input_error': item.error_quantity===true}" style="max-width:70px; text-align:center; font-size:16px; float:left" placeholder="" ng-change="updateQuantity(item, dorder)">
-          </div>
+          </div> 
           <div class="col-xs-2 min_padding" style="padding-top:6px">
             <span ng-if="item.quantity===null" style="color:#999999">
               --

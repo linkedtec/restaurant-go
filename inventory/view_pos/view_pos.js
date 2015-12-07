@@ -321,7 +321,14 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     if (diff <= 0) {
       item['quantity'] = 0;
     } else {
-      item['quantity'] = Math.round(diff);
+      // if item is ordered by the case (has purchase_count > 1), need to divide
+      // quantity by purchase_count
+      if (item.purchase_count > 1) {
+        item['quantity'] = Math.ceil(diff / item.purchase_count);
+      } else {
+        item['quantity'] = Math.ceil(diff);
+      }
+      
     }
     $scope.updateQuantity(item, dorder);
     

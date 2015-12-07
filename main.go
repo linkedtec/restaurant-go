@@ -196,6 +196,10 @@ func main() {
 	// cron job for refreshing online menu pages
 	setupMenuPagesCron()
 
+	// cron job for resetting sms_limits, allows each restaurant to send up
+	// to 20 SMS a day
+	setupSMSLimitsCron()
+
 	log.Printf("Listening on port 8080...")
 	log.Print("Current time is: " + getCurrentTime())
 	http.ListenAndServe(":8080", nil)
