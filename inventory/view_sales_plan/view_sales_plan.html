@@ -91,8 +91,8 @@
       </div>
     </div>
 
-    <table style="width: 100%; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-bottom:24px; margin-top:8px">
-      <tr style="font-size:13px; ;background-color: #e7f7fa;">
+    <table style="width: 100%; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-bottom:24px; margin-top:8px;">
+      <tr style="font-size:13px; ;background-color: #e7f7fa;; border-bottom:1px solid #dddddd">
         <td class="all_inv_label_span noselect" style="width:20px; border-left: 1px solid #dddddd">
         </td>
         <td class="all_inv_label_span noselect" style="width:190px;">
@@ -144,12 +144,13 @@
       </tr>
 
       <tr ng-repeat="inv in inventory_items | filter:filter_query.query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row inv_row_odd'" style="font-size:13px" ng-class="{'hint_text gray_bg': inv.upcoming===true, 'inv_row_odd': use_mode===1}">
-        <td class="all_inv_span min_padding" style="width:20px; text-align:center;">
+        <td ng-if="inv.is_title===true" class="all_inv_span" colspan="{{title_span}}" style="background-color:#ececec; color:#555555; font-size:0.9em; text-align:center; padding:0; border-bottom:1px solid #d4d4d4">{{inv.product}}</td>
+        <td ng-if="inv.is_title!==true" class="all_inv_span min_padding" style="width:20px; text-align:center;">
           <button ng-click="editBeverage(inv)" type="button" class="btn btn-xs btn_edit">
             <span class="glyphicon glyphicon-pencil"></span>
           </button>
         </td>
-        <td class="all_inv_span" style="width:190px;">
+        <td ng-if="inv.is_title!==true" class="all_inv_span" style="width:190px;">
           <div style="display:inline-block; float:left; margin-top:2px">
             <img ng-if="inv.icon==='keg'" src="images/bev_keg.png" height="28px" width="28px">
             <img ng-if="inv.icon==='draft'" src="images/bev_draft.png" height="28px" width="28x">
@@ -168,8 +169,8 @@
             </div>
           </div>
         </td>
-        <td class="all_inv_span" style="width:150px;">{{inv.brewery}}</td>
-        <td ng-if="use_mode===1" class="all_inv_span" style="width:125px;" >
+        <td ng-if="inv.is_title!==true" class="all_inv_span" style="width:150px;">{{inv.brewery}}</td>
+        <td ng-if="use_mode===1 && inv.is_title!==true" class="all_inv_span" style="width:125px;" >
           <div style="display:inline-block; float:left; vertical-align:top; padding-left:4px">
             <div>
               {{inv.sale_start_pretty}}
@@ -182,7 +183,7 @@
             <date-button date="inv.sale_start" max-date="inv.sale_end" end-of-day="false" on-date-change="editDate(inv, 'start', previous_date, passControl)"/>
           </div>
         </td>
-        <td ng-if="use_mode===1" class="all_inv_span" style="width:125px;">
+        <td ng-if="use_mode===1 && inv.is_title!==true" class="all_inv_span" style="width:125px;">
           <div style="display:inline-block; float:left; vertical-align:top; padding-left:4px">
             <div>
               {{inv.sale_end_pretty}}
@@ -198,7 +199,7 @@
             <date-button date="inv.sale_end" min-date="inv.sale_start" end-of-day="true" on-date-change="editDate(inv, 'end', previous_date, passControl)" control="endDateControl"/>
           </div>
         </td>
-        <td class="all_inv_span" style="width:80px;">
+        <td ng-if="inv.is_title!==true" class="all_inv_span" style="width:80px;">
           <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">
             <span style="display:inline-block; min-width:50%">
               {{sp.volume | number:2}} 
@@ -208,22 +209,21 @@
             </span>
           </div>
         </td>
-        <td class="all_inv_span" style="width:70px;">
+        <td ng-if="inv.is_title!==true" class="all_inv_span" style="width:70px;">
           <div ng-repeat="sp in inv.size_prices" style="padding:2px 0px">
             <span ng-if="sp.price !== null"><span class="inv_symbol">$</span> {{sp.price | number:2}}</span>
             <span ng-if="sp.price === null"> -- </span>
           </div>
-        <td ng-if="use_mode!==2" class="all_inv_span" style="width:60px;">
+        <td ng-if="use_mode!==2 && inv.is_title!==true" class="all_inv_span" style="width:60px;">
           <span ng-if="inv.par===null" class="glyphicon glyphicon-alert" style="font-size:13px; color:#dd6622; float:left" uib-popover="No Par specified!  Click 'Fix' to add one." popover-trigger="mouseenter" popover-append-to-body="true"></span>
           <span ng-if="inv.par===null" style="font-size:12px; padding-left:4px; cursor:pointer; text-decoration:underline; color:#dd6622" ng-click="showParModal(inv, use_mode, false, false)">Fix</span>
           <span ng-if="inv.par!==null">{{inv.par | number:1}}</span>
         </td>
-        <td ng-if="use_mode!==2" class="all_inv_span" style="width:70px; background-color:{{inv.stock_bg_color}}">
+        <td ng-if="use_mode!==2 && inv.is_title!==true" class="all_inv_span" style="width:70px; background-color:{{inv.stock_bg_color}}">
           <span ng-if="inv.count_recent!==null" style="color:{{inv.stock_color}}">{{inv.count_recent | number:1}}</span>
           <span ng-if="inv.count_recent===null" class="glyphicon glyphicon-alert" style="font-size:16px; color:#dadada; float:right" uib-popover="No Inventory records in the past 3 days!" popover-trigger="mouseenter" popover-append-to-body="true"></span>
         </td>
-        <td class="all_inv_span" ng-if="use_mode===2" style="width:130px; text-align:center">
-
+        <td ng-if="use_mode===2 && inv.is_title!==true" class="all_inv_span" style="width:130px; text-align:center">
             <div class="btn-group" style="width:100%;" uib-dropdown>
               <button type="button" class="btn btn-default btn-md dropdown-toggle input_small" style="width:100%;" uib-dropdown-toggle>
                 <span class="noselect" style="float:left; text-align:left; width:90%;  color:#999999">

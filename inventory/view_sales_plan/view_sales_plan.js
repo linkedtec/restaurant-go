@@ -87,10 +87,13 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
     if (use_mode === $scope.use_modes[0]) {
       $scope.use_mode = 0;
+      $scope.title_span = 7;
     } else if (use_mode === $scope.use_modes[1]) {
       $scope.use_mode = 1;
+      $scope.title_span = 9;
     } else {
       $scope.use_mode = 2;
+      $scope.title_span = 6;
     }
 
     // update the sort keys by restoring backups if going from nonseasonal to 
@@ -593,7 +596,52 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
     }
     */
 
-    $scope.inventory_items.sort($scope.sortFunc);
+    // break down the inventory items into sublists based on alcohol_type
+    // sort each of the alcohol_types individually using sortFunc
+    // then merge them together.  This creates a doubly-sorted list
+    // sorted by alcohol_type, and within each alcohol_type, sorted by sort_key
+    var alcohol_types = [];
+    var type_item_dict = {};
+    for (var i in $scope.inventory_items) {
+      var item = $scope.inventory_items[i];
+
+      if (item['is_title'] === true) {
+        // 'is_title' is an attribute given to rows that are just meant to be
+        // displayed as a subtitle of the alcohol type
+        continue;
+      }
+      var alc_type = item['alcohol_type'];
+
+      // special rule: cider should be sorted with beer
+      if (alc_type === 'Cider') {
+        alc_type = 'Beer';
+      }
+
+      if ( alcohol_types.indexOf(alc_type) < 0 ) {
+        alcohol_types.push(alc_type);
+        type_item_dict[alc_type] = [];
+      }
+
+      type_item_dict[alc_type].push(item);
+
+    }
+    alcohol_types.sort();
+    console.log(alcohol_types);
+
+    var new_inventory_items = [];
+
+    for (var i in alcohol_types) {
+      var key = alcohol_types[i];
+      if (type_item_dict.hasOwnProperty(key)) {
+        // 'is_title' is an attribute given to rows that are just meant to be
+        // displayed as a subtitle of the alcohol type
+        new_inventory_items.push({product:key, is_title:true})
+        new_inventory_items = new_inventory_items.concat(type_item_dict[key].sort($scope.sortFunc));
+      }
+    }
+    $scope.inventory_items = new_inventory_items;
+
+    //$scope.inventory_items.sort($scope.sortFunc);
   };
 
   $scope.editBeverage = function(inv) {
