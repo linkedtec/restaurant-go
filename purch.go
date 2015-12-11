@@ -38,6 +38,7 @@ type PO_Order struct {
 type PO_Item struct {
 	DistributorOrderID int     `json:"distributor_order_id"`
 	BeverageID         int     `json:"beverage_id"`
+	VersionID          int     `json:"version_id"`
 	BatchCost          float64 `json:"batch_cost"`
 	Quantity           float64 `json:"quantity"`
 	Subtotal           float64 `json:"subtotal"`
@@ -535,7 +536,7 @@ func purchaseOrderAutoAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// get all beverages for restaurant whose sale_status not Inactive or NULL
 		rows, err := db.Query(`
-			SELECT id, version_id, distributor_id FROM beverages WHERE restaurant_id=$1 AND sale_status IS NOT NULL AND sale_status!='Inactive';`,
+			SELECT id, version_id, distributor_id FROM beverages WHERE restaurant_id=$1 AND sale_status IS NOT NULL AND distributor_id IS NOT NULL AND sale_status!='Inactive';`,
 			test_restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
@@ -590,6 +591,7 @@ func purchaseOrderAutoAPIHandler(w http.ResponseWriter, r *http.Request) {
 				// add the bev to its Items
 				var new_item PO_Item
 				new_item.BeverageID = bev.ID
+				new_item.VersionID = bev.VersionID
 				dist_orders[dist_i].Items = append(dist_orders[dist_i].Items, new_item)
 			}
 		}

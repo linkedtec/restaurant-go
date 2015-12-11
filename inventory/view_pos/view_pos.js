@@ -110,7 +110,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
   };
 
-  $scope.addDistributorOrder = function() {
+  $scope.addEmptyDistributorOrder = function() {
     $scope.order['dist_orders'].push({
       distributor:null, 
       delivery_date: null, 
@@ -126,9 +126,57 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       double_sort: -1});
   };
 
+  $scope.addAutoDistributorOrder = function(dist_id, items) {
+
+    var new_dorder = {
+      distributor:null, 
+      delivery_date: $scope.order['delivery_date'], 
+      addable_items: [],
+      items:[],
+      total:null,
+      show_add_ui:false,
+      addableControl: {},
+      sort_key: null,
+      additional_notes: null,
+      save_default_email: null,
+      save_default_phone: null,
+      double_sort: -1
+    };
+
+    for (var i in $scope.all_distributors) {
+      var dist = $scope.all_distributors[i];
+      if (dist['id'] === dist_id) {
+        $scope.selectDistributor(new_dorder, dist);
+        break;
+      }
+    }
+
+    // for each of the items in @items, find the corresponding addable bev
+    // from $scope.all_bevs, and add it to this dorder using $scope.addItem,
+    // and automatically resolve its par using $scope.matchQuantityToPar
+    for (var i in items) {
+      var id_bev = items[i];
+      var bev = null;
+      for (var j in $scope.all_bevs) {
+        var check_bev = $scope.all_bevs[j];
+        if (id_bev['version_id'] === check_bev['version_id']) {
+          bev = check_bev;
+          break;
+        }
+      }
+      if (bev !== null) {
+        
+        $scope.addItem(new_dorder, bev);
+        $scope.matchQuantityToPar(bev, new_dorder);
+      }
+    }
+
+    $scope.order['dist_orders'].push(new_dorder);
+  }
+
   $scope.initDistOrders = function() {
     $scope.order['dist_orders'] = [];
-    $scope.addDistributorOrder();
+    $scope.addEmptyDistributorOrder();
   };
 
   $scope.initManualForm = function() {
@@ -139,6 +187,41 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     console.log($scope.order['dist_orders']);
     $scope.getRestaurant();
 
+  };
+
+  $scope.initAutoForm = function() {
+    $scope.getAllDistributors(true);
+    // getAllDistributors will call getAutoPurchaseOrder after it's done
+    $scope.refreshSelectableDistributors();
+
+    $scope.getRestaurant();
+
+  };
+
+  $scope.getAutoPurchaseOrder = function() {
+    $http.get('/purchase/auto').
+    success(function(data, status, headers, config) {
+      // this callback will be called asynchronously when the response
+      // is available
+      console.log(data);
+      if (data != null) {
+        // for each distributor order in the returned list, create a dorder
+        // using the distributor id if it has valid items
+        for (var i in data) {
+          var dist_order = data[i];
+          if (dist_order.items !== null && dist_order.items.length > 0) {
+            $scope.addAutoDistributorOrder(dist_order['distributor_id'], dist_order.items);
+          }
+        }
+        $scope.refreshSelectableDistributors();
+      } else {
+        ;
+      }
+      
+    }).
+    error(function(data, status, headers, config) {
+
+    });
   };
 
   $scope.selectSendMethod = function(method_i, change_show) {
@@ -156,7 +239,6 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       var dorder = $scope.order.dist_orders[j];
       console.log(dorder['additional_notes']);
       if (dorder['additional_notes'] !== null && dorder['additional_notes'].length > $scope.note_char_limit) {
-        console.log('TRUNCATe');
         dorder['additional_notes'] = dorder['additional_notes'].substring(0, $scope.note_char_limit);
       }
     }
@@ -175,6 +257,8 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
     if (use_mode === 'manual' && mode===3) {
       $scope.initManualForm();
+    } else if (use_mode==='auto' && mode===3) {
+      $scope.initAutoForm();
     }
   };
 
@@ -271,7 +355,10 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       }
     }
 
-    dist_order.addableControl.applyTypeFilter();
+    if (dist_order.addableControl.applyTypeFilter !== undefined) {
+      dist_order.addableControl.applyTypeFilter();
+    }
+    
     console.log(dist_order.addable_items);
   };
 
@@ -302,6 +389,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       return;
     }
 
+    console.log('quantity is ' + item['quantity']);
     if (MathService.numIsInvalid(item['quantity'])) {
       item['subtotal'] = null;
       return;
@@ -331,10 +419,12 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       
     }
     $scope.updateQuantity(item, dorder);
+
+    return item['quantity'];
     
   };
 
-  $scope.getAllDistributors = function() {
+  $scope.getAllDistributors = function( doAuto ) {
 
     $scope.all_distributors = [];
 
@@ -348,6 +438,10 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
         dist['phone_edit'] = dist['phone'];
         $scope.all_distributors.push(dist);
         $scope.sel_distributors.push(dist);
+      }
+
+      if (doAuto === true) {
+        $scope.getAutoPurchaseOrder();
       }
 
       console.log(data);

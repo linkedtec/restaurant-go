@@ -6,13 +6,23 @@
         <input ng-model="new_distributor.name" class="form-control input_add input_small" placeholder="e.g., California Beer & Beverage">
       </div>
     </div>
+  </div>
+
+  <div class="row" style="margin-top:0px; padding-left:10px; margin-right:0px">
     <div class="col-xs-6">
       <div class="form-group" ng-class="{'has-error': form_ver.error_email===true}">
         <label class="control-label label_small"> Email</label><span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd; margin-left:6px"  uib-popover="This email will be used when sending Purchase Orders to the Distributor from this app.  It is highly recommended to enter your Distributor's email." popover-trigger="mouseenter"></span>
         <input ng-model="new_distributor.email" class="form-control input_add input_small" placeholder="e.g., mike@distributor.com">
       </div>
     </div>
+    <div class="col-xs-6">
+      <div class="form-group" ng-class="{'has-error': form_ver.error_phone===true}">
+        <label class="control-label label_small"> Phone</label><span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd; margin-left:6px"  uib-popover="This phone number will be used when texting Purchase Orders to the Distributor from this app." popover-trigger="mouseenter"></span>
+        <input ng-model="new_distributor.phone" class="form-control input_add input_small" placeholder="(000) 000-0000">
+      </div>
+    </div>
   </div>
+
 
   <div style="margin-top:0px; padding-left:10px;">
     <span class="label_small">Kegs & Deposits</span><span class="label_small" style="color:#aaaaaa; font-style:italic; margin-left:8px">Optional</span>
@@ -73,6 +83,11 @@
   <div ng-show="email_failure_msg !== null" class="row" style="margin:4px 10px;">
     <div class=" col-xs-12 alert alert-danger" data-html="true" role="alert" style="margin-bottom:6px">
       {{email_failure_msg}}
+    </div>
+  </div>
+  <div ng-show="phone_failure_msg !== null" class="row" style="margin:4px 10px;">
+    <div class=" col-xs-12 alert alert-danger" data-html="true" role="alert" style="margin-bottom:6px">
+      {{phone_failure_msg}}
     </div>
   </div>
   

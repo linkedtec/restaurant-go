@@ -148,12 +148,14 @@ angular.module('myApp')
         scope.form_ver = {};
         scope.form_ver.error_name = false;
         scope.form_ver.error_email = false;
+        scope.form_ver.error_phone = false;
         scope.form_ver.errors_kegs_volume = [];
         scope.form_ver.errors_kegs_deposit = [];
 
         scope.new_failure_msg = null;
         scope.dist_name_msg = null;
         scope.email_failure_msg = null;
+        scope.phone_failure_msg = null;
       };
 
       // On start, re-initialize state!
@@ -181,6 +183,7 @@ angular.module('myApp')
         scope.new_failure_msg = null;
         scope.dist_name_msg = null;
         scope.email_failure_msg = null;
+        scope.phone_failure_msg = null;
 
         var all_clear = true;
 
@@ -218,6 +221,20 @@ angular.module('myApp')
         } else if (!ContactService.isValidEmail(scope.new_distributor['email'])) {
           scope.email_failure_msg = "Email is not valid!  Please fix and try again.";
           scope.form_ver.error_email = true;
+          all_clear = false;
+        }
+
+        scope.form_ver.error_phone = false;
+        if (scope.new_distributor['phone']===null || scope.new_distributor['phone'].length===0) {
+          // it is okay to have empty phone
+          scope.new_distributor['phone'] = null;
+        } else if (scope.new_distributor['phone'].length > 16) {
+          scope.phone_failure_msg = "Phone number is too long (16 character limit)!";
+          scope.form_ver.error_phone = true;
+          all_clear = false;
+        } else if (!ContactService.isValidPhone(scope.new_distributor['phone'])) {
+          scope.phone_failure_msg = "Phone is not valid!  Please fix and try again.";
+          scope.form_ver.error_phone = true;
           all_clear = false;
         }
 
