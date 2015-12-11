@@ -573,6 +573,7 @@ func purchaseOrderAutoAPIHandler(w http.ResponseWriter, r *http.Request) {
 				var new_dorder DistributorOrder
 				var new_item PO_Item
 				new_item.BeverageID = bev.ID
+				new_item.VersionID = bev.VersionID
 				new_dorder.Items = append(new_dorder.Items, new_item)
 				new_dorder.DistributorID = int(bev.DistributorID.Int64)
 
