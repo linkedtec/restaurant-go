@@ -716,7 +716,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		for i := range old_ids {
 			old_id := old_ids[i]
-			check_tables := []string{"location_beverages", "tap_beverages"}
+			check_tables := []string{"location_beverages", "tap_beverages", "distributor_order_items", "delivery_items"}
 			for t_i := range check_tables {
 				table_name := check_tables[t_i]
 				if table_name == "location_beverages" {
