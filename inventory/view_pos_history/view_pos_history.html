@@ -22,6 +22,7 @@
       <td></td> <!--For view button-->
       <td>Order Date</td> <!--For date-->
       <td>Sent via</td>
+      <td>PO #</td>
       <td>Distributor</td>
       <td># Items</td>
       <td>Total ($)</td>
@@ -35,6 +36,7 @@
         </td>
         <td style="font-weight:bold">{{po.order.order_date}}</td>
         <td>{{po.order.send_method_pretty}}</td>
+        <td style="color:#888888">{{po.order.po_num}}</td>
         <td></td>
         <td></td>
         <td style="font-weight:bold">{{po.order.total | number:2}}</td>
@@ -43,11 +45,12 @@
         <td></td>
         <td></td>
         <td></td>
+        <td>{{dorder.do_num}}</td>
         <td>{{dorder.distributor}}</td>
         <td>{{dorder.item_count}}</td>
         <td>{{dorder.total | number:2}}</td>
       </tr>
-      <tr><td colspan="6"></td></tr>
+      <tr><td colspan="7"></td></tr>
     </tbody>
   </table>
 

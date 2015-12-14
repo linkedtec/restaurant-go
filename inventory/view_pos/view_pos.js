@@ -31,6 +31,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
   $scope.order['purchase_email'] = null;
   $scope.order['purchase_phone'] = null;
   $scope.order['purchase_fax'] = null;
+  $scope.order['po_num'] = null;
   $scope.showPurchaseSave = false;
   $scope.defaultContactChecked = true;
   // the global delivery date which will be applied to dorders at start
@@ -186,16 +187,36 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
     console.log($scope.order['dist_orders']);
     $scope.getRestaurant();
+    $scope.getPONum();
 
   };
 
   $scope.initAutoForm = function() {
+    $scope.order['dist_orders'] = [];
     $scope.getAllDistributors(true);
     // getAllDistributors will call getAutoPurchaseOrder after it's done
     $scope.refreshSelectableDistributors();
 
     $scope.getRestaurant();
+    $scope.getPONum();
 
+  };
+
+  $scope.getPONum = function() {
+    // get the next available unique id for this purchase order
+    $http.get('/purchase/ponum').
+    success(function(data, status, headers, config) {
+      console.log(data);
+      if (data != null) {
+        $scope.order['po_num'] = data['po_num'];
+      } else {
+        ;
+      }
+      
+    }).
+    error(function(data, status, headers, config) {
+
+    });
   };
 
   $scope.getAutoPurchaseOrder = function() {

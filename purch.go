@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
@@ -20,6 +21,10 @@ type PurchaseOrder struct {
 	DoSend            bool               `json:"do_send"`
 }
 
+type PO_Num struct {
+	PO_Num string `json:"po_num"`
+}
+
 type PO_Order struct {
 	// these are used for GETting
 	ID      int       `json:"id"`
@@ -33,6 +38,7 @@ type PO_Order struct {
 	PurchaseSaveDefault NullBool   `json:"purchase_save_default"`
 	DeliveryAddressType NullString `json:"delivery_address_type"`
 	SendMethod          NullString `json:"send_method"`
+	PO_Num              NullString `json:"po_num"`
 }
 
 type PO_Item struct {
@@ -67,6 +73,7 @@ type DistributorOrder struct {
 	Items                       []PO_Item  `json:"items"`
 	Total                       float32    `json:"total"`
 	AdditionalNotes             NullString `json:"additional_notes"`
+	DO_Num                      NullString `json:"do_num"`
 }
 
 type PO_SMS struct {
@@ -79,6 +86,7 @@ func setupPurchaseOrderHandlers() {
 	http.HandleFunc("/purchase", purchaseOrderAPIHandler)
 	http.HandleFunc("/purchase/all", purchaseOrderAllAPIHandler)
 	http.HandleFunc("/purchase/auto", purchaseOrderAutoAPIHandler)
+	http.HandleFunc("/purchase/ponum", purchaseOrderNumAPIHandler)
 }
 
 func createPurchaseOrderSaveOnly(user_id string, restaurant_id string, purchase_order PurchaseOrder, do_send bool, w http.ResponseWriter, r *http.Request) {
@@ -134,6 +142,7 @@ func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order
 		po_text.Distributor = dorder.Distributor
 
 		sms_str := "Automated SMS; DO NOT REPLY\n"
+		sms_str += "PO #: " + dorder.DO_Num.String + "\n"
 		sms_str += "Need by " + dorder.DeliveryDate + ":\n\n"
 
 		for _, item := range dorder.Items {
@@ -282,6 +291,12 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 
 		pdf.Ln(8)
 		pdf.SetFont("helvetica", "", 12)
+		po_num_line := "Purchase Order #: " + dorder.DO_Num.String
+		wd = pdf.GetStringWidth(po_num_line) + margin_right
+		pdf.SetX(-wd)
+		pdf.Cell(0, 6, po_num_line)
+
+		pdf.Ln(6)
 		order_date := fmt.Sprintf("Order Date: %s", purchase_order.Order.OrderDate)
 		wd = pdf.GetStringWidth(order_date) + margin_right
 		pdf.SetX(-wd)
@@ -512,6 +527,52 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 
 }
 
+func getPurchaseOrderNumForRestaurant(restaurant_id string) string {
+	var prev_po int
+	var prev_po_str string
+	err := db.QueryRow("SELECT po_num FROM purchase_orders WHERE restaurant_id=$1 ORDER BY po_num DESC LIMIT 1;", restaurant_id).Scan(
+		&prev_po_str)
+	switch {
+	case err == sql.ErrNoRows:
+		// if there are no rows, kick things off with number 1
+		return fmt.Sprintf("%04d", 1)
+	case err != nil:
+		return "error"
+	}
+
+	prev_po, _ = strconv.Atoi(prev_po_str)
+
+	return fmt.Sprintf("%04d", prev_po+1)
+}
+
+func purchaseOrderNumAPIHandler(w http.ResponseWriter, r *http.Request) {
+	privilege := checkUserPrivilege()
+
+	switch r.Method {
+
+	case "GET":
+		if !hasBasicPrivilege(privilege) {
+			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
+			return
+		}
+
+		// XXX Need to post restaurant_id here and valdiate user
+
+		var po_num PO_Num
+		po_num.PO_Num = getPurchaseOrderNumForRestaurant(test_restaurant_id)
+
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(po_num)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+
+	}
+}
+
 // For creating the Automatic Purchase Order
 // Returns DistributorOrders populated with active menu PO_Items which have
 // had inventory entries recently.  Calls getBeverageRecentInventory to
@@ -632,10 +693,10 @@ func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		var purchase_orders []PurchaseOrder
 		rows, err := db.Query(`
-			SELECT (created AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update, id, order_date, send_method 
+			SELECT (created AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update, id, order_date, send_method, po_num 
 				FROM purchase_orders 
 				WHERE created AT TIME ZONE 'UTC' BETWEEN $2 AND $3 AND restaurant_id=$4 
-			ORDER BY local_update DESC;`,
+			ORDER BY created DESC;`,
 			tz_offset, start_date, end_date, test_restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
@@ -649,14 +710,15 @@ func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 				&purchase_order.Order.Created,
 				&purchase_order.Order.ID,
 				&purchase_order.Order.OrderDate,
-				&purchase_order.Order.SendMethod); err != nil {
+				&purchase_order.Order.SendMethod,
+				&purchase_order.Order.PO_Num); err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
 			}
 
 			drows, err := db.Query(`
-				SELECT id, distributor_id, distributor, total 
+				SELECT id, distributor_id, distributor, total, do_num 
 					FROM distributor_orders WHERE purchase_order_id=$1;`, purchase_order.Order.ID)
 			if err != nil {
 				log.Println(err.Error())
@@ -670,7 +732,8 @@ func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 					&distributor_order.ID,
 					&distributor_order.DistributorID,
 					&distributor_order.Distributor,
-					&distributor_order.Total); err != nil {
+					&distributor_order.Total,
+					&distributor_order.DO_Num); err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					continue
@@ -717,13 +780,14 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		var purchase_order PurchaseOrder
 		err := db.QueryRow(`
-			SELECT order_date, purchase_contact, purchase_email, purchase_phone, purchase_fax, send_method FROM purchase_orders WHERE id=$1;`, po_id).Scan(
+			SELECT order_date, purchase_contact, purchase_email, purchase_phone, purchase_fax, send_method, po_num FROM purchase_orders WHERE id=$1;`, po_id).Scan(
 			&purchase_order.Order.OrderDate,
 			&purchase_order.Order.PurchaseContact,
 			&purchase_order.Order.PurchaseEmail,
 			&purchase_order.Order.PurchasePhone,
 			&purchase_order.Order.PurchaseFax,
-			&purchase_order.Order.SendMethod)
+			&purchase_order.Order.SendMethod,
+			&purchase_order.Order.PO_Num)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -745,7 +809,7 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		rows, err := db.Query(`
 			SELECT id, distributor, distributor_id, distributor_email, distributor_phone, 
-				delivery_date, total, additional_notes FROM distributor_orders 
+				delivery_date, total, additional_notes, do_num FROM distributor_orders 
 			WHERE purchase_order_id=$1`,
 			po_id)
 		if err != nil {
@@ -764,7 +828,8 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 				&distributor_order.DistributorPhone,
 				&distributor_order.DeliveryDate,
 				&distributor_order.Total,
-				&distributor_order.AdditionalNotes); err != nil {
+				&distributor_order.AdditionalNotes,
+				&distributor_order.DO_Num); err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
@@ -902,6 +967,18 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		// get the unique Purchase Order Number.  Do this outside of DoSend check
+		// since previews need it too
+		po_num := getPurchaseOrderNumForRestaurant(test_restaurant_id)
+		order.Order.PO_Num.String = po_num
+		order.Order.PO_Num.Valid = true
+		sub_nums := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		for i, _ := range order.DistributorOrders {
+			do_num := order.Order.PO_Num.String + string(sub_nums[i])
+			order.DistributorOrders[i].DO_Num.Valid = true
+			order.DistributorOrders[i].DO_Num.String = do_num
+		}
+
 		if order.DoSend == true {
 
 			// -----------------------------------------------------------------------
@@ -914,19 +991,20 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
+
 			cur_time := time.Now().UTC()
 			_, err = db.Exec(`
 				INSERT INTO purchase_orders 
 					(restaurant_name, restaurant_id, user_id, created, order_date, 
 					purchase_contact, purchase_email, purchase_phone, purchase_fax,
-					addr1, addr2, city, state, zipcode, send_method) 
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+					addr1, addr2, city, state, zipcode, send_method, po_num) 
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
 				restaurant.Name.String, test_restaurant_id, test_user_id, cur_time,
 				order.Order.OrderDate, order.Order.PurchaseContact,
 				order.Order.PurchaseEmail, order.Order.PurchasePhone, order.Order.PurchaseFax,
 				delivery_address.AddressOne, delivery_address.AddressTwo,
 				delivery_address.City, delivery_address.State, delivery_address.Zipcode,
-				order.Order.SendMethod)
+				order.Order.SendMethod, order.Order.PO_Num)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -942,14 +1020,14 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			for _, dorder := range order.DistributorOrders {
-
 				_, err = db.Exec(`
 				INSERT INTO distributor_orders 
 					(purchase_order_id, distributor_id, distributor, distributor_email, 
-					distributor_phone, delivery_date, total, additional_notes) 
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+					distributor_phone, delivery_date, total, additional_notes, do_num) 
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
 					po_id, dorder.DistributorID, dorder.Distributor, dorder.DistributorEmail,
-					dorder.DistributorPhone, dorder.DeliveryDate, dorder.Total, dorder.AdditionalNotes)
+					dorder.DistributorPhone, dorder.DeliveryDate, dorder.Total,
+					dorder.AdditionalNotes, dorder.DO_Num)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)

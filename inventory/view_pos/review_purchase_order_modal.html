@@ -62,10 +62,14 @@
       <div style="font-size:1.3em; margin-bottom:6px">PURCHASE ORDER </div>
       <hr style="margin-top:0px; margin-bottom:12px"/>
       <div class="row">
+        <div class="col-xs-3" style="text-align:right;">Purchase Order #:</div>
+        <div class="col-xs-9">{{review_obj.order.po_num}}</div>
+      </div>
+      <div class="row">
         <div class="col-xs-3" style="text-align:right;">Ordered On:</div>
         <div class="col-xs-9">{{review_obj.order.order_date}}</div>
       </div>
-      <div class="row">
+      <div class="row" style="margin-top:12px">
         <div class="col-xs-3" style="text-align:right;">Restaurant Contact:</div>
         <div class="col-xs-9">{{review_obj.order.purchase_contact}}</div>
       </div>
@@ -82,7 +86,8 @@
         <div class="col-xs-9">{{review_obj.order.purchase_fax}}</div>
       </div>
       <div ng-repeat="dorder in review_obj.distributor_orders">
-        <div style="font-size:1.2em; margin-bottom:6px; margin-top:24px">Order to: {{dorder.distributor}}</div>
+        <div style="font-size:1.2em; margin-bottom:0px; margin-top:24px">Order to: {{dorder.distributor}}</div>
+        <div style="font-size:1.0em; margin-bottom:6px; margin-top:0px">Purchase Order #: {{dorder.do_num}}</div>
         <hr style="margin-top:0px; margin-bottom:12px"/>
         <div class="row" ng-repeat="item in dorder.items" style="font-size:0.9em">
           <div class="col-xs-7">
