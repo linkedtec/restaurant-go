@@ -41,7 +41,10 @@
   <script src="/inventory/view_pos/directive_delivery_address.js"></script>
   <script src="/inventory/view_pos/directive_my_checkbox.js"></script>
   <script src="/inventory/view_pos/view_pos.js"></script>
+  <script src="/inventory/view_pos/directive_create_po.js"></script>
   <script src="/inventory/view_pos_history/view_pos_history.js"></script>
+  <script src="/inventory/view_pos_history/directive_record_delivery.js"></script>
+  <script src="/inventory/view_pos_deliveries_new/view_pos_deliveries.js"></script>
   <script src="/inventory/view_loc/view_loc_new.js"></script>
   <script src="/inventory/view_loc/directive_new_location.js"></script>
   <!--script src="/inventory/view_loc/directive_loc_add_inv.js"></script-->
@@ -76,7 +79,7 @@
     <div class="collapse navbar-collapse" id="main-navbar-collapse">
       <ul class="nav navbar-nav" ng-controller="myAppCtrl" style="font-size:1.0em;">
         <li ng-class="{ 'active': isActive('/viewAllInv') || isActive('/viewDistributors') || isActive('/viewRestaurant')}"><a href="#/viewAllInv">Overview</a></li>
-        <li ng-class="{ 'active': isActive('/viewSalesPlan') || isActive('/viewPurchaseOrders') || isActive('/viewPurchaseHistory') }"><a href="#/viewSalesPlan">Menu & Purchasing</a></li>
+        <li ng-class="{ 'active': isActive('/viewSalesPlan') || isActive('/viewPurchaseOrders') || isActive('/viewPurchaseHistory') || isActive('/viewPODeliveries') }"><a href="#/viewSalesPlan">Menu & Purchasing</a></li>
         <li ng-class="{ 'active': isActive('/viewInvByLoc') || isActive('/viewInvByLocNew') || isActive('/viewOnTap') || isActive('/viewHistory') || isActive('/viewDeliveries') }"><a href="#/viewInvByLocNew">Inventory</a></li>
         <!--li ng-class="{ 'active': isActive('/') }"><a href="#/viewDeliveries">Deliveries</a></li-->
       </ul>

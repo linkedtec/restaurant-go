@@ -211,6 +211,22 @@ func getCurrentTime() string {
 	return cur_time
 }
 
+func getRestaurantTimeZone(restaurant_id string) (string, error) {
+	var tz_str string
+	err := db.QueryRow("SELECT timezone FROM restaurants WHERE id=$1;", restaurant_id).Scan(&tz_str)
+	if err != nil {
+		return "", err
+	}
+	return tz_str, nil
+}
+
+func getTimeAtTimezone(in_time time.Time, in_tz string) time.Time {
+	log.Println(in_time)
+	log.Println(in_tz)
+	tz, _ := time.LoadLocation(in_tz)
+	return in_time.In(tz)
+}
+
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Root handler")
 	http.ServeFile(w, r, "./home.html")
@@ -261,14 +277,18 @@ func volumeUnitsHandler(w http.ResponseWriter, r *http.Request) {
 func updateBeverageVersion(old_id int) (int, error) {
 
 	// duplicate the entry, which will create a new serial id
-	_, err := db.Exec("INSERT INTO beverages (distributor_id, keg_id, product, brewery, alcohol_type, abv, purchase_volume, purchase_cost, purchase_unit, flavor_profile, restaurant_id, container_type, serve_type, purchase_count, version_id, sale_status, sale_start, sale_end, par) SELECT distributor_id, keg_id, product, brewery, alcohol_type, abv, purchase_volume, purchase_cost, purchase_unit, flavor_profile, restaurant_id, container_type, serve_type, purchase_count, version_id, sale_status, sale_start, sale_end, par FROM beverages WHERE id=$1;", old_id)
-	if err != nil {
-		return -1, err
-	}
-
-	// grab the new entry's id serial
 	var new_id int
-	err = db.QueryRow("SELECT last_value FROM beverages_id_seq;").Scan(&new_id)
+	err := db.QueryRow(`
+		INSERT INTO beverages (
+			distributor_id, keg_id, product, brewery, alcohol_type, abv, 
+			purchase_volume, purchase_cost, purchase_unit, flavor_profile, 
+			restaurant_id, container_type, serve_type, purchase_count, version_id, 
+			sale_status, sale_start, sale_end, par) 
+		SELECT distributor_id, keg_id, product, brewery, alcohol_type, abv, 
+			purchase_volume, purchase_cost, purchase_unit, flavor_profile, 
+			restaurant_id, container_type, serve_type, purchase_count, version_id, 
+			sale_status, sale_start, sale_end, par 
+		FROM beverages WHERE id=$1 RETURNING id;`, old_id).Scan(&new_id)
 	if err != nil {
 		return -1, err
 	}

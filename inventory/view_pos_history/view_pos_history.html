@@ -6,7 +6,7 @@
     <div style="display: inline-block; vertical-align:top; margin-top:8px; margin-left:2px">Purchase History</div>
   </div>
   <div class="hint_text" style="width:100%; padding-top:2px; font-size:1.0em">
-    Review past Purchase Orders
+    Review past Purchase Orders and record Deliveries
   </div>
 
   <div class="row" style="margin:32px 0px; margin-bottom:0px">
@@ -20,28 +20,29 @@
   <table id="purchaseOrdersTable" summary="Data table for Purchase Orders history." rules="groups" frame="hsides" border="2" style="width:100%; margin-top:8px; margin-bottom:120px">
     <tr>
       <td></td> <!--For view button-->
-      <td>Order Date</td> <!--For date-->
+      <td>Order Date / Status</td> <!--For date-->
       <td>Sent via</td>
       <td>PO #</td>
       <td>Distributor</td>
       <td># Items</td>
       <td>Total ($)</td>
     </tr>
-    <tbody ng-repeat="po in purchase_orders">
-      <tr class="inv_loc_row" style="font-style:italic">
+    <tbody ng-repeat="po in purchase_orders" style="border-bottom: 1px solid #b0b0b0">
+      <tr class="inv_loc_row" style="font-style:italic; border-bottom:1px solid #d0d0d0; background-color:#eeeeee">
         <td>
           <button ng-click="viewPurchaseOrder(po)" type="button" class="btn btn-md btn_frameless hover_blue" style="font-size:16px; margin-top:1px; padding:2px 4px;">
             <span class="glyphicon glyphicon-eye-open"></span>
           </button>
         </td>
-        <td style="font-weight:bold">{{po.order.order_date}}</td>
+        <td style="font-weight:bold">{{po.order.order_date_pretty}}</td>
         <td>{{po.order.send_method_pretty}}</td>
-        <td style="color:#888888">{{po.order.po_num}}</td>
+        <td style="color:#aaaaaa">{{po.order.po_num}}</td>
         <td></td>
         <td></td>
         <td style="font-weight:bold">{{po.order.total | number:2}}</td>
       </tr>
-      <tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'">
+      <!--tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#F6FFEC; border-bottom:1px solid #d0d0d0"-->
+      <tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#fefefe; border-bottom:1px solid #d0d0d0;" height="32px">
         <td></td>
         <td></td>
         <td></td>
@@ -63,3 +64,4 @@
 </div>
 
 <div ng-include src="'./view_pos/review_purchase_order_modal.html'">
+<div ng-include src="'./view_pos_history/modal_record_delivery.html'">

@@ -528,20 +528,16 @@ func tapsAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = db.Exec("INSERT INTO locations(name, last_update, restaurant_id, type, active) VALUES ($1, $2, $3, 'tap', TRUE);", newLoc.Name, time.Time{}, test_restaurant_id)
+		var tap_id int
+		err = db.QueryRow(`
+			INSERT INTO locations(name, last_update, restaurant_id, type, active) 
+			VALUES ($1, $2, $3, 'tap', TRUE) RETURNING id;`,
+			newLoc.Name, time.Time{}, test_restaurant_id).Scan(&tap_id)
 		if err != nil {
 			log.Println(err.Error())
 		}
 
 		// for taps, need to additionally insert taps_last_update.last_update
-		var tap_id int
-		err = db.QueryRow("SELECT last_value FROM locations_id_seq;").Scan(&tap_id)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
 		_, err = db.Exec("INSERT INTO taps_last_update(tap_id, last_update) VALUES ($1, $2);", tap_id, time.Time{})
 		if err != nil {
 			log.Println(err.Error())

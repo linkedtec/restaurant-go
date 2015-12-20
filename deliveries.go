@@ -351,15 +351,12 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		// first, insert delivery into deliveries
 		cur_time := time.Now().UTC()
-		_, err = db.Exec("INSERT INTO deliveries(restaurant_id, distributor_id, delivery_time, update) VALUES ($1, $2, $3, $4);", test_restaurant_id, batch.DistributorID, batch.DeliveryTime, cur_time)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
 		var dlv_id int
-		err = db.QueryRow("SELECT last_value FROM deliveries_id_seq;").Scan(&dlv_id)
+		err = db.QueryRow(`
+			INSERT INTO deliveries(
+				restaurant_id, distributor_id, delivery_time, update) 
+			VALUES ($1, $2, $3, $4) RETURNING id;`,
+			test_restaurant_id, batch.DistributorID, batch.DeliveryTime, cur_time).Scan(&dlv_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)

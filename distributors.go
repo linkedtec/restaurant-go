@@ -134,15 +134,11 @@ func kegsAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		cur_time := time.Now().UTC()
 
-		_, err = db.Exec("INSERT INTO kegs(distributor_id, volume, unit, deposit, start_date, current) VALUES($1, $2, $3, $4, $5, TRUE);", keg.DistributorID, keg.Volume, keg.Unit, keg.Deposit, cur_time)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
 		var keg_id int
-		err = db.QueryRow("SELECT last_value FROM kegs_id_seq;").Scan(&keg_id)
+		err = db.QueryRow(`
+			INSERT INTO kegs(distributor_id, volume, unit, deposit, start_date, current) 
+			VALUES($1, $2, $3, $4, $5, TRUE) RETURNING id;`,
+			keg.DistributorID, keg.Volume, keg.Unit, keg.Deposit, cur_time).Scan(&keg_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -251,7 +247,13 @@ func kegsAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		cur_time := time.Now().UTC()
-		_, err = db.Exec("INSERT INTO kegs (distributor_id, volume, unit, deposit, version_id, current, start_date) SELECT distributor_id, $1, $2, $3, version_id, TRUE, $4 FROM kegs WHERE id=$5;", volume, unit, deposit, cur_time, old_keg_id)
+		var new_keg_id int
+		err = db.QueryRow(`
+			INSERT INTO kegs (distributor_id, volume, unit, deposit, version_id, 
+				current, start_date) 
+			SELECT distributor_id, $1, $2, $3, version_id, TRUE, $4 
+			FROM kegs WHERE id=$5 RETURNING id;`,
+			volume, unit, deposit, cur_time, old_keg_id).Scan(&new_keg_id)
 		if err != nil {
 			log.Println("Error 1")
 			log.Println(err.Error())
@@ -261,13 +263,6 @@ func kegsAPIHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("Old keg id:")
 		log.Println(old_keg_id)
 
-		var new_keg_id int
-		err = db.QueryRow("SELECT last_value FROM kegs_id_seq;").Scan(&new_keg_id)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
 		log.Println("New keg id:")
 		log.Println(new_keg_id)
 
@@ -590,13 +585,10 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		} else {
-			_, err = db.Exec("INSERT INTO distributors(name, restaurant_id, email, phone, date_created, active) VALUES ($1, $2, $3, $4, $5, TRUE);", dist.Name, test_restaurant_id, dist.Email, dist.Phone, cur_time)
-			if err != nil {
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			err = db.QueryRow("SELECT last_value FROM distributors_id_seq;").Scan(&dist.ID)
+			err = db.QueryRow(`
+				INSERT INTO distributors(name, restaurant_id, email, phone, date_created, active) 
+				VALUES ($1, $2, $3, $4, $5, TRUE) RETURNING id;`,
+				dist.Name, test_restaurant_id, dist.Email, dist.Phone, cur_time).Scan(&dist.ID)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -615,21 +607,16 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 			if !akeg.Volume.Valid && !akeg.Deposit.Valid {
 				continue
 			}
-			_, err = db.Exec("INSERT INTO kegs(distributor_id, volume, unit, deposit, start_date, current) VALUES($1, $2, $3, $4, $5, TRUE);", dist.ID, akeg.Volume, akeg.Unit, akeg.Deposit, cur_time)
-			if err != nil {
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				continue
-			}
-
 			var keg_id int
-			err = db.QueryRow("SELECT last_value FROM kegs_id_seq;").Scan(&keg_id)
+			err = db.QueryRow(`
+				INSERT INTO kegs(distributor_id, volume, unit, deposit, start_date, current) 
+				VALUES($1, $2, $3, $4, $5, TRUE) RETURNING id;`,
+				dist.ID, akeg.Volume, akeg.Unit, akeg.Deposit, cur_time).Scan(&keg_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
 			}
-
 			_, err = db.Exec("UPDATE kegs SET version_id=$1 WHERE id=$2;", keg_id, keg_id)
 			if err != nil {
 				log.Println(err.Error())

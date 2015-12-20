@@ -1,0 +1,79 @@
+<div ng-include src="'./purch_subnav.html'"></div>
+<div class="container" style="min-width:880px; max-width:880px">
+
+  <div style="width:100%; margin-top:24px; padding-bottom:4px; font-size:1.3em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_po_history.png" height="32" width="32" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:8px; margin-left:2px">Purchase History</div>
+  </div>
+  <div class="hint_text" style="width:100%; padding-top:2px; font-size:1.0em">
+    Review past Purchase Orders and record Deliveries
+  </div>
+
+  <div class="row" style="margin:32px 0px; margin-bottom:0px">
+    <div class="col-xs-8" style="text-align:left; padding:0">
+
+      <date-range start-date="start_date" end-date="end_date" on-start-change="startDateChanged()" on-end-change="endDateChanged()" show-helpers="true"></date_range>
+
+    </div>
+  </div>
+
+  <table id="purchaseOrdersTable" summary="Data table for Purchase Orders history." rules="groups" frame="hsides" border="2" style="width:100%; margin-top:8px; margin-bottom:120px">
+    <tr>
+      <td></td> <!--For view button-->
+      <td>Order Date / Status</td> <!--For date-->
+      <td>Sent via</td>
+      <td>PO #</td>
+      <td>Distributor</td>
+      <td># Items</td>
+      <td>Total ($)</td>
+      <td></td>
+    </tr>
+    <tbody ng-repeat="po in purchase_orders" style="border-bottom: 1px solid #b0b0b0">
+      <tr class="inv_loc_row" style="font-style:italic; border-bottom:1px solid #d0d0d0; background-color:#eeeeee">
+        <td>
+          <button ng-click="viewPurchaseOrder(po)" type="button" class="btn btn-md btn_frameless hover_blue" style="font-size:16px; margin-top:1px; padding:2px 4px;">
+            <span class="glyphicon glyphicon-eye-open"></span>
+          </button>
+        </td>
+        <td style="font-weight:bold">{{po.order.order_date}}</td>
+        <td>{{po.order.send_method_pretty}}</td>
+        <td style="color:#aaaaaa">{{po.order.po_num}}</td>
+        <td></td>
+        <td></td>
+        <td style="font-weight:bold">{{po.order.total | number:2}}</td>
+        <td></td>
+      </tr>
+      <!--tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#F6FFEC; border-bottom:1px solid #d0d0d0"-->
+      <tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#fefefe; border-bottom:1px solid #d0d0d0">
+        <td></td>
+        <td>
+          <!--div style="font-size:0.9em; display:inline-block; color:white; background-color:#52B332; padding:4px 6px; border-radius:4px">
+            Delivered!
+          </div-->
+          <div style="font-size:0.9em; display:inline-block; color:#927D2E; background-color:#FFFAE6; border:1px solid #DCC25E; padding:3px 8px; border-radius:4px" uib-popover="The Purchase Order has been sent to the Distributor, but you have not yet confirmed receipt of the Delivery.  When you receive the Delivery and Invoice from {{dorder.distributor}}, press the 'Record Delivery' button." popover-trigger="mouseenter" popover-popup-delay="300">
+            Pending ...
+          </div>
+        </td>
+        <td></td>
+        <td>{{dorder.do_num}}</td>
+        <td>{{dorder.distributor}}</td>
+        <td>{{dorder.item_count}}</td>
+        <td>{{dorder.total | number:2}}</td>
+        <td style="padding-top:5px; padding-bottom:5px">
+          <button ng-click="recordDelivery(dorder)" type="button" class="btn btn-primary btn-sm" style="float:right; padding:4px 6px;"><span class="glyphicon glyphicon-pencil"></span> Record Delivery</button>
+        </td>
+      </tr>
+      <tr><td colspan="8"></td></tr>
+    </tbody>
+  </table>
+
+  <div class="row" ng-if="purchase_orders.length===0" style="margin-bottom:120px">
+    <div class="col-xs-12 hint_text" style="font-size:1.5em; text-align:center">
+      No data for selected time period.
+    </div> 
+  </div>
+
+</div>
+
+<div ng-include src="'./view_pos/review_purchase_order_modal.html'">
+<div ng-include src="'./view_pos_history/modal_record_delivery.html'">

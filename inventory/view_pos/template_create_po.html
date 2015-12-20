@@ -1,0 +1,499 @@
+<!--============================ SHOW MODE 0 ==============================-->
+<div ng-if="showMode===0" style="margin-bottom:64px">
+  <div class="row" style="font-size:1.6em; margin-top:32px; text-align:center;">
+    How would you like to create your new Purchase Order?
+  </div>
+  <div class="row" style="margin-top:12px">
+    <div class="col-xs-1"></div>
+    <div class="col-xs-5" style="padding:0px 8px 0px 16px; cursor:pointer">
+      <div class="clickable_box gray_shadow" style="height:300px" ng-click="setShowMode(1, 'auto')">
+        <div style="text-align:center; margin-top:24px; font-size:1.5em; color:#4499cc">
+          Automatic / Match Par
+        </div>
+        <div style="text-align:center; margin-top:24px">
+          <img src="images/po_auto.png" height="88px" width="88px">
+        </div>
+        <div style="position:absolute; bottom:0; padding:20px">
+          <span style="font-size:1.1em">
+            Easily bulk order beverages on your menu, using 
+            Par minus Inventory.  </br>
+          </span>
+          <span style="font-style:italic; font-size:1.0em">
+            Requires up-to-date <b>Menu Plan</b> and <b>Inventory</b>.</br>
+            For more info, <a ng-click="showAutoHelp($event)" class="help_link">click here</a>.
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="col-xs-5" style="padding:0px 16px 0px 8px; cursor:pointer">
+      <div class="clickable_box gray_shadow" style="height:300px" ng-click="setShowMode(1, 'manual')">
+        <div style="text-align:center; margin-top:24px; font-size:1.5em; color:#4499cc">
+          Manual Entry
+        </div>
+        <div style="text-align:center; margin-top:24px">
+          <img src="images/po_manual.png" height="88px" width="88px">
+        </div>
+        <div style="position:absolute; bottom:0; padding:20px; padding-bottom:30px">
+          <span style="font-size:1.1em;">
+            Manually build custom Purchase Orders to send to Distributors. 
+            Good for ordering one-offs, for example.
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!--============================ SHOW MODE 1 ==============================-->
+<div ng-if="showMode===1" style="margin-bottom:64px">
+  <div class="row" style="font-size:1.6em; margin-top:32px; text-align:center">
+    <div class="col-xs-2 help_link" ng-click="cancelPurchaseOrder(true)">
+      <span class="glyphicon glyphicon-menu-left" style="font-size:16px;"></span>
+      <span style="font-size:0.9em"> Back</span>
+    </div>
+    <div class="col-xs-8">
+      When should this P.O. be <b>sent</b> to Distributors?
+    </div>
+  </div>
+  <div class="row" style="margin-top:16px;">
+    <div class="col-xs-12" style="text-align:center">
+      <div class="btn-group" uib-dropdown style="width:240px; vertical-align:top">
+        <button type="button" class="btn btn-default btn-lg dropdown-toggle loc_dropdown" style="width:100%;" uib-dropdown-toggle>
+          <span style="float:left; text-align:center; width:90%;">
+            {{order.order_date_type}} 
+          </span>
+          <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:2px; font-size:14px; color:#888888"></span>
+        </button>
+        <ul class="loc_dropdown dropdown-menu" role="menu">
+          <li class="inv_dropdown_li" ng-repeat="type in order_date_types">
+            <a ng-click="selectOrderDateType($index)" class="noselect">{{type}}</a>
+          </li>
+        </ul>
+      </div>
+      <div ng-if="order.order_date_type===order_date_types[1]" style="display:inline-block; width:280px; margin-left:12px">
+        <date-button date="order.order_date" end-of-day="false" type="input" style="width:100%" large="true" on-date-change="orderDateChanged()"//>
+      </div>
+    </div>
+  </div>
+  <div class="row" style="font-size:1.6em; margin-top:42px; text-align:center">
+    <div class="col-xs-12">
+      When do you need your Purchase <b>delivered</b> by?
+    </div>
+  </div>
+  <div class="row" style="margin-top:16px;">
+    <div class="col-xs-4"></div>
+    <div class="col-xs-4" style="text-align:center">
+      <date-button date="order.delivery_date" end-of-day="false" type="input" style="width:100%" large="true"/>
+    </div>
+    <div ng-if="order.delivery_date !== null && (order.order_date_type===order_date_types[0] || order.order_date!==null)" class="col-xs-4" style="text-align:left">
+      <button class="btn btn-lg btn-primary"  ng-click="confirmDeliveryDate()">
+        Next <span class="glyphicon glyphicon-menu-right"></span>
+      </button>
+    </div>
+  </div>
+  <div class="row" style="text-align:center; margin-top:16px">
+
+  </div>
+
+</div>
+
+<!--============================ SHOW MODE 2 ==============================-->
+<div ng-if="showMode===2" style="margin-bottom:64px">
+  <div class="row" style="font-size:1.6em; margin-top:32px; text-align:center">
+    <div class="col-xs-2 help_link" ng-click="cancelPurchaseOrder(true)">
+      <span class="glyphicon glyphicon-menu-left" style="font-size:16px;"></span>
+      <span style="font-size:0.9em"> Back</span>
+    </div>
+    <div class="col-xs-8" style="text-align:center;">
+      How should we send the Purchase Order to Distributors?
+    </div>
+  </div>
+  <div class="row" style="margin-top:12px;">
+    <div class="col-xs-1"></div>
+    <div class="col-xs-10" style="padding:0px 16px 0px 8px; cursor:pointer; text-align:center">
+      <div class="clickable_box gray_shadow" ng-click="selectSendMethod(0, true)" style="padding:16px">
+        <div style="font-size:1.5em; color:#4499cc; text-align:center">
+          <img src="images/inv_email.png" height="38px" width="38px" style="margin-top:-10px">
+          Via Email
+        </div>
+        <!--div class="hint_text" style="margin-top:12px">
+          Send nicely-formatted PDF orders via email
+        </div-->
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:12px;">
+    <div class="col-xs-1"></div>
+    <div class="col-xs-10" style="padding:0px 16px 0px 8px; cursor:pointer; text-align:center">
+      <div class="clickable_box gray_shadow" ng-click="selectSendMethod(1, true)" style="padding:16px">
+        <div style="font-size:1.5em; color:#4499cc">
+          <img src="images/inv_sms.png" height="42px" width="42px" style="margin-top:-10px">
+          Via Text Message (SMS)
+        </div>
+        <!--div class="hint_text" style="margin-top:12px">
+          Send an SMS to your Distributor's phone number
+        </div-->
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:12px;">
+    <div class="col-xs-1"></div>
+    <div class="col-xs-10" style="padding:0px 16px 0px 8px; cursor:pointer; text-align:center">
+      <div class="clickable_box gray_shadow" ng-click="selectSendMethod(2, true)" style="padding:16px">
+        <div style="font-size:1.5em; color:#919DA5; text-align:center">
+          Save for My Records & Don't Send
+        </div>
+        <!--div class="hint_text" style="margin-top:12px">
+          Saves the PO in Purchase History without sending anything to Distributors
+        </div-->
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!--============================ SHOW MODE 3 ==============================-->
+
+<div ng-if="showMode===3" style="margin-top:24px;">
+  <div class="row" style="border-bottom:1px solid #e0e0e0; margin:0; margin-bottom:16px;">
+    <div class="col-xs-4 help_link" style="font-size:1.4em; margin-top:6px;" ng-click="cancelPurchaseOrder(false)">
+      <span class="glyphicon glyphicon-menu-left" style="font-size:16px;"></span>
+       Back
+    </div>
+    <div class="col-xs-4 min_padding" style="font-size:1.7em; text-align:center;">
+      New Purchase Order
+    </div>
+    <div class="col-xs-4" style="font-size:1.4em; text-align:right; margin-top:-2px">
+      <div class="btn-group" uib-dropdown style="width:90%">
+        <button type="button" class="btn btn-default btn-sm dropdown-toggle loc_dropdown" style="font-size:1.0em; width:100%; color:#19A2B3; border:none" uib-dropdown-toggle>
+          <span style="float:left; text-align:center; width:90%;">
+            <img ng-if="order.send_method===send_methods[0]" src="images/inv_email.png" height="24px" width="24px" style="margin-top:-5px">
+            <img ng-if="order.send_method===send_methods[1]" src="images/inv_sms.png" height="24px" width="24px" style="margin-top:-5px">
+            {{order.send_method}} 
+          </span>
+          <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:12px; color:#888888"></span>
+        </button>
+        <ul class="loc_dropdown dropdown-menu" role="menu">
+          <li class="inv_dropdown_li" ng-repeat="method in send_methods">
+            <a ng-click="selectSendMethod($index, false)" class="noselect">{{method}}</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Basic information box, applies to all Distributor Purchase Orders -->
+  <div class="gray_shadow po_box" style="margin-top:20px; padding-bottom:8px">
+    <div class="row" style="margin:0; padding:8px 0px 4px; background-color:#e7f7fa; border-bottom: 1px solid #C2E5F5;">
+      <div class="col-xs-4" style="font-size:1.2em; color:#888888">
+        Basic Information
+      </div>
+      <div class="col-xs-8" style="text-align:right">
+
+        <div style="display:inline-block; float:right; margin-top:4px; margin-left:10px">
+          
+          <date-button date="order.order_date" end-of-day="false" on-date-change="orderDateChanged()"/>
+        </div>
+        <div style="display:inline-block; float:right; font-size:1.1em; margin-top:2px" ng-class="{'my_error_txt': form_ver.error_order_date===true}">
+          {{order.order_date_pretty}}
+        </div>
+        <div style="display:inline-block; float:right; font-size:1.1em; color:#888888; margin-top:2px; margin-right:8px">
+          Order Date:
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-xs-12" style="margin:12px 0px 4px; font-size:1.1em; text-align:center">
+        Purchase Order #: <b>{{order.po_num}}</b> <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;"  uib-popover="This is the unique number associated with this Purchase Order, and can be used to verify the PO upon delivery, or to reference when corresponding with your distributors." popover-trigger="mouseenter"></span>
+      </div>
+    </div>
+    <div class="row" style="padding:12px 16px 16px">
+      <div class="col-xs-3">
+        <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_contact===true}">
+          <label class="control-label bold label_small"> Restaurant Contact</label>
+          <input ng-model="order.purchase_contact_edit" class="form-control input_small" placeholder="Your name" ng-change="purchasingChanged()">
+        </div>
+      </div>
+      <div class="col-xs-3">
+        <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_email===true}">
+          <label class="control-label bold label_small"> Restaurant Email</label>
+          <input ng-model="order.purchase_email_edit" class="form-control input_small" placeholder="Email" ng-change="purchasingChanged()">
+        </div>
+      </div>
+      <div class="col-xs-3">
+        <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_phone===true}">
+          <label class="control-label optional label_small"> Restaurant Phone</label>
+          <input ng-model="order.purchase_phone_edit" class="form-control input_small" placeholder="(000) 000-0000" ng-change="purchasingChanged()">
+        </div>
+      </div>
+      <div class="col-xs-3">
+        <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_fax===true}">
+          <label class="control-label optional label_small"> Restaurant Fax</label>
+          <input ng-model="order.purchase_fax_edit" class="form-control input_small" placeholder="(000) 000-0000" ng-change="purchasingChanged()">
+        </div>
+      </div>
+    </div>
+    <div class="row" ng-if="showPurchaseSave===true" style="margin:0; margin-top:-4px; text-align:left; padding-right:16px">
+      <input ng-checked="defaultContactChecked" type="checkbox" id="cb_default_contact" class="customCbSqr" style="z-index:-99;" ng-click="toggleDefaultContact()"/>
+        <label for="cb_default_contact" ng-click="toggleDefaultContact()" style="margin-left:16px"></label>
+      <div style="display:inline-block; margin-top:-6px; margin-left:4px; vertical-align:middle">
+         Save changes to default P/O contact info 
+      </div>
+    </div>
+
+    <hr ng-if="order.send_method===send_methods[0]" style="margin-top:8px;"/>
+
+    <div ng-if="order.send_method===send_methods[0]" style="margin-top:8px">
+      <delivery-address choosable="true" control="deliveryAddressControl"></delivery-address>
+    </div>
+  </div>
+
+  <div ng-repeat='dorder in order.dist_orders' class="gray_shadow po_box" style="padding-bottom:8px; margin-top:24px; position:relative">
+    <div style="position:absolute; top:-12px; left:-12px" ng-if="order.dist_orders.length > 1">
+      <button ng-click="deleteDistOrder($index)" type="button" class="btn btn-sm btn_x_circle_gray">
+        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+      </button>
+    </div>
+    <div class="row" style="margin:0; padding:8px 0px 4px; background-color:#e7f7fa; border-bottom: 1px solid #C2E5F5;">
+      <div class="col-xs-6" style="font-size:1.2em; color:#888888; margin-top:4px">
+        Distributor Order
+      </div>
+      <div class="col-xs-6" style="text-align:right">
+        
+        <div class="btn-group" style="width:240px !important; margin-top:-2px" uib-dropdown>
+          <button type="button" class="btn btn-default btn-sm dropdown-toggle" style="width:100%; font-size:14px" uib-dropdown-toggle>
+            <span ng-if="dorder.distributor !== null" style="float:left; text-align:left; width:90%; font-weight:bold">
+              {{dorder.distributor.name}} 
+            </span>
+            <span ng-if="dorder.distributor === null" class="noselect" style="float:left; text-align:left; width:90%;  color:#999999">
+              Select a Distributor
+            </span>
+            <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:12px; color:#888888"></span>
+          </button>
+          <ul class="loc_dropdown dropdown-menu" role="menu">
+            <li class="inv_dropdown_li" ng-repeat="dist in sel_distributors">
+              <a ng-click="selectDistributor(dorder, dist)" class="noselect">{{dist.name}}</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>  
+    <div class="row" ng-if="dorder.distributor === null">
+      <div class="col-xs-12" style="text-align:center; font-size:1.6em; color:#cccccc; font-style:italic; padding:24px 0px">
+        Please select a Distributor
+      </div>
+    </div>
+    <div class="row" ng-if="dorder.distributor !== null" style="padding:12px 16px 16px">
+      <div class="col-xs-3">
+        <div ng-if="order.send_method===send_methods[0]" class="form-group" style="margin-bottom:0px" ng-class="{'has-error': dorder.error_dist_email===true}">
+          <label class="control-label label_small bold"> 
+            Distributor Email
+          </label>
+          <input ng-model="dorder.distributor.email_edit" class="form-control input_small" placeholder="Distributor email" ng-change="distEmailChanged(dorder)">
+        </div>
+        <div ng-if="order.send_method===send_methods[1]" class="form-group" style="margin-bottom:0px" ng-class="{'has-error': dorder.error_dist_phone===true}">
+          <label class="control-label label_small bold"> 
+            Distributor Phone
+          </label>
+          <input ng-model="dorder.distributor.phone_edit" class="form-control input_small" placeholder="(000) 000-0000" ng-change="distPhoneChanged(dorder)">
+        </div>
+      </div>
+      <div class="col-xs-3 min_padding" style="margin-top:26px">
+        <span ng-if="order.send_method===send_methods[0] && dorder.distributor.email_edit!==dorder.distributor.email" >
+          <my-checkbox value="dorder.save_default_email" is-toggle="true"></my-checkbox>
+          Save as default Dist. email
+        </span>
+        <span ng-if="order.send_method===send_methods[1] && dorder.distributor.phone_edit!==dorder.distributor.phone" >
+          <my-checkbox value="dorder.save_default_phone" is-toggle="true"></my-checkbox>
+          Save as default Dist. phone
+        </span>
+      </div>
+      <div class="col-xs-3"></div>
+      <div class="col-xs-3">
+        <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': dorder.error_delivery_date===true}">
+          <label class="control-label label_small"> 
+            Est. Delivery Date
+          </label>
+          <date-button date="dorder.delivery_date" end-of-day="false" type="input"/>
+        </div>
+      </div>
+    </div>
+
+    <hr ng-if="dorder.distributor!==null" style="margin:0"/>
+
+    <div ng-if="dorder.distributor!==null" style="margin-bottom:8px;">
+
+      <div class="row" style="padding:12px 16px 0px">
+        <div class="col-xs-4">
+          <button ng-show="dorder.show_add_ui===false" ng-click="showAddInv(dorder)" type="button" class="btn btn-success btn-sm" style="font-size:13px; margin-top:-4px">
+            <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add Beverages
+          </button>
+        </div>
+        <div class="col-xs-4" style="font-size:1.4em; color:#333333; text-align:center;">
+          Items in this Order
+        </div>
+        <div class="col-xs-4" style="text-align:right"></div>
+      </div>
+      <div class="row" style="margin:0; margin-top:4px; padding-left:16px">
+        <div ng-if="dorder.show_add_ui===true" class="add_ui_box_green" style="height:480px; margin-bottom:12px">
+          <div class="add_title_bar_green">
+            <button ng-click="hideAddInv(dorder)" type="button" class="btn btn-default btn_x" style="float:left">
+              <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+            </button>
+            <div class="add_title_green">
+              <span style="font-size:1.0em;"> Add Beverages to Purchase Order </span>
+            </div>
+            <br/>
+          </div>
+          <div style="display:block; position:relative; bottom:0; top:12px; left: 0; right:0; margin:0px; padding:4px 8px; padding-bottom:12px; height:420px">
+            <addable-inv all-bevs="dorder.addable_items" all-kegs="[]" added-items="dorder.items" show-tabs="false" show-purchase="true" use-override-add-func="true" override-add-func="addItem(dorder, item)" control="dorder.addableControl" distributor-filter="dorder.distributor" sale-status-filter="true"></addable-inv>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin: 0px 16px; font-size:1.0em; color:#777777; padding-bottom:0px; background-color:#f0f0f0; border-top:1px solid #e0e0e0; border-bottom:1px solid #e0e0e0">
+        <div class="col-xs-4 add_inv_sort_div_lt min_padding noselect" ng-click="sortDistOrderBevs(dorder, 'product')">
+          Product / Brewery
+          <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="dorder.sort_key === 'product'" ng-class="{'glyphicon-menu-down': dorder.double_sort<0, 'glyphicon-menu-up':dorder.double_sort>0}" style="color:#cccccc;">
+          </span>
+        </div>
+        <div class="col-xs-2 add_inv_sort_div_lt min_padding noselect" ng-click="sortDistOrderBevs(dorder, 'batch_cost')">
+          Purchase Cost
+          <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="dorder.sort_key === 'batch_cost'" ng-class="{'glyphicon-menu-down': dorder.double_sort<0, 'glyphicon-menu-up':dorder.double_sort>0}" style="color:#cccccc;">
+          </span>
+        </div>
+        <div class="col-xs-2 add_inv_sort_div_lt min_padding noselect" ng-click="sortDistOrderBevs(dorder, 'par')" style="padding-left:0px">
+          Inv / Par
+          <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="dorder.sort_key === 'par'" ng-class="{'glyphicon-menu-down': dorder.double_sort<0, 'glyphicon-menu-up': dorder.double_sort>0}" style="color:#cccccc;">
+          </span>
+        </div>
+        <div class="col-xs-2 add_inv_sort_div_lt min_padding noselect" style="padding-left:32px" ng-click="sortDistOrderBevs(dorder, 'quantity')">
+          Quantity
+          <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="dorder.sort_key === 'quantity'" ng-class="{'glyphicon-menu-down': dorder.double_sort<0, 'glyphicon-menu-up': dorder.double_sort>0}" style="color:#cccccc;">
+        </div>
+        <div class="col-xs-2 add_inv_sort_div_lt min_padding noselect" ng-click="sortDistOrderBevs(dorder, 'subtotal')" style="padding-left:0px">
+          Subtotal
+          <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="dorder.sort_key === 'subtotal'" ng-class="{'glyphicon-menu-down': dorder.double_sort<0, 'glyphicon-menu-up': dorder.double_sort>0}" style="color:#cccccc;">
+          </span>
+        </div>
+      </div>
+      <div ng-if="dorder.items.length === 0" ng-class="{'my_error': dorder.error_empty_items===true}" style="text-align:center; color:#cccccc; background-color: #ffffff; font-style:italic; padding:24px 0px; margin:0px 16px; border: 1px solid #f0f0f0;">
+        <div style="font-size:1.8em">No Beverages added yet</div>
+        <div style="font-size:1.2em; margin-top:6px" ng-class="{'red_text': dorder.error_empty_items===true}">Use the "Add Beverages" button to add items to this Order</div>
+      </div>
+      <div ng-if="dorder.items.length > 0" ng-repeat="item in dorder.items" class="row" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="padding:6px 0px; margin:0px 16px;">
+        <div class="col-xs-4 min_padding">
+          <div style="display:inline-block; float:left">
+            <img ng-if="item.icon==='draft'" src="images/bev_draft.png" height="34px" width="34px" style="margin-left:0px">
+            <img ng-if="item.icon==='wine'" src="images/bev_wine.png" height="34px" width="34px" style="margin-left:0px">
+            <img ng-if="item.icon==='bottle'" src="images/bev_bottle.png" height="34px" width="34px" style="margin-left:0px">
+            <img ng-if="item.icon==='can'" src="images/bev_can.png" height="34px" width="34px" style="margin-left:0px">
+            <img ng-if="item.icon==='liquor'" src="images/bev_xo.png" height="34px" width="34px" style="margin-left:0px">
+          </div>
+          <div style="display:inline-block; float:left; margin-left:6px">
+            <div>
+              {{item.product}}
+              <span ng-if="item.purchase_count>1" style="color:#777777"> (<b>{{item.purchase_count}} count</b>)</span>
+            </div>
+            <div style="font-size:0.9em; color:#999999">{{item.brewery}}</div>
+          </div>
+        </div>
+        <div class="col-xs-2 min_padding">
+          <div><span ng-if="item.batch_cost!==null" style="color:#999999">$ </span>{{item.batch_cost | number:2}}</div>
+          <div style="font-size:0.9em; color:#999999">
+            <span ng-if="item.purchase_unit!==null">
+              {{item.purchase_volume | number:1}} {{item.purchase_unit}}
+            </span>
+            <span>
+              {{item.container_type}}
+            </span>
+          </div>
+        </div>
+        <div class="col-xs-2 min_padding" style="padding-top:4px">
+          <span ng-if="item.count_recent!==null" style="color:{{item.stock_color}}">{{item.count_recent | number:1}}</span>
+          <span ng-if="item.count_recent===null" class="glyphicon glyphicon-alert" style="font-size:16px; color:#dadada; margin-right:4px" uib-popover="No Inventory records in the past 3 days!" popover-trigger="mouseenter" popover-append-to-body="true"> </span>
+          <span ng-if="item.par!==null" style="font-size: 1.0em"> / {{item.par | number:1}}</span>
+          <span ng-if="item.par===null" style="font-size: 1.0em; color:#999999"> / None</span>
+          
+        </div>
+        <div class="col-xs-2 min_padding" style="padding-left:0">
+          <div>
+            <div ng-if="item.count_recent!==null && item.quantity===null && item.par !== null" style="width:32px; display:inline-block; float:left">
+              <button ng-click="matchQuantityToPar(item, dorder)" type="button" class="btn btn-sm btn-default blue_btn" style="float:left; font-size:18px; padding: 4px 5px 0px; margin-right:4px;" uib-popover="Match Par" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">
+                <span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span>
+              </button>
+            </div>
+            <div ng-if="item.count_recent===null || item.quantity!==null || item.par === null" style="width:32px; display:inline-block; float:left">
+              &nbsp
+            </div>
+            <input ng-model="item.quantity" class="form-control" ng-class="{'input_error': item.error_quantity===true}" style="max-width:70px; text-align:center; font-size:16px; float:left" placeholder="" ng-change="updateQuantity(item, dorder)">
+          </div>
+          <div ng-if="item.purchase_count > 1" style="background-color:#dd6622; border-radius:2px; font-size:0.8em; float:left; color:white; text-align:center; margin-left:24px; width:86px; padding:2px; margin-top:3px;" uib-popover="This item is purchased by cases of {{item.purchase_count}} units." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="300">
+            By the Case ({{item.purchase_count | number:0}})
+          </div>
+        </div> 
+        <div class="col-xs-2 min_padding" style="padding-top:6px">
+          <span ng-if="item.quantity===null" style="color:#999999">
+            --
+          </span>
+          <span ng-if="item.quantity!==null && item.subtotal!==null">
+            <span style="color:#999999">$</span> {{item.subtotal | number:2}}
+          </span>
+          <div style="float:right; margin-top:-2px">
+            <a tabindex="0" popover-trigger="focus" type="button" ng-model="item" uib-popover-template="'popoverRemoveItem.html'" popover-placement="left" popover-title="Remove from list?" popover-append-to-body="true" type="button" class="btn btn-sm btn_frameless hover_red" style="font-size:20px; float:right; padding:0;">
+              <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+            </a>
+          </div>
+        </div>
+        
+      </div>
+      <div ng-if="dorder.items.length > 0" class="row" style="padding-top:12px; margin:0px 16px 8px;">
+        <div class="col-xs-10" style="text-align:right; font-size:1.2em; color:#999999">Purchase Total: </div>
+        <div class="col-xs-2 min_padding" style="font-weight:bold; font-size:1.2em; color:#31AF31">
+          <span ng-if="dorder.total===null">--</span>
+          <span ng-if="dorder.total!==null"> $ {{dorder.total | number:2}}</span>
+        </div>
+      </div>
+    </div>
+
+    <div ng-if="dorder.distributor!==null" style="margin-bottom:8px">
+      <div class="row" style="padding:2px 16px 0px">
+        <div ng-if="dorder.additional_notes===null" class="col-xs-12" style="text-align:right">
+          <span class="hint_text">Additional notes or comments for Distributor? </span>
+          <button ng-click="addAdditionalNote(dorder)" type="button" class="btn btn-sm btn-default">
+            <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> Add Notes
+          </button>
+        </div>
+        <div ng-if="dorder.additional_notes!==null" class="col-xs-12" style="text-align:right; padding-top:12px">
+          <textarea ng-model="dorder.additional_notes" placeholder="Enter additional notes for Distributor here.  ({{note_char_limit}} characters max)" rows="2" cols="70" maxlength="{{note_char_limit}}"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div ng-show="showMode===3 && new_failure_msg !== null" class="row" style="margin:8px 4px 0px">
+  <div class="alert alert-danger" data-html="true" role="alert" style="margin-bottom:0px">
+    {{new_failure_msg}}
+  </div>
+</div>
+<div ng-show="showMode===3 && error_date_msg !== null" class="row" style="margin:8px 4px 0px">
+  <div class="alert alert-danger" data-html="true" role="alert" style="margin-bottom:0px">
+    {{error_date_msg}}
+  </div>
+</div>
+<div ng-if="showMode===3" class="row" style="margin-bottom:16px">
+  <div class="col-xs-6" style="padding-right:4px; text-align:center">
+    <div class="gray_shadow po_box po_add_box" ng-click="addEmptyDistributorOrder()" style="padding:8px">
+      <span class="glyphicon glyphicon-plus"></span> Add another Distributor Order
+    </div>
+  </div>
+  <div class="col-xs-6" style="padding-left:4px; text-align:center">
+    <div class="gray_shadow po_box po_save_box" ng-click="reviewAndSave()" style="padding:8px">
+      <span class="glyphicon glyphicon-ok"></span>
+      <span ng-if="order.send_method!==send_methods[2]"> Review and Send</span>
+      <span ng-if="order.send_method===send_methods[2]"> Review and Save</span>
+    </div>
+  </div>
+</div>

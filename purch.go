@@ -30,7 +30,9 @@ type PO_Order struct {
 	ID      int       `json:"id"`
 	Created time.Time `json:"created"`
 	// only these are used for POSTing
-	OrderDate           string     `json:"order_date"`
+	OrderDate           time.Time  `json:"order_date"`
+	Sent                bool       `json:"sent"`
+	SendLater           bool       `json:"send_later"`
 	PurchaseContact     string     `json:"purchase_contact"`
 	PurchaseEmail       string     `json:"purchase_email"`
 	PurchasePhone       NullString `json:"purchase_phone"`
@@ -39,15 +41,17 @@ type PO_Order struct {
 	DeliveryAddressType NullString `json:"delivery_address_type"`
 	SendMethod          NullString `json:"send_method"`
 	PO_Num              NullString `json:"po_num"`
+	DeliveryStatus      NullString `json:"delivery_status"`
 }
 
 type PO_Item struct {
-	DistributorOrderID int     `json:"distributor_order_id"`
-	BeverageID         int     `json:"beverage_id"`
-	VersionID          int     `json:"version_id"`
-	BatchCost          float64 `json:"batch_cost"`
-	Quantity           float64 `json:"quantity"`
-	Subtotal           float64 `json:"subtotal"`
+	DistributorOrderID int        `json:"distributor_order_id"`
+	BeverageID         int        `json:"beverage_id"`
+	VersionID          int        `json:"version_id"`
+	BatchCost          float64    `json:"batch_cost"`
+	Quantity           float64    `json:"quantity"`
+	Subtotal           float64    `json:"subtotal"`
+	DeliveryStatus     NullString `json:"delivery_status"`
 	// only for saving & not sending PO form:
 	Product        string      `json:"product"`
 	Brewery        NullString  `json:"brewery"`
@@ -69,7 +73,7 @@ type DistributorOrder struct {
 	DistributorEmailSaveDefault NullBool   `json:"distributor_email_save_default"`
 	DistributorPhone            NullString `json:"distributor_phone"`
 	DistributorPhoneSaveDefault NullBool   `json:"distributor_phone_save_default"`
-	DeliveryDate                string     `json:"delivery_date"`
+	DeliveryDate                time.Time  `json:"delivery_date"`
 	Items                       []PO_Item  `json:"items"`
 	Total                       float32    `json:"total"`
 	AdditionalNotes             NullString `json:"additional_notes"`
@@ -85,8 +89,10 @@ type PO_SMS struct {
 func setupPurchaseOrderHandlers() {
 	http.HandleFunc("/purchase", purchaseOrderAPIHandler)
 	http.HandleFunc("/purchase/all", purchaseOrderAllAPIHandler)
+	http.HandleFunc("/purchase/pending", purchaseOrderPendingAPIHandler)
 	http.HandleFunc("/purchase/auto", purchaseOrderAutoAPIHandler)
 	http.HandleFunc("/purchase/ponum", purchaseOrderNumAPIHandler)
+	http.HandleFunc("/purchase/dorder", distributorOrderAPIHandler)
 }
 
 func createPurchaseOrderSaveOnly(user_id string, restaurant_id string, purchase_order PurchaseOrder, do_send bool, w http.ResponseWriter, r *http.Request) {
@@ -120,7 +126,15 @@ func createPurchaseOrderSaveOnly(user_id string, restaurant_id string, purchase_
 			return
 		}
 		w.Write(js)
+	} else {
+		_, err := db.Exec("UPDATE purchase_orders SET sent=TRUE where id=$1;", purchase_order.Order.ID)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
+
 }
 
 func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order PurchaseOrder, do_send bool, w http.ResponseWriter, r *http.Request) {
@@ -143,7 +157,7 @@ func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order
 
 		sms_str := "Automated SMS; DO NOT REPLY\n"
 		sms_str += "PO #: " + dorder.DO_Num.String + "\n"
-		sms_str += "Need by " + dorder.DeliveryDate + ":\n\n"
+		sms_str += "Need by " + dorder.DeliveryDate.Format("Mon, Jan 2 2006") + ":\n\n"
 
 		for _, item := range dorder.Items {
 
@@ -212,6 +226,13 @@ func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order
 			return
 		}
 		w.Write(js)
+	} else {
+		_, err := db.Exec("UPDATE purchase_orders SET sent=TRUE where id=$1;", purchase_order.Order.ID)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 }
@@ -297,7 +318,7 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 		pdf.Cell(0, 6, po_num_line)
 
 		pdf.Ln(6)
-		order_date := fmt.Sprintf("Order Date: %s", purchase_order.Order.OrderDate)
+		order_date := fmt.Sprintf("Order Date: %s", purchase_order.Order.OrderDate.Format("Mon, Jan 2 2006"))
 		wd = pdf.GetStringWidth(order_date) + margin_right
 		pdf.SetX(-wd)
 		pdf.Cell(0, 6, order_date)
@@ -325,8 +346,7 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 		pdf.Ln(8)
 		pdf.SetTextColor(0, 0, 0)
 		pdf.SetFont("helvetica", "", 11)
-		//delivery_date := fmt.Sprintf("Order Date: %s", purchase_order.Order.OrderDate)
-		pdf.MultiCell(content_width/2.6, 5, dorder.DeliveryDate, "", "", false)
+		pdf.MultiCell(content_width/2.6, 5, dorder.DeliveryDate.Format("Mon, Jan 2 2006"), "", "", false)
 
 		// Restaurant
 		wd = content_width/2.6 + margin_right
@@ -523,6 +543,13 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 			return
 		}
 		w.Write(js)
+	} else {
+		_, err := db.Exec("UPDATE purchase_orders SET sent=TRUE where id=$1;", purchase_order.Order.ID)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 }
@@ -669,6 +696,92 @@ func purchaseOrderAutoAPIHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func purchaseOrderPendingAPIHandler(w http.ResponseWriter, r *http.Request) {
+
+	privilege := checkUserPrivilege()
+
+	switch r.Method {
+
+	case "GET":
+		if !hasBasicPrivilege(privilege) {
+			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
+			return
+		}
+
+		tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
+
+		var purchase_orders []PurchaseOrder
+		rows, err := db.Query(`
+			SELECT id, order_date AT TIME ZONE 'UTC' AT TIME ZONE $1, send_method, po_num 
+				FROM purchase_orders 
+				WHERE restaurant_id=$2 AND sent=FALSE 
+			ORDER BY created ASC;`,
+			tz_str, test_restaurant_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var purchase_order PurchaseOrder
+			if err := rows.Scan(
+				&purchase_order.Order.ID,
+				&purchase_order.Order.OrderDate,
+				&purchase_order.Order.SendMethod,
+				&purchase_order.Order.PO_Num); err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+
+			drows, err := db.Query(`
+				SELECT id, distributor_id, distributor, total, do_num 
+					FROM distributor_orders WHERE purchase_order_id=$1;`, purchase_order.Order.ID)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+			defer drows.Close()
+			for drows.Next() {
+				var distributor_order DistributorOrder
+				if err := drows.Scan(
+					&distributor_order.ID,
+					&distributor_order.DistributorID,
+					&distributor_order.Distributor,
+					&distributor_order.Total,
+					&distributor_order.DO_Num); err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+
+				err = db.QueryRow("SELECT COUNT(beverage_id) FROM distributor_order_items WHERE distributor_order_id=$1;", distributor_order.ID).Scan(
+					&distributor_order.ItemCount)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+				purchase_order.DistributorOrders = append(purchase_order.DistributorOrders, distributor_order)
+			}
+
+			purchase_orders = append(purchase_orders, purchase_order)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(purchase_orders)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+
+	}
+
+}
+
 func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	privilege := checkUserPrivilege()
@@ -693,9 +806,9 @@ func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		var purchase_orders []PurchaseOrder
 		rows, err := db.Query(`
-			SELECT (created AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update, id, order_date, send_method, po_num 
+			SELECT (created AT TIME ZONE 'UTC' AT TIME ZONE $1)::date AS local_update, id, order_date AT TIME ZONE 'UTC' AT TIME ZONE $1, send_method, po_num 
 				FROM purchase_orders 
-				WHERE created AT TIME ZONE 'UTC' BETWEEN $2 AND $3 AND restaurant_id=$4 
+				WHERE created AT TIME ZONE 'UTC' BETWEEN $2 AND $3 AND restaurant_id=$4 AND sent=TRUE 
 			ORDER BY created DESC;`,
 			tz_offset, start_date, end_date, test_restaurant_id)
 		if err != nil {
@@ -763,6 +876,86 @@ func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func distributorOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
+	privilege := checkUserPrivilege()
+
+	switch r.Method {
+
+	case "GET":
+		if !hasBasicPrivilege(privilege) {
+			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
+			return
+		}
+
+		// gets a single distributor order via id
+		do_id := r.URL.Query().Get("id")
+
+		tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
+
+		var dist_order DistributorOrder
+		err := db.QueryRow(`
+			SELECT id, distributor, delivery_date AT TIME ZONE 'UTC' AT TIME ZONE $1, total, do_num FROM distributor_orders WHERE id=$2;`, tz_str, do_id).Scan(
+			&dist_order.ID,
+			&dist_order.Distributor,
+			&dist_order.DeliveryDate,
+			&dist_order.Total,
+			&dist_order.DO_Num)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		irows, err := db.Query(`
+				SELECT beverage_id, quantity, batch_cost, subtotal, delivery_status 
+					FROM distributor_order_items WHERE distributor_order_id=$1;`, dist_order.ID)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer irows.Close()
+		for irows.Next() {
+			var item PO_Item
+			if err := irows.Scan(
+				&item.BeverageID,
+				&item.Quantity,
+				&item.BatchCost,
+				&item.Subtotal,
+				&item.DeliveryStatus); err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+
+			err = db.QueryRow("SELECT product, brewery, purchase_volume, purchase_unit, purchase_cost, purchase_count, container_type FROM beverages WHERE id=$1;", item.BeverageID).Scan(
+				&item.Product,
+				&item.Brewery,
+				&item.PurchaseVolume,
+				&item.PurchaseUnit,
+				&item.PurchaseCost,
+				&item.PurchaseCount,
+				&item.ContainerType)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+
+			dist_order.Items = append(dist_order.Items, item)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(&dist_order)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+
+	}
+}
+
 func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	privilege := checkUserPrivilege()
@@ -778,10 +971,14 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// gets a single purchase order PDF via id
 		po_id := r.URL.Query().Get("id")
 
+		tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
+		log.Println(tz_str)
+
 		var purchase_order PurchaseOrder
 		err := db.QueryRow(`
-			SELECT order_date, purchase_contact, purchase_email, purchase_phone, purchase_fax, send_method, po_num FROM purchase_orders WHERE id=$1;`, po_id).Scan(
+			SELECT order_date AT TIME ZONE 'UTC' AT TIME ZONE $1, sent, purchase_contact, purchase_email, purchase_phone, purchase_fax, send_method, po_num FROM purchase_orders WHERE id=$2;`, tz_str, po_id).Scan(
 			&purchase_order.Order.OrderDate,
+			&purchase_order.Order.Sent,
 			&purchase_order.Order.PurchaseContact,
 			&purchase_order.Order.PurchaseEmail,
 			&purchase_order.Order.PurchasePhone,
@@ -809,9 +1006,9 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		rows, err := db.Query(`
 			SELECT id, distributor, distributor_id, distributor_email, distributor_phone, 
-				delivery_date, total, additional_notes, do_num FROM distributor_orders 
-			WHERE purchase_order_id=$1`,
-			po_id)
+				delivery_date AT TIME ZONE 'UTC' AT TIME ZONE $1, total, additional_notes, do_num FROM distributor_orders 
+			WHERE purchase_order_id=$2`,
+			tz_str, po_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -879,6 +1076,7 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// receives:
 		// Order Information:
 		//     - order date
+		//     - send later
 		//     - purchase contact
 		//     - purchase email
 		//     - purchase phone
@@ -978,7 +1176,8 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 			order.DistributorOrders[i].DO_Num.Valid = true
 			order.DistributorOrders[i].DO_Num.String = do_num
 		}
-
+		// DoSend in this context means save & commit.  Whether we physically send
+		// right now is also dependent on order.Order.SendLater being false
 		if order.DoSend == true {
 
 			// -----------------------------------------------------------------------
@@ -993,53 +1192,42 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			cur_time := time.Now().UTC()
-			_, err = db.Exec(`
+			var po_id int
+			err = db.QueryRow(`
 				INSERT INTO purchase_orders 
-					(restaurant_name, restaurant_id, user_id, created, order_date, 
+					(restaurant_name, restaurant_id, user_id, created, order_date, sent, 
 					purchase_contact, purchase_email, purchase_phone, purchase_fax,
 					addr1, addr2, city, state, zipcode, send_method, po_num) 
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) 
+				RETURNING id;`,
 				restaurant.Name.String, test_restaurant_id, test_user_id, cur_time,
-				order.Order.OrderDate, order.Order.PurchaseContact,
+				order.Order.OrderDate, false, order.Order.PurchaseContact,
 				order.Order.PurchaseEmail, order.Order.PurchasePhone, order.Order.PurchaseFax,
 				delivery_address.AddressOne, delivery_address.AddressTwo,
 				delivery_address.City, delivery_address.State, delivery_address.Zipcode,
-				order.Order.SendMethod, order.Order.PO_Num)
+				order.Order.SendMethod, order.Order.PO_Num).Scan(&po_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-
-			var po_id int
-			err = db.QueryRow("SELECT last_value FROM purchase_orders_id_seq;").Scan(&po_id)
-			if err != nil {
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
+			order.Order.ID = int(po_id)
 
 			for _, dorder := range order.DistributorOrders {
-				_, err = db.Exec(`
+
+				var do_id int
+				err = db.QueryRow(`
 				INSERT INTO distributor_orders 
 					(purchase_order_id, distributor_id, distributor, distributor_email, 
 					distributor_phone, delivery_date, total, additional_notes, do_num) 
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
 					po_id, dorder.DistributorID, dorder.Distributor, dorder.DistributorEmail,
 					dorder.DistributorPhone, dorder.DeliveryDate, dorder.Total,
-					dorder.AdditionalNotes, dorder.DO_Num)
+					dorder.AdditionalNotes, dorder.DO_Num).Scan(&do_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					continue
-				}
-
-				var do_id int
-				err = db.QueryRow("SELECT last_value FROM distributor_orders_id_seq;").Scan(&do_id)
-				if err != nil {
-					log.Println(err.Error())
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
 				}
 
 				for _, item := range dorder.Items {
@@ -1059,12 +1247,18 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		} // end if doSend
 
-		if order.Order.SendMethod.String == "email" {
-			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, order, delivery_address, order.DoSend, w, r)
-		} else if order.Order.SendMethod.String == "text" {
-			createPurchaseOrderSMS(test_user_id, test_restaurant_id, order, order.DoSend, w, r)
-		} else if order.Order.SendMethod.String == "save" {
-			createPurchaseOrderSaveOnly(test_user_id, test_restaurant_id, order, order.DoSend, w, r)
+		if order.DoSend == true && order.Order.SendLater == true {
+			// if we saved & committed (DoSend), but we are not actually sending
+			// (order.Order.SendLater), we don't need to do anything or return anything
+			// for review
+		} else {
+			if order.Order.SendMethod.String == "email" {
+				createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, order, delivery_address, order.DoSend, w, r)
+			} else if order.Order.SendMethod.String == "text" {
+				createPurchaseOrderSMS(test_user_id, test_restaurant_id, order, order.DoSend, w, r)
+			} else if order.Order.SendMethod.String == "save" {
+				createPurchaseOrderSaveOnly(test_user_id, test_restaurant_id, order, order.DoSend, w, r)
+			}
 		}
 
 	}

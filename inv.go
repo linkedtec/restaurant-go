@@ -336,16 +336,20 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Println(bev)
 		cur_time := time.Now().UTC()
-		_, err = db.Exec("INSERT INTO beverages(product, container_type, serve_type, distributor_id, keg_id, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, purchase_count, flavor_profile, restaurant_id, start_date, current, sale_status, sale_start, sale_end, par) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, TRUE, $16, $17, $18, $19);",
-			bev.Product, bev.ContainerType, bev.ServeType, bev.DistributorID, bev.KegID, bev.Brewery, bev.AlcoholType, bev.ABV, bev.PurchaseVolume, bev.PurchaseUnit, bev.PurchaseCost, bev.PurchaseCount, bev.FlavorProfile, test_restaurant_id, cur_time, bev.SaleStatus, bev.SaleStart, bev.SaleEnd, bev.Par)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
 		var bev_id int
-		err = db.QueryRow("SELECT last_value FROM beverages_id_seq;").Scan(&bev_id)
+		err = db.QueryRow(`
+			INSERT INTO beverages(
+				product, container_type, serve_type, distributor_id, keg_id, brewery, 
+				alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, 
+				purchase_count, flavor_profile, restaurant_id, start_date, current, 
+				sale_status, sale_start, sale_end, par) 
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 
+				$15, TRUE, $16, $17, $18, $19) RETURNING id;`,
+			bev.Product, bev.ContainerType, bev.ServeType, bev.DistributorID,
+			bev.KegID, bev.Brewery, bev.AlcoholType, bev.ABV, bev.PurchaseVolume,
+			bev.PurchaseUnit, bev.PurchaseCost, bev.PurchaseCount, bev.FlavorProfile,
+			test_restaurant_id, cur_time, bev.SaleStatus, bev.SaleStart, bev.SaleEnd,
+			bev.Par).Scan(&bev_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)

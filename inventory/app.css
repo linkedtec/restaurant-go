@@ -1026,6 +1026,10 @@ like enclosed space */
   background-color:Transparent;
 }
 
+.record-dlv-modal .modal-dialog {
+  min-width:920px;
+}
+
 .edit-inv-modal .modal-dialog {
   min-width: 800px;
 }
@@ -1146,6 +1150,14 @@ like enclosed space */
   background-color: #e5eef5;
 }
 
+.dark-blue-modal-backdrop {
+  background-color: #155975;
+}
+
+.black-modal-backdrop {
+  background-color: #777777;
+}
+
 .start_count_btn_green_inactive {
   margin: 6px 6px;
   border-radius:2px;
@@ -1262,6 +1274,10 @@ like enclosed space */
   border-color: #aa0000 !important;
 }
 
+.my_error_txt {
+  color: #aa0000 !important;
+}
+
 .cursor_disabled {
   cursor: not-allowed;
 }
@@ -1276,8 +1292,8 @@ like enclosed space */
 }
 
 .modal-backdrop.in{
-  opacity:0.70;
-  filter: alpha(opacity=70);
+  opacity:0.80;
+  filter: alpha(opacity=80);
 }
 
 .box-shadow {
@@ -1361,7 +1377,7 @@ input[type=checkbox]:checked + label:before {
 }
 
 .popover {
-  max-width: 400px;
+  max-width: 360px;
 }
 
 .spinner_container {

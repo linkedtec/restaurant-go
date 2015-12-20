@@ -1,0 +1,45 @@
+<div ng-include src="'./purch_subnav.html'"></div>
+<div class="container" style="min-width:880px; max-width:880px">
+
+  <div style="width:100%; margin-top:24px; padding-bottom:4px; font-size:1.3em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_po.png" height="32" width="32" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:8px; margin-left:2px">Create Purchase Order</div>
+  </div>
+  <div class="hint_text" style="width:100%; padding-top:2px; font-size:1.0em">
+    Create and send new Purchase Orders to Distributors
+  </div>
+
+  <div class="row" style="margin-top:32px">
+    <div class="col-xs-12" style="float:none">
+      <button ng-click="createNewPO()" type="button" class="btn btn-default dlv_xl_btn center-block">
+        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> New Purchase Order
+      </button>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:24px; margin-bottom:0; font-size:1.2em">
+    <div class="col-xs-12">
+      Pending Send to Distributors 
+       <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;"  uib-popover="You can create Purchase Orders in the system and opt to send them to Distributors at a later date!  The following Purchase Orders have created but not yet sent.  They will be sent automatically on the Send Date, or you can manually send them now with the 'Send Now' button." popover-trigger="mouseenter"></span>
+    </div>
+  </div>
+  <hr style="margin:4px 0px; border-color:#dddddd"/>
+  <div ng-repeat="pending_po in pending_orders" class="row">
+    <div class="col-xs-4">
+      {{pending_po.order_date_pretty}}
+    </div>
+  </div>
+  <div ng-if="pending_orders===null || pending_orders.length===0" style="margin-top:48px">
+    <div class="row hint_text" style="text-align:center; font-size:1.5em">
+      No Purchase Orders Pending to be Sent
+    </div>
+    <div class="row hint_text" style="text-align:center; margin-top:6px">
+      To see a history of POs already sent to Distributors, see the "Purchase History" page.
+    </div>
+  </div>
+
+</div>
+
+<div ng-include src="'./view_loc/popover_remove_item.html'">
+<div ng-include src="'./view_pos/review_purchase_order_modal.html'">
+<div ng-include src="'./view_pos/modal_create_po.html'">

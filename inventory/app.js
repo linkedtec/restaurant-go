@@ -9,6 +9,7 @@ angular.module('myApp', [
   'myApp.viewSalesPlan',
   'myApp.viewPurchaseOrders',
   'myApp.viewPurchaseHistory',
+  'myApp.viewPODeliveries',
 //  'myApp.viewInvByLoc',
   'myApp.viewInvByLocNew',
 //  'myApp.viewOnTap',
@@ -412,7 +413,19 @@ config(['$routeProvider', function($routeProvider) {
     }
   }
 
+  var _isSameDay = function(date1, date2) {
+    return (date1.getDate() == date2.getDate() && date1.getMonth() == date2.getMonth() && date1.getFullYear() == date2.getFullYear())
+  }
+
   return {
+
+    isSameDay: function(date1, date2) {
+      return _isSameDay(date1, date2);
+    },
+
+    isFutureDay: function(date1, date2) {
+      return !_isSameDay(date1, date2) && (date2.getDate() >= date1.getDate() && date2.getMonth() >= date1.getMonth() && date2.getFullYear() >= date1.getFullYear());
+    },
 
     // helper function to get the number of minutes since a time stamp
     getPrettyTime: function(timestamp) {

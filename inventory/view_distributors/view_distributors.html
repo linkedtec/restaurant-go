@@ -97,7 +97,7 @@
         </div>
       </td>
     </tr>
-    <tbody ng-repeat="dist in distributors | filter:all_dist_query.query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row inv_row_odd'">
+    <tbody ng-repeat="dist in distributors | filter:all_dist_query.query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row inv_row_odd'" style="border-bottom:2px solid #eaeaea">
       <tr>
         <td class="all_inv_span" style="border-left: 1px solid #dddddd; text-align:center">
           <button ng-click="editDistributor(dist)" type="button" class="btn btn-xs btn_edit">

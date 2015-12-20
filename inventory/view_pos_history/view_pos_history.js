@@ -57,6 +57,7 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
           total += dist_order['total'];
         }
         po.order['total'] = total;
+        po.order['order_date_pretty'] = DateService.getPrettyDate(po.order['order_date'], true, true);
 
         if (po.order['send_method'] === 'email') {
           po.order['send_method_pretty'] = 'Email';
@@ -134,6 +135,89 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
     .error(function(data, status, headers, config) {
 
     });
+  };
+
+  $scope.launchRecordDeliveryModal = function(dorder) {
+    var modalEditInstance = $modal.open({
+      templateUrl: 'recordDeliveryModal.html',
+      controller: 'recordDeliveryModalCtrl',
+      windowClass: 'record-dlv-modal',
+      backdropClass: 'white-modal-backdrop',
+      backdrop : 'static',
+      resolve: {
+        dorder: function() {
+          return dorder;
+        }
+      }
+    });
+
+    modalEditInstance.result.then(
+      // success status
+      function( result ) {
+        // result is a list, first item is string for status, e.g.,
+        // 'save' or 'delete'
+        // second item is the affected beverage
+        var status = result[0];
+        
+        // after a save, we want to show a success dialogue with an optional
+        // CC email address
+        if (status === 'save') {
+          swal({
+            title: "Delivery Recorded!",
+            text: "Your Delivery has been recorded and saved in the system.",
+            type: "success",
+            allowOutsideClick: true,
+            html: true});
+
+        } else if (status === 'error') {
+          swal({
+            title: "Error Encountered!",
+            text: "There was an error while trying to save your Delivery, please try again later.",
+            type: "error",
+            allowOutsideClick: true,
+            html: true});
+        }
+
+      }, 
+      // error status
+      function() {
+        ;
+      });
+  }
+
+  $scope.recordDelivery = function(dorder) {
+    console.log(dorder);
+
+    var params = { 
+      id: dorder.id
+    };
+
+    // first get the full distributor_order from the server
+    $http.get('/purchase/dorder', 
+      {params: params })
+    .success(function(data, status, headers, config) {
+      // this callback will be called asynchronously when the response
+      // is available
+      console.log(data);
+      $scope.launchRecordDeliveryModal(data);
+
+    })
+    .error(function(data, status, headers, config) {
+
+    });
+  };
+
+
+})
+
+.controller('recordDeliveryModalCtrl', function($scope, $modalInstance, $http, dorder) {
+
+  $scope.dist_order = dorder;
+  console.log($scope.dist_order);
+
+  $scope.cancel = function() {
+    console.log("cancel edit");
+    $modalInstance.dismiss('cancel');
   };
 
 
