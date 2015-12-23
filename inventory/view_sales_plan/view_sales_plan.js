@@ -212,12 +212,12 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
     var sale_start_date = null;
     var sale_end_date = null;
     var today = new Date();
-    today.setHours(0,0,0);
+    today.setHours(0,0,0,0);
 
     if (DateService.isValidDate(item['sale_start'])) {
       item['sale_start_pretty'] = DateService.getPrettyDate(item['sale_start'].toString(), false, false);
       sale_start_date = item['sale_start'];
-      sale_start_date.setHours(0,0,0);
+      sale_start_date.setHours(0,0,0,0);
       if (sale_start_date > today) {
         item['upcoming'] = true;
         item['days_til_sale'] = Math.abs(DateService.daysBetween(today, sale_start_date));
@@ -233,7 +233,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
     if (DateService.isValidDate(item['sale_end'])) {
       item['sale_end_pretty'] = DateService.getPrettyDate(item['sale_end'].toString(), false, false);
       sale_end_date = item['sale_end'];
-      sale_end_date.setHours(0,0,0);
+      sale_end_date.setHours(0,0,0,0);
       item['days_til_end'] = Math.abs(DateService.daysBetween(today, sale_end_date));
     } else {
       item['sale_end_pretty'] = '--';
@@ -445,8 +445,8 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
           }
 
           if (menu_type===1) {
-            post_params['sale_start'] = item.sale_start;
-            post_params['sale_end'] = item.sale_end;
+            post_params['sale_start'] = DateService.clientTimeToRestaurantTime(item.sale_start);
+            post_params['sale_end'] = DateService.clientTimeToRestaurantTime(item.sale_end);
           }
 
           console.log(post_params);
@@ -813,10 +813,10 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
     /*
     var today = new Date();
     $scope.start_date = new Date(today.setDate(today.getDate()));
-    $scope.start_date.setHours(0,0,0);
+    $scope.start_date.setHours(0,0,0,0);
 
     $scope.end_date = new Date();
-    $scope.end_date.setHours(23,59,59);
+    $scope.end_date.setHours(23,59,59,999);
     */
     // we don't init dates so user is forced to manually think and enter dates
     

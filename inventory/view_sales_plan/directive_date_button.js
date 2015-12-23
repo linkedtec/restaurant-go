@@ -93,9 +93,9 @@ angular.module('myApp')
         }
 
         if (scope.endOfDay) {
-          scope.date.setHours(23,59,59);
+          scope.date.setHours(23,59,59,999);
         } else {
-          scope.date.setHours(0,0,0);
+          scope.date.setHours(0,0,0,0);
         }
 
         $timeout((function() {

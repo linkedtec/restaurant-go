@@ -51,7 +51,7 @@ func setupDeliveriesHandlers() {
 	http.HandleFunc("/deliveries", deliveriesAPIHandler)
 }
 
-func createDeliveryXlsxFile(data []byte, sorted_keys []string, suffix string, restaurant_id string, w http.ResponseWriter, r *http.Request, email string, args map[string]string) {
+func createDeliveryXlsxFile(data []byte, sorted_keys []string, suffix string, restaurant_id string, w http.ResponseWriter, r *http.Request, email string, start_date string, end_date string, tz_str string) {
 
 	export_dir := "./export/"
 	if os.MkdirAll(export_dir, 0755) != nil {
@@ -98,14 +98,13 @@ func createDeliveryXlsxFile(data []byte, sorted_keys []string, suffix string, re
 		daterow := sheet.AddRow()
 		cell = daterow.AddCell()
 
-		// XXX Need to convert time to local time using tz_offset, since they are
+		// XXX Need to convert time to local time using tz offset, since they are
 		// in UTC and not local
-		_tz_offset := args["tz_offset"]
-		_tz, _ := time.ParseDuration(_tz_offset + "h")
-		dlv_date_local := dlv.DeliveryTime.Add(-_tz).String()
+		dlv_date_local := getTimeAtTimezone(dlv.DeliveryTime, tz_str, false).String()
 		//dlv_date := dlv.DeliveryTime.String()
 		key_date := strings.Split(dlv_date_local, " ")[0]
 		cell.Value = key_date // the date, e.g., 2015-01-01
+
 		cell = daterow.AddCell()
 		if dlv.Distributor.Valid {
 			cell.Value = dlv.Distributor.String
@@ -145,22 +144,17 @@ func createDeliveryXlsxFile(data []byte, sorted_keys []string, suffix string, re
 	}
 
 	if len(email) > 3 {
-		_start_date := args["start_date"]
-		_end_date := args["end_date"]
-		_tz_offset := args["tz_offset"]
 
 		// dates are in this format:
 		// 2015-09-05T07:29:33.629Z
 		// need to parse into time
 		const parseLongForm = "2006-01-02T15:04:05.000Z"
-		start_date, _ := time.Parse(parseLongForm, _start_date)
-		end_date, _ := time.Parse(parseLongForm, _end_date)
+		start_date, _ := time.Parse(parseLongForm, start_date)
+		end_date, _ := time.Parse(parseLongForm, end_date)
 
-		// Need to convert date to client's local time by subtracting timezone
-		// offset to get the correct dates to display.
-		_tz, _ := time.ParseDuration(_tz_offset + "h")
-		start_date = start_date.Add(-_tz)
-		end_date = end_date.Add(-_tz)
+		// results from time.Parse have timezone, so set @has_timezone=true
+		start_date = getTimeAtTimezone(start_date, tz_str, true)
+		end_date = getTimeAtTimezone(end_date, tz_str, true)
 
 		format_layout := "01/02/2006"
 		start_date_str := start_date.Format(format_layout)
@@ -217,25 +211,13 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		start_date := r.URL.Query().Get("start_date")
 		end_date := r.URL.Query().Get("end_date")
-		tz_offset := r.URL.Query().Get("tz_offset")
-		if tz_offset == "0" {
-			tz_offset = "UTC"
-		} else if !strings.HasPrefix(tz_offset, "-") {
-			tz_offset = "+" + tz_offset
-		}
-		log.Println("TZ STRING")
-		log.Println(tz_offset)
+		tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
 		log.Println(start_date)
 		log.Println(end_date)
 
 		// if export is set, that means return a save-able file instead of JSON
 		export := r.URL.Query().Get("export")
 		email := r.URL.Query().Get("email")
-
-		extra_args := make(map[string]string)
-		extra_args["start_date"] = start_date
-		extra_args["end_date"] = end_date
-		extra_args["tz_offset"] = tz_offset
 
 		if len(start_date) == 0 || len(end_date) == 0 {
 			start_date = time.Now().UTC().String()
@@ -266,14 +248,6 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
 			}
-
-			// if exporting, need to apply tz_offset to delivery time because
-			// client automatically converts to local time, but on the server the
-			// date is in UTC
-			//if len(export) > 0 {
-			//_tz, _ := time.ParseDuration(tz_offset + "h")
-			//dlv.DeliveryTime = dlv.DeliveryTime.Add(-_tz)
-			//}
 
 			// for each delivery, get all associated delivery items
 			item_rows, err := db.Query(`
@@ -315,7 +289,7 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 			switch export {
 			case "xlsx":
 				log.Println("create xlsx")
-				createDeliveryXlsxFile(js, sorted_keys, "all_", test_restaurant_id, w, r, email, extra_args)
+				createDeliveryXlsxFile(js, sorted_keys, "all_", test_restaurant_id, w, r, email, start_date, end_date, tz_str)
 			}
 		} else {
 			w.Header().Set("Content-Type", "application/json")

@@ -43,6 +43,32 @@ config(['$routeProvider', function($routeProvider) {
 })
 */
 
+.run(function($rootScope, $http, DateService) {
+  // Place run-once-at-startup functions here
+
+  // Get the restaurant timezone from server so that when we post *specific
+  // times to the server, we can adjust it to the correct time zone before 
+  // posting.
+  //
+  // * A specific time is a time which is not "right now", and has hours
+  // and minutes set by us.  "Right now" times do not need to be corrected for
+  // time zone because they will be treated and saved as UTC.
+
+  var params = { 
+    restaurant_id: '1'
+  };
+  $http.get('/timezone', 
+    {params: params })
+  .success(function(data, status, headers, config) {
+    DateService.setRestaurantTimezone(data['timezone']);
+    DateService.setRestaurantTimezoneOffset(data['offset']);
+  })
+  .error(function(data, status, headers, config) {
+
+  });
+
+})
+
 .controller('myAppCtrl', function($scope, $location) {
 
   $scope.isActive = function (viewLocation) {
@@ -249,6 +275,36 @@ config(['$routeProvider', function($routeProvider) {
       return getBevCost(bev, 'batch');
     },
 
+    processPurchaseOrders: function(purchase_orders) {
+
+      if (purchase_orders===null || purchase_orders.length===0) {
+        purchase_orders = [];
+      }
+
+      for (var i in purchase_orders) {
+        var total = 0.0;
+        var po = purchase_orders[i];
+        for (var j in po.distributor_orders) {
+          var dist_order = po.distributor_orders[j];
+          total += dist_order['total'];
+        }
+        po.order['total'] = total;
+        po.order['order_date_pretty'] = DateService.getPrettyDate(po.order['order_date'], true, true);
+        for (var j in po.distributor_orders) {
+          var dorder = po.distributor_orders[j];
+          dorder['delivery_date_pretty'] = DateService.getPrettyDate(dorder['delivery_date'], true, true);
+        }
+
+        if (po.order['send_method'] === 'email') {
+          po.order['send_method_pretty'] = 'Email';
+        } else if (po.order['send_method'] === 'text') {
+          po.order['send_method_pretty'] = 'SMS Text';
+        } else if (po.order['send_method'] === 'save') {
+          po.order['send_method_pretty'] = 'Save Only'
+        }
+      }
+    },
+
     processBevsForAddable: function(bevs) {
 
       if (bevs===null || bevs.length === 0) {
@@ -375,6 +431,9 @@ config(['$routeProvider', function($routeProvider) {
 
 .factory("DateService", function() {
 
+  var restaurant_timezone = 'UTC';
+  var restaurant_timezone_offset = 0;
+
   var getMinutesSinceTime = function(timestamp) {
     var last_update = getDateFromUTCTimeStamp(timestamp, false);
     var dt_sec = (Date.now() - last_update) / 1000.0;
@@ -413,18 +472,74 @@ config(['$routeProvider', function($routeProvider) {
     }
   }
 
+  var _isValidDate = function(date) {
+    if (date === null || date === undefined) {
+      return false;
+    }
+    if ( Object.prototype.toString.call(date) !== "[object Date]" ) {
+      return false;
+    }
+    return !isNaN(date.getTime());
+  }
+
   var _isSameDay = function(date1, date2) {
     return (date1.getDate() == date2.getDate() && date1.getMonth() == date2.getMonth() && date1.getFullYear() == date2.getFullYear())
   }
 
+  var _getRestaurantTimezone = function() {
+    return restaurant_timezone;
+  }
+
+  var _getRestaurantTimezoneOffset = function() {
+    return restaurant_timezone_offset;
+  }
+
+  var _getClientTimezoneOffset = function() {
+    // two notes here:
+      // 1. getTimezoneOffset returns minutes, so need to divide by 60
+      // 2. Server time queries are POSIX, so no need to invert sign of
+      //    offset here.
+      return (new Date().getTimezoneOffset()/60);
+  }
+
   return {
+
+    setRestaurantTimezone: function(tz) {
+      restaurant_timezone = tz;
+    },
+
+    getRestaurantTimezone: function() {
+      return _getRestaurantTimezone();
+    },
+
+    setRestaurantTimezoneOffset: function(offset) {
+      restaurant_timezone_offset = parseInt(offset);
+    },
+
+    getRestaurantTimezoneOffset: function() {
+      return _getRestaurantTimezoneOffset();
+    },
+
+    getClientTimezoneOffset: function() {
+      return _getClientTimezoneOffset();
+    },
+
+    clientTimeToRestaurantTime: function(in_time) {
+
+      if (!_isValidDate(in_time)) {
+        return in_time;
+      }
+
+      var offset_hours = _getRestaurantTimezoneOffset() - _getClientTimezoneOffset();
+      return new Date(in_time.getTime() + (offset_hours*60*60*1000));
+    },
 
     isSameDay: function(date1, date2) {
       return _isSameDay(date1, date2);
     },
 
     isFutureDay: function(date1, date2) {
-      return !_isSameDay(date1, date2) && (date2.getDate() >= date1.getDate() && date2.getMonth() >= date1.getMonth() && date2.getFullYear() >= date1.getFullYear());
+      return !_isSameDay(date1, date2) && (date2.getTime() > date1.getTime());
     },
 
     // helper function to get the number of minutes since a time stamp
@@ -489,22 +604,8 @@ config(['$routeProvider', function($routeProvider) {
       return getDateFromUTCTimeStamp(timestamp, local)
     },
 
-    timeZoneOffset: function() {
-      // two notes here:
-      // 1. getTimezoneOffset returns minutes, so need to divide by 60
-      // 2. getTimezoneOffset returns a difference, so need to invert sign to
-      //    get the +2, -6, etc sign correct in timestamps
-      return (new Date().getTimezoneOffset()/60);
-    },
-
-    isValidDate: function(d) {
-      if (d === null || d === undefined) {
-        return false;
-      }
-      if ( Object.prototype.toString.call(d) !== "[object Date]" ) {
-        return false;
-      }
-      return !isNaN(d.getTime());
+    isValidDate: function(date) {
+      return _isValidDate(date);
     },
 
     // Given date d1 and date d2, returns the days between them

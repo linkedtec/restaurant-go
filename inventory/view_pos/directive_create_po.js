@@ -4,7 +4,8 @@ angular.module('myApp')
   return {
     restrict: 'AE',
     scope: {
-      control: '='
+      control: '=',
+      closeOnSave: '&'
     },
     templateUrl: './view_pos/template_create_po.html',
     link: function(scope, elem, attrs) {
@@ -659,8 +660,8 @@ angular.module('myApp')
             post_order: function() {
               return post_order;
             },
-            read_only: function() {
-              return false;
+            read_mode: function() {
+              return 'send';
             }
           }
         });
@@ -685,6 +686,12 @@ angular.module('myApp')
 
               // cancel purchase order with force=true to clear the form
               scope.cancelPurchaseOrder(true);
+
+              if (scope.closeOnSave !== null) {
+                // returning an object with key new_distributor allows us to
+                // pass the controller the new distributor from this directive!
+                scope.closeOnSave( {new_beverage:scope.new_beverage} );
+              }
 
             } else if (status === 'error') {
               swal({
@@ -721,8 +728,8 @@ angular.module('myApp')
             post_order: function() {
               return post_order;
             },
-            read_only: function() {
-              return false;
+            read_mode: function() {
+              return 'send';
             }
           }
         });
@@ -747,6 +754,12 @@ angular.module('myApp')
 
               // cancel purchase order with force=true to clear the form
               scope.cancelPurchaseOrder(true);
+
+              if (scope.closeOnSave !== null) {
+                // returning an object with key new_distributor allows us to
+                // pass the controller the new distributor from this directive!
+                scope.closeOnSave( {new_beverage:scope.new_beverage} );
+              }
 
             } else if (status === 'error') {
               swal({
@@ -784,8 +797,8 @@ angular.module('myApp')
             post_order: function() {
               return post_order;
             },
-            read_only: function() {
-              return false;
+            read_mode: function() {
+              return 'send';
             }
           }
         });
@@ -810,6 +823,12 @@ angular.module('myApp')
 
               // cancel purchase order with force=true to clear the form
               scope.cancelPurchaseOrder(true);
+
+              if (scope.closeOnSave !== null) {
+                // returning an object with key new_distributor allows us to
+                // pass the controller the new distributor from this directive!
+                scope.closeOnSave( {new_beverage:scope.new_beverage} );
+              }
 
             } else if (status === 'error') {
               swal({
@@ -1014,7 +1033,8 @@ angular.module('myApp')
         // Basic Order Info --------------------------------------------------------
         scope.post_order = {};
         scope.post_order['order'] = {};
-        scope.post_order['order']['order_date'] = scope.order['order_date'];  // pass the prettified date string instead of the date itself
+        scope.post_order['order']['order_date'] = DateService.clientTimeToRestaurantTime(scope.order['order_date']);
+        scope.post_order['order']['order_date_pretty'] = scope.order['order_date_pretty'];
         scope.post_order['order']['send_later'] = scope.order['send_later'];
         scope.post_order['order']['purchase_contact'] = scope.order['purchase_contact_edit'];
         scope.post_order['order']['purchase_email'] = scope.order['purchase_email_edit'];
@@ -1049,8 +1069,7 @@ angular.module('myApp')
             dorder['distributor_phone_save_default'] = copy_dorder['save_default_phone'];
           }
           
-          //dorder['delivery_date'] = DateService.getPrettyDate(copy_dorder['delivery_date'].toString(), false, true);
-          dorder['delivery_date'] = copy_dorder['delivery_date'];
+          dorder['delivery_date'] = DateService.clientTimeToRestaurantTime(copy_dorder['delivery_date']);
           dorder['total'] = copy_dorder['total'];
           dorder['additional_notes'] = copy_dorder['additional_notes'];
           if (dorder['additional_notes']==='' || dorder['additional_notes']===' ') {
@@ -1087,7 +1106,9 @@ angular.module('myApp')
           } else if (scope.order['send_method']===scope.send_methods[1]) {
             scope.reviewSMSPurchaseOrders(data, scope.post_order); 
           } else {
-            scope.reviewSaveOnlyPurchaseOrder(data, scope.post_order)
+            var purchase_order = data;
+            ItemsService.processPurchaseOrders([purchase_order]);
+            scope.reviewSaveOnlyPurchaseOrder(purchase_order, scope.post_order)
           }
                
         }).

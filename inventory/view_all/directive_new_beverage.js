@@ -84,7 +84,7 @@ angular.module('myApp')
           return;
         }
 
-        scope.new_beverage.sale_start.setHours(0,0,0);
+        scope.new_beverage.sale_start.setHours(0,0,0,0);
 
         if (scope.new_beverage.sale_end!==null && scope.new_beverage.sale_start > scope.new_beverage.sale_end) {
           scope.form_ver.error_sale_start = true;
@@ -100,7 +100,7 @@ angular.module('myApp')
           return;
         }
 
-        scope.new_beverage.sale_end.setHours(23,59,59);
+        scope.new_beverage.sale_end.setHours(23,59,59,999);
 
         // if sale_end is before sale_start, that's an error
         if (scope.new_beverage.sale_start!==null && scope.new_beverage.sale_end < scope.new_beverage.sale_start) {

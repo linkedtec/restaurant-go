@@ -9,7 +9,7 @@
     Create and send new Purchase Orders to Distributors
   </div>
 
-  <div class="row" style="margin-top:32px">
+  <div class="row" style="margin-top:32px; margin-bottom:32px">
     <div class="col-xs-12" style="float:none">
       <button ng-click="createNewPO()" type="button" class="btn btn-default dlv_xl_btn center-block">
         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> New Purchase Order
@@ -17,18 +17,67 @@
     </div>
   </div>
 
-  <div class="row" style="margin-top:24px; margin-bottom:0; font-size:1.2em">
-    <div class="col-xs-12">
+  <hr/>
+
+  <div class="row" style="margin-top:24px; margin-bottom:0; font-size:1.4em">
+    <div class="col-xs-12" style="text-align:center">
       Pending Send to Distributors 
-       <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;"  uib-popover="You can create Purchase Orders in the system and opt to send them to Distributors at a later date!  The following Purchase Orders have created but not yet sent.  They will be sent automatically on the Send Date, or you can manually send them now with the 'Send Now' button." popover-trigger="mouseenter"></span>
+       <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;"  uib-popover="You can draft Purchase Orders in the system and wait to send them to Distributors at a later date!  The Orders below will be sent automatically on the Send Date, or manually with the 'Send Now' button." popover-trigger="mouseenter"></span>
     </div>
   </div>
-  <hr style="margin:4px 0px; border-color:#dddddd"/>
-  <div ng-repeat="pending_po in pending_orders" class="row">
-    <div class="col-xs-4">
-      {{pending_po.order_date_pretty}}
-    </div>
-  </div>
+  <table id="pendingOrdersTable" summary="Data table for Pending Purchase Orders." rules="groups" frame="hsides" border="2" style="width:100%; margin-top:6px; margin-bottom:60px">
+    <tr>
+      <td></td> <!--For view button-->
+      <td>Order / Send Date</td> <!--For date-->
+      <td>Send via</td>
+      <td>PO #</td>
+      <td>Distributor</td>
+      <td># Items</td>
+      <td>Total ($)</td>
+      <td></td>
+    </tr>
+    <tbody ng-repeat="po in pending_orders" style="border-bottom: 1px solid #b0b0b0">
+      <tr class="inv_loc_row" style="font-style:italic; border-bottom:1px solid #d0d0d0; background-color:#eeeeee;">
+        <td>
+          <button ng-click="viewPurchaseOrder(po)" type="button" class="btn btn-md btn_frameless hover_blue" style="font-size:16px; margin-top:1px; padding:2px 4px;">
+            <span class="glyphicon glyphicon-eye-open"></span>
+          </button>
+        </td>
+        <td style="font-weight:bold">
+          <span style="vertical-align:middle">
+            {{po.order.order_date_pretty}}
+          </span>
+          <span ng-if="po.order.days_til_send <= 5" style="font-size:0.8em; margin-top:0; border-radius:4px; padding:3px 6px; background-color:#44aa00; text-align:center; margin-left:6px; font-weight:normal; color:white" uib-popover="This Purchase Order will automatically be sent to Distributors in {{po.order.days_til_send}} days!" popover-trigger="mouseenter" popover-append-to-body="true">
+            In {{po.order.days_til_send}} days!
+          </span>
+        </td>
+        <td>{{po.order.send_method_pretty}}</td>
+        <td style="color:#aaaaaa">{{po.order.po_num}}</td>
+        <td></td>
+        <td></td>
+        <td style="font-weight:bold">{{po.order.total | number:2}}</td>
+        <td style="padding-top:4px; padding-bottom:4px; padding-right:5px">
+          <button ng-click="deletePendingPO($index)" type="button" class="btn btn-sm btn_frameless hover_red" style="float:right; margin-left:6px" uib-popover="Delete this Pending Order." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+          <span class="glyphicon glyphicon-trash"></span>
+          <button ng-click="recordDelivery(dorder)" type="button" class="btn btn-sm btn_blue_border" style="float:right; padding:4px 6px;" uib-popover="Send this PO to Distributors right now instead of waiting for the Send Date." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500"><span class="glyphicon glyphicon-send"></span> Send Now</button>
+        </button>
+        </td>
+      </tr>
+      <!--tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#F6FFEC; border-bottom:1px solid #d0d0d0"-->
+      <tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#fefefe; border-bottom:1px solid #d0d0d0;" height="32px">
+        <td></td>
+        <td></td>
+        <td></td>
+        <td>{{dorder.do_num}}</td>
+        <td>{{dorder.distributor}}</td>
+        <td>{{dorder.item_count}}</td>
+        <td>{{dorder.total | number:2}}</td>
+        <td></td>
+      </tr>
+      <tr><td colspan="8"></td></tr>
+    </tbody>
+  </table>
+
   <div ng-if="pending_orders===null || pending_orders.length===0" style="margin-top:48px">
     <div class="row hint_text" style="text-align:center; font-size:1.5em">
       No Purchase Orders Pending to be Sent

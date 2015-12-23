@@ -104,7 +104,6 @@ func setupInvHandlers() {
 	http.HandleFunc("/inv", invAPIHandler)
 	http.HandleFunc("/loc", locAPIHandler)
 	http.HandleFunc("/inv/loc", invLocAPIHandler)
-	http.HandleFunc("/inv/locnew", invLocNewAPIHandler)
 	http.HandleFunc("/inv/history", invHistoryAPIHandler)
 	http.HandleFunc("/export/", exportAPIHandler)
 }
@@ -926,7 +925,7 @@ func menuPagesAPIHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "menu_pages/"+filename)
 }
 
-func createXlsxFile(data []byte, sorted_keys []string, history_type string, suffix string, restaurant_id string, w http.ResponseWriter, r *http.Request, email string, args map[string]string) {
+func createXlsxFile(data []byte, sorted_keys []string, history_type string, suffix string, restaurant_id string, w http.ResponseWriter, r *http.Request, email string, start_date string, end_date string, tz_str string) {
 
 	export_dir := "./export/"
 	if os.MkdirAll(export_dir, 0755) != nil {
@@ -1116,81 +1115,23 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 
 	if len(email) > 3 {
 
-		/*
-			smtp_server := "smtp.gmail.com:587"
-
-			from := mail.Address{"Bev App", "bevappdaemon@gmail.com"}
-			to := mail.Address{"Restaurant Owner", "core433@gmail.com"}
-			body := "this is the body line1.\nthis is the body line2.\nthis is the body line3.\n"
-			subject := "Inventory Spreadsheet"
-
-			// Set up authentication information
-			auth := smtp.PlainAuth(
-				"",
-				"bevappdaemon@gmail.com",
-				"bevApp4eva",
-				"smtp.gmail.com",
-			)
-
-			header := make(map[string]string)
-			header["From"] = from.String()
-			header["To"] = to.String()
-			header["Subject"] = subject
-			// setup the message
-			message := ""
-			for k, v := range header {
-				message += fmt.Sprintf("%s: %s\r\n", k, v)
-			}
-			message += "\r\n" + body
-
-			client, err := smtp.Dial(smtp_server)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer client.Close()
-
-			host, _, _ := net.SplitHostPort(smtp_server)
-			tlc := &tls.Config{
-				InsecureSkipVerify: true,
-				ServerName:         host,
-			}
-			if err = client.StartTLS(tlc); err != nil {
-				log.Panic(err)
-			}
-
-			err = client.Auth(auth)
-			if err != nil {
-				log.Fatal(err)
-			}
-			client.Mail("bevappdaemon@gmail.com")
-			client.Rcpt("core433@gmail.com")
-			wc, err := client.Data()
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer wc.Close()
-			_, err = wc.Write([]byte(message))
-			if err != nil {
-				log.Fatal(err)
-			}
-		*/
-
-		_start_date := args["start_date"]
-		_end_date := args["end_date"]
-		_tz_offset := args["tz_offset"]
+		log.Println(start_date)
+		log.Println(end_date)
+		log.Println(tz_str)
 
 		// dates are in this format:
 		// 2015-09-05T07:29:33.629Z
 		// need to parse into time
 		const parseLongForm = "2006-01-02T15:04:05.000Z"
-		start_date, _ := time.Parse(parseLongForm, _start_date)
-		end_date, _ := time.Parse(parseLongForm, _end_date)
+		start_date, _ := time.Parse(parseLongForm, start_date)
+		end_date, _ := time.Parse(parseLongForm, end_date)
 
-		// Need to convert date to client's local time by subtracting timezone
-		// offset to get the correct dates to display.
-		_tz, _ := time.ParseDuration(_tz_offset + "h")
-		start_date = start_date.Add(-_tz)
-		end_date = end_date.Add(-_tz)
+		// results from time.Parse have timezone, so set @has_timezone=true
+		start_date = getTimeAtTimezone(start_date, tz_str, true)
+		end_date = getTimeAtTimezone(end_date, tz_str, true)
+
+		log.Println(start_date)
+		log.Println(end_date)
 
 		format_layout := "01/02/2006"
 		start_date_str := start_date.Format(format_layout)
@@ -1245,26 +1186,17 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 		history_type := r.URL.Query().Get("type")
 		start_date := r.URL.Query().Get("start_date")
 		end_date := r.URL.Query().Get("end_date")
-		_tz_offset := r.URL.Query().Get("tz_offset")
-		tz_offset := _tz_offset
-		if tz_offset == "0" {
-			tz_offset = "UTC"
-		} else if !strings.HasPrefix(tz_offset, "-") {
-			tz_offset = "+" + tz_offset
-		}
+
+		tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
+
 		log.Println("TZ STRING")
-		log.Println(tz_offset)
+		log.Println(tz_str)
 		log.Println(start_date)
 		log.Println(end_date)
 		// if export is set, that means return a save-able file instead of JSON
 		export := r.URL.Query().Get("export")
 		log.Println(history_type)
 		email := r.URL.Query().Get("email")
-
-		extra_args := make(map[string]string)
-		extra_args["start_date"] = start_date
-		extra_args["end_date"] = end_date
-		extra_args["tz_offset"] = _tz_offset
 
 		// if no dates were provided, set start date to 1 month ago and end date
 		// to now
@@ -1306,7 +1238,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3
 					AND locations.id=location_beverages.location_id AND locations.restaurant_id=$4
 				GROUP BY local_update ORDER BY local_update;`,
-				tz_offset, start_date, end_date, test_restaurant_id)
+				tz_str, start_date, end_date, test_restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1371,7 +1303,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						AND location_beverages.location_id=locations.id 
 						AND location_beverages.update AT TIME ZONE 'UTC' BETWEEN $3 AND $4 
 					GROUP BY local_update ORDER BY local_update;`,
-					tz_offset, loc.ID, start_date, end_date)
+					tz_str, loc.ID, start_date, end_date)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1408,7 +1340,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					AND location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
 					AND locations.restaurant_id=$4 
 				GROUP BY local_update ORDER BY local_update;`,
-				tz_offset, start_date, end_date, test_restaurant_id)
+				tz_str, start_date, end_date, test_restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1477,7 +1409,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						AND location_beverages.update AT TIME ZONE 'UTC' BETWEEN $3 AND $4 
 						AND location_beverages.type='bev' 
 					GROUP BY local_update ORDER BY local_update;`,
-					tz_offset, atype, start_date, end_date)
+					tz_str, atype, start_date, end_date)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1511,7 +1443,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
 					AND location_beverages.type='keg' 
 				GROUP BY local_update ORDER BY local_update;`,
-				tz_offset, start_date, end_date)
+				tz_str, start_date, end_date)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1575,7 +1507,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							AND location_beverages.type='bev' 
 							AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$5) 
 						ORDER BY local_update DESC;`,
-						tz_offset, start_date, end_date, test_restaurant_id, id)
+						tz_str, start_date, end_date, test_restaurant_id, id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1631,7 +1563,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 								AND locations.restaurant_id=$3 AND location_beverages.type='bev' 
 								AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$4) 
 							GROUP BY beverages.id ORDER BY beverages.product ASC;`,
-							tz_offset, a_date, test_restaurant_id, id)
+							tz_str, a_date, test_restaurant_id, id)
 						if err != nil {
 							log.Println(err.Error())
 							http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1670,7 +1602,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				switch export {
 				case "xlsx":
 					log.Println("create xlsx")
-					createXlsxFile(js, sorted_keys, "all_itemized", "items_", test_restaurant_id, w, r, email, extra_args)
+					createXlsxFile(js, sorted_keys, "all_itemized", "items_", test_restaurant_id, w, r, email, start_date, end_date, tz_str)
 				}
 
 			} else {
@@ -1706,7 +1638,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$4) 
 							AND locations.restaurant_id=$5 
 						GROUP BY beverages.id, local_update ORDER BY local_update DESC;`,
-						tz_offset, start_date, end_date, item_id, test_restaurant_id)
+						tz_str, start_date, end_date, item_id, test_restaurant_id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1760,7 +1692,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					AND locations.id=location_beverages.location_id 
 					AND locations.restaurant_id=$4 
 				ORDER BY local_update DESC;`,
-				tz_offset, start_date, end_date, test_restaurant_id)
+				tz_str, start_date, end_date, test_restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1798,7 +1730,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					AND location_beverages.beverage_id=beverages.id 
 					AND location_beverages.location_id=locations.id 
 					AND locations.restaurant_id=$3 AND location_beverages.type='bev' 
-				GROUP BY beverages.id ORDER BY beverages.product ASC;`, tz_offset, a_date, test_restaurant_id)
+				GROUP BY beverages.id ORDER BY beverages.product ASC;`, tz_str, a_date, test_restaurant_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1839,7 +1771,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						AND kegs.distributor_id=distributors.id 
 						AND location_beverages.location_id=locations.id 
 						AND locations.restaurant_id=$3 AND location_beverages.type='keg' 
-					GROUP BY kegs.id,distributors.name ORDER BY distributors.name ASC;`, tz_offset, a_date, test_restaurant_id)
+					GROUP BY kegs.id,distributors.name ORDER BY distributors.name ASC;`, tz_str, a_date, test_restaurant_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1882,7 +1814,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				switch export {
 				case "xlsx":
 					log.Println("create xlsx")
-					createXlsxFile(js, sorted_keys, history_type, "all_", test_restaurant_id, w, r, email, extra_args)
+					createXlsxFile(js, sorted_keys, history_type, "all_", test_restaurant_id, w, r, email, start_date, end_date, tz_str)
 				}
 			} else {
 				w.Header().Set("Content-Type", "application/json")
@@ -1912,7 +1844,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
 					AND locations.id=location_beverages.location_id AND locations.restaurant_id=$4 
 				ORDER BY local_update DESC;`,
-				tz_offset, start_date, end_date, test_restaurant_id)
+				tz_str, start_date, end_date, test_restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1942,7 +1874,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
 						AND locations.id=location_beverages.location_id AND locations.restaurant_id=$3 
 						AND locations.type!='tap' 
-					ORDER BY location_beverages.location_id ASC;`, tz_offset, a_date, test_restaurant_id)
+					ORDER BY location_beverages.location_id ASC;`, tz_str, a_date, test_restaurant_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1977,7 +1909,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
 							AND location_beverages.beverage_id=beverages.id 
 							AND location_beverages.location_id=$3 AND location_beverages.type='bev' 
-						ORDER BY beverages.product ASC;`, tz_offset, a_date, loc_id)
+						ORDER BY beverages.product ASC;`, tz_str, a_date, loc_id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2017,7 +1949,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							AND location_beverages.beverage_id=kegs.id 
 							AND location_beverages.location_id=$3 
 							AND location_beverages.type='keg' 
-						ORDER BY kegs.id ASC;`, tz_offset, a_date, loc_id)
+						ORDER BY kegs.id ASC;`, tz_str, a_date, loc_id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2064,7 +1996,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						AND location_beverages.location_id=locations.id 
 						AND locations.restaurant_id=$3 AND locations.type='tap' 
 					GROUP BY beverages.id, location_beverages.inventory, location_beverages.wholesale, location_beverages.deposit  
-					ORDER BY beverages.product ASC;`, tz_offset, a_date, test_restaurant_id)
+					ORDER BY beverages.product ASC;`, tz_str, a_date, test_restaurant_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2105,7 +2037,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				switch export {
 				case "xlsx":
 					log.Println("create xlsx")
-					createXlsxFile(js, sorted_keys, history_type, "loc_", test_restaurant_id, w, r, email, extra_args)
+					createXlsxFile(js, sorted_keys, history_type, "loc_", test_restaurant_id, w, r, email, start_date, end_date, tz_str)
 				}
 			} else {
 				w.Header().Set("Content-Type", "application/json")
@@ -2129,7 +2061,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
 					AND locations.id=location_beverages.location_id AND locations.restaurant_id=$4 
 				ORDER BY local_update DESC;`,
-				tz_offset, start_date, end_date, test_restaurant_id)
+				tz_str, start_date, end_date, test_restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2159,7 +2091,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						AND locations.id=location_beverages.location_id 
 						AND locations.restaurant_id=$3 AND beverages.id=location_beverages.beverage_id 
 						AND location_beverages.type='bev' 
-					ORDER BY beverages.alcohol_type ASC;`, tz_offset, a_date, test_restaurant_id)
+					ORDER BY beverages.alcohol_type ASC;`, tz_str, a_date, test_restaurant_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2193,7 +2125,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							AND location_beverages.location_id=locations.id 
 							AND beverages.alcohol_type=$3 AND locations.restaurant_id=$4 
 							AND location_beverages.type='bev' 
-						GROUP BY beverages.id ORDER BY beverages.product ASC;`, tz_offset, a_date, type_name, test_restaurant_id)
+						GROUP BY beverages.id ORDER BY beverages.product ASC;`, tz_str, a_date, type_name, test_restaurant_id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2228,7 +2160,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					SELECT EXISTS(
 						SELECT 1 FROM location_beverages 
 						WHERE (update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
-							AND type='keg');`, tz_offset, a_date).Scan(&has_kegs)
+							AND type='keg');`, tz_str, a_date).Scan(&has_kegs)
 				if err != nil {
 					// if query failed will exit here, so loc_id is guaranteed below
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2252,7 +2184,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							AND location_beverages.beverage_id=kegs.id 
 							AND kegs.distributor_id=distributors.id 
 						GROUP BY kegs.id, distributors.name 
-						ORDER BY distributors.name;`, tz_offset, a_date, test_restaurant_id)
+						ORDER BY distributors.name;`, tz_str, a_date, test_restaurant_id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2295,7 +2227,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				switch export {
 				case "xlsx":
 					log.Println("create xlsx")
-					createXlsxFile(js, sorted_keys, history_type, "type_", test_restaurant_id, w, r, email, extra_args)
+					createXlsxFile(js, sorted_keys, history_type, "type_", test_restaurant_id, w, r, email, start_date, end_date, tz_str)
 				}
 			} else {
 				w.Header().Set("Content-Type", "application/json")
@@ -2306,242 +2238,6 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
-	}
-}
-
-func invLocNewAPIHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "PUT":
-		// A PUT to inventory locations is what actually updates quantities of all
-		// the beverage types in the location.
-		log.Println("Received /inv/locnew PUT")
-		decoder := json.NewDecoder(r.Body)
-		var batch LocBeverageAppBatch
-		err := decoder.Decode(&batch)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		log.Println(batch)
-		// check location exists
-		var loc_id int
-		err = db.QueryRow("SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type=$3;", test_restaurant_id, batch.Location, batch.Type).Scan(&loc_id)
-		if err != nil {
-			// if query failed will exit here, so loc_id is guaranteed below
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			log.Println(err.Error())
-			return
-		}
-
-		// XXX NEW LOGIC
-		// If same_day, update all location_beverages with update=last_update AND active
-		// to have update = cur_time.  Otherwise, duplicate (insert) all
-		// location_beverages with update=last_update AND active, and set their
-		// update to cur_time.
-		// Then, update locations.last_update to cur_time.
-		// Finally, update all location_beverages with update=last_update with the
-		// posted values.
-		var last_update time.Time
-		err = db.QueryRow("SELECT last_update FROM locations WHERE id=$1;", loc_id).Scan(&last_update)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			log.Println(err.Error())
-			return
-		}
-
-		// We need to compare if the PUT was on the same date as the last PUT
-		// using the user's local time, rather than UTC time, since the date
-		// depends on the user's time zone.
-		// 1. Get the time zone offset (in hours) posted from client
-		// 2. convert cur_time, in UTC, to user's local time by subtracting
-		//    time zone offset
-		// 2. convert last_update from UTC to local time using time zone offset
-		// 3. Check their date components, if they match, same_day = true
-
-		cur_time := time.Now().UTC()
-		tz_offset := batch.TZOffset
-
-		// convert tz_offset to duration in hours
-		hour_offset := time.Duration(-tz_offset) * time.Hour
-
-		// now that we have hour offset, add it to cur_time, which is in
-		// UTC, to get the equivalent of the local time
-		user_put_time := cur_time.Add(hour_offset)
-		log.Println("USER TIME:")
-		log.Println(user_put_time)
-
-		user_last_update := last_update.Add(hour_offset)
-		log.Println("LAST UPDATE TIME:")
-		log.Println(user_last_update)
-
-		user_year := user_put_time.Year()
-		user_month := user_put_time.Month()
-		user_day := user_put_time.Day()
-		last_year := user_last_update.Year()
-		last_month := user_last_update.Month()
-		last_day := user_last_update.Day()
-		same_day := false
-		if user_year == last_year && user_month == last_month && user_day == last_day {
-			same_day = true
-		}
-
-		log.Println("SAME DAY?")
-		log.Println(same_day)
-
-		// XXX This is where the NEW NEW logic comes in:
-		// if same day, delete all the old entries
-		// if not same day. just insert from posted items
-		if same_day {
-			_, err = db.Exec("DELETE FROM location_beverages WHERE update=$1 AND location_id=$2 AND active;", last_update, loc_id)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				log.Println(err.Error())
-				return
-			}
-		}
-
-		// update location last_update
-		_, err = db.Exec("UPDATE locations SET last_update=$1 WHERE id=$2;", cur_time, loc_id)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			log.Println(err.Error())
-			return
-		}
-
-		// XXX In this loop, need to insert items into location_beverages as well
-		// for new logic
-		var total_inventory float32
-		for i := range batch.Items {
-			anItem := batch.Items[i]
-
-			// XXX in future need to check that the posting user's ID matches each
-			// item to be updated's user_id
-
-			// check that the item id exists
-			var exists bool
-			if anItem.Type == "bev" {
-				err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, anItem.ID).Scan(&exists)
-			} else { //keg
-				err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM kegs INNER JOIN distributors ON (distributors.id=kegs.distributor_id) WHERE kegs.id=$1 AND distributors.restaurant_id=$2);", anItem.ID, test_restaurant_id).Scan(&exists)
-			}
-			if err != nil {
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				continue
-			}
-
-			// A note here:
-			// We are updating beverages from the LAST save.  The beverage info might
-			// have changed (such as user updating pricing, etc), which will mean
-			// a new id will exist in the beverages table with the same version_id as
-			// the old beverage.  So we have to check if the beverage is current.
-			// If it's not, need to replace the location_beverages beverage_id with
-			// the most current id.
-			var most_recent_id int
-			do_update := true
-			if anItem.Type == "bev" {
-				err = db.QueryRow("SELECT id FROM beverages WHERE version_id=(SELECT version_id FROM beverages WHERE id=$1) AND current;", anItem.ID).Scan(&most_recent_id)
-			} else { // keg
-				err = db.QueryRow("SELECT id FROM kegs WHERE version_id=(SELECT version_id FROM kegs WHERE id=$1) AND current;", anItem.ID).Scan(&most_recent_id)
-			}
-
-			switch {
-			// If there were no rows, that means the beverage was probably deleted (no current).  In that case don't do the update
-			case err == sql.ErrNoRows:
-				do_update = false
-			case err != nil:
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				continue
-			}
-			if do_update && most_recent_id != anItem.ID {
-				anItem.ID = most_recent_id
-			}
-
-			// now, calculate its inventory value and save it in location_beverages
-			// for easy retrieval.  This varies by location type:
-			// + bev:
-			//     inventory = (purchase_cost / purchase_count) * quantity + deposit * ceil(quantity)
-			// + tap:
-			//     if purchase_volume not null and not 0:
-			//       inventory = (purchase_cost / purchase_count) * (quantity / purchase_volume) + deposit (assume 1 keg)
-			//     else
-			//       inventory = deposit
-			// + keg:
-			//     inventory = quantity * deposit
-			inventory := float32(0)     // the TOTAL inventory = wholesale + total_deposit
-			wholesale := float32(0)     // Inventory value without deposit, just raw goods
-			total_deposit := float32(0) // Deposit value without wholesale
-			unit_cost := float32(0)
-			deposit := float32(0)
-
-			// Calculate deposit
-			if anItem.Type == "bev" {
-				err = db.QueryRow("SELECT COALESCE(kegs.deposit, 0) FROM beverages LEFT OUTER JOIN kegs ON (beverages.keg_id=kegs.id) WHERE beverages.id=$1;", most_recent_id).Scan(&deposit)
-			} else { // keg
-				err = db.QueryRow("SELECT COALESCE(deposit, 0) FROM kegs WHERE id=$1;", most_recent_id).Scan(&deposit)
-			}
-			if err != nil {
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				continue
-			}
-
-			if batch.Type == "bev" {
-				if anItem.Type == "bev" {
-					err = db.QueryRow("SELECT COALESCE(purchase_cost, 0) / COALESCE(purchase_count, 1) FROM beverages WHERE id=$1;", most_recent_id).Scan(&unit_cost)
-					if err != nil {
-						http.Error(w, err.Error(), http.StatusInternalServerError)
-						log.Println(err.Error())
-						continue
-					}
-					wholesale = float32(anItem.Quantity) * unit_cost
-					total_deposit = deposit * float32(math.Ceil(float64(anItem.Quantity)))
-				} else { // keg
-					wholesale = 0
-					total_deposit = float32(anItem.Quantity) * deposit
-				}
-
-			} else if batch.Type == "tap" {
-				err = db.QueryRow("SELECT CASE WHEN COALESCE(purchase_volume,0)>0 THEN (COALESCE(purchase_cost,0)/COALESCE(purchase_count,1))/purchase_volume ELSE 0 END FROM beverages WHERE id=$1;", most_recent_id).Scan(&unit_cost)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					log.Println(err.Error())
-					continue
-				}
-				wholesale = float32(anItem.Quantity) * unit_cost
-				total_deposit = deposit
-			} else {
-				http.Error(w, "Encountered incorrect location type!", http.StatusInternalServerError)
-				return
-			}
-
-			inventory = wholesale + total_deposit
-
-			// finally, update its quantity and inventory in location_beverages
-			// XXX HERE DO INSERTION
-			_, err = db.Exec("INSERT INTO location_beverages (beverage_id, location_id, quantity, wholesale, deposit, inventory, update, active, type) VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, $8);", anItem.ID, loc_id, anItem.Quantity, wholesale, total_deposit, inventory, cur_time, anItem.Type)
-			if err != nil {
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			total_inventory += inventory
-		}
-
-		var retLoc Location
-		retLoc.LastUpdate = cur_time
-		retLoc.Name = batch.Location
-		retLoc.TotalInv = total_inventory
-		w.Header().Set("Content-Type", "application/json")
-		js, err := json.Marshal(retLoc)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Write(js)
 	}
 }
 
@@ -2852,6 +2548,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case "PUT":
+
 		// A PUT to inventory locations is what actually updates quantities of all
 		// the beverage types in the location.
 		log.Println("Received /inv/loc PUT")
@@ -2900,10 +2597,17 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// 3. Check their date components, if they match, same_day = true
 
 		cur_time := time.Now().UTC()
-		tz_offset := batch.TZOffset
+		tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
+		var tz_hour int
+		err = db.QueryRow(`SELECT EXTRACT (TIMEZONE_HOUR FROM CURRENT_TIME AT TIME ZONE $1);`, tz_str).Scan(&tz_hour)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
 
-		// convert tz_offset to duration in hours
-		hour_offset := time.Duration(-tz_offset) * time.Hour
+		// convert tz_hour to duration in hours
+		hour_offset := time.Duration(tz_hour) * time.Hour
 
 		// now that we have hour offset, add it to cur_time, which is in
 		// UTC, to get the equivalent of the local time
@@ -2929,20 +2633,11 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("SAME DAY?")
 		log.Println(same_day)
 
-		// if same day, bring all the old entries from today up to date.  Saving
-		// within the same day is recent enough that we don't need separate history
-		// entries.
+		// XXX This is where the NEW NEW logic comes in:
+		// if same day, delete all the old entries
+		// if not same day. just insert from posted items
 		if same_day {
-			_, err = db.Exec("UPDATE location_beverages SET update=$1 WHERE update=$2 AND location_id=$3 AND active;", cur_time, last_update, loc_id)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				log.Println(err.Error())
-				return
-			}
-		} else {
-			// if not same day, need to insert/duplicate new item entries from the
-			// old entries and then subsequently update their quantities
-			_, err = db.Exec("INSERT INTO location_beverages (beverage_id, location_id, quantity, inventory, active, update, type) SELECT beverage_id, location_id, quantity, inventory, active, $1, type FROM location_beverages WHERE update=$2 AND location_id=$3 AND active;", cur_time, last_update, loc_id)
+			_, err = db.Exec("DELETE FROM location_beverages WHERE update=$1 AND location_id=$2 AND active;", last_update, loc_id)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				log.Println(err.Error())
@@ -2958,6 +2653,8 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// XXX In this loop, need to insert items into location_beverages as well
+		// for new logic
 		var total_inventory float32
 		for i := range batch.Items {
 			anItem := batch.Items[i]
@@ -3003,12 +2700,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			if do_update && most_recent_id != anItem.ID {
-				_, err := db.Exec("UPDATE location_beverages SET beverage_id=$1 WHERE beverage_id=$2 AND location_id=$3 AND update=$4 AND type=$5 AND active;", most_recent_id, anItem.ID, loc_id, cur_time, anItem.Type)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					log.Println(err.Error())
-					continue
-				}
+				anItem.ID = most_recent_id
 			}
 
 			// now, calculate its inventory value and save it in location_beverages
@@ -3017,12 +2709,14 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			//     inventory = (purchase_cost / purchase_count) * quantity + deposit * ceil(quantity)
 			// + tap:
 			//     if purchase_volume not null and not 0:
-			//       inventory = (purchase_cost / purchase_count) * (quantity / purchase_volume) + deposit (assume 1)
+			//       inventory = (purchase_cost / purchase_count) * (quantity / purchase_volume) + deposit (assume 1 keg)
 			//     else
 			//       inventory = deposit
 			// + keg:
 			//     inventory = quantity * deposit
-			inventory := float32(0)
+			inventory := float32(0)     // the TOTAL inventory = wholesale + total_deposit
+			wholesale := float32(0)     // Inventory value without deposit, just raw goods
+			total_deposit := float32(0) // Deposit value without wholesale
 			unit_cost := float32(0)
 			deposit := float32(0)
 
@@ -3046,9 +2740,11 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 						log.Println(err.Error())
 						continue
 					}
-					inventory = float32(anItem.Quantity)*unit_cost + deposit*float32(math.Ceil(float64(anItem.Quantity))) // parenthesis are important here
+					wholesale = float32(anItem.Quantity) * unit_cost
+					total_deposit = deposit * float32(math.Ceil(float64(anItem.Quantity)))
 				} else { // keg
-					inventory = float32(anItem.Quantity) * deposit
+					wholesale = 0
+					total_deposit = float32(anItem.Quantity) * deposit
 				}
 
 			} else if batch.Type == "tap" {
@@ -3058,18 +2754,22 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 					log.Println(err.Error())
 					continue
 				}
-				inventory = float32(anItem.Quantity)*unit_cost + deposit
+				wholesale = float32(anItem.Quantity) * unit_cost
+				total_deposit = deposit
 			} else {
 				http.Error(w, "Encountered incorrect location type!", http.StatusInternalServerError)
 				return
 			}
 
+			inventory = wholesale + total_deposit
+
 			// finally, update its quantity and inventory in location_beverages
-			_, err = db.Exec("UPDATE location_beverages SET quantity=$1, inventory=$2 WHERE beverage_id=$3 AND location_id=$4 AND update=$5 AND active AND type=$6;", anItem.Quantity, inventory, most_recent_id, loc_id, cur_time, anItem.Type)
+			// XXX HERE DO INSERTION
+			_, err = db.Exec("INSERT INTO location_beverages (beverage_id, location_id, quantity, wholesale, deposit, inventory, update, active, type) VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, $8);", anItem.ID, loc_id, anItem.Quantity, wholesale, total_deposit, inventory, cur_time, anItem.Type)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
 				log.Println(err.Error())
-				continue
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
 			}
 
 			total_inventory += inventory
@@ -3091,9 +2791,6 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		loc_name := r.URL.Query().Get("location")
 		item_id := r.URL.Query().Get("id")
 		item_type := r.URL.Query().Get("type")
-		tz_offset_str := r.URL.Query().Get("tz_offset")
-		tz_offset64, _ := strconv.ParseInt(tz_offset_str, 10, 0)
-		tz_offset := int(tz_offset64)
 
 		// if item_type is not "keg" or "bev", error
 		if item_type != "bev" && item_type != "keg" {
@@ -3136,9 +2833,17 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// If last_update is within today's date, delete entry altogether
 		// Otherwise set active = FALSE
 		cur_time := time.Now().UTC()
+		tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
+		var tz_hour int
+		err = db.QueryRow(`SELECT EXTRACT (TIMEZONE_HOUR FROM CURRENT_TIME AT TIME ZONE $1);`, tz_str).Scan(&tz_hour)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
 
-		// convert tz_offset to duration in hours
-		hour_offset := time.Duration(-tz_offset) * time.Hour
+		// convert tz_hour to duration in hours
+		hour_offset := time.Duration(tz_hour) * time.Hour
 
 		// now that we have hour offset, add it to cur_time, which is in
 		// UTC, to get the equivalent of the local time

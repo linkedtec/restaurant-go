@@ -365,8 +365,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
           params: {
             id:item.id,
             location:$scope.selected_loc.name,
-            type:item.type,
-            tz_offset:DateService.timeZoneOffset()
+            type:item.type
           }
         }).
         success(function(data, status, headers, config) {
@@ -601,11 +600,10 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
       }
     };
 
-    $http.put('/inv/locnew', {
+    $http.put('/inv/loc', {
       items:post_item_quantities,
       location:$scope.selected_loc.name,
-      type:$scope.k_loc_type,
-      tz_offset:DateService.timeZoneOffset()
+      type:$scope.k_loc_type
     }).
     success(function(data, status, headers, config) {
       console.log(data);
@@ -985,11 +983,10 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
       }
     };
 
-    $http.put('/inv/locnew', {
+    $http.put('/inv/loc', {
       items:post_item_quantities,
       location:$scope.loc_name,
-      type:"bev",
-      tz_offset:DateService.timeZoneOffset()
+      type:"bev"
     }).
     success(function(data, status, headers, config) {
       console.log(data);

@@ -10,32 +10,31 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
     });
 }])
 
-.controller('ViewPurchaseHistoryCtrl', function($scope, $modal, $http, DateService) {
+.controller('ViewPurchaseHistoryCtrl', function($scope, $modal, $http, DateService, ItemsService) {
 
   $scope.purchase_orders = [];
 
   $scope.initDate = function() {
     var today = new Date();
     $scope.start_date = new Date(today.setDate(today.getDate() - 6));
-    $scope.start_date.setHours(0,0,0);
+    $scope.start_date.setHours(0,0,0,0);
     $scope.end_date = new Date();
-    $scope.end_date.setHours(23,59,59);
+    $scope.end_date.setHours(23,59,59,999);
   };
   $scope.initDate();
 
   $scope.startDateLocal = function() {
-    return $scope.start_date;
+    return DateService.clientTimeToRestaurantTime($scope.start_date);
   };
 
   $scope.endDateLocal = function() {
-    return $scope.end_date;
+    return DateService.clientTimeToRestaurantTime($scope.end_date);
   };
 
   $scope.getPurchaseOrders = function() {
     var params = { 
       start_date: $scope.startDateLocal(),
-      end_date: $scope.endDateLocal(),
-      tz_offset: DateService.timeZoneOffset()
+      end_date: $scope.endDateLocal()
     };
     $http.get('/purchase/all', 
       {params: params })
@@ -43,30 +42,9 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
       // this callback will be called asynchronously when the response
       // is available
       console.log(data);
-      if (data === null) {
-        $scope.purchase_orders = [];
-      } else {
-        $scope.purchase_orders = data;
-      }
+      $scope.purchase_orders = data;
 
-      for (var i in $scope.purchase_orders) {
-        var total = 0.0;
-        var po = $scope.purchase_orders[i];
-        for (var j in po.distributor_orders) {
-          var dist_order = po.distributor_orders[j];
-          total += dist_order['total'];
-        }
-        po.order['total'] = total;
-        po.order['order_date_pretty'] = DateService.getPrettyDate(po.order['order_date'], true, true);
-
-        if (po.order['send_method'] === 'email') {
-          po.order['send_method_pretty'] = 'Email';
-        } else if (po.order['send_method'] === 'text') {
-          po.order['send_method_pretty'] = 'SMS Text';
-        } else if (po.order['send_method'] === 'save') {
-          po.order['send_method_pretty'] = 'Save Only'
-        }
-      }
+      ItemsService.processPurchaseOrders($scope.purchase_orders);
 
     })
     .error(function(data, status, headers, config) {
@@ -118,16 +96,20 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
             if (purchase_order.order.send_method==="email") {
               var URL = data['url'];
               return URL;
-            } else {
+            } else if (purchase_order.order.send_method==="text") {
               return data;
+            } else {
+              var po = data;
+              ItemsService.processPurchaseOrders([po]);
+              return po;
             }
             
           },
           post_order: function() {
             return null;
           },
-          read_only: function() {
-            return true;
+          read_mode: function() {
+            return 'sent';
           }
         }
       });

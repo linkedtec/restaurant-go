@@ -134,7 +134,6 @@ type LocBeverageAppBatch struct {
 	Items    []LocBeverageApp `json:"items"`
 	Location NullString       `json:"location"`
 	Type     string           `json:"type"`
-	TZOffset int              `json:"tz_offset"`
 }
 
 type Location struct {
@@ -182,6 +181,8 @@ func main() {
 	// handle volume_units APIs
 	http.HandleFunc("/volume_units", volumeUnitsHandler)
 
+	http.HandleFunc("/timezone", timezoneHandler)
+
 	// handle users
 	setupUsersHandlers()
 
@@ -220,17 +221,76 @@ func getRestaurantTimeZone(restaurant_id string) (string, error) {
 	return tz_str, nil
 }
 
-func getTimeAtTimezone(in_time time.Time, in_tz string) time.Time {
+// Notes on timezones:
+// Client times Scanned into Struct times are timestamp without time zone
+// Direct queries into DB such as ‘update from location_beverages’ are timestamp without time zone
+//   Hence they require AT TIME ZONE ‘UTC’ AT TIME ZONE ‘OFFSET’ treatment
+// Times from time.Parse are timestamp with time zone
+//   Hence they do not require first UTC, just AT TIME ZONE ‘OFFSET’
+func getTimeAtTimezone(in_time time.Time, in_tz string, has_timezone bool) time.Time {
 	log.Println(in_time)
 	log.Println(in_tz)
-	tz, _ := time.LoadLocation(in_tz)
-	return in_time.In(tz)
+	var ret_time time.Time
+	var err error
+	if has_timezone == true {
+		err = db.QueryRow("SELECT $1 AT TIME ZONE $2;", in_time, in_tz).Scan(&ret_time)
+	} else {
+		err = db.QueryRow("SELECT $1 AT TIME ZONE 'UTC' AT TIME ZONE $2;", in_time, in_tz).Scan(&ret_time)
+	}
+	if err != nil {
+		log.Println(err.Error())
+		return time.Now().UTC()
+	}
+	return ret_time
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Root handler")
 	http.ServeFile(w, r, "./home.html")
 	//fmt.Fprintf(w, "Hi there")
+}
+
+func timezoneHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		restaurant_id := r.URL.Query().Get("restaurant_id")
+
+		var timezone string
+		err := db.QueryRow(`SELECT timezone FROM restaurants WHERE id=$1;`, restaurant_id).Scan(&timezone)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		var tz_hour int
+		err = db.QueryRow(`SELECT EXTRACT (TIMEZONE_HOUR FROM CURRENT_TIME AT TIME ZONE $1);`, timezone).Scan(&tz_hour)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		type TimezoneReturn struct {
+			Timezone string `json:"timezone"`
+			Offset   int    `json:"offset"`
+		}
+
+		var tzr TimezoneReturn
+		tzr.Timezone = timezone
+		// Note that even though the extract query gives us e.g., -5 for EST,
+		// since the client JS getTimezoneOffset function and the POSIX queries
+		// in Postgres all flip this, let's flip this here too
+		tzr.Offset = tz_hour * -1
+
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(&tzr)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+	}
 }
 
 func volumeUnitsHandler(w http.ResponseWriter, r *http.Request) {

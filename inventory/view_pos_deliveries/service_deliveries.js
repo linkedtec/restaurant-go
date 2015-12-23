@@ -1,13 +1,12 @@
 angular.module('myApp')
 
-.factory("DeliveriesService", function($http) {
+.factory("DeliveriesService", function($http, DateService) {
 
   return {
-    get: function(start_date, end_date, tz_offset, xport, email) {
+    get: function(start_date, end_date, xport, email) {
       var params = { 
-        start_date: start_date,
-        end_date: end_date,
-        tz_offset: tz_offset,
+        start_date: DateService.clientTimeToRestaurantTime(start_date),
+        end_date: DateService.clientTimeToRestaurantTime(end_date),
         email: email
       };
       if (xport!==null) {

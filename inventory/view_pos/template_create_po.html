@@ -74,6 +74,9 @@
         <date-button date="order.order_date" end-of-day="false" type="input" style="width:100%" large="true" on-date-change="orderDateChanged()"//>
       </div>
     </div>
+    <div ng-if="order.order_date_type===order_date_types[1]" class="col-xs-12 hint_text" style="text-align:center; font-size:1.1em; margin-top:8px">
+      * This Purchase Order will be added to the Pending list.
+    </div>
   </div>
   <div class="row" style="font-size:1.6em; margin-top:42px; text-align:center">
     <div class="col-xs-12">

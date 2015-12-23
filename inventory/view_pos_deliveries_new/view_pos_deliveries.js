@@ -17,9 +17,9 @@ angular.module('myApp.viewPODeliveries', ['ngRoute'])
   $scope.initDate = function() {
     var today = new Date();
     $scope.start_date = new Date(today.setDate(today.getDate() - 6));
-    $scope.start_date.setHours(0,0,0);
+    $scope.start_date.setHours(0,0,0,0);
     $scope.end_date = new Date();
-    $scope.end_date.setHours(23,59,59);
+    $scope.end_date.setHours(23,59,59,999);
   };
   $scope.initDate();
 
@@ -34,8 +34,7 @@ angular.module('myApp.viewPODeliveries', ['ngRoute'])
   $scope.getPurchaseOrders = function() {
     var params = { 
       start_date: $scope.startDateLocal(),
-      end_date: $scope.endDateLocal(),
-      tz_offset: DateService.timeZoneOffset()
+      end_date: $scope.endDateLocal()
     };
     $http.get('/purchase/all', 
       {params: params })

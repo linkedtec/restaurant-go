@@ -48,9 +48,9 @@ angular.module('myApp')
         var today = new Date();
         // start date is by default 1 week ago
         scope.startDate = new Date(today.setDate(today.getDate() - 6));
-        scope.startDate.setHours(0,0,0);
+        scope.startDate.setHours(0,0,0,0);
         scope.endDate = new Date();
-        scope.endDate.setHours(23,59,59);
+        scope.endDate.setHours(23,59,59,999);
       };
       scope.today();
       */
@@ -88,7 +88,7 @@ angular.module('myApp')
           return;
         }
 
-        scope.startDate.setHours(0,0,0);
+        scope.startDate.setHours(0,0,0,0);
         console.log('start date is now: ' + scope.startDate);
         scope.checkStartEndDates();
 
@@ -108,7 +108,7 @@ angular.module('myApp')
           return;
         }
 
-        scope.endDate.setHours(23,59,59);
+        scope.endDate.setHours(23,59,59,999);
         console.log('end date is now: ' + scope.endDate);
         scope.checkStartEndDates();
 
@@ -124,10 +124,10 @@ angular.module('myApp')
       scope.setRange = function(days) {
         var today = new Date();
         scope.endDate = new Date();
-        scope.endDate.setHours(23,59,59);
+        scope.endDate.setHours(23,59,59,999);
 
         scope.startDate = new Date(today.setDate(today.getDate() - days));
-        scope.startDate.setHours(0,0,0);
+        scope.startDate.setHours(0,0,0,0);
 
         // onEndChange and onStartChange call the same callback right now,
         // so just need to call into one of them

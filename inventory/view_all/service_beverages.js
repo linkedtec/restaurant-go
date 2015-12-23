@@ -1,6 +1,6 @@
 angular.module('myApp')
 
-.factory("BeveragesService", function($http) {
+.factory("BeveragesService", function($http, DateService) {
 
   return {
     get: function() {
@@ -35,14 +35,23 @@ angular.module('myApp')
         flavor_profile: new_beverage['flavor_profile'],
         size_prices: new_beverage['size_prices'],
         sale_status: new_beverage['sale_status'],
-        sale_start: new_beverage['sale_start'],
-        sale_end: new_beverage['sale_end'],
+        sale_start: DateService.clientTimeToRestaurantTime(new_beverage['sale_start']),
+        sale_end: DateService.clientTimeToRestaurantTime(new_beverage['sale_end']),
         par: new_beverage['par']
       });
       return promise;
     },
 
     put: function(edit_beverage, change_keys) {
+
+      // adjust sale_start and sale_end to match restaurant time
+      for (var i in change_keys) {
+        var key = change_keys[i];
+        if (key==='sale_start' || key==='sale_end') {
+          edit_beverage[key] = DateService.clientTimeToRestaurantTime(edit_beverage[key]);
+        }
+      }
+
       var promise = $http.put('/inv', {
         beverage: edit_beverage,
         change_keys: change_keys

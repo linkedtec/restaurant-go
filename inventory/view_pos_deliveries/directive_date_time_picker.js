@@ -103,8 +103,7 @@ angular.module('myApp')
 
       scope.update = function() {
         var d = new Date();
-        d.setHours( 14 );
-        d.setMinutes( 0 );
+        d.setHours( 14,0,0,0 );
         scope.pickedTime = d;
       };
 

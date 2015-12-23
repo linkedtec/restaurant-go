@@ -25,6 +25,7 @@ type Restaurant struct {
 	PurchaseEmail   NullString `json:"purchase_email"`
 	PurchasePhone   NullString `json:"purchase_phone"`
 	PurchaseFax     NullString `json:"purchase_fax"`
+	Timezone        NullString `json:"timezone"`
 }
 
 type RestaurantAddress struct {

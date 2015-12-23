@@ -20,9 +20,9 @@ angular.module('myApp.viewHistory', ['ngRoute'])
   $scope.initDate = function() {
     var today = new Date();
     $scope.start_date = new Date(today.setDate(today.getDate() - 6));
-    $scope.start_date.setHours(0,0,0);
+    $scope.start_date.setHours(0,0,0,0);
     $scope.end_date = new Date();
-    $scope.end_date.setHours(23,59,59);
+    $scope.end_date.setHours(23,59,59,999);
   };
   $scope.initDate();
 
@@ -285,11 +285,11 @@ angular.module('myApp.viewHistory', ['ngRoute'])
   };
 
   $scope.startDateLocal = function() {
-    return $scope.start_date;
+    return DateService.clientTimeToRestaurantTime($scope.start_date);
   };
 
   $scope.endDateLocal = function() {
-    return $scope.end_date;
+    return DateService.clientTimeToRestaurantTime($scope.end_date);
   };
 
   $scope.emailSpreadsheet = function( email ) {
@@ -329,7 +329,6 @@ angular.module('myApp.viewHistory', ['ngRoute'])
         ids: all_ids,
         start_date: $scope.startDateLocal(),
         end_date: $scope.endDateLocal(),
-        tz_offset: DateService.timeZoneOffset(),
         export:export_format,
         email:email }
     }).
@@ -359,8 +358,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       params: { 
         type: 'all_sum',
         start_date: $scope.startDateLocal(),
-        end_date: $scope.endDateLocal(),
-        tz_offset: DateService.timeZoneOffset()
+        end_date: $scope.endDateLocal()
       }
     }).
     success(function(data, status, headers, config) {
@@ -393,14 +391,13 @@ angular.module('myApp.viewHistory', ['ngRoute'])
 
     console.log($scope.startDateLocal());
     console.log($scope.endDateLocal());
-    console.log(DateService.timeZoneOffset());
+    console.log(DateService.getClientTimezoneOffset());
 
     $http.get('/inv/history', {
       params: { 
         type: 'all_itemized',
         start_date: $scope.startDateLocal(),
-        end_date: $scope.endDateLocal(),
-        tz_offset: DateService.timeZoneOffset()
+        end_date: $scope.endDateLocal()
       }
     }).
     success(function(data, status, headers, config) {
@@ -443,8 +440,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       params: { 
         type: 'loc_sum',
         start_date: $scope.startDateLocal(),
-        end_date: $scope.endDateLocal(),
-        tz_offset: DateService.timeZoneOffset()
+        end_date: $scope.endDateLocal()
       }
     }).
     success(function(data, status, headers, config) {
@@ -494,8 +490,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       params: { 
         type: 'loc_itemized',
         start_date: $scope.startDateLocal(),
-        end_date: $scope.endDateLocal(),
-        tz_offset: DateService.timeZoneOffset()
+        end_date: $scope.endDateLocal()
       }
     }).
     success(function(data, status, headers, config) {
@@ -539,8 +534,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       params: { 
         type: 'type_sum',
         start_date: $scope.startDateLocal(),
-        end_date: $scope.endDateLocal(),
-        tz_offset: DateService.timeZoneOffset()
+        end_date: $scope.endDateLocal()
       }
     }).
     success(function(data, status, headers, config) {
@@ -590,8 +584,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       params: { 
         type: 'type_itemized',
         start_date: $scope.startDateLocal(),
-        end_date: $scope.endDateLocal(),
-        tz_offset: DateService.timeZoneOffset()
+        end_date: $scope.endDateLocal()
       }
     }).
     success(function(data, status, headers, config) {
@@ -650,8 +643,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
         type: 'items',
         ids: all_ids,
         start_date: $scope.startDateLocal(),
-        end_date: $scope.endDateLocal(),
-        tz_offset: DateService.timeZoneOffset()
+        end_date: $scope.endDateLocal()
       }
     }).
     success(function(data, status, headers, config) {

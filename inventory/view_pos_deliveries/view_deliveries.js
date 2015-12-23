@@ -23,13 +23,15 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
   $scope.initDate = function() {
     var today = new Date();
     $scope.start_date = new Date(today.setDate(today.getDate() - 6));
-    $scope.start_date.setHours(0,0,0);
+    $scope.start_date.setHours(0,0,0,0);
     $scope.end_date = new Date();
-    $scope.end_date.setHours(23,59,59);
+    $scope.end_date.setHours(23,59,59,999);
   };
   $scope.initDate();
 
   $scope.startDateLocal = function() {
+    // XXX DO NOT use DateService.clientTimeToRestaurantTime() here because
+    // we're calling DeliveriesService.get, which will apply it there
     return $scope.start_date;
   };
 
@@ -41,7 +43,6 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
     var result = DeliveriesService.get(
       $scope.startDateLocal(),
       $scope.endDateLocal(),
-      DateService.timeZoneOffset(),
       null
       );
     result.then(
@@ -207,7 +208,6 @@ angular.module('myApp.viewDeliveries', ['ngRoute'])
     var result = DeliveriesService.get(
       $scope.startDateLocal(),
       $scope.endDateLocal(),
-      DateService.timeZoneOffset(),
       export_format,
       email
       );
