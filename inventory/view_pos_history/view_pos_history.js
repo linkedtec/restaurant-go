@@ -14,15 +14,6 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
 
   $scope.purchase_orders = [];
 
-  $scope.initDate = function() {
-    var today = new Date();
-    $scope.start_date = new Date(today.setDate(today.getDate() - 6));
-    $scope.start_date.setHours(0,0,0,0);
-    $scope.end_date = new Date();
-    $scope.end_date.setHours(23,59,59,999);
-  };
-  $scope.initDate();
-
   $scope.startDateLocal = function() {
     return DateService.clientTimeToRestaurantTime($scope.start_date);
   };
@@ -52,7 +43,17 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
     });
 
   };
-  $scope.getPurchaseOrders();
+
+  $scope.initDate = function() {
+    var today = new Date();
+    $scope.start_date = new Date(today.setDate(today.getDate() - 6));
+    $scope.start_date.setHours(0,0,0,0);
+    $scope.end_date = new Date();
+    $scope.end_date.setHours(23,59,59,999);
+
+    $scope.getPurchaseOrders();
+  };
+  $scope.initDate();
 
   $scope.startDateChanged = function() {
     console.log($scope.start_date);
@@ -110,6 +111,12 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
           },
           read_mode: function() {
             return 'sent';
+          },
+          po_id: function() {
+            return null;
+          },
+          send_later: function() {
+            return false;
           }
         }
       });

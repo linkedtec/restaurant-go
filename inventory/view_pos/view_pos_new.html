@@ -39,7 +39,7 @@
     <tbody ng-repeat="po in pending_orders" style="border-bottom: 1px solid #b0b0b0">
       <tr class="inv_loc_row" style="font-style:italic; border-bottom:1px solid #d0d0d0; background-color:#eeeeee;">
         <td>
-          <button ng-click="viewPurchaseOrder(po)" type="button" class="btn btn-md btn_frameless hover_blue" style="font-size:16px; margin-top:1px; padding:2px 4px;">
+          <button ng-click="viewPurchaseOrder(po, false)" type="button" class="btn btn-md btn_frameless hover_blue" style="font-size:16px; margin-top:1px; padding:2px 4px;">
             <span class="glyphicon glyphicon-eye-open"></span>
           </button>
         </td>
@@ -59,7 +59,7 @@
         <td style="padding-top:4px; padding-bottom:4px; padding-right:5px">
           <button ng-click="deletePendingPO($index)" type="button" class="btn btn-sm btn_frameless hover_red" style="float:right; margin-left:6px" uib-popover="Delete this Pending Order." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span class="glyphicon glyphicon-trash"></span>
-          <button ng-click="recordDelivery(dorder)" type="button" class="btn btn-sm btn_blue_border" style="float:right; padding:4px 6px;" uib-popover="Send this PO to Distributors right now instead of waiting for the Send Date." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500"><span class="glyphicon glyphicon-send"></span> Send Now</button>
+          <button ng-click="sendNowConfirm(po)" type="button" class="btn btn-sm btn_blue_border" style="float:right; padding:4px 6px;" uib-popover="Send this PO to Distributors right now instead of waiting for the Send Date." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500"><span class="glyphicon glyphicon-send"></span> Send Now</button>
         </button>
         </td>
       </tr>

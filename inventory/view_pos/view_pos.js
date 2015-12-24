@@ -12,16 +12,6 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
 .controller('ViewPurchaseOrdersCtrl', function($scope, $modal, $http, ContactService, DateService, ItemsService) {
 
-
-  // XXX testing timezone fix
-  console.log(DateService.getRestaurantTimezone());
-  console.log(DateService.getRestaurantTimezoneOffset());
-  console.log(DateService.getClientTimezoneOffset());
-  var now = new Date();
-  console.log(now);
-  console.log(DateService.clientTimeToRestaurantTime(now));
-  console.log(now);
-
   $scope.pending_orders = [];
 
   $scope.createNewPO = function() {
@@ -97,10 +87,32 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
   };
   $scope.getPendingPOs();
 
-  $scope.viewPurchaseOrder = function(purchase_order) {
+  $scope.sendNowConfirm = function(purchase_order) {
+    swal({
+      title: "Review & Send Order?",
+      text: "This will send the Purchase Order to Distributors right away, and remove it from the Pending list.  You will have a chance to review the PO before we send it.  Proceed?",
+      type: "warning",
+      showCancelButton: true,
+      html: true,
+      confirmButtonColor: "#51a351",
+      confirmButtonText: "Yes, review now!",
+      closeOnConfirm: true },
+      function() {
+        $scope.viewPurchaseOrder(purchase_order, true);
+      });
+  };
+
+  $scope.viewPurchaseOrder = function(purchase_order, sendable) {
     var params = { 
       id: purchase_order.order.id
     };
+    // if the reviewed PO is sendable, that means we're trying to 'Send Now'
+    // on a pending PO, so override order_date to current time
+    if (sendable===true) {
+      // do NOT call DateService.clientTimeToRestaurantTime here because
+      // we're not sending a SET date, we're sending a NOW date
+      params['order_date_override'] = new Date();
+    }
     $http.get('/purchase', 
       {params: params })
     .success(function(data, status, headers, config) {
@@ -127,9 +139,12 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
             if (purchase_order.order.send_method==="email") {
               var URL = data['url'];
               return URL;
-            } else {
-              data.order['order_date_pretty'] = DateService.getPrettyDate(data.order['order_date'], true, true);
+            } else if (purchase_order.order.send_method==="text") {
               return data;
+            } else {
+              var po = data;
+              ItemsService.processPurchaseOrders([po]);
+              return po;
             }
             
           },
@@ -137,10 +152,57 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
             return null;
           },
           read_mode: function() {
-            return 'pending';
+            if (sendable===true) {
+              return 'send';
+            } else {
+              return 'pending';
+            }
+          },
+          po_id: function() {
+            return purchase_order.order.id;
+          },
+          send_later: function() {
+            return false;
           }
         }
       });
+
+      modalEditInstance.result.then(
+        // success status
+        function( result ) {
+          // result is a list, first item is string for status, e.g.,
+          // 'save' or 'delete'
+          // second item is the affected beverage
+          var status = result[0];
+
+          // after a save, we want to show a success dialogue with an optional
+          // CC email address
+          if (status === 'save') {
+            var swal_title="Purchase Orders Sent!";
+            var swal_content="Your Purchase Order(s) were sent to your Distributors!  You can view past orders in the Purchase History page.";
+            swal({
+              title: swal_title,
+              text: swal_content,
+              type: "success",
+              allowOutsideClick: true,
+              html: true});
+
+          } else if (status === 'error') {
+            swal({
+              title: "Error Encountered!",
+              text: "There was an error sending your Purchase Orders, please try again later.",
+              type: "error",
+              allowOutsideClick: true,
+              html: true});
+          }
+          
+          $scope.getPendingPOs();
+
+        }, 
+        // error status
+        function() {
+
+        });
 
     })
     .error(function(data, status, headers, config) {
@@ -198,7 +260,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
 })
 
-.controller('reviewPurchaseOrderModalCtrl', function($scope, $modalInstance, $http, $filter, $sce, content_type, review_obj, post_order, read_mode) {
+.controller('reviewPurchaseOrderModalCtrl', function($scope, $modalInstance, $http, $filter, $sce, content_type, review_obj, post_order, read_mode, po_id, send_later) {
 
   $scope.trustAsHtml = $sce.trustAsHtml;
 
@@ -210,10 +272,55 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
   $scope.disableSend = false;
   $scope.review_obj = review_obj;
 
+  // if po_id is null, there is no existing PO on server
+  // if po_id is not null, there is an existing PO on server, and this is
+  // the case if we're doing Send Now on a pending PO
+  $scope.po_id = po_id;
+
+  $scope.send_later = send_later;
+
   if ($scope.content_type==="sms") {
     for (var i in $scope.review_obj) {
       var dist_sms = $scope.review_obj[i];
       dist_sms['content'] = dist_sms['content'].replace(/\n/g, '<br/>');
+    }
+  }
+
+  // resolve the display caption and button titles
+  if ($scope.read_mode==='send') {
+    if ($scope.content_type==='pdf') {
+      if ($scope.send_later===true) {
+        $scope.send_caption="Please review the PDFs below before adding to Pending Orders.";
+        $scope.send_btn="Save & Send Later";
+      } else {
+        $scope.send_caption="Please review the PDFs below before emailing to Distributor(s).";
+        $scope.send_btn="Save & Email to Distributors";
+      }
+    } else if ($scope.content_type==='sms') {
+      if ($scope.send_later===true) {
+        $scope.send_caption="Please review the SMS below before adding to Pending Orders.";
+        $scope.send_btn="Save & Send Later";
+      } else {
+        $scope.send_caption="Please review the SMS below before texting to Distributor(s).";
+        $scope.send_btn="Save & Text to Distributors";
+      }
+    } else if ($scope.content_type==='html') {
+      $scope.send_caption="Please review the order below before saving in our records.";
+      $scope.send_btn="Save in Purchase History";
+    }
+  } else if ($scope.read_mode==='sent') {
+    if ($scope.content_type==='pdf') {
+      $scope.send_caption="You are reviewing PDFs which have already been emailed to Distributor(s).";
+    } else if ($scope.content_type==='sms') {
+      $scope.send_caption="You are reviewing SMS which have already been texted to Distributor(s).";
+    } else if ($scope.content_type==='html') {
+      $scope.send_caption="You are reviewing a record which was saved but not sent to Distributors.";
+    }
+  } else if ($scope.read_mode==='pending') {
+    if ($scope.content_type==='pdf') {
+      $scope.send_caption="You are reviewing a pending PDF which will be emailed to Distributor(s).";
+    } else if ($scope.content_type==='sms') {
+      $scope.send_caption="You are reviewing a pending SMS which will be texted to Distributor(s).";
     }
   }
 
@@ -238,20 +345,38 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     // and sends to all distributors.
 
     $scope.disableSend = true;
-    $http.post('/purchase', {
-      order: post_order['order'],
-      distributor_orders: post_order['dist_orders'],
-      do_send: true
-    }).
-    success(function(data, status, headers, config) {
-      $scope.disableSend = false;
-      $modalInstance.close(['save', null]);
-    }).
-    error(function(data, status, headers, config) {
-      $scope.disableSend = false;
-      $modalInstance.close(['error', null]);
-    });
 
+    // 'Send Now' for pending POs sends via a saved purchase order ID
+    // on the server, so we don't post client objects to send.
+    if ($scope.po_id !== null) {
+      $http.post('/purchase/pending', {
+        id: $scope.po_id
+      }).
+      success(function(data, status, headers, config) {
+        $scope.disableSend = false;
+        $modalInstance.close(['save', $scope.send_later]);
+      }).
+      error(function(data, status, headers, config) {
+        $scope.disableSend = false;
+        $modalInstance.close(['error', null]);
+      });
+    } 
+    // other POs do not have DB entries and we need to post the post_order
+    else {
+      $http.post('/purchase', {
+        order: post_order['order'],
+        distributor_orders: post_order['dist_orders'],
+        do_send: true
+      }).
+      success(function(data, status, headers, config) {
+        $scope.disableSend = false;
+        $modalInstance.close(['save', $scope.send_later]);
+      }).
+      error(function(data, status, headers, config) {
+        $scope.disableSend = false;
+        $modalInstance.close(['error', null]);
+      });
+    }
     
   };
 

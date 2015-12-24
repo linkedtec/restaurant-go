@@ -244,6 +244,23 @@ func getTimeAtTimezone(in_time time.Time, in_tz string, has_timezone bool) time.
 	return ret_time
 }
 
+func getTimeAtTimezoneFromString(in_time string, in_tz string, has_timezone bool) time.Time {
+	log.Println(in_time)
+	log.Println(in_tz)
+	var ret_time time.Time
+	var err error
+	if has_timezone == true {
+		err = db.QueryRow("SELECT $1 AT TIME ZONE $2;", in_time, in_tz).Scan(&ret_time)
+	} else {
+		err = db.QueryRow("SELECT $1 AT TIME ZONE 'UTC' AT TIME ZONE $2;", in_time, in_tz).Scan(&ret_time)
+	}
+	if err != nil {
+		log.Println(err.Error())
+		return time.Now().UTC()
+	}
+	return ret_time
+}
+
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Root handler")
 	http.ServeFile(w, r, "./home.html")

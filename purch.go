@@ -18,6 +18,7 @@ import (
 type PurchaseOrder struct {
 	Order             PO_Order           `json:"order"`
 	DistributorOrders []DistributorOrder `json:"distributor_orders"`
+	DeliveryAddress   RestaurantAddress  `json:"delivery_address"`
 	DoSend            bool               `json:"do_send"`
 }
 
@@ -101,12 +102,12 @@ func createPurchaseOrderSaveOnly(user_id string, restaurant_id string, purchase_
 
 		// convert OrderTime and DeliveryTime to restaurant timezone
 		tz_str, _ := getRestaurantTimeZone(restaurant_id)
-		purchase_order.Order.OrderDate = getTimeAtTimezone(purchase_order.Order.OrderDate, tz_str, false)
+		purchase_order.Order.OrderDate = getTimeAtTimezone(purchase_order.Order.OrderDate, tz_str, true)
 
 		// first get the additional params the client needs for display
 		for i, dorder := range purchase_order.DistributorOrders {
 
-			purchase_order.DistributorOrders[i].DeliveryDate = getTimeAtTimezone(dorder.DeliveryDate, tz_str, false)
+			purchase_order.DistributorOrders[i].DeliveryDate = getTimeAtTimezone(dorder.DeliveryDate, tz_str, true)
 
 			for j, item := range dorder.Items {
 				err := db.QueryRow("SELECT product, brewery, purchase_volume, purchase_unit, purchase_cost, purchase_count, container_type FROM beverages WHERE id=$1;", item.BeverageID).Scan(
@@ -164,7 +165,7 @@ func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order
 		sms_str := "Automated SMS; DO NOT REPLY\n"
 		sms_str += "PO #: " + dorder.DO_Num.String + "\n"
 		tz_str, _ := getRestaurantTimeZone(restaurant_id)
-		delivery_date_tz := getTimeAtTimezone(dorder.DeliveryDate, tz_str, false)
+		delivery_date_tz := getTimeAtTimezone(dorder.DeliveryDate, tz_str, true)
 		log.Println(delivery_date_tz)
 		sms_str += "Need by " + delivery_date_tz.Format("Mon, Jan 2 2006") + ":\n\n"
 
@@ -246,7 +247,7 @@ func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order
 
 }
 
-func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_order PurchaseOrder, delivery_address RestaurantAddress, do_send bool, w http.ResponseWriter, r *http.Request) {
+func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_order PurchaseOrder, do_send bool, w http.ResponseWriter, r *http.Request) {
 	export_dir := "./export/"
 	if os.MkdirAll(export_dir, 0755) != nil {
 		http.Error(w, "Unable to find or create export directory!", http.StatusInternalServerError)
@@ -328,8 +329,10 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 
 		pdf.Ln(6)
 		tz_str, _ := getRestaurantTimeZone(restaurant_id)
-		order_date_tz := getTimeAtTimezone(purchase_order.Order.OrderDate, tz_str, false)
-		//log.Println(order_date_tz)
+		order_date_tz := getTimeAtTimezone(purchase_order.Order.OrderDate, tz_str, true)
+		log.Println("ORDER DATE")
+		log.Println(purchase_order.Order.OrderDate)
+		log.Println(order_date_tz)
 		order_date := fmt.Sprintf("Order Date: %s", order_date_tz.Format("Mon, Jan 2 2006"))
 		wd = pdf.GetStringWidth(order_date) + margin_right
 		pdf.SetX(-wd)
@@ -359,7 +362,7 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 		pdf.Ln(8)
 		pdf.SetTextColor(0, 0, 0)
 		pdf.SetFont("helvetica", "", 11)
-		delivery_date_tz := getTimeAtTimezone(dorder.DeliveryDate, tz_str, false)
+		delivery_date_tz := getTimeAtTimezone(dorder.DeliveryDate, tz_str, true)
 		//log.Println(delivery_date_tz)
 		pdf.MultiCell(content_width/2.6, 5, delivery_date_tz.Format("Mon, Jan 2 2006"), "", "", false)
 
@@ -376,13 +379,13 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 		pdf.SetFont("helvetica", "", 11)
 		pdf.MultiCell(content_width/2.6, 5, purchase_order.Order.PurchaseContact, "", "", false)
 		pdf.SetX(-wd)
-		pdf.MultiCell(content_width/2.6, 5, delivery_address.AddressOne.String, "", "", false)
-		if delivery_address.AddressTwo.Valid && len(delivery_address.AddressTwo.String) > 0 {
+		pdf.MultiCell(content_width/2.6, 5, purchase_order.DeliveryAddress.AddressOne.String, "", "", false)
+		if purchase_order.DeliveryAddress.AddressTwo.Valid && len(purchase_order.DeliveryAddress.AddressTwo.String) > 0 {
 			pdf.SetX(-wd)
-			pdf.MultiCell(content_width/2.6, 5, delivery_address.AddressTwo.String, "", "", false)
+			pdf.MultiCell(content_width/2.6, 5, purchase_order.DeliveryAddress.AddressTwo.String, "", "", false)
 		}
 		pdf.SetX(-wd)
-		pdf.MultiCell(content_width/2.6, 5, fmt.Sprintf("%s, %s %s", delivery_address.City.String, delivery_address.State.String, delivery_address.Zipcode.String), "", "", false)
+		pdf.MultiCell(content_width/2.6, 5, fmt.Sprintf("%s, %s %s", purchase_order.DeliveryAddress.City.String, purchase_order.DeliveryAddress.State.String, purchase_order.DeliveryAddress.Zipcode.String), "", "", false)
 		pdf.Ln(2)
 		pdf.SetX(-wd)
 		contact_email := fmt.Sprintf("Email: %s", purchase_order.Order.PurchaseEmail)
@@ -793,6 +796,65 @@ func purchaseOrderPendingAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Write(js)
 
+	case "POST":
+
+		if !hasBasicPrivilege(privilege) {
+			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
+			return
+		}
+
+		// POST on /purchase/pending is to 'Send Now' on a pending purchase order
+		// first verify that the posted po_id is indeed pending
+		// update the DB purchase_orders.order_date to now()
+		// get PurchaseOrder struct from posted id
+		// create PDF / SMS / Save Only and send=true
+
+		decoder := json.NewDecoder(r.Body)
+		var order PO_Order
+		err := decoder.Decode(&order)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		var sent bool
+		err = db.QueryRow(`
+			SELECT sent FROM purchase_orders WHERE id=$1`, order.ID).Scan(&sent)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if sent == true {
+			http.Error(w, "The PO specified has already been sent!", http.StatusBadRequest)
+			return
+		}
+
+		cur_time := time.Now().UTC()
+		_, err = db.Exec(`
+			UPDATE purchase_orders SET order_date=$1 WHERE id=$2;`, cur_time, order.ID)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		purchase_order, err := getPurchaseOrderFromID(order.ID)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if purchase_order.Order.SendMethod.String == "email" {
+			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, true, w, r)
+		} else if purchase_order.Order.SendMethod.String == "text" {
+			createPurchaseOrderSMS(test_user_id, test_restaurant_id, purchase_order, true, w, r)
+		} else if purchase_order.Order.SendMethod.String == "save" {
+			createPurchaseOrderSaveOnly(test_user_id, test_restaurant_id, purchase_order, true, w, r)
+		}
+
 	case "DELETE":
 
 		if !hasBasicPrivilege(privilege) {
@@ -884,7 +946,7 @@ func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		var purchase_orders []PurchaseOrder
 		rows, err := db.Query(`
-			SELECT created AT TIME ZONE 'UTC' AT TIME ZONE $1, id, order_date AT TIME ZONE 'UTC' AT TIME ZONE $1, send_method, po_num 
+			SELECT created AT TIME ZONE 'UTC' AT TIME ZONE $1, id, (order_date AT TIME ZONE 'UTC' AT TIME ZONE $1) AS local_order_date, send_method, po_num 
 				FROM purchase_orders 
 				WHERE order_date BETWEEN $2 AND $3 AND restaurant_id=$4 AND sent=TRUE 
 			ORDER BY order_date DESC;`,
@@ -1034,6 +1096,92 @@ func distributorOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func getPurchaseOrderFromID(po_id int) (PurchaseOrder, error) {
+	// XXX VERY IMPORTANT NOTE HERE:
+	// We get all the order_date, delivery_date in time zone UTC instead of
+	// user's / restaurant's local time to reproduce the conditions when they
+	// first post from client, which is in UTC.  We manually correct UTC to
+	// local timezone when we construct the PDF / SMS etc returned, but we need
+	// to query them as UTC or the correction will be doubly-applied
+	var purchase_order PurchaseOrder
+	err := db.QueryRow(`
+			SELECT id, order_date, sent, purchase_contact, purchase_email, purchase_phone, purchase_fax, send_method, po_num FROM purchase_orders WHERE id=$1;`, po_id).Scan(
+		&purchase_order.Order.ID,
+		&purchase_order.Order.OrderDate,
+		&purchase_order.Order.Sent,
+		&purchase_order.Order.PurchaseContact,
+		&purchase_order.Order.PurchaseEmail,
+		&purchase_order.Order.PurchasePhone,
+		&purchase_order.Order.PurchaseFax,
+		&purchase_order.Order.SendMethod,
+		&purchase_order.Order.PO_Num)
+	if err != nil {
+		return purchase_order, err
+	}
+
+	err = db.QueryRow("SELECT addr1, addr2, city, state, zipcode FROM purchase_orders WHERE id=$1;", po_id).Scan(
+		&purchase_order.DeliveryAddress.AddressOne,
+		&purchase_order.DeliveryAddress.AddressTwo,
+		&purchase_order.DeliveryAddress.City,
+		&purchase_order.DeliveryAddress.State,
+		&purchase_order.DeliveryAddress.Zipcode)
+	if err != nil {
+		return purchase_order, err
+	}
+
+	rows, err := db.Query(`
+			SELECT id, distributor, distributor_id, distributor_email, distributor_phone, 
+				delivery_date, total, additional_notes, do_num FROM distributor_orders 
+			WHERE purchase_order_id=$1`,
+		po_id)
+	if err != nil {
+		return purchase_order, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var distributor_order DistributorOrder
+		if err := rows.Scan(
+			&distributor_order.ID,
+			&distributor_order.Distributor,
+			&distributor_order.DistributorID,
+			&distributor_order.DistributorEmail,
+			&distributor_order.DistributorPhone,
+			&distributor_order.DeliveryDate,
+			&distributor_order.Total,
+			&distributor_order.AdditionalNotes,
+			&distributor_order.DO_Num); err != nil {
+			log.Println(err.Error())
+			continue
+		}
+
+		irows, err := db.Query(`
+				SELECT beverage_id, quantity, batch_cost, subtotal 
+					FROM distributor_order_items WHERE distributor_order_id=$1;`, distributor_order.ID)
+		if err != nil {
+			log.Println(err.Error())
+			continue
+		}
+		defer irows.Close()
+		for irows.Next() {
+			var item PO_Item
+			if err := irows.Scan(
+				&item.BeverageID,
+				&item.Quantity,
+				&item.BatchCost,
+				&item.Subtotal); err != nil {
+				log.Println(err.Error())
+				continue
+			}
+
+			distributor_order.Items = append(distributor_order.Items, item)
+		}
+		purchase_order.DistributorOrders = append(purchase_order.DistributorOrders, distributor_order)
+
+	}
+
+	return purchase_order, nil
+}
+
 func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	privilege := checkUserPrivilege()
@@ -1047,101 +1195,31 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// gets a single purchase order PDF via id
-		po_id := r.URL.Query().Get("id")
+		_po_id := r.URL.Query().Get("id")
+		// an optional argument from client if we're overriding the order_date
+		// for display back, for reviewing "Send Now" versions of pending orders
+		// if none was specified will be empty string ""
+		order_date_override := r.URL.Query().Get("order_date_override")
 
-		// XXX VERY IMPORTANT NOTE HERE:
-		// We get all the order_date, delivery_date in time zone UTC instead of
-		// user's / restaurant's local time to reproduce the conditions when they
-		// first post from client, which is in UTC.  We manually correct UTC to
-		// local timezone when we construct the PDF / SMS etc returned, but we need
-		// to query them as UTC or the correction will be doubly-applied
-		var purchase_order PurchaseOrder
-		err := db.QueryRow(`
-			SELECT order_date, sent, purchase_contact, purchase_email, purchase_phone, purchase_fax, send_method, po_num FROM purchase_orders WHERE id=$1;`, po_id).Scan(
-			&purchase_order.Order.OrderDate,
-			&purchase_order.Order.Sent,
-			&purchase_order.Order.PurchaseContact,
-			&purchase_order.Order.PurchaseEmail,
-			&purchase_order.Order.PurchasePhone,
-			&purchase_order.Order.PurchaseFax,
-			&purchase_order.Order.SendMethod,
-			&purchase_order.Order.PO_Num)
+		po_id, _ := strconv.Atoi(_po_id)
+		purchase_order, err := getPurchaseOrderFromID(po_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		var delivery_address RestaurantAddress
-		err = db.QueryRow("SELECT addr1, addr2, city, state, zipcode FROM purchase_orders WHERE id=$1;", po_id).Scan(
-			&delivery_address.AddressOne,
-			&delivery_address.AddressTwo,
-			&delivery_address.City,
-			&delivery_address.State,
-			&delivery_address.Zipcode)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		rows, err := db.Query(`
-			SELECT id, distributor, distributor_id, distributor_email, distributor_phone, 
-				delivery_date AT TIME ZONE 'UTC', total, additional_notes, do_num FROM distributor_orders 
-			WHERE purchase_order_id=$1`,
-			po_id)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		defer rows.Close()
-		for rows.Next() {
-			var distributor_order DistributorOrder
-			if err := rows.Scan(
-				&distributor_order.ID,
-				&distributor_order.Distributor,
-				&distributor_order.DistributorID,
-				&distributor_order.DistributorEmail,
-				&distributor_order.DistributorPhone,
-				&distributor_order.DeliveryDate,
-				&distributor_order.Total,
-				&distributor_order.AdditionalNotes,
-				&distributor_order.DO_Num); err != nil {
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				continue
-			}
-
-			irows, err := db.Query(`
-				SELECT beverage_id, quantity, batch_cost, subtotal 
-					FROM distributor_order_items WHERE distributor_order_id=$1;`, distributor_order.ID)
-			if err != nil {
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				continue
-			}
-			defer irows.Close()
-			for irows.Next() {
-				var item PO_Item
-				if err := irows.Scan(
-					&item.BeverageID,
-					&item.Quantity,
-					&item.BatchCost,
-					&item.Subtotal); err != nil {
-					log.Println(err.Error())
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					continue
-				}
-
-				distributor_order.Items = append(distributor_order.Items, item)
-			}
-			purchase_order.DistributorOrders = append(purchase_order.DistributorOrders, distributor_order)
-
+		if order_date_override != "" && len(order_date_override) > 3 {
+			log.Println(order_date_override)
+			tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
+			order_date := getTimeAtTimezoneFromString(order_date_override, tz_str, true)
+			log.Println("Overriden:")
+			log.Println(order_date)
+			purchase_order.Order.OrderDate = order_date
 		}
 
 		if purchase_order.Order.SendMethod.String == "email" {
-			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, delivery_address, false, w, r)
+			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, false, w, r)
 		} else if purchase_order.Order.SendMethod.String == "text" {
 			createPurchaseOrderSMS(test_user_id, test_restaurant_id, purchase_order, false, w, r)
 		} else if purchase_order.Order.SendMethod.String == "save" {
@@ -1191,22 +1269,21 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		log.Println(order)
 
-		var delivery_address RestaurantAddress
 		if order.Order.DeliveryAddressType.Valid && len(order.Order.DeliveryAddressType.String) > 0 {
 			if order.Order.DeliveryAddressType.String == "delivery" {
 				err = db.QueryRow("SELECT delivery_addr1, delivery_addr2, delivery_city, delivery_state, delivery_zipcode FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
-					&delivery_address.AddressOne,
-					&delivery_address.AddressTwo,
-					&delivery_address.City,
-					&delivery_address.State,
-					&delivery_address.Zipcode)
+					&order.DeliveryAddress.AddressOne,
+					&order.DeliveryAddress.AddressTwo,
+					&order.DeliveryAddress.City,
+					&order.DeliveryAddress.State,
+					&order.DeliveryAddress.Zipcode)
 			} else {
 				err = db.QueryRow("SELECT addr1, addr2, city, state, zipcode FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
-					&delivery_address.AddressOne,
-					&delivery_address.AddressTwo,
-					&delivery_address.City,
-					&delivery_address.State,
-					&delivery_address.Zipcode)
+					&order.DeliveryAddress.AddressOne,
+					&order.DeliveryAddress.AddressTwo,
+					&order.DeliveryAddress.City,
+					&order.DeliveryAddress.State,
+					&order.DeliveryAddress.Zipcode)
 			}
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1284,8 +1361,8 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 				restaurant.Name.String, test_restaurant_id, test_user_id, cur_time,
 				order.Order.OrderDate, false, order.Order.PurchaseContact,
 				order.Order.PurchaseEmail, order.Order.PurchasePhone, order.Order.PurchaseFax,
-				delivery_address.AddressOne, delivery_address.AddressTwo,
-				delivery_address.City, delivery_address.State, delivery_address.Zipcode,
+				order.DeliveryAddress.AddressOne, order.DeliveryAddress.AddressTwo,
+				order.DeliveryAddress.City, order.DeliveryAddress.State, order.DeliveryAddress.Zipcode,
 				order.Order.SendMethod, order.Order.PO_Num).Scan(&po_id)
 			if err != nil {
 				log.Println(err.Error())
@@ -1333,7 +1410,7 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 				// if sending later, we don't actually create anything now, we're
 				// content with saving the PO in the DB above
 			} else {
-				createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, order, delivery_address, order.DoSend, w, r)
+				createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, order, order.DoSend, w, r)
 			}
 		} else if order.Order.SendMethod.String == "text" {
 			if order.DoSend == true && order.Order.SendLater == true {

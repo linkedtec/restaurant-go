@@ -113,6 +113,9 @@ angular.module('myApp')
 
       scope.selectOrderDateType = function(index) {
         scope.order['order_date_type'] = scope.order_date_types[index];
+        if (index===0) {
+          scope.order['order_date'] = new Date();
+        }
       };
 
       scope.addEmptyDistributorOrder = function() {
@@ -662,6 +665,12 @@ angular.module('myApp')
             },
             read_mode: function() {
               return 'send';
+            },
+            po_id: function() {
+              return null;
+            },
+            send_later: function() {
+              return post_order['order']['send_later'];
             }
           }
         });
@@ -671,15 +680,25 @@ angular.module('myApp')
           function( result ) {
             // result is a list, first item is string for status, e.g.,
             // 'save' or 'delete'
-            // second item is the affected beverage
+            // second item is the send_later status of reviewed po
             var status = result[0];
+            var send_later = result[1];
             
             // after a save, we want to show a success dialogue with an optional
             // CC email address
             if (status === 'save') {
+              var swal_title = "";
+              var swal_content = "";
+              if (send_later===true) {
+                swal_title = "Saved for Later!";
+                swal_content = "Your Purchase Order(s) have been saved in the Pending list, and will be sent to Distributors on the Order Date specified.";
+              } else {
+                swal_title="Purchase Orders Sent!";
+                swal_content="Your Purchase Order(s) were sent to your Distributors!  You can view past orders in the Purchase History page.";
+              }
               swal({
-                title: "Purchase Orders Sent!",
-                text: "Your Purchase Order(s) were sent to your Distributors!  You can view past orders in the Purchase History page.",
+                title: swal_title,
+                text: swal_content,
                 type: "success",
                 allowOutsideClick: true,
                 html: true});
@@ -688,9 +707,7 @@ angular.module('myApp')
               scope.cancelPurchaseOrder(true);
 
               if (scope.closeOnSave !== null) {
-                // returning an object with key new_distributor allows us to
-                // pass the controller the new distributor from this directive!
-                scope.closeOnSave( {new_beverage:scope.new_beverage} );
+                scope.closeOnSave();
               }
 
             } else if (status === 'error') {
@@ -730,6 +747,12 @@ angular.module('myApp')
             },
             read_mode: function() {
               return 'send';
+            },
+            po_id: function() {
+              return null;
+            },
+            send_later: function() {
+              return post_order['order']['send_later'];
             }
           }
         });
@@ -741,13 +764,23 @@ angular.module('myApp')
             // 'save' or 'delete'
             // second item is the affected beverage
             var status = result[0];
+            var send_later = result[1];
             
             // after a save, we want to show a success dialogue with an optional
             // CC email address
             if (status === 'save') {
+              var swal_title = "";
+              var swal_content = "";
+              if (send_later===true) {
+                swal_title = "Saved for Later!";
+                swal_content = "Your Purchase Order(s) have been saved in the Pending list, and will be sent to Distributors on the Order Date specified.";
+              } else {
+                swal_title="Purchase Orders Sent!";
+                swal_content="Your Purchase Order(s) were sent to your Distributors!  You can view past orders in the Purchase History page.";
+              }
               swal({
-                title: "Purchase Orders Sent!",
-                text: "Your Purchase Order(s) were sent to your Distributors!  You can view past orders in the Purchase History page.",
+                title: swal_title,
+                text: swal_content,
                 type: "success",
                 allowOutsideClick: true,
                 html: true});
@@ -756,9 +789,7 @@ angular.module('myApp')
               scope.cancelPurchaseOrder(true);
 
               if (scope.closeOnSave !== null) {
-                // returning an object with key new_distributor allows us to
-                // pass the controller the new distributor from this directive!
-                scope.closeOnSave( {new_beverage:scope.new_beverage} );
+                scope.closeOnSave();
               }
 
             } else if (status === 'error') {
@@ -799,6 +830,12 @@ angular.module('myApp')
             },
             read_mode: function() {
               return 'send';
+            },
+            po_id: function() {
+              return null;
+            },
+            send_later: function() {
+              return false;
             }
           }
         });
@@ -825,9 +862,7 @@ angular.module('myApp')
               scope.cancelPurchaseOrder(true);
 
               if (scope.closeOnSave !== null) {
-                // returning an object with key new_distributor allows us to
-                // pass the controller the new distributor from this directive!
-                scope.closeOnSave( {new_beverage:scope.new_beverage} );
+                scope.closeOnSave();
               }
 
             } else if (status === 'error') {
@@ -1033,7 +1068,13 @@ angular.module('myApp')
         // Basic Order Info --------------------------------------------------------
         scope.post_order = {};
         scope.post_order['order'] = {};
-        scope.post_order['order']['order_date'] = DateService.clientTimeToRestaurantTime(scope.order['order_date']);
+        if (scope.order['order_date_type']===scope.order_date_types[0]) {
+          // if posting immediately, we're not posting a *SET* time, so we
+          // do not apply the clientTimeToRestaurantTime fix
+          scope.post_order['order']['order_date'] = scope.order['order_date'];
+        } else {
+          scope.post_order['order']['order_date'] = DateService.clientTimeToRestaurantTime(scope.order['order_date']);
+        }
         scope.post_order['order']['order_date_pretty'] = scope.order['order_date_pretty'];
         scope.post_order['order']['send_later'] = scope.order['send_later'];
         scope.post_order['order']['purchase_contact'] = scope.order['purchase_contact_edit'];
