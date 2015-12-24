@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/robfig/cron"
 	"hash/fnv"
 	"log"
 	"net/http"
@@ -94,6 +95,82 @@ func setupPurchaseOrderHandlers() {
 	http.HandleFunc("/purchase/auto", purchaseOrderAutoAPIHandler)
 	http.HandleFunc("/purchase/ponum", purchaseOrderNumAPIHandler)
 	http.HandleFunc("/purchase/dorder", distributorOrderAPIHandler)
+}
+
+func setupSendPendingPOsCron() {
+	c := cron.New()
+
+	// testing, run every 15 seconds
+	//c.AddFunc("0,15,30,45 * * * * *", func() { go sendPendingPOs() })
+	// run every hour
+	c.AddFunc("0 0 * * * *", func() { go sendPendingPOs() })
+	c.Start()
+}
+
+func sendPendingPOs() {
+	log.Println("Checking for pending POs which need to be sent...")
+
+	// get all unsent purchase orders whose order_date has passed
+	// for each one call createRestaurantMenuPage()
+
+	// don't send anything before 6 am
+	earliest_send_hour := 8
+
+	// the query:
+	//   + the order_date has already passed
+	//   + the order has not yet been sent
+	//   + the current hour at the restaurant time zone is past the earliest send hour
+	rows, err := db.Query(`
+    SELECT purchase_orders.id, restaurants.id FROM purchase_orders, restaurants 
+    WHERE purchase_orders.restaurant_id=restaurants.id 
+    	AND purchase_orders.order_date AT TIME ZONE 'UTC' <= now() 
+    	AND purchase_orders.sent=FALSE 
+    	AND EXTRACT (HOUR FROM now() AT TIME ZONE restaurants.timezone) >= $1;`, earliest_send_hour)
+	if err != nil {
+		log.Println("ERROR getting pending POs in sendPendingPOs")
+		return
+	}
+
+	log.Println(rows)
+
+	defer rows.Close()
+	for rows.Next() {
+		var po_id string
+		var restaurant_id string
+		if err := rows.Scan(
+			&po_id,
+			&restaurant_id); err != nil {
+			log.Println(err.Error())
+			continue
+		}
+		//log.Println("FOUND ID:")
+		//log.Println(po_id)
+
+		cur_time := time.Now().UTC()
+		_, err = db.Exec(`
+			UPDATE purchase_orders SET order_date=$1 WHERE id=$2;`, cur_time, po_id)
+		if err != nil {
+			log.Println(err.Error())
+			continue
+		}
+
+		po_id_int, _ := strconv.Atoi(po_id)
+		purchase_order, err := getPurchaseOrderFromID(po_id_int)
+		if err != nil {
+			log.Println(err.Error())
+			continue
+		}
+
+		var w http.ResponseWriter
+		var r http.Request
+		if purchase_order.Order.SendMethod.String == "email" {
+			createPurchaseOrderPDFFile(test_user_id, restaurant_id, purchase_order, true, w, &r)
+		} else if purchase_order.Order.SendMethod.String == "text" {
+			createPurchaseOrderSMS(test_user_id, restaurant_id, purchase_order, true, w, &r)
+		} else if purchase_order.Order.SendMethod.String == "save" {
+			createPurchaseOrderSaveOnly(test_user_id, restaurant_id, purchase_order, true, w, &r)
+		}
+	}
 }
 
 func createPurchaseOrderSaveOnly(user_id string, restaurant_id string, purchase_order PurchaseOrder, do_send bool, w http.ResponseWriter, r *http.Request) {

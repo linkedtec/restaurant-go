@@ -47,10 +47,8 @@ func refreshMenuPages() {
 			&restaurant_id); err != nil {
 			continue
 		}
-
 		createRestaurantMenuPage(restaurant_id, nil, false)
 	}
-
 }
 
 func setupMenuHandlers() {
