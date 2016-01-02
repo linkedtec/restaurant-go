@@ -933,6 +933,21 @@ like enclosed space */
   background-color:#33cc00;
 }
 
+.btn_trash_circle {
+  width:78px;
+  height:78px;
+  border-radius:39px;
+  color:white;
+  font-size:40px;
+  padding: 6px 3px 0px 0px;
+  background-color:#aa5555;
+}
+
+.btn_trash_circle:hover {
+  color:white;
+  background-color:#dd0000;
+}
+
 .btn_x_circle_gray {
   width:28px;
   height:28px;
@@ -1329,6 +1344,18 @@ like enclosed space */
 .help_link:hover {
   color:#55aaff;
   text-decoration:underline;
+}
+
+.blue_link {
+  color:#008DC7 !important;
+  cursor: pointer;
+  font-weight:bold;
+}
+
+.blue_link:hover {
+  color:#2Ba8DD !important;
+  text-decoration:underline;
+  font-weight:bold;
 }
 
 .btn_checkbox {

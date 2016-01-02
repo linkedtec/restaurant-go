@@ -1064,7 +1064,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
       return;
     }
 
-    if (MathService.numIsInvalid($scope.quantity)) {
+    if (MathService.numIsInvalidOrNegative($scope.quantity)) {
       return;
     }
 

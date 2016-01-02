@@ -1,0 +1,135 @@
+<script type="text/ng-template" id="modalAdditionalPricing.html">
+  <div class="modal-header" style="padding-top:8px; padding-bottom:4px;">
+    <div style="position:absolute; top:-14px; left:-14px">
+      <button ng-click="cancel()" type="button" class="btn btn-sm btn_x_circle">
+        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+      </button>
+    </div>
+    <span style="font-size:1.2em;margin-left:24px"> Adjust Pricing for <b>{{item.product}}</b> </span>
+  </div>
+  <div class="modal-body" style="font-size:1.0em; height:100%; background-color:#ffffff; padding:0">
+    <div style="position:absolute; bottom:-32px; right:-32px">
+      <button ng-click="save()" type="button" class="btn btn-sm btn_ok_circle">
+        <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+      </button>
+    </div>
+
+    <div ng-if="show_delete_btn===true" style="position:absolute; bottom:-32px; right:76px">
+      <button ng-click="remove()" type="button" class="btn btn-sm btn_trash_circle" uib-popover="Remove this pricing rule from the item." popover-trigger="mouseenter" popover-popup-delay="400" popover-append-to-body="true">
+        <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>
+      </button>
+    </div>
+
+    <div style="text-align:center; font-size:1.5em; margin-top:16px">
+      {{item.quantity}} {{purchase_unit}}<span ng-if="item.quantity > 1">s</span> of {{item.display_name}}
+    </div>
+
+    <div style="text-align:center; font-size:1.4em; margin-top:6px">
+      <img ng-if="item.icon==='keg'" src="images/bev_keg.png" height="72px" width="72px">
+      <img ng-if="item.icon==='draft'" src="images/bev_draft.png" height="72px" width="72px">
+      <img ng-if="item.icon==='wine'" src="images/bev_wine.png" height="72px" width="72px" style="margin-left:0px">
+      <img ng-if="item.icon==='bottle'" src="images/bev_bottle.png" height="72px" width="72px" style="margin-left:0px">
+      <img ng-if="item.icon==='can'" src="images/bev_can.png" height="72px" width="72px" style="margin-left:0px">
+      <img ng-if="item.icon==='liquor'" src="images/bev_xo.png" height="72px" width="72px" style="margin-left:0px">
+    </div>
+
+    <div class="row" style="margin-top:18px; margin-bottom:0px; margin-left:auto; margin-right:auto; width:360px; text-align:center">
+      <div class="col-xs-12 min_padding">
+          <span style="font-size:1.2em">Enter pricing adjustment for this item:</span><br/>
+          <!--span style="font-size:1.0em" class="hint_text">This will be applied <b>to this Purchase Order only</b>.</span-->
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:8px">
+      <div class="col-xs-12" style="text-align:right; padding: 0px 78px">
+        <div style="display:inline-block; width:80px; text-align:right">Description: &nbsp;</div>
+        <input ng-model="notes.value" class="form-control input_small" maxlength="40" placeholder="(Optional) e.g., 'New Buyer Discount'" style="width:260px; display:inline-block">
+      </div>
+    </div>
+
+    <!-- TYPE: DOLLAR AMOUNT OR PERCENT DISCOUNT -->
+    <div class="row" style="margin-top:12px">
+      <div class="col-xs-12" style="text-align:right; padding: 0px 78px">
+        <div style="display:inline-block; width:80px; text-align:right">Adjust: &nbsp;</div>
+        <div class="btn-group btn-group-justified" style="display:inline-block; width:260px">
+          <label ng-repeat="atype in modify_types" class="btn btn-default input_small" ng-model="modify.value" uib-btn-radio="atype" ng-click="recalculateSubtotal()">
+            <span ng-if="atype!==modify.value">{{atype}}</span>
+            <span ng-if="atype===modify.value"><b>{{atype}}</b></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- APPLY TO SUBTOTAL OR INDIVIDUAL UNIT -->
+    <div class="row" ng-if="modify.value===modify_types[0]" style="margin-top:12px">
+      <div class="col-xs-12" style="text-align:right; padding: 0px 78px">
+        <div style="display:inline-block; width:80px; text-align:right">Apply to: &nbsp;</div>
+        <div class="btn-group btn-group-justified" style="display:inline-block; width:260px;">
+          <label ng-repeat="atype in apply_to_types" class="btn btn-default input_small" ng-model="apply_to.value" uib-btn-radio="atype" ng-click="recalculateSubtotal()">
+            <span ng-if="atype!==apply_to.value">{{atype}}</span>
+            <span ng-if="atype===apply_to.value"><b>{{atype}}</b></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" ng-if="modify.value===modify_types[0]" style="margin-top:12px">
+      <div class="col-xs-12" style="text-align:right; padding: 0px 78px">
+        <div class="btn-group" style="display:inline-block; vertical-align:top; margin-right:4px">
+          <label ng-repeat="asign in ['+', '-']" class="btn" ng-class="{ 'btn-success': asign===add_sign.value && asign==='+', 'btn-danger': asign===add_sign.value && asign==='-', 'btn-default': asign!==add_sign.value }" ng-model="add_sign.value" uib-btn-radio="asign" style="font-size:18px; padding:0px 12px 3px" ng-click="recalculateSubtotal()">
+            <span ng-if="asign!==add_sign.value">{{asign}}</span>
+            <span ng-if="asign===add_sign.value"><b>{{asign}}</b></span>
+          </label>
+        </div>
+        <div class="form-group" style="display:inline-block; margin-bottom:0; vertical-align:top">
+          <div class="input-group input_small" style="width:100px; padding:0">
+            <span class="input-group-addon">$</span>
+            <input ng-model="add_value.value" type="number" min="0" class="form-control input_small" ng-class="{'my_error': form_ver.error_add_value===true}" style="width:100px;" placeholder="0.00" ng-change="recalculateSubtotal()">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" ng-if="modify.value===modify_types[1]" style="margin-top:12px">
+      <div class="col-xs-12" style="text-align:right; padding: 0px 78px">
+        <div style="display:inline-block; vertical-align:top; text-align:right; padding-right:8px;">
+          <div style="margin-top:-2px">% Discount per {{purchase_unit}}:</div>
+          <div class="hint_text" style="font-size:0.8em; margin-top:-2px">
+            e.g., '25' for 25% off
+          </div>
+        </div>
+        <div class="form-group" style="display:inline-block; margin-bottom:0; vertical-align:top;">
+          <div class="input-group" style="width:100px; padding:0">
+            <span class="input-group-addon">%</span>
+            <input ng-model="mult_value.value" type="number" min="0" class="form-control input_small" ng-class="{'my_error': form_ver.error_mult_value===true}" style="width:100px;" placeholder="00.0" ng-change="recalculateSubtotal()">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin:12px 48px; margin-bottom:0; padding:8px 0px; border:1px solid #eaeaea; border-radius:6px">
+      <div class="col-xs-12" ng-if="effect_string!==null" style="text-align:center; margin-bottom:8px; color:#3CA7D4; font-weight:bold">
+        {{effect_string}}
+      </div>
+      <div class="col-xs-5" style="text-align:center;">
+        <div style="font-size:0.9em">Old Subtotal</div>
+        <div style="color:#888888; font-size:1.6em; font-weight:bold; margin-top:-2px">{{item.subtotal | number:2}}</div>
+      </div>
+      <div class="col-xs-2" style="text-align:center; font-size:24px; color:#aaaaaa">
+        <span class="glyphicon glyphicon-menu-right" style="font-size:18px"></span>
+      </div>
+      <div class="col-xs-5" style="text-align:center;">
+        <div style="font-size:0.9em">New Subtotal</div>
+        <div style="color:#18A518; font-size:1.6em; font-weight:bold; margin-top:-2px">{{new_subtotal | number:2}}</div>
+      </div>
+    </div>
+
+    <div style="margin-top:0px; margin-bottom:58px">
+      &nbsp;
+      <div ng-if="new_failure_msg !== null" class="row" style="font-size:0.9em; color:#aa2222; text-align:center;">
+        {{new_failure_msg}} 
+      </div>
+    </div>
+  </div>
+
+</script>

@@ -51,6 +51,7 @@ type BeverageSalePlan struct {
 	Par            NullFloat64 `json:"par"`
 	SalePrices     []SalePrice `json:"size_prices"`
 	CountRecent    NullFloat64 `json:"count_recent"`
+	LastInvUpdate  NullTime    `json:"last_inv_update"`
 }
 
 type BeverageInv struct {
@@ -88,6 +89,7 @@ type Beverage struct {
 	SalePrices     []SalePrice `json:"size_prices"`
 	Count          float32     `json:"count"`
 	CountRecent    NullFloat64 `json:"count_recent"`
+	LastInvUpdate  NullTime    `json:"last_inv_update"`
 	Inventory      NullFloat64 `json:"inventory"`
 	SaleStatus     NullString  `json:"sale_status"`
 	SaleStart      NullTime    `json:"sale_start"`
@@ -393,44 +395,39 @@ func updateBeverageVersion(old_id int) (int, error) {
 // given a version_id of a beverage, returns the "recent" inventory done
 // within a time limit.  That's currently 3 days, but this might be subject
 // to change.
-func getBeverageRecentInventory(version_id int) (NullFloat64, error) {
+// Returns the recent inventory, the time of the last inventory, and error
+func getBeverageRecentInventory(version_id int) (NullFloat64, NullTime, error) {
 
 	seconds_three_days := 60 * 60 * 24 * 3
 
-	var err error
-	err = nil
 	var count_recent NullFloat64
 	count_recent.Valid = false
 	count_recent.Float64 = 0
+	var last_inv_update NullTime
 
-	var exists bool
-	err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$1 AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update AND location_beverages.type='bev' AND location_beverages.active);", version_id).Scan(&exists)
-	if err != nil {
-		log.Println(err.Error())
-		return count_recent, err
-	}
+	// Now get the count of this beverage in inventory which was done
+	// within the past 3 days.  We get the EPOCH between the inventory
+	// time and the current time to get the time difference in seconds.
 
-	if !exists {
+	err := db.QueryRow("SELECT SUM(location_beverages.quantity) FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update AND EXTRACT(EPOCH FROM (now() AT TIME ZONE 'UTC' - location_beverages.update)) < $1 AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$2 AND location_beverages.type='bev' AND location_beverages.active;", seconds_three_days, version_id).Scan(&count_recent)
+	switch {
+	case err == sql.ErrNoRows:
 		count_recent.Float64 = 0
 		count_recent.Valid = false
-	} else {
-		// Now get the count of this beverage in inventory which was done
-		// within the past 3 days.  We get the EPOCH between the inventory
-		// time and the current time to get the time difference in seconds.
-
-		err = db.QueryRow("SELECT SUM(location_beverages.quantity) FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND location_beverages.location_id=locations.id AND location_beverages.update=locations.last_update AND EXTRACT(EPOCH FROM (now() AT TIME ZONE 'UTC' - location_beverages.update)) < $1 AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$2 AND location_beverages.type='bev' AND location_beverages.active;", seconds_three_days, version_id).Scan(&count_recent)
-		switch {
-		case err == sql.ErrNoRows:
-			count_recent.Float64 = 0
-			count_recent.Valid = false
-			err = nil
-		case err != nil:
-			log.Println(err.Error())
-			return count_recent, err
-		}
+		err = nil
+	case err != nil:
+		log.Println(err.Error())
+		return count_recent, last_inv_update, err
 	}
 
-	return count_recent, err
+	err = db.QueryRow("SELECT location_beverages.update FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND location_beverages.location_id=locations.id AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$1 AND location_beverages.type='bev' AND location_beverages.active ORDER BY location_beverages.update DESC LIMIT 1;", version_id).Scan(&last_inv_update)
+	if err != nil {
+		log.Println("HI")
+		log.Println(err.Error())
+		return count_recent, last_inv_update, err
+	}
+
+	return count_recent, last_inv_update, err
 }
 
 func sendAttachmentEmail(email_address string, email_title string, email_body string, file_location string, file_name string, attachment_type string) error {

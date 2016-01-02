@@ -82,6 +82,10 @@ config(['$routeProvider', function($routeProvider) {
 
   return {
     numIsInvalid: function(num) {
+      return isNaN(num);
+    },
+
+    numIsInvalidOrNegative: function(num) {
       return isNaN(num) || num < 0;
     },
 
@@ -156,6 +160,68 @@ config(['$routeProvider', function($routeProvider) {
 
 .factory("ItemsService", function($http, MathService, DateService) {
 
+  var getResolvedSubtotal = function(item) {
+    
+    var additional_pricing = item['additional_pricing'];
+    var subtotal = item['subtotal'];
+    var resolved_subtotal = subtotal;
+
+    if (additional_pricing===null || additional_pricing===undefined || additional_pricing.length===0) {
+      return resolved_subtotal;
+    } 
+    else {     
+      var purchase_cost = item['purchase_cost'];
+      var quantity = item['quantity'];
+      var deposit = item['deposit'];
+      if (deposit===null || deposit===undefined) {
+        deposit = 0;
+      }
+
+      var lead_char = additional_pricing[0];
+      var trailing = additional_pricing.substring(1);
+
+      // if start with + or -, modify is amount
+      if (lead_char==='+' || lead_char==='-') {
+        var add_sign = 1;
+        if (lead_char==='-') {
+          add_sign = -1;
+        }
+
+        var tokens = trailing.split('|');
+        var value = MathService.fixFloat2(parseFloat(tokens[0]));
+        var type = tokens[1];
+
+        if (type==='unit') {
+          purchase_cost += add_sign * value;
+          if (purchase_cost < 0) {
+            purchase_cost = 0;
+          }
+          var batch_cost = purchase_cost + deposit;
+          resolved_subtotal = MathService.fixFloat2( batch_cost * quantity );
+
+        } else {
+          // apply to subtotal
+          resolved_subtotal = MathService.fixFloat2( subtotal + (add_sign * value) );
+        }
+
+      }
+      // if start with *, modify is percent
+      else if (lead_char==='*') {
+        var value = MathService.fixFloat2(parseFloat(trailing));
+
+        var factor = 1.0 - parseFloat(value) / 100.0;
+        purchase_cost *= factor;
+        var batch_cost = purchase_cost + deposit;
+        resolved_subtotal = MathService.fixFloat2( batch_cost * quantity );
+      }
+
+      if (resolved_subtotal < 0) {
+        resolved_subtotal = 0;
+      }
+      return resolved_subtotal;
+    }
+  }
+
   var getDisplayName = function(item) {
     if (item.type==='bev') {
       return item.product;
@@ -171,6 +237,18 @@ config(['$routeProvider', function($routeProvider) {
       return item['distributor'] + ' ' + volume + ' ' + unit + ' Empty Keg';
     }
     return item.product;
+  }
+
+  var getPurchaseUnitName = function(item) {
+    if (item.purchase_count > 1) {
+      return 'Case';
+    }
+
+    if (item.container_type !== null && item.container_type !== undefined) {
+      return item.container_type;
+    }
+
+    return 'Unit';
   }
 
   var getItemIcon = function(item) {
@@ -253,11 +331,15 @@ config(['$routeProvider', function($routeProvider) {
       item['stock_bg_color'] = '#FFE8A6';
     } else {
       item['stock_color'] = '#cc2200; font-weight:bold;';
-      item['stock_bg_color'] = '#ffb699';
+      item['stock_bg_color'] = '#FFD3C1';
     }
   }
 
   return {
+
+    getResolvedSubtotal: function(item) {
+      return getResolvedSubtotal(item);
+    },
 
     getItemIcon: function(item) {
       return getItemIcon(item);
@@ -265,6 +347,10 @@ config(['$routeProvider', function($routeProvider) {
 
     getDisplayName: function(item) {
       return getDisplayName(item);
+    },
+
+    getPurchaseUnitName: function(item) {
+      return getPurchaseUnitName(item);
     },
 
     getBevUnitCost: function(bev) {
@@ -361,6 +447,14 @@ config(['$routeProvider', function($routeProvider) {
         if (item['sale_end']!==undefined && item['sale_end']!==null) {
           item['sale_end'] = DateService.getDateFromUTCTimeStamp(
             item['sale_end'], true);
+        }
+
+        if (item['last_inv_update']!==undefined && item['last_inv_update']!==null) {
+          item['last_inv_update_pretty'] = DateService.getPrettyDate(
+            item['last_inv_update'], true, false);
+        } else {
+          item['last_inv_update'] = null;
+          item['last_inv_update_pretty'] = null;
         }
         
         // Note that the bevs might already have some of these fields defined
@@ -570,6 +664,7 @@ config(['$routeProvider', function($routeProvider) {
       // the client, so we need to handle as such
 
       var pretty_date = "";
+      var pretty_tokens = [];
 
       if (from_server) {
         // from the server, date_str looks like this:
@@ -582,19 +677,18 @@ config(['$routeProvider', function($routeProvider) {
         
         var date_tokens = date_str.split("-");
         date_str = new Date(parseInt(date_tokens[0]), parseInt(date_tokens[1])-1, parseInt(date_tokens[2])).toString();
-        var pretty_tokens = date_str.split(" ");    
-        pretty_date = pretty_tokens[0] + ", " + pretty_tokens[1] + " " + pretty_tokens[2] + " " + pretty_tokens[3];
+        pretty_tokens = date_str.split(" ");    
       } else {
         // from the client, date_str looks like this:
         // Fri Aug 14 2015 20:10:00 GMT-0700 (PDT)
         // In that case, we take the first 4 tokens and add a comma to day
-        var pretty_tokens = date_str.split(" ");
-        if (show_weekday) {
-          pretty_date = pretty_tokens[0] + ", " + pretty_tokens[1] + " " + pretty_tokens[2] + " " + pretty_tokens[3];
-        } else {
-          pretty_date = pretty_tokens[1] + " " + pretty_tokens[2] + " " + pretty_tokens[3];
-        }
-        
+        pretty_tokens = date_str.split(" ");
+      }
+
+      if (show_weekday===true) {
+        pretty_date = pretty_tokens[0] + ", " + pretty_tokens[1] + " " + pretty_tokens[2] + " " + pretty_tokens[3];
+      } else {
+        pretty_date = pretty_tokens[1] + " " + pretty_tokens[2] + ", " + pretty_tokens[3];
       }
 
       return pretty_date;

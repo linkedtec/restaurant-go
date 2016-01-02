@@ -377,7 +377,7 @@
         </div>
         <div class="col-xs-2 add_inv_sort_div_lt min_padding noselect" ng-click="sortDistOrderBevs(dorder, 'subtotal')" style="padding-left:0px">
           Subtotal
-          <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="dorder.sort_key === 'subtotal'" ng-class="{'glyphicon-menu-down': dorder.double_sort<0, 'glyphicon-menu-up': dorder.double_sort>0}" style="color:#cccccc;">
+          <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="dorder.sort_key === 'resolved_subtotal'" ng-class="{'glyphicon-menu-down': dorder.double_sort<0, 'glyphicon-menu-up': dorder.double_sort>0}" style="color:#cccccc;">
           </span>
         </div>
       </div>
@@ -413,11 +413,17 @@
             </span>
           </div>
         </div>
-        <div class="col-xs-2 min_padding" style="padding-top:4px">
-          <span ng-if="item.count_recent!==null" style="color:{{item.stock_color}}">{{item.count_recent | number:1}}</span>
-          <span ng-if="item.count_recent===null" class="glyphicon glyphicon-alert" style="font-size:16px; color:#dadada; margin-right:4px" uib-popover="No Inventory records in the past 3 days!" popover-trigger="mouseenter" popover-append-to-body="true"> </span>
-          <span ng-if="item.par!==null" style="font-size: 1.0em"> / {{item.par | number:1}}</span>
-          <span ng-if="item.par===null" style="font-size: 1.0em; color:#999999"> / None</span>
+        <div class="col-xs-2 min_padding">
+          <div>
+            <span ng-if="item.count_recent!==null" style="color:{{item.stock_color}}">{{item.count_recent | number:1}}</span>
+            <span ng-if="item.count_recent===null" class="glyphicon glyphicon-alert" style="font-size:16px; color:#dadada; margin-right:4px" uib-popover="No Inventory records in the past 3 days!" popover-trigger="mouseenter" popover-append-to-body="true"> </span>
+            <span ng-if="item.par!==null" style="font-size: 1.0em"> / {{item.par | number:1}}</span>
+            <span ng-if="item.par===null" style="font-size: 1.0em; color:#999999"> / None</span>
+          </div>
+          <div style="color:#bbbbbb; font-style:italic; font-size:0.8em">
+            <span ng-if="item.last_inv_update_pretty!==null" uib-popover="The last time inventory was recorded for this item." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">{{item.last_inv_update_pretty}}</span>
+            <span ng-if="item.last_inv_update_pretty===null" uib-popover="This item has never ever been recorded in inventory." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">No records</span>
+          </div>
           
         </div>
         <div class="col-xs-2 min_padding" style="padding-left:0">
@@ -432,18 +438,27 @@
             </div>
             <input ng-model="item.quantity" class="form-control" ng-class="{'input_error': item.error_quantity===true}" style="max-width:70px; text-align:center; font-size:16px; float:left" placeholder="" ng-change="updateQuantity(item, dorder)">
           </div>
-          <div ng-if="item.purchase_count > 1" style="background-color:#dd6622; border-radius:2px; font-size:0.8em; float:left; color:white; text-align:center; margin-left:24px; width:86px; padding:2px; margin-top:3px;" uib-popover="This item is purchased by cases of {{item.purchase_count}} units." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="300">
+          <div ng-if="item.purchase_count > 1" style="background-color:#B44DD6; border-radius:2px; font-size:0.8em; float:left; color:white; text-align:center; margin-left:24px; width:86px; padding:2px; margin-top:3px;" uib-popover="This item is purchased by cases of {{item.purchase_count}} units." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="300">
             By the Case ({{item.purchase_count | number:0}})
           </div>
         </div> 
-        <div class="col-xs-2 min_padding" style="padding-top:6px">
-          <span ng-if="item.quantity===null" style="color:#999999">
-            --
-          </span>
-          <span ng-if="item.quantity!==null && item.subtotal!==null">
-            <span style="color:#999999">$</span> {{item.subtotal | number:2}}
-          </span>
-          <div style="float:right; margin-top:-2px">
+        <div class="col-xs-2 min_padding" style="">
+          <div style="display:inline-block; float:left">
+            <div>
+              <span ng-if="item.quantity===null" style="color:#999999; display:inline-block; margin-top:6px">
+                --
+              </span>
+              <span ng-if="item.quantity!==null && item.resolved_subtotal!==null" style="font-weight:bold">
+                <span style="color:#999999">$</span> {{item.resolved_subtotal | number:2}}
+              </span>
+            </div>
+            <div ng-class="{'help_link': item.additional_pricing_short===null, 'blue_link': item.additional_pricing_short!==null}" ng-if="item.quantity!==null || item.additional_pricing!==null" style="font-size:0.8em; color:#90CAEF;" uib-popover="Apply price adjustment to this item, such as a discount or promotion.  Only applies to this Purchase Order." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="300" ng-click="showAdditionalPricingModal(item, dorder)">
+              <span class="glyphicon glyphicon-tag"></span> 
+              <span ng-if="item.additional_pricing_short===null">Adjust $</span>
+              <span ng-if="item.additional_pricing_short!==null">{{item.additional_pricing_short}}</span>
+            </div>
+          </div>
+          <div style="float:right; margin-top:4px">
             <a tabindex="0" popover-trigger="focus" type="button" ng-model="item" uib-popover-template="'popoverRemoveItem.html'" popover-placement="left" popover-title="Remove from list?" popover-append-to-body="true" type="button" class="btn btn-sm btn_frameless hover_red" style="font-size:20px; float:right; padding:0;">
               <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
             </a>
@@ -453,7 +468,7 @@
       </div>
       <div ng-if="dorder.items.length > 0" class="row" style="padding-top:12px; margin:0px 16px 8px;">
         <div class="col-xs-10" style="text-align:right; font-size:1.2em; color:#999999">Purchase Total: </div>
-        <div class="col-xs-2 min_padding" style="font-weight:bold; font-size:1.2em; color:#31AF31">
+        <div class="col-xs-2 min_padding" style="font-weight:bold; font-size:1.2em; color:#18A518">
           <span ng-if="dorder.total===null">--</span>
           <span ng-if="dorder.total!==null"> $ {{dorder.total | number:2}}</span>
         </div>

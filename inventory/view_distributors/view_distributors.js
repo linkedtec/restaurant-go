@@ -494,7 +494,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
     if (new_vol===null || new_vol==='') {
       $scope.form_ver.error_volumes[index] = true;
       all_clear = false;
-    } else if (MathService.numIsInvalid(new_vol)) {
+    } else if (MathService.numIsInvalidOrNegative(new_vol)) {
       $scope.form_ver.error_volumes[index] = true;
       all_clear = false;
     }
@@ -506,7 +506,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
     }
 
     // new deposit is a number (if it's not null)
-    if (new_deposit!==null && new_deposit!=='' && MathService.numIsInvalid(new_deposit)) {
+    if (new_deposit!==null && new_deposit!=='' && MathService.numIsInvalidOrNegative(new_deposit)) {
       $scope.form_ver.error_deposits[index] = true;
       all_clear = false;
     }
@@ -678,13 +678,13 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
       if (keg.volume===null || keg.volume==='' || keg.unit===null || keg.unit==='') {
         $scope.form_ver.errors_kegs_volume[keg_i] = true;
         all_clear = false;
-      } else if (keg.volume!==null && keg.volume!=='' && MathService.numIsInvalid(keg.volume)) {
+      } else if (keg.volume!==null && keg.volume!=='' && MathService.numIsInvalidOrNegative(keg.volume)) {
         $scope.form_ver.errors_kegs_volume[keg_i] = true;
         all_clear = false;
       } else {
         $scope.form_ver.errors_kegs_volume[keg_i] = false;
       }
-      if (keg.deposit!==null && keg.deposit!=='' && MathService.numIsInvalid(keg.deposit)) {
+      if (keg.deposit!==null && keg.deposit!=='' && MathService.numIsInvalidOrNegative(keg.deposit)) {
         console.log(keg.deposit);
         $scope.form_ver.errors_kegs_deposit[keg_i] = true;
         all_clear = false;

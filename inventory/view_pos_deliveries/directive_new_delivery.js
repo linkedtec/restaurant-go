@@ -170,11 +170,11 @@ angular.module('myApp')
         // or 0, throw an error
         for (var i in scope.new_delivery.delivery_items) {
           var item = scope.new_delivery.delivery_items[i];
-          if (item.quantity===undefined || item.quantity===null || item.quantity===0 || MathService.numIsInvalid(item.quantity)) {
+          if (item.quantity===undefined || item.quantity===null || item.quantity===0 || MathService.numIsInvalidOrNegative(item.quantity)) {
             scope.form_ver.errors_qty[i] = true;
             all_clear = false;
             continue;
-          } else if (item.value===undefined || item.value===null || MathService.numIsInvalid(item.value)) {
+          } else if (item.value===undefined || item.value===null || MathService.numIsInvalidOrNegative(item.value)) {
             scope.form_ver.errors_qty[i] = true;
             all_clear = false;
             continue;
@@ -576,7 +576,7 @@ angular.module('myApp')
       scope.addInvQtyChanged = function(inv) {
         var new_qty = MathService.fixFloat2(parseFloat(inv['quantity']));
 
-        if (MathService.numIsInvalid(new_qty) || new_qty === null) {
+        if (MathService.numIsInvalidOrNegative(new_qty) || new_qty === null) {
           return;
         }
 

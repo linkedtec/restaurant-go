@@ -495,7 +495,7 @@ angular.module('myApp')
             scope.form_ver.error_abv=true;
             all_clear = false;
           }
-          if ( MathService.numIsInvalid(scope.new_beverage['abv']) )
+          if ( MathService.numIsInvalidOrNegative(scope.new_beverage['abv']) )
           {
             scope.form_ver.error_abv=true;
             all_clear = false;
@@ -511,7 +511,7 @@ angular.module('myApp')
             scope.form_ver.error_pvolume=true;
             all_clear = false;
           }
-          if ( scope.new_beverage['purchase_volume'] !== null && scope.new_beverage['purchase_volume'] !== '' && MathService.numIsInvalid(scope.new_beverage['purchase_volume']) )
+          if ( scope.new_beverage['purchase_volume'] !== null && scope.new_beverage['purchase_volume'] !== '' && MathService.numIsInvalidOrNegative(scope.new_beverage['purchase_volume']) )
           {
             scope.form_ver.error_pvolume=true;
             all_clear = false;
@@ -538,7 +538,7 @@ angular.module('myApp')
             scope.form_ver.error_pcost=true;
             all_clear = false;
           }
-          if (scope.new_beverage['purchase_cost'] === null || scope.new_beverage['purchase_cost'] === '' || MathService.numIsInvalid(scope.new_beverage['purchase_cost']) )
+          if (scope.new_beverage['purchase_cost'] === null || scope.new_beverage['purchase_cost'] === '' || MathService.numIsInvalidOrNegative(scope.new_beverage['purchase_cost']) )
           {
             scope.form_ver.error_pcost=true;
             all_clear = false;
@@ -549,7 +549,7 @@ angular.module('myApp')
             scope.form_ver.error_pcount=true;
             all_clear = false;
           }
-          if ( scope.new_beverage['purchase_count'] === null || scope.new_beverage['purchase_count'] === '' || MathService.numIsInvalid(scope.new_beverage['purchase_count']) )
+          if ( scope.new_beverage['purchase_count'] === null || scope.new_beverage['purchase_count'] === '' || MathService.numIsInvalidOrNegative(scope.new_beverage['purchase_count']) )
           {
             scope.form_ver.error_pcount=true;
             all_clear = false;
@@ -563,7 +563,7 @@ angular.module('myApp')
             scope.form_ver.error_par=true;
             all_clear = false;
           }
-          if ( MathService.numIsInvalid(scope.new_beverage['par']) )
+          if ( MathService.numIsInvalidOrNegative(scope.new_beverage['par']) )
           {
             scope.form_ver.error_par=true;
             all_clear = false;
@@ -607,7 +607,7 @@ angular.module('myApp')
             }
           }
 
-          if (scope.new_unit_sale.value !== null && scope.new_unit_sale.value !== '' && MathService.numIsInvalid(scope.new_unit_sale.value) )
+          if (scope.new_unit_sale.value !== null && scope.new_unit_sale.value !== '' && MathService.numIsInvalidOrNegative(scope.new_unit_sale.value) )
           {
             scope.form_ver.error_unit_sale=true;
             all_clear=false;
@@ -649,7 +649,7 @@ angular.module('myApp')
             // missing volume AND unit
             scope.form_ver.errors_sale_volume[sale_i] = true;
             all_clear = false;
-          } else if (sale.volume !== null && sale.volume !== '' && MathService.numIsInvalid(sale.volume) ) {
+          } else if (sale.volume !== null && sale.volume !== '' && MathService.numIsInvalidOrNegative(sale.volume) ) {
             // sale volume NaN
             scope.form_ver.errors_sale_volume[sale_i] = true;
             all_clear = false;
@@ -662,7 +662,7 @@ angular.module('myApp')
             scope.form_ver.errors_sale_volume[sale_i] = true;
             all_clear = false;
           }
-          if (sale.price !== null && sale.price !== '' && MathService.numIsInvalid(sale.price)) {
+          if (sale.price !== null && sale.price !== '' && MathService.numIsInvalidOrNegative(sale.price)) {
             // sale price NaN
             scope.form_ver.errors_sale_price[sale_i] = true;
             all_clear = false;

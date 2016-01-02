@@ -385,9 +385,13 @@ angular.module('myApp')
       };
 
       scope.addItem = function(dist_order, item) {
-        console.log(item);
-
+        
         item['quantity'] = null;
+        item['additional_pricing'] = null;
+        item['additional_pricing_short'] = null;
+        item['additional_pricing_description'] = null;
+
+        console.log(item);
 
         for (var i in dist_order.addable_items) {
           var check_item = dist_order.addable_items[i];
@@ -412,7 +416,6 @@ angular.module('myApp')
             var check_item = dorder.items[j];
             if (check_item === item) {
               dorder.items.splice(j, 1);
-              item['quantity'] = null;
               dorder.addable_items.push(item);
               dorder.addableControl.applyTypeFilter();
               scope.updateDistOrderTotal(dorder);
@@ -429,16 +432,26 @@ angular.module('myApp')
       scope.updateQuantity = function(item, dorder) {
         if (item['quantity'] === '') {
           item['quantity'] = null;
+          item['subtotal'] = null;
+          item['resolved_subtotal'] = null;
+          scope.updateDistOrderTotal(dorder);
           return;
         }
 
         console.log('quantity is ' + item['quantity']);
-        if (MathService.numIsInvalid(item['quantity'])) {
+        if (MathService.numIsInvalidOrNegative(item['quantity'])) {
           item['subtotal'] = null;
+          item['resolved_subtotal'] = null;
+          scope.updateDistOrderTotal(dorder);
           return;
         }
 
         item['subtotal'] = item['batch_cost'] * item['quantity'];
+        if (item['additional_pricing']!==null && item['additional_pricing']!==undefined) {
+          item['resolved_subtotal'] = ItemsService.getResolvedSubtotal(item);
+        } else {
+          item['resolved_subtotal'] = item['subtotal'];
+        }
 
         scope.updateDistOrderTotal(dorder);
       };
@@ -600,8 +613,8 @@ angular.module('myApp')
         dorder.total = 0;
         for ( var i in dorder.items ) {
           var item = dorder.items[i];
-          if (!MathService.numIsInvalid(item['quantity'])) {
-            dorder.total += item['batch_cost'] * item['quantity'];
+          if (!MathService.numIsInvalidOrNegative(item['resolved_subtotal'])) {
+            dorder.total += item['resolved_subtotal'];
           }
         }
       };
@@ -614,7 +627,7 @@ angular.module('myApp')
           dorder.double_sort = -1;
         }
         dorder.sort_key = sort_str;
-        var isNum = (sort_str === 'batch_cost' || sort_str === 'par' || sort_str === 'quantity' || sort_str === 'subtotal');
+        var isNum = (sort_str === 'batch_cost' || sort_str === 'par' || sort_str === 'quantity' || sort_str === 'resolved_subtotal');
 
         dorder.items.sort(function(a, b) {
           var keyA = a[sort_str];
@@ -644,6 +657,51 @@ angular.module('myApp')
             return keyA.localeCompare(keyB);
           }
         });
+      };
+
+      scope.showAdditionalPricingModal = function(item, dorder) {
+
+        var modalStartInstance = $modal.open({
+          templateUrl: 'modalAdditionalPricing.html',
+          controller: 'modalAdditionalPricingCtrl',
+          windowClass: 'inv-qty-modal',
+          backdropClass: 'gray-modal-backdrop',
+          size: 'sm',
+          backdrop : 'static',
+          resolve: {
+            item: function() {
+              return item;
+            }
+          }
+        });
+
+        modalStartInstance.result.then(
+          // success status
+          function( result ) {
+            // result is a list, first item is string for status, e.g.,
+            // 'save' or 'delete'
+            // second item is the affected beverage
+            var status = result[0];
+            var item = result[1];
+            
+            // after a save, we want to re-calculate cost per mL, for instance
+            if (status === 'save') {
+              console.log(item);
+
+              // XXX just populate the additional_pricing field of the client
+              // object and let the POST of the entire purchase order handle it
+
+            } else if (status === 'remove') {
+
+            }
+
+            scope.updateDistOrderTotal(dorder);
+            
+          }, 
+          // error status
+          function() {
+            ;
+          });
       };
 
       scope.reviewPDFPurchaseOrders = function(pdf_url, post_order) {
@@ -1032,7 +1090,7 @@ angular.module('myApp')
           for (var j in dorder.items) {
             var item = dorder.items[j];
             item.error_quantity = false;
-            if (item.quantity === null || MathService.numIsInvalid(item.quantity) || item.quantity===0) {
+            if (item.quantity === null || MathService.numIsInvalidOrNegative(item.quantity) || item.quantity===0) {
               item.error_quantity = true;
               all_clear = false;
             }
@@ -1125,6 +1183,9 @@ angular.module('myApp')
             ditem['quantity'] = parseFloat(copy_item['quantity']);
             ditem['batch_cost'] = copy_item['batch_cost'];
             ditem['subtotal'] = copy_item['subtotal'];
+            ditem['resolved_subtotal'] = copy_item['resolved_subtotal'];
+            ditem['additional_pricing'] = copy_item['additional_pricing'];
+            ditem['additional_pricing_description'] = copy_item['additional_pricing_description'];
             dorder['items'].push(ditem);
           }
           scope.post_order['dist_orders'].push(dorder);
@@ -1160,4 +1221,256 @@ angular.module('myApp')
       }
     }
   }
+})
+
+.controller('modalAdditionalPricingCtrl', function($scope, $modalInstance, $modal, ItemsService, MathService, item) {
+
+  $scope.item = item;
+
+  console.log('additional pricing');
+  console.log($scope.item);
+
+  $scope.apply_to_types = ["Subtotal"];
+  $scope.apply_to_types.push("Each individual " + ItemsService.getPurchaseUnitName($scope.item));
+  $scope.purchase_unit = ItemsService.getPurchaseUnitName($scope.item);
+  $scope.apply_to = {'value':null};
+
+  $scope.modify_types = ["($) Amount", "(%) Percent Discount"];
+  $scope.modify = {'value':null};
+
+  $scope.notes = {'value':null};
+
+  // if modify is +/- amount, add_sign is - or +
+  $scope.add_sign = {'value':'-'}; // default to minus
+  $scope.add_value = {'value': null};
+  $scope.mult_value = {'value': null};
+
+  $scope.effect_string = null;    // long effect string for display in modal
+  $scope.effect_string_short = null; // short for display in distributor order
+  $scope.new_subtotal = $scope.item['subtotal'];
+  $scope.show_delete_btn = false;
+
+  $scope.recalculateSubtotal = function() {
+
+    var add_sign = 1;
+    if ($scope.add_sign.value === '-') {
+      add_sign = -1
+    }
+
+    var purchase_cost = $scope.item['purchase_cost'];
+    var deposit = $scope.item['deposit'];
+    if (deposit === null) {
+      deposit = 0;
+    }
+
+    // if modifying amount
+    if ($scope.modify.value === $scope.modify_types[0]) {
+
+      // if add value is invalid, reset and quit
+      if ($scope.add_value.value === null || MathService.numIsInvalidOrNegative($scope.add_value.value)) {
+        $scope.new_subtotal = $scope.item['subtotal'];
+        $scope.effect_string = null;
+        $scope.effect_string_short = null;
+        return;
+      }
+
+      if ($scope.apply_to.value === $scope.apply_to_types[0]) {
+        // applying to subtotal
+        $scope.new_subtotal = $scope.item['subtotal'] + (add_sign * $scope.add_value.value);
+        if (add_sign > 0) {
+          $scope.effect_string = "Add $" + MathService.fixFloat2($scope.add_value.value) + " to subtotal.";
+          $scope.effect_string_short = "+ $" + MathService.fixFloat2($scope.add_value.value) + " subtotal";
+        } else {
+          $scope.effect_string = "Subtract $" + MathService.fixFloat2($scope.add_value.value) + " from subtotal.";
+          $scope.effect_string_short = "- $" + MathService.fixFloat2($scope.add_value.value) + " subtotal";
+        }
+      } else {
+        // applying to individual items
+        // note, discounts do not apply to any deposits, so need to separate
+        // batch_cost into wholesale and deposit, and apply discount to 
+        // deposit only
+
+        purchase_cost += add_sign * $scope.add_value.value;
+        if (purchase_cost < 0) {
+          purchase_cost = 0;
+        }
+        var batch_cost = purchase_cost + deposit;
+        $scope.new_subtotal = MathService.fixFloat2( batch_cost * $scope.item['quantity'] );
+
+        if (add_sign > 0) {
+          $scope.effect_string = "Add $" + MathService.fixFloat2($scope.add_value.value) + " to each " + $scope.purchase_unit + ".";
+          $scope.effect_string_short = "+ $" + MathService.fixFloat2($scope.add_value.value) + " /unit";
+        } else {
+          $scope.effect_string = "Subtract $" + MathService.fixFloat2($scope.add_value.value) + " from each " + $scope.purchase_unit + ".";
+          $scope.effect_string_short = "- $" + MathService.fixFloat2($scope.add_value.value) + " /unit";
+        }
+
+      }
+    }
+    // if modifying percentage
+    else {
+
+      if ($scope.mult_value.value === null || MathService.numIsInvalid($scope.mult_value.value)) {
+        $scope.new_subtotal = $scope.item['subtotal'];
+        $scope.effect_string = null;
+        $scope.effect_string_short = null;
+        return;
+      }
+
+      // percent discounts apply only to individual items
+      // note, discounts do not apply to any deposits, so need to separate
+      // batch_cost into wholesale and deposit, and apply discount to 
+      // deposit only
+      var factor = 1.0 - parseFloat($scope.mult_value.value) / 100.0;
+      purchase_cost *= factor;
+      var batch_cost = purchase_cost + deposit;
+      $scope.new_subtotal = MathService.fixFloat2( batch_cost * item['quantity'] );
+      $scope.effect_string = "Apply " + MathService.fixFloat2($scope.mult_value.value) + "% discount to each " + $scope.purchase_unit + ".";
+      $scope.effect_string_short = MathService.fixFloat2($scope.mult_value.value) + "% discount";
+    }
+
+    if ($scope.new_subtotal < 0) {
+      $scope.new_subtotal = 0;
+    }
+
+  };
+
+  // load existing params, if applicable
+  $scope.initPricingState = function() {
+
+    $scope.modify.value = $scope.modify_types[0];
+    $scope.apply_to.value = $scope.apply_to_types[0];
+    
+    if ($scope.item['additional_pricing']===null || $scope.item['additional_pricing']===undefined || $scope.item['additional_pricing'].length===0) {
+      $scope.item['resolved_subtotal'] = $scope.item['subtotal'];
+    } else {
+      $scope.show_delete_btn = true;
+      
+      var lead_char = $scope.item['additional_pricing'][0];
+      var trailing = $scope.item['additional_pricing'].substring(1);
+      console.log('trailing:');
+      console.log(trailing);
+
+      // if start with + or -, modify is amount
+      if (lead_char==='+' || lead_char==='-') {
+        $scope.modify.value = $scope.modify_types[0];
+        var tokens = trailing.split('|');
+        var value = tokens[0];
+        var type = tokens[1];
+
+        $scope.add_sign.value = lead_char;
+        $scope.add_value.value = MathService.fixFloat2(parseFloat(value));
+        $scope.notes = $scope.item['additional_pricing_description'];
+        if (type==='unit') {
+          $scope.apply_to.value = $scope.apply_to_types[1];
+        } else {
+          $scope.apply_to.value = $scope.apply_to_types[0];
+        }
+        $scope.recalculateSubtotal();
+
+      }
+      // if start with *, modify is percent
+      else if (lead_char==='*') {
+        $scope.modify.value = $scope.modify_types[1];
+        var value = trailing;
+        $scope.mult_value.value = MathService.fixFloat2(parseFloat(value));
+        $scope.notes = $scope.item['additional_pricing_description'];
+        $scope.recalculateSubtotal();
+      }
+      // else it's malformed, start with blank state
+      else {
+        ;
+      }
+
+    }
+  };
+  $scope.initPricingState();
+  
+  $scope.save = function() {
+
+    $scope.new_failure_msg = null;
+    $scope.form_ver = {
+      'error_add_value': null,
+      'error_mult_value': null
+    }
+    
+    var all_clear = true;
+
+    // XXX check form verification
+    // if adding, scope.add_value must be valid
+    if ($scope.modify.value === $scope.modify_types[0]) {
+      if ($scope.add_value.value === null || MathService.numIsInvalidOrNegative($scope.add_value.value)) {
+        $scope.form_ver.error_add_value = true;
+        all_clear = false;
+      }
+    } else {
+      if ($scope.mult_value.value === null || MathService.numIsInvalid($scope.mult_value.value)) {
+        $scope.form_ver.error_mult_value = true;
+        all_clear = false;
+      }
+    }
+
+    if (!all_clear) {
+      $scope.new_failure_msg = "Whoops!  Some fields are missing or incorrect, please fix them and try again.";
+      return;
+    }
+
+    //$scope.item.additional_pricing = '';
+
+    var add_str = '';
+    // Save the pricing rule into item.additional_pricing
+    // Format is as follows:
+    //   If applying amount discount:
+    //     +5.5|subtotal, -20|subtotal, +15|unit, -7|unit, etc.
+    //   If applying percent discount:
+    //     *25 for 25% discount per unit, *0.1 for 10% discount per unit
+    if ($scope.modify.value === $scope.modify_types[0]) {
+      add_str = $scope.add_sign.value;
+      add_str += MathService.fixFloat2($scope.add_value.value);
+      add_str += '|';
+      if ($scope.apply_to.value === $scope.apply_to_types[0]) {
+        add_str += 'subtotal';
+      } else {
+        add_str += 'unit';
+      }
+    } else {
+      add_str = '*';
+      add_str += MathService.fixFloat2($scope.mult_value.value);
+    }
+
+    $scope.item['additional_pricing'] = add_str;
+    $scope.item['additional_pricing_description'] = $scope.notes;
+    $scope.item['additional_pricing_short'] = $scope.effect_string_short;
+    $scope.item['resolved_subtotal'] = $scope.new_subtotal;
+
+    $modalInstance.close(['save', $scope.item]);
+    
+  };
+
+  $scope.remove = function() {
+
+    swal({
+      title: "Remove Pricing Rule?",
+      text: "Are you sure you want to remove this pricing adjustment?",
+      type: "warning",
+      showCancelButton: true,
+      html: true,
+      confirmButtonColor: "#DD6B55",
+      confirmButtonText: "Yes, remove it!",
+      closeOnConfirm: true },
+      function() {
+        $scope.item['additional_pricing'] = null;
+        $scope.item['additional_pricing_description'] = null;
+        $scope.item['additional_pricing_short'] = null;
+        $scope.item['resolved_subtotal'] = $scope.item['subtotal'];
+        $modalInstance.close(['remove', $scope.item]);
+        
+    });
+    
+  }
+
+  $scope.cancel = function() {
+    $modalInstance.dismiss('cancel');
+  };
+
 });

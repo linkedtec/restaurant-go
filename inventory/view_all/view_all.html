@@ -174,6 +174,12 @@
           <span ng-show="sort_key === 'par'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
+      <!--td class="all_inv_label_span noselect" style="width:70px;" ng-show="col_comps.purchase === true" ng-class="{'col_highlight': highlight_cols==='purchase'}">
+        <div class="sort_div" ng-click="sortBy('count_recent')" uib-popover="Inventory done in the last 3 days." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+          <span>Recent</span>
+          <span ng-show="sort_key === 'count_recent'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td-->
       <td class="all_inv_label_span noselect" style="width:85px;" ng-show="col_comps.retail === true" ng-class="{'col_highlight': highlight_cols==='retail'}">
         <div class="sort_div" ng-click="sortBy('sale_status')" uib-popover="Current sale status of beverage" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>Sale Status</span>
@@ -242,6 +248,9 @@
       <td class="all_inv_span" style="width:60px;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}">
         {{inv.par | number:1}}
       </td>
+      <!--td class="all_inv_span" style="width:70px;" ng-show="col_comps.purchase === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='purchase'}">
+        {{inv.count_recent | number:1}}
+      </td-->
       <td class="all_inv_span" style="width:85px;" ng-show="col_comps.retail === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='retail'}" ng-class="{'gray_text': inv.sale_status==='Inactive'}">
         {{inv.sale_status}}
       </td>

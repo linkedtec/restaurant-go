@@ -393,13 +393,9 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 			bev := beverages[i]
 
 			var err error
-			count_recent, err := getBeverageRecentInventory(bev.VersionID)
-			if err != nil {
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				continue
-			}
+			count_recent, last_inv_update, _ := getBeverageRecentInventory(bev.VersionID)
 			beverages[i].CountRecent = count_recent
+			beverages[i].LastInvUpdate = last_inv_update
 
 			// get size_prices
 			rows, err := db.Query("SELECT id, serving_size, serving_unit, serving_price FROM size_prices WHERE beverage_id=$1;", bev.ID)

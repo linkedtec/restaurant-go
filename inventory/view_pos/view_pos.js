@@ -19,7 +19,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       templateUrl: 'createPurchaseOrderModal.html',
       controller: 'createPurchaseOrderModalCtrl',
       windowClass: 'record-dlv-modal',
-      backdropClass: 'dark-blue-modal-backdrop',
+      backdropClass: 'gray-modal-backdrop',
       backdrop : 'static',
       resolve: {
 

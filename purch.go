@@ -696,9 +696,9 @@ func purchaseOrderNumAPIHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // For creating the Automatic Purchase Order
-// Returns DistributorOrders populated with active menu PO_Items which have
-// had inventory entries recently.  Calls getBeverageRecentInventory to
-// determine which beverages have had recent inventory
+// Returns DistributorOrders populated with active menu PO_Items.  Only
+// returns the id and version_id for these bevs, up to caller to populate
+// their details.
 func purchaseOrderAutoAPIHandler(w http.ResponseWriter, r *http.Request) {
 	privilege := checkUserPrivilege()
 
