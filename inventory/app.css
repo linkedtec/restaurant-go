@@ -875,6 +875,11 @@ like enclosed space */
   color: #aaaaaa;
 }
 
+.crossed_out_text {
+  color:#bbbbbb;
+  text-decoration: line-through;
+}
+
 .red_text {
   color: #aa0000 !important;
 }

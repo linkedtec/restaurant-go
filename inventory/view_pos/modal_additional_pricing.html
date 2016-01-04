@@ -93,7 +93,9 @@
     <div class="row" ng-if="modify.value===modify_types[1]" style="margin-top:12px">
       <div class="col-xs-12" style="text-align:right; padding: 0px 78px">
         <div style="display:inline-block; vertical-align:top; text-align:right; padding-right:8px;">
-          <div style="margin-top:-2px">% Discount per {{purchase_unit}}:</div>
+          <div style="margin-top:-2px">
+            % Discount per {{purchase_unit}}:
+          </div>
           <div class="hint_text" style="font-size:0.8em; margin-top:-2px">
             e.g., '25' for 25% off
           </div>
@@ -120,7 +122,11 @@
       </div>
       <div class="col-xs-5" style="text-align:center;">
         <div style="font-size:0.9em">New Subtotal</div>
-        <div style="color:#18A518; font-size:1.6em; font-weight:bold; margin-top:-2px">{{new_subtotal | number:2}}</div>
+        <div style="color:#18A518; font-size:1.6em; font-weight:bold; margin-top:-2px">
+          {{new_subtotal | number:2}}
+          <span ng-if="item.deposit!==null" class="glyphicon glyphicon-exclamation-sign" style="font-size:16px; color:#88ccdd;"  uib-popover="Note that percent discount does not apply to the deposit." popover-trigger="mouseenter" popover-append-to-body="true"></span>
+          </span>
+        </div>
       </div>
     </div>
 

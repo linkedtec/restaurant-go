@@ -422,7 +422,6 @@ func getBeverageRecentInventory(version_id int) (NullFloat64, NullTime, error) {
 
 	err = db.QueryRow("SELECT location_beverages.update FROM location_beverages, locations WHERE locations.type='bev' AND locations.active AND location_beverages.location_id=locations.id AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=$1 AND location_beverages.type='bev' AND location_beverages.active ORDER BY location_beverages.update DESC LIMIT 1;", version_id).Scan(&last_inv_update)
 	if err != nil {
-		log.Println("HI")
 		log.Println(err.Error())
 		return count_recent, last_inv_update, err
 	}

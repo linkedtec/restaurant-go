@@ -222,6 +222,37 @@ config(['$routeProvider', function($routeProvider) {
     }
   }
 
+  var getAdditionalPricingShortDescription = function(additional_pricing, container_type, purchase_count) {
+    if (additional_pricing===null || additional_pricing===undefined || additional_pricing.length===0) {
+      return null;
+    }
+
+    var unit_str = getPurchaseUnitName(container_type, purchase_count);
+    var sign = additional_pricing[0];
+    var trailing = additional_pricing.substring(1);
+    if (sign==='*') {
+      return "Apply " + MathService.fixFloat2(trailing) + "% discount"
+    } else {
+      var value = trailing.split("|")[0];
+      var apply_type = trailing.split("|")[1];
+      var ret_str = "";
+      if (sign==='+') {
+        if (apply_type==='unit') {
+          return "Add $" + value + " per " + unit_str;
+        } else {
+          return "Add $" + value + " to subtotal"; 
+        }
+      } else {
+        if (apply_type==='unit') {
+          return "Subtract $" + value + " per " + unit_str;
+        } else {
+          return "Subtract $" + value + " from subtotal"; 
+        }
+      }
+    }
+    return null;
+  }
+
   var getDisplayName = function(item) {
     if (item.type==='bev') {
       return item.product;
@@ -239,13 +270,13 @@ config(['$routeProvider', function($routeProvider) {
     return item.product;
   }
 
-  var getPurchaseUnitName = function(item) {
-    if (item.purchase_count > 1) {
+  var getPurchaseUnitName = function(container_type, purchase_count) {
+    if (purchase_count > 1) {
       return 'Case';
     }
 
-    if (item.container_type !== null && item.container_type !== undefined) {
-      return item.container_type;
+    if (container_type !== null && container_type !== undefined) {
+      return container_type;
     }
 
     return 'Unit';
@@ -341,6 +372,10 @@ config(['$routeProvider', function($routeProvider) {
       return getResolvedSubtotal(item);
     },
 
+    getAdditionalPricingShortDescription: function(additional_pricing, container_type, purchase_count) {
+      return getAdditionalPricingShortDescription(additional_pricing, container_type, purchase_count);
+    },
+
     getItemIcon: function(item) {
       return getItemIcon(item);
     },
@@ -349,8 +384,8 @@ config(['$routeProvider', function($routeProvider) {
       return getDisplayName(item);
     },
 
-    getPurchaseUnitName: function(item) {
-      return getPurchaseUnitName(item);
+    getPurchaseUnitName: function(container_type, purchase_count) {
+      return getPurchaseUnitName(container_type, purchase_count);
     },
 
     getBevUnitCost: function(bev) {

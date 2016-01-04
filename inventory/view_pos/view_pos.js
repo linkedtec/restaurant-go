@@ -260,7 +260,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
 })
 
-.controller('reviewPurchaseOrderModalCtrl', function($scope, $modalInstance, $http, $filter, $sce, content_type, review_obj, post_order, read_mode, po_id, send_later) {
+.controller('reviewPurchaseOrderModalCtrl', function($scope, $modalInstance, $http, $filter, $sce, ItemsService, content_type, review_obj, post_order, read_mode, po_id, send_later) {
 
   $scope.trustAsHtml = $sce.trustAsHtml;
 
@@ -283,6 +283,21 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     for (var i in $scope.review_obj) {
       var dist_sms = $scope.review_obj[i];
       dist_sms['content'] = dist_sms['content'].replace(/\n/g, '<br/>');
+    }
+  }
+
+  // for displaying HTML for review without saving, we want to generate
+  // short snippets describing additional pricing on items, if any
+  if ($scope.content_type==="html") {
+    for (var i in $scope.review_obj.distributor_orders) {
+      var dorder = $scope.review_obj.distributor_orders[i];
+      for (var j in dorder.items) {
+        var item = dorder.items[j];
+        item['additional_pricing_short'] = ItemsService.getAdditionalPricingShortDescription(
+          item['additional_pricing'],
+          item['container_type'],
+          item['purchase_count']);
+      }
     }
   }
 

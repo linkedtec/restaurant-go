@@ -452,7 +452,7 @@
                 <span style="color:#999999">$</span> {{item.resolved_subtotal | number:2}}
               </span>
             </div>
-            <div ng-class="{'help_link': item.additional_pricing_short===null, 'blue_link': item.additional_pricing_short!==null}" ng-if="item.quantity!==null || item.additional_pricing!==null" style="font-size:0.8em; color:#90CAEF;" uib-popover="Apply price adjustment to this item, such as a discount or promotion.  Only applies to this Purchase Order." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="300" ng-click="showAdditionalPricingModal(item, dorder)">
+            <div ng-class="{'help_link': item.additional_pricing_short===null, 'blue_link': item.additional_pricing_short!==null}" ng-if="item.quantity!==null || item.additional_pricing!==null" style="font-size:0.8em; color:#c0c0c0;" uib-popover="Apply price adjustment to this item, such as a discount or promotion.  Only applies to this Purchase Order." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="300" ng-click="showAdditionalPricingModal(item, dorder)">
               <span class="glyphicon glyphicon-tag"></span> 
               <span ng-if="item.additional_pricing_short===null">Adjust $</span>
               <span ng-if="item.additional_pricing_short!==null">{{item.additional_pricing_short}}</span>

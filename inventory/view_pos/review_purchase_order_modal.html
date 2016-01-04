@@ -67,28 +67,50 @@
         <div style="font-size:1.0em; margin-bottom:0px; margin-top:0px">Purchase Order #: {{dorder.do_num}}</div>
         <div style="font-size:1.0em; margin-bottom:6px; margin-top:0px">Deliver By: {{dorder.delivery_date_pretty}}</div>
         <hr style="margin-top:0px; margin-bottom:12px"/>
-        <div class="row" ng-repeat="item in dorder.items" style="font-size:0.9em">
-          <div class="col-xs-7">
-            <span>{{item.product}} </span>
-            <span ng-if="item.purchase_count > 1"> x{{item.purchase_count}} COUNT </span>
-            <span ng-if="item.purchase_volume!==null && item.purchase_unit !== null" style="margin-left:12px; color:#999999">
-              | {{item.purchase_volume | number:1}} {{item.purchase_unit}} {{item.container_type}}
-            </span>
-            <span ng-if="item.purchase_volume===null || item.purchase_unit === null" style="margin-left:12px; color:#999999">
-              | {{item.container_type}}
-            </span>
-            <span ng-if="item.brewery !== null" style="float:right">
-               . . . {{item.brewery}}
-            </span>
+        <div ng-repeat="item in dorder.items" style="font-size:0.9em">
+          <div class="row">
+            <div class="col-xs-7">
+              <span>{{item.product}} </span>
+              <span ng-if="item.purchase_count > 1"> x{{item.purchase_count}} COUNT </span>
+              <span ng-if="item.purchase_volume!==null && item.purchase_unit !== null" style="margin-left:12px; color:#999999">
+                | {{item.purchase_volume | number:1}} {{item.purchase_unit}} {{item.container_type}}
+              </span>
+              <span ng-if="item.purchase_volume===null || item.purchase_unit === null" style="margin-left:12px; color:#999999">
+                | {{item.container_type}}
+              </span>
+              <span ng-if="item.brewery !== null" style="float:right">
+                 . . . {{item.brewery}}
+              </span>
+            </div>
+            <div class="col-xs-2" style="text-align:right">
+              $ {{item.purchase_cost | number:2}}
+            </div>
+            <div class="col-xs-1 min_padding" style="text-align:center">
+              x {{item.quantity | number:1}}
+            </div>
+            <div class="col-xs-2" style="text-align:right" ng-class="{'crossed_out_text':item.subtotal!==item.resolved_subtotal}">
+              $ {{item.subtotal | number:2}}
+            </div>
           </div>
-          <div class="col-xs-2" style="text-align:center">
-            $ {{item.batch_cost | number:2}}
-          </div>
-          <div class="col-xs-1 min_padding" style="text-align:center">
-            x {{item.quantity | number:1}}
-          </div>
-          <div class="col-xs-2" style="text-align:right">
-            $ {{item.subtotal | number:2}}
+          <div class="row" ng-if="item.deposit!==null || item.additional_pricing !== null">
+            <div class="col-xs-7" style="padding-left:42px; color:#c02000; margin-top:-2px">
+              &nbsp;
+              <span>{{item.additional_pricing_description}}</span>
+              <span ng-if="item.additional_pricing_short!==null" style="margin-left:8px">({{item.additional_pricing_short}})</span>
+            </div>
+            <div class="col-xs-2" style="text-align:right; margin-top:-2px">
+              &nbsp;
+              <span ng-if="item.deposit!==null" class="gray_text">
+                dpst: $ {{item.deposit | number:2}} 
+              </span>
+            </div>
+            <div class="col-xs-1">&nbsp;</div>
+            <div class="col-xs-2" style="text-align:right; margin-top:-2px">
+              &nbsp;
+              <span ng-if="item.subtotal !== item.resolved_subtotal" style="color:#c02000">
+                $ {{item.resolved_subtotal | number:2}}
+              </span>
+            </div>
           </div>
         </div>
         <div class="row" style="margin-top:6px">
@@ -107,11 +129,6 @@
 
   </div>
 </script>
-
-
-
-
-
 
 
 

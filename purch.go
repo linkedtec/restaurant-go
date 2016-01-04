@@ -47,13 +47,17 @@ type PO_Order struct {
 }
 
 type PO_Item struct {
-	DistributorOrderID int        `json:"distributor_order_id"`
-	BeverageID         int        `json:"beverage_id"`
-	VersionID          int        `json:"version_id"`
-	BatchCost          float64    `json:"batch_cost"`
-	Quantity           float64    `json:"quantity"`
-	Subtotal           float64    `json:"subtotal"`
-	DeliveryStatus     NullString `json:"delivery_status"`
+	DistributorOrderID           int         `json:"distributor_order_id"`
+	BeverageID                   int         `json:"beverage_id"`
+	VersionID                    int         `json:"version_id"`
+	BatchCost                    float64     `json:"batch_cost"`
+	Deposit                      NullFloat64 `json:"deposit"`
+	Quantity                     float64     `json:"quantity"`
+	Subtotal                     float64     `json:"subtotal"`
+	ResolvedSubtotal             float64     `json:"resolved_subtotal"`
+	AdditionalPricing            NullString  `json:"additional_pricing"`
+	AdditionalPricingDescription NullString  `json:"additional_pricing_description"`
+	DeliveryStatus               NullString  `json:"delivery_status"`
 	// only for saving & not sending PO form:
 	Product        string      `json:"product"`
 	Brewery        NullString  `json:"brewery"`
@@ -200,6 +204,15 @@ func createPurchaseOrderSaveOnly(user_id string, restaurant_id string, purchase_
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					continue
 				}
+
+				var deposit NullFloat64
+				err = db.QueryRow(`SELECT kegs.deposit FROM kegs, beverages 
+					WHERE kegs.id=beverages.keg_id AND beverages.id=$1;`, item.BeverageID).Scan(&deposit)
+				if err != nil {
+					deposit.Valid = false
+					deposit.Float64 = 0
+				}
+				purchase_order.DistributorOrders[i].Items[j].Deposit = deposit
 			}
 		}
 
@@ -273,11 +286,21 @@ func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order
 			} else {
 				QtyStr = fmt.Sprintf("%d", int(item.Quantity))
 			}
-			sms_str += fmt.Sprintf("%s - %s %s\n", QtyStr, unit_str, bev.Product)
+			sms_str += fmt.Sprintf("%s - %s %s", QtyStr, unit_str, bev.Product)
+
+			if item.AdditionalPricing.Valid {
+				desc_line := helperAdditionalPricingDescription(item.AdditionalPricing, item.AdditionalPricingDescription)
+				sms_str += fmt.Sprintf(" (%s)\n", desc_line)
+			} else {
+				sms_str += "\n"
+			}
 		}
 
+		sms_str += fmt.Sprintf("\nEstimate: $%.2f", dorder.Total)
 		if dorder.AdditionalNotes.Valid && len(dorder.AdditionalNotes.String) > 0 {
 			sms_str += "\n* " + dorder.AdditionalNotes.String + "\n"
+		} else {
+			sms_str += "\n"
 		}
 		sms_str += "\n" + purchase_order.Order.PurchaseContact + "\n"
 		sms_str += restaurant.Name.String + "\n"
@@ -322,6 +345,38 @@ func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order
 		}
 	}
 
+}
+
+func helperAdditionalPricingDescription(additional_pricing NullString, additional_pricing_description NullString) string {
+	desc_line := ""
+	if additional_pricing.Valid {
+		if additional_pricing_description.Valid {
+			desc_line += additional_pricing_description.String + " : "
+		}
+		// add short description here
+		sign := string(additional_pricing.String[0])
+		if sign == "*" {
+			value := additional_pricing.String[1:len(additional_pricing.String)]
+			valuef, _ := strconv.ParseFloat(value, 64)
+			desc_line += fmt.Sprintf("%.2f%% Discount", valuef)
+		} else {
+			trailing := strings.Split(additional_pricing.String, "|")
+			value, _ := strconv.ParseFloat(trailing[0], 64)
+			apply := trailing[1]
+			if sign == "+" {
+				desc_line += "+" + fmt.Sprintf("%.2f", value)
+			} else {
+				desc_line += fmt.Sprintf("%.2f", value)
+			}
+
+			if apply == "subtotal" {
+				desc_line += " subtotal"
+			} else {
+				desc_line += " /unit"
+			}
+		}
+	}
+	return desc_line
 }
 
 func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_order PurchaseOrder, do_send bool, w http.ResponseWriter, r *http.Request) {
@@ -505,13 +560,20 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 		for i, item := range dorder.Items {
 
 			log.Println(item)
+			log.Println("bev id:")
+			log.Println(item.BeverageID)
 			var bev Beverage
-			err := db.QueryRow("SELECT id, version_id, product, brewery, container_type, purchase_volume, purchase_unit, purchase_count FROM beverages WHERE restaurant_id=$1 AND id=$2;", restaurant_id, item.BeverageID).Scan(
+			err := db.QueryRow(`
+				SELECT id, version_id, product, brewery, container_type, 
+				purchase_cost, purchase_volume, purchase_unit, purchase_count 
+				FROM beverages 
+				WHERE restaurant_id=$1 AND id=$2;`, restaurant_id, item.BeverageID).Scan(
 				&bev.ID,
 				&bev.VersionID,
 				&bev.Product,
 				&bev.Brewery,
 				&bev.ContainerType,
+				&bev.PurchaseCost,
 				&bev.PurchaseVolume,
 				&bev.PurchaseUnit,
 				&bev.PurchaseCount)
@@ -519,6 +581,17 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
 			}
+			var deposit NullFloat64
+			err = db.QueryRow(`
+				SELECT kegs.deposit 
+				FROM kegs, beverages 
+				WHERE kegs.id=beverages.keg_id AND beverages.id=$1;
+				`, item.BeverageID).Scan(&deposit)
+			if err != nil {
+				deposit.Valid = false
+				deposit.Float64 = 0
+			}
+			log.Println(deposit)
 
 			gray_bg := false
 			if i%2 == 1 {
@@ -545,12 +618,41 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 			}
 			pdf.CellFormat(content_width*col_one_width, 7, product_line, "", 0, "", gray_bg, 0, "")
 			pdf.CellFormat(content_width*col_two_width, 7, strconv.FormatFloat(item.Quantity, 'f', 1, 32), "L", 0, "C", gray_bg, 0, "")
-			pdf.CellFormat(content_width*col_three_width, 7, strconv.FormatFloat(item.BatchCost, 'f', 2, 32), "L", 0, "C", gray_bg, 0, "")
+			pdf.CellFormat(content_width*col_three_width, 7, strconv.FormatFloat(float64(bev.PurchaseCost), 'f', 2, 32), "L", 0, "C", gray_bg, 0, "")
+			if item.ResolvedSubtotal != item.Subtotal {
+				pdf.SetTextColor(210, 210, 210)
+			}
 			pdf.CellFormat(content_width*col_four_width, 7, strconv.FormatFloat(item.Subtotal, 'f', 2, 32), "L", 0, "R", gray_bg, 0, "")
+			pdf.SetTextColor(0, 0, 0)
+			// if has deposit or additional pricing, add another line to display them
+			if deposit.Valid == true || item.AdditionalPricing.Valid {
+				pdf.Ln(5)
+				desc_line := "      " + helperAdditionalPricingDescription(item.AdditionalPricing, item.AdditionalPricingDescription)
+				dpst_line := ""
+				if deposit.Valid {
+					dpst_line = fmt.Sprintf("%.2f dpst.", deposit.Float64)
+				}
+
+				pdf.SetTextColor(200, 40, 0)
+				pdf.CellFormat(content_width*col_one_width, 7, desc_line, "", 0, "", gray_bg, 0, "")
+				pdf.CellFormat(content_width*col_two_width, 7, "", "L", 0, "C", gray_bg, 0, "")
+				pdf.SetFont("helvetica", "", 10)
+				pdf.SetTextColor(150, 150, 150)
+				pdf.CellFormat(content_width*col_three_width, 7, dpst_line, "L", 0, "C", gray_bg, 0, "")
+				pdf.SetFont("helvetica", "", 11)
+				new_subtotal := ""
+				if item.Subtotal != item.ResolvedSubtotal {
+					new_subtotal = strconv.FormatFloat(item.ResolvedSubtotal, 'f', 2, 32)
+					pdf.SetTextColor(200, 40, 0)
+				}
+				pdf.CellFormat(content_width*col_four_width, 7, new_subtotal, "L", 0, "R", gray_bg, 0, "")
+				pdf.SetTextColor(0, 0, 0)
+			}
 			pdf.Ln(7)
+
 			restore_y = pdf.GetY()
 
-			order_total += item.Subtotal
+			order_total += item.ResolvedSubtotal
 		}
 
 		restore_y += 12
@@ -1124,7 +1226,8 @@ func distributorOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		irows, err := db.Query(`
-				SELECT beverage_id, quantity, batch_cost, subtotal, delivery_status 
+				SELECT beverage_id, quantity, batch_cost, subtotal, resolved_subtotal, 
+				additional_pricing, additional_pricing_description, delivery_status 
 					FROM distributor_order_items WHERE distributor_order_id=$1;`, dist_order.ID)
 		if err != nil {
 			log.Println(err.Error())
@@ -1138,7 +1241,9 @@ func distributorOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 				&item.BeverageID,
 				&item.Quantity,
 				&item.BatchCost,
-				&item.Subtotal,
+				&item.ResolvedSubtotal,
+				&item.AdditionalPricing,
+				&item.AdditionalPricingDescription,
 				&item.DeliveryStatus); err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1232,7 +1337,8 @@ func getPurchaseOrderFromID(po_id int) (PurchaseOrder, error) {
 		}
 
 		irows, err := db.Query(`
-				SELECT beverage_id, quantity, batch_cost, subtotal 
+				SELECT beverage_id, quantity, batch_cost, subtotal, 
+				resolved_subtotal, additional_pricing, additional_pricing_description  
 					FROM distributor_order_items WHERE distributor_order_id=$1;`, distributor_order.ID)
 		if err != nil {
 			log.Println(err.Error())
@@ -1245,7 +1351,10 @@ func getPurchaseOrderFromID(po_id int) (PurchaseOrder, error) {
 				&item.BeverageID,
 				&item.Quantity,
 				&item.BatchCost,
-				&item.Subtotal); err != nil {
+				&item.Subtotal,
+				&item.ResolvedSubtotal,
+				&item.AdditionalPricing,
+				&item.AdditionalPricingDescription); err != nil {
 				log.Println(err.Error())
 				continue
 			}
@@ -1327,7 +1436,10 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		//     - ordered items:
 		//         - item id
 		//         - item quantity
-		//         - item subtotal
+		//         - item subtotal (original, prior to additional pricing)
+		//         - item resolved subtotal (with applied additional pricing)
+		//         - item additional pricing
+		//         - item additional pricing description
 		//     - purchase total
 		//
 		// creates PDF and saves it to /export directory
@@ -1468,9 +1580,11 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 				for _, item := range dorder.Items {
 					_, err = db.Exec(`
 					INSERT INTO distributor_order_items 
-						(distributor_order_id, beverage_id, batch_cost, quantity, subtotal) 
-					VALUES ($1, $2, $3, $4, $5)`,
-						do_id, item.BeverageID, item.BatchCost, item.Quantity, item.Subtotal)
+						(distributor_order_id, beverage_id, batch_cost, quantity, subtotal,
+							resolved_subtotal, additional_pricing, additional_pricing_description) 
+					VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+						do_id, item.BeverageID, item.BatchCost, item.Quantity, item.Subtotal,
+						item.ResolvedSubtotal, item.AdditionalPricing, item.AdditionalPricingDescription)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)

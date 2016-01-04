@@ -1231,8 +1231,9 @@ angular.module('myApp')
   console.log($scope.item);
 
   $scope.apply_to_types = ["Subtotal"];
-  $scope.apply_to_types.push("Each individual " + ItemsService.getPurchaseUnitName($scope.item));
-  $scope.purchase_unit = ItemsService.getPurchaseUnitName($scope.item);
+  $scope.purchase_unit = ItemsService.getPurchaseUnitName($scope.item.container_type, $scope.item.purchase_count);
+  $scope.apply_to_types.push("Each individual " + $scope.purchase_unit);
+  
   $scope.apply_to = {'value':null};
 
   $scope.modify_types = ["($) Amount", "(%) Percent Discount"];
@@ -1360,7 +1361,7 @@ angular.module('myApp')
 
         $scope.add_sign.value = lead_char;
         $scope.add_value.value = MathService.fixFloat2(parseFloat(value));
-        $scope.notes = $scope.item['additional_pricing_description'];
+        $scope.notes.value = $scope.item['additional_pricing_description'];
         if (type==='unit') {
           $scope.apply_to.value = $scope.apply_to_types[1];
         } else {
@@ -1374,7 +1375,7 @@ angular.module('myApp')
         $scope.modify.value = $scope.modify_types[1];
         var value = trailing;
         $scope.mult_value.value = MathService.fixFloat2(parseFloat(value));
-        $scope.notes = $scope.item['additional_pricing_description'];
+        $scope.notes.value = $scope.item['additional_pricing_description'];
         $scope.recalculateSubtotal();
       }
       // else it's malformed, start with blank state
@@ -1439,7 +1440,10 @@ angular.module('myApp')
     }
 
     $scope.item['additional_pricing'] = add_str;
-    $scope.item['additional_pricing_description'] = $scope.notes;
+    if ($scope.notes.value==='') {
+      $scope.notes.value = null;
+    }
+    $scope.item['additional_pricing_description'] = $scope.notes.value;
     $scope.item['additional_pricing_short'] = $scope.effect_string_short;
     $scope.item['resolved_subtotal'] = $scope.new_subtotal;
 
