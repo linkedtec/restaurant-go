@@ -28,7 +28,7 @@
       </div>
       <div class="col-xs-3">
         Check all:
-        <input ng-checked="true" type="checkbox" id="democheckbox" class="customCbSqr" style="z-index:-99;" check disabled/>
+        <input ng-checked="true" type="checkbox" id="democheckbox" style="z-index:-99;" check disabled/>
           <label for="democheckbox" style="margin:0; height:0; margin-top:-10px"></label>
       </div>
     </div>
@@ -40,7 +40,7 @@
         {{bev.brewery}}
       </div>
       <div class="col-xs-3" style="text-align:center">
-        <input ng-checked="false" type="checkbox" id="checkbox{{$index}}" class="customCbSqr" style="z-index:-99;" ng-click="checkedBeverage($index)"/>
+        <input ng-checked="false" type="checkbox" id="checkbox{{$index}}" style="z-index:-99;" ng-click="checkedBeverage($index)"/>
         <label for="checkbox{{$index}}" style="margin:0; height:0; margin-top:-6px;"></label>
       </div>
     </div>

@@ -389,6 +389,16 @@ body {
   border-bottom: solid 1px #fbfbfb;
 }
 
+.inv_row_even_borderless {
+  background-color: #fafafa;
+  padding: 1px 5px 1px;
+}
+
+.inv_row_odd_borderless {
+  background-color: #ffffff;
+  padding: 1px 5px 1px;
+}
+
 .inv_row_added {
   border-bottom: solid 1px #dddddd;
   margin: 4px 16px;
@@ -891,6 +901,20 @@ like enclosed space */
 .check_circle {
   color:#77dd22;
   font-size:1.4em;
+}
+
+.unselected_box {
+  border: 1px solid #ECE0C8;
+  box-shadow:0px 0px 5px #f0f0f0;
+  background-color:#fcfcfc;
+  color:#999999;
+}
+
+.selected_box {
+  border: 1px solid #ADD9FF;
+  box-shadow:0px 0px 5px #b9dfff;
+  background-color:#F5FCFD;
+  color:#222222;
 }
 
 .btn_right {

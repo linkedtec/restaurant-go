@@ -29,10 +29,11 @@ angular.module('myApp')
       scope.order['purchase_email'] = null;
       scope.order['purchase_phone'] = null;
       scope.order['purchase_fax'] = null;
+      scope.order['purchase_cc'] = null
       scope.order['po_num'] = null;
       scope.order['send_later'] = false;
       scope.showPurchaseSave = false;
-      scope.defaultContactChecked = true;
+      scope.defaultContactChecked = {'value':true};
       // the global delivery date which will be applied to dorders at start
       scope.order['delivery_date'] = null;
       scope.order['dist_orders'] = [];
@@ -93,6 +94,20 @@ angular.module('myApp')
             scope.order['purchase_phone_edit'] = data['purchase_phone'];
             scope.order['purchase_fax'] = data['purchase_fax'];
             scope.order['purchase_fax_edit'] = data['purchase_fax'];
+            // need a little special processing here
+            // purchase_cc is a list of objects:
+            //     [{id:int, email:string}]
+            // It should only have one entry returned, so convert its email value
+            // into a string locally
+            if (data['purchase_cc']!==null && data['purchase_cc'].length > 0) {
+              var email = data['purchase_cc'][0]['email'];
+              scope.order['purchase_cc'] = email;
+              scope.order['purchase_cc_edit'] = email;
+            } else {
+              scope.order['purchase_cc'] = null;
+              scope.order['purchase_cc_edit'] = null;
+            }
+            
           }
           else {
             scope.order['purchase_contact'] = null;
@@ -103,6 +118,8 @@ angular.module('myApp')
             scope.order['purchase_phone_edit'] = null;
             scope.order['purchase_fax'] = null;
             scope.order['purchase_fax_edit'] = null;
+            scope.order['purchase_cc'] = null;
+            scope.order['purchase_cc_edit'] = null;
           }
         }).
         error(function(data, status, headers, config) {
@@ -197,6 +214,9 @@ angular.module('myApp')
         scope.getRestaurant();
         scope.getPONum();
 
+        // don't forget to clear form verification!
+        scope.form_ver = {};
+
       };
 
       scope.initAutoForm = function() {
@@ -208,6 +228,8 @@ angular.module('myApp')
 
         scope.getRestaurant();
         scope.getPONum();
+
+        scope.form_ver = {};
 
       };
 
@@ -349,6 +371,20 @@ angular.module('myApp')
         var date_str = scope.order['order_date'].toString();
         scope.order['order_date_pretty'] = DateService.getPrettyDate(date_str, false, true);
         scope.$apply();
+
+        var odate = scope.order['order_date'];
+        if (odate===null) {
+          return;
+        }
+
+        if ( DateService.isSameDay(new Date(), odate) ) {
+          scope.order['send_later'] = false;
+        } else if (DateService.isFutureDay(new Date(), odate)) {
+          scope.order['send_later'] = true;
+        } else {
+          scope.order['send_later'] = false;
+        }
+
       };
 
       scope.purchasingChanged = function() {
@@ -364,11 +400,15 @@ angular.module('myApp')
         if (scope.order['purchase_fax_edit'] === '') {
           scope.order['purchase_fax_edit'] = null;
         }
+        if (scope.order['purchase_cc_edit'] === '') {
+          scope.order['purchase_cc_edit'] = null;
+        }
 
         if (scope.order['purchase_contact'] !== scope.order['purchase_contact_edit'] ||
           scope.order['purchase_email'] !== scope.order['purchase_email_edit'] ||
           scope.order['purchase_phone'] !== scope.order['purchase_phone_edit'] || 
-          scope.order['purchase_fax'] !== scope.order['purchase_fax_edit']) {
+          scope.order['purchase_fax'] !== scope.order['purchase_fax_edit'] ||
+          scope.order['purchase_cc'] !== scope.order['purchase_cc_edit']) {
           scope.showPurchaseSave = true;
         } else {
           console.log("NO CHANGE");
@@ -947,6 +987,7 @@ angular.module('myApp')
         scope.form_ver.error_email = false;
         scope.form_ver.error_phone = false;
         scope.form_ver.error_fax = false;
+        scope.form_ver.error_cc = false;
         scope.new_failure_msg = null;
         scope.error_date_msg = null;
 
@@ -972,6 +1013,11 @@ angular.module('myApp')
         }
         if (scope.order['purchase_fax_edit'] !== null && scope.order['purchase_fax_edit'].length > 0 && !ContactService.isValidPhone(scope.order['purchase_fax_edit'])) {
           scope.form_ver.error_fax = true;
+          all_clear = false;
+        }
+
+        if (scope.order['purchase_cc_edit'] !== null && !ContactService.isValidEmail(scope.order['purchase_cc_edit'])) {
+          scope.form_ver.error_cc = true;
           all_clear = false;
         }
 
@@ -1139,8 +1185,17 @@ angular.module('myApp')
         scope.post_order['order']['purchase_email'] = scope.order['purchase_email_edit'];
         scope.post_order['order']['purchase_phone'] = scope.order['purchase_phone_edit'];
         scope.post_order['order']['purchase_fax'] = scope.order['purchase_fax_edit'];
+        // convert purchase_cc_edit to purchase_cc for posting to server, 
+        // which is a list of objects like so: 
+        //     [{id:int, email:string}]
+        var cc_emails = [];
+        if (scope.order['purchase_cc_edit'] !== null) {
+          cc_emails = [{'id':null, 'email':scope.order['purchase_cc_edit']}];
+        }
+        scope.post_order['order']['purchase_cc'] = cc_emails;
+
         // should server save posted purchase info as default?
-        scope.post_order['order']['purchase_save_default'] = (scope.showPurchaseSave===true && scope.defaultContactChecked===true);
+        scope.post_order['order']['purchase_save_default'] = (scope.showPurchaseSave===true && scope.defaultContactChecked.value===true);
         if (scope.order['send_method'] === scope.send_methods[0]) {
           scope.post_order['order']['delivery_address_type'] = scope.deliveryAddressControl.getChosenAddressType();
         }

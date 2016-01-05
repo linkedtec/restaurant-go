@@ -32,18 +32,19 @@ type PO_Order struct {
 	ID      int       `json:"id"`
 	Created time.Time `json:"created"`
 	// only these are used for POSTing
-	OrderDate           time.Time  `json:"order_date"`
-	Sent                bool       `json:"sent"`
-	SendLater           bool       `json:"send_later"`
-	PurchaseContact     string     `json:"purchase_contact"`
-	PurchaseEmail       string     `json:"purchase_email"`
-	PurchasePhone       NullString `json:"purchase_phone"`
-	PurchaseFax         NullString `json:"purchase_fax"`
-	PurchaseSaveDefault NullBool   `json:"purchase_save_default"`
-	DeliveryAddressType NullString `json:"delivery_address_type"`
-	SendMethod          NullString `json:"send_method"`
-	PO_Num              NullString `json:"po_num"`
-	DeliveryStatus      NullString `json:"delivery_status"`
+	OrderDate           time.Time      `json:"order_date"`
+	Sent                bool           `json:"sent"`
+	SendLater           bool           `json:"send_later"`
+	PurchaseContact     string         `json:"purchase_contact"`
+	PurchaseEmail       string         `json:"purchase_email"`
+	PurchasePhone       NullString     `json:"purchase_phone"`
+	PurchaseFax         NullString     `json:"purchase_fax"`
+	PurchaseSaveDefault NullBool       `json:"purchase_save_default"`
+	DeliveryAddressType NullString     `json:"delivery_address_type"`
+	SendMethod          NullString     `json:"send_method"`
+	PO_Num              NullString     `json:"po_num"`
+	DeliveryStatus      NullString     `json:"delivery_status"`
+	PurchaseCC          []EmailContact `json:"purchase_cc"`
 }
 
 type PO_Item struct {
@@ -168,11 +169,17 @@ func sendPendingPOs() {
 		var w http.ResponseWriter
 		var r http.Request
 		if purchase_order.Order.SendMethod.String == "email" {
-			createPurchaseOrderPDFFile(test_user_id, restaurant_id, purchase_order, true, w, &r)
+			createPurchaseOrderPDFFile(test_user_id, restaurant_id, purchase_order, true, true, w, &r)
 		} else if purchase_order.Order.SendMethod.String == "text" {
 			createPurchaseOrderSMS(test_user_id, restaurant_id, purchase_order, true, w, &r)
 		} else if purchase_order.Order.SendMethod.String == "save" {
 			createPurchaseOrderSaveOnly(test_user_id, restaurant_id, purchase_order, true, w, &r)
+		}
+		// if purchase order had a CC email, send out CC email
+		// by setting split_by_dist_order false and do_send true, it will send
+		// a single overview pdf to the CC list only
+		if len(purchase_order.Order.PurchaseCC) > 0 {
+			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, false, true, w, &r)
 		}
 	}
 }
@@ -379,7 +386,7 @@ func helperAdditionalPricingDescription(additional_pricing NullString, additiona
 	return desc_line
 }
 
-func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_order PurchaseOrder, do_send bool, w http.ResponseWriter, r *http.Request) {
+func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_order PurchaseOrder, split_by_dist_order bool, do_send bool, w http.ResponseWriter, r *http.Request) {
 	export_dir := "./export/"
 	if os.MkdirAll(export_dir, 0755) != nil {
 		http.Error(w, "Unable to find or create export directory!", http.StatusInternalServerError)
@@ -402,9 +409,9 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 	filename = strings.Replace(filename, " ", "_", -1)
 
 	var pdf *gofpdf.Fpdf
-	// If we're not sending, we're putting all distributor orders into a single
+	// If we're not splitting, we're putting all distributor orders into a single
 	// PDF file for review
-	if do_send == false {
+	if split_by_dist_order == false {
 		// New args:
 		// 1: orientationStr (P=Portrait)
 		// 2: unitStr
@@ -414,12 +421,14 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 		pdf.SetTitle("Purchase Order", false)
 	}
 
+	var grand_total float64
+
 	// Iterate through the DistributorOrders, adding a page for each
 	for _, dorder := range purchase_order.DistributorOrders {
 
 		// if we're sending to distributors, each distributor
 		// order is its own PDF which is emailed
-		if do_send == true {
+		if split_by_dist_order == true {
 			pdf = gofpdf.New("P", "mm", "A4", "")
 			pdf.SetTitle("Purchase Order", false)
 		}
@@ -484,7 +493,11 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 		pdf.SetFont("helvetica", "", 13)
 		pdf.MultiCell(content_width/2.6, 6, dorder.Distributor, "", "", false)
 		pdf.SetFont("helvetica", "", 11)
-		pdf.MultiCell(content_width/2.6, 5, dorder.DistributorEmail.String, "", "", false)
+		if dorder.DistributorEmail.Valid == true {
+			pdf.MultiCell(content_width/2.6, 5, dorder.DistributorEmail.String, "", "", false)
+		} else if dorder.DistributorPhone.Valid == true {
+			pdf.MultiCell(content_width/2.6, 5, dorder.DistributorPhone.String, "", "", false)
+		}
 
 		pdf.SetFont("helvetica", "", 10)
 		pdf.SetTextColor(255, 255, 255)
@@ -511,13 +524,16 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 		pdf.SetFont("helvetica", "", 11)
 		pdf.MultiCell(content_width/2.6, 5, purchase_order.Order.PurchaseContact, "", "", false)
 		pdf.SetX(-wd)
-		pdf.MultiCell(content_width/2.6, 5, purchase_order.DeliveryAddress.AddressOne.String, "", "", false)
-		if purchase_order.DeliveryAddress.AddressTwo.Valid && len(purchase_order.DeliveryAddress.AddressTwo.String) > 0 {
+		if purchase_order.DeliveryAddress.AddressOne.Valid && len(purchase_order.DeliveryAddress.AddressOne.String) > 0 {
+			pdf.MultiCell(content_width/2.6, 5, purchase_order.DeliveryAddress.AddressOne.String, "", "", false)
+			if purchase_order.DeliveryAddress.AddressTwo.Valid && len(purchase_order.DeliveryAddress.AddressTwo.String) > 0 {
+				pdf.SetX(-wd)
+				pdf.MultiCell(content_width/2.6, 5, purchase_order.DeliveryAddress.AddressTwo.String, "", "", false)
+			}
 			pdf.SetX(-wd)
-			pdf.MultiCell(content_width/2.6, 5, purchase_order.DeliveryAddress.AddressTwo.String, "", "", false)
+			pdf.MultiCell(content_width/2.6, 5, fmt.Sprintf("%s, %s %s", purchase_order.DeliveryAddress.City.String, purchase_order.DeliveryAddress.State.String, purchase_order.DeliveryAddress.Zipcode.String), "", "", false)
 		}
-		pdf.SetX(-wd)
-		pdf.MultiCell(content_width/2.6, 5, fmt.Sprintf("%s, %s %s", purchase_order.DeliveryAddress.City.String, purchase_order.DeliveryAddress.State.String, purchase_order.DeliveryAddress.Zipcode.String), "", "", false)
+
 		pdf.Ln(2)
 		pdf.SetX(-wd)
 		contact_email := fmt.Sprintf("Email: %s", purchase_order.Order.PurchaseEmail)
@@ -655,6 +671,8 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 			order_total += item.ResolvedSubtotal
 		}
 
+		grand_total += order_total
+
 		restore_y += 12
 		pdf.SetY(restore_y)
 		bottom_y := restore_y
@@ -705,25 +723,30 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 
 		pdf.MultiCell(content_width, 5, contact_line, "", "C", false)
 
-		if do_send == true {
+		if split_by_dist_order == true {
 			file_location := fmt.Sprintf("%s_%s.pdf", filename, dorder.Distributor)
 			err = pdf.OutputFileAndClose(file_location)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			email_title := fmt.Sprintf("New Purchase Order from %s", restaurant.Name.String)
-			email_body := fmt.Sprintf("Please review the attached Purchase Order from %s for fulfillment.", restaurant.Name.String)
-			file_name := fmt.Sprintf("PurchaseOrder_%s.pdf", restaurant.Name.String)
-			err = sendAttachmentEmail(dorder.DistributorEmail.String, email_title, email_body, file_location, file_name, "application/pdf")
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
+
+			if do_send == true {
+				email_title := fmt.Sprintf("New Purchase Order #%s from %s", dorder.DO_Num.String, restaurant.Name.String)
+				email_body := fmt.Sprintf("You've got a new Purchase Order (#%s) from %s!<br/><br/>Order Estimate: <b>$ %.2f</b><br/><br/>Please review the attached PDF order for fulfillment by <b>%s</b>.", dorder.DO_Num.String, restaurant.Name.String, order_total, delivery_date_tz.Format("Mon, Jan 2 2006"))
+				file_name := fmt.Sprintf("PurchaseOrder_%s.pdf", restaurant.Name.String)
+				err = sendAttachmentEmail(dorder.DistributorEmail.String, email_title, email_body, file_location, file_name, "application/pdf")
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			} else {
+				// should only ever need to split by dist order if sending
 			}
 		}
 	}
 
-	if do_send == false {
+	if split_by_dist_order == false {
 		filename += ".pdf"
 		err = pdf.OutputFileAndClose(filename)
 		if err != nil {
@@ -731,16 +754,33 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		var retfile ExportFile
-		retfile.URL = filename[1:] // remove the . at the beginning
-		js, err := json.Marshal(retfile)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		if do_send == true && len(purchase_order.Order.PurchaseCC) > 0 {
+			email_title := fmt.Sprintf("Fwd: Purchase Order #%s for %s", purchase_order.Order.PO_Num.String, restaurant.Name.String)
+			email_body := fmt.Sprintf("A new Purchase Order (#%s) for %s has just been placed and sent to your Distributors.<br/><br/>Attached is a copy of the PO for your records.  You can also find complete PO histories in the Purchase History page of the web app.<br/><br/>Total Estimate: <b>$ %.2f</b><br/><i>* estimates may differ from the actual invoice you will receive from Distributors.</i><br/>", purchase_order.Order.PO_Num.String, restaurant.Name.String, grand_total)
+			file_email_name := fmt.Sprintf("PurchaseOrder_%s.pdf", restaurant.Name.String)
+			// XXX check additional CC list, and for each CC'ed person, send them an email
+			for _, cc_email := range purchase_order.Order.PurchaseCC {
+				err = sendAttachmentEmail(cc_email.Email, email_title, email_body, filename, file_email_name, "application/pdf")
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			}
+		} else {
+			// if not do_send, it's for review
+			w.Header().Set("Content-Type", "application/json")
+			var retfile ExportFile
+			retfile.URL = filename[1:] // remove the . at the beginning
+			js, err := json.Marshal(retfile)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Write(js)
 		}
-		w.Write(js)
-	} else {
+	}
+
+	if do_send == true {
 		_, err := db.Exec("UPDATE purchase_orders SET sent=TRUE where id=$1;", purchase_order.Order.ID)
 		if err != nil {
 			log.Println(err.Error())
@@ -1027,11 +1067,17 @@ func purchaseOrderPendingAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if purchase_order.Order.SendMethod.String == "email" {
-			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, true, w, r)
+			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, true, true, w, r)
 		} else if purchase_order.Order.SendMethod.String == "text" {
 			createPurchaseOrderSMS(test_user_id, test_restaurant_id, purchase_order, true, w, r)
 		} else if purchase_order.Order.SendMethod.String == "save" {
 			createPurchaseOrderSaveOnly(test_user_id, test_restaurant_id, purchase_order, true, w, r)
+		}
+		// if purchase order had a CC email, send out CC email
+		// by setting split_by_dist_order false and do_send true, it will send
+		// a single overview pdf to the CC list only
+		if len(purchase_order.Order.PurchaseCC) > 0 {
+			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, false, true, w, r)
 		}
 
 	case "DELETE":
@@ -1286,8 +1332,9 @@ func getPurchaseOrderFromID(po_id int) (PurchaseOrder, error) {
 	// local timezone when we construct the PDF / SMS etc returned, but we need
 	// to query them as UTC or the correction will be doubly-applied
 	var purchase_order PurchaseOrder
+	var email_contact EmailContact
 	err := db.QueryRow(`
-			SELECT id, order_date, sent, purchase_contact, purchase_email, purchase_phone, purchase_fax, send_method, po_num FROM purchase_orders WHERE id=$1;`, po_id).Scan(
+			SELECT id, order_date, sent, purchase_contact, purchase_email, purchase_phone, purchase_fax, purchase_cc, send_method, po_num FROM purchase_orders WHERE id=$1;`, po_id).Scan(
 		&purchase_order.Order.ID,
 		&purchase_order.Order.OrderDate,
 		&purchase_order.Order.Sent,
@@ -1295,10 +1342,20 @@ func getPurchaseOrderFromID(po_id int) (PurchaseOrder, error) {
 		&purchase_order.Order.PurchaseEmail,
 		&purchase_order.Order.PurchasePhone,
 		&purchase_order.Order.PurchaseFax,
+		&email_contact.ID,
 		&purchase_order.Order.SendMethod,
 		&purchase_order.Order.PO_Num)
 	if err != nil {
 		return purchase_order, err
+	}
+
+	if email_contact.ID.Valid {
+		err = db.QueryRow(`
+			SELECT email FROM contact_emails WHERE id=$1;`, email_contact.ID.Int64).Scan(&email_contact.Email)
+		if err != nil {
+			return purchase_order, err
+		}
+		purchase_order.Order.PurchaseCC = append(purchase_order.Order.PurchaseCC, email_contact)
 	}
 
 	err = db.QueryRow("SELECT addr1, addr2, city, state, zipcode FROM purchase_orders WHERE id=$1;", po_id).Scan(
@@ -1405,7 +1462,7 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if purchase_order.Order.SendMethod.String == "email" {
-			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, false, w, r)
+			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, false, false, w, r)
 		} else if purchase_order.Order.SendMethod.String == "text" {
 			createPurchaseOrderSMS(test_user_id, test_restaurant_id, purchase_order, false, w, r)
 		} else if purchase_order.Order.SendMethod.String == "save" {
@@ -1485,8 +1542,17 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// to save default, it doesn't matter if it's pre-send review.  It's
 		// annoying to review, cancel, and have save default info lost.
 		// If save default, overwrite restaurant contact info
+		// If the CC list was not null, add the cc email id
+		var cc_id NullInt64
+		cc_id.Valid = false
+		if len(order.Order.PurchaseCC) > 0 {
+			email := order.Order.PurchaseCC[0].Email
+			test_restaurant_id_int, _ := strconv.Atoi(test_restaurant_id)
+			cc_id = getOrAddContactEmail(email, test_restaurant_id_int)
+		}
+
 		if order.Order.PurchaseSaveDefault.Valid && order.Order.PurchaseSaveDefault.Bool == true {
-			_, err = db.Exec("UPDATE restaurants SET purchase_contact=$1, purchase_email=$2, purchase_phone=$3, purchase_fax=$4 WHERE id=$5", order.Order.PurchaseContact, order.Order.PurchaseEmail, order.Order.PurchasePhone, order.Order.PurchaseFax, test_restaurant_id)
+			_, err = db.Exec("UPDATE restaurants SET purchase_contact=$1, purchase_email=$2, purchase_phone=$3, purchase_fax=$4, purchase_cc=$5 WHERE id=$6", order.Order.PurchaseContact, order.Order.PurchaseEmail, order.Order.PurchasePhone, order.Order.PurchaseFax, cc_id, test_restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1544,12 +1610,14 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 				INSERT INTO purchase_orders 
 					(restaurant_name, restaurant_id, user_id, created, order_date, sent, 
 					purchase_contact, purchase_email, purchase_phone, purchase_fax,
+					purchase_cc, 
 					addr1, addr2, city, state, zipcode, send_method, po_num) 
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) 
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) 
 				RETURNING id;`,
 				restaurant.Name.String, test_restaurant_id, test_user_id, cur_time,
 				order.Order.OrderDate, false, order.Order.PurchaseContact,
 				order.Order.PurchaseEmail, order.Order.PurchasePhone, order.Order.PurchaseFax,
+				cc_id,
 				order.DeliveryAddress.AddressOne, order.DeliveryAddress.AddressTwo,
 				order.DeliveryAddress.City, order.DeliveryAddress.State, order.DeliveryAddress.Zipcode,
 				order.Order.SendMethod, order.Order.PO_Num).Scan(&po_id)
@@ -1601,7 +1669,7 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 				// if sending later, we don't actually create anything now, we're
 				// content with saving the PO in the DB above
 			} else {
-				createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, order, order.DoSend, w, r)
+				createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, order, order.DoSend, order.DoSend, w, r)
 			}
 		} else if order.Order.SendMethod.String == "text" {
 			if order.DoSend == true && order.Order.SendLater == true {
@@ -1615,6 +1683,12 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// additional checks for send later, we always just "save" it now
 			// which will mark it as sent, so it doesn't show up in pending POs
 			createPurchaseOrderSaveOnly(test_user_id, test_restaurant_id, order, order.DoSend, w, r)
+		}
+		// if purchase order had a CC email, send out CC email
+		// by setting split_by_dist_order false and do_send true, it will send
+		// a single overview pdf to the CC list only
+		if order.DoSend == true && order.Order.SendLater == false && len(order.Order.PurchaseCC) > 0 {
+			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, order, false, true, w, r)
 		}
 
 	}

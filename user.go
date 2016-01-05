@@ -20,12 +20,14 @@ type RestaurantInvEmail struct {
 }
 
 type Restaurant struct {
-	Name            NullString `json:"name"`
-	PurchaseContact NullString `json:"purchase_contact"`
-	PurchaseEmail   NullString `json:"purchase_email"`
-	PurchasePhone   NullString `json:"purchase_phone"`
-	PurchaseFax     NullString `json:"purchase_fax"`
-	Timezone        NullString `json:"timezone"`
+	Name            NullString     `json:"name"`
+	PurchaseContact NullString     `json:"purchase_contact"`
+	PurchaseEmail   NullString     `json:"purchase_email"`
+	PurchasePhone   NullString     `json:"purchase_phone"`
+	PurchaseFax     NullString     `json:"purchase_fax"`
+	PurchaseCC      []EmailContact `json:"purchase_cc"`
+	PurchaseCCID    NullInt64      `json:"purchase_cc_id"`
+	Timezone        NullString     `json:"timezone"`
 }
 
 type RestaurantAddress struct {
@@ -35,6 +37,11 @@ type RestaurantAddress struct {
 	City       NullString `json:"city"`
 	State      NullString `json:"state"`
 	Zipcode    NullString `json:"zipcode"`
+}
+
+type EmailContact struct {
+	ID    NullInt64 `json:"id"`
+	Email string    `json:"email"`
 }
 
 func setupUsersHandlers() {
@@ -68,6 +75,40 @@ func hasBasicPrivilege(p string) bool {
 
 func hasAdminPrivilege(p string) bool {
 	return p == "admin"
+}
+
+func getOrAddContactEmail(email string, restaurant_id int) NullInt64 {
+
+	var exists bool
+	var ret_id NullInt64
+	ret_id.Valid = false
+	ret_id.Int64 = -1
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM contact_emails WHERE restaurant_id=$1 AND email=$2);", restaurant_id, email).Scan(&exists)
+	if err != nil {
+		log.Println(err.Error())
+		return ret_id
+	}
+
+	if exists == true {
+		err := db.QueryRow("SELECT id FROM contact_emails WHERE restaurant_id=$1 AND email=$2;", restaurant_id, email).Scan(&ret_id)
+		if err != nil {
+			log.Println(err.Error())
+			ret_id.Valid = false
+		}
+		return ret_id
+	} else {
+		err = db.QueryRow(`
+			INSERT INTO contact_emails(email, restaurant_id) 
+				VALUES($1, $2) RETURNING id;`,
+			email, restaurant_id).Scan(&ret_id)
+		if err != nil {
+			log.Println(err.Error())
+			ret_id.Valid = false
+		}
+		return ret_id
+	}
+
+	return ret_id
 }
 
 func restaurantNameAPIHandler(w http.ResponseWriter, r *http.Request) {
@@ -206,15 +247,27 @@ func restaurantPurchaseAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		var restaurant Restaurant
-		err := db.QueryRow("SELECT purchase_contact, purchase_email, purchase_phone, purchase_fax FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
+		err := db.QueryRow("SELECT purchase_contact, purchase_email, purchase_phone, purchase_fax, purchase_cc FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
 			&restaurant.PurchaseContact,
 			&restaurant.PurchaseEmail,
 			&restaurant.PurchasePhone,
-			&restaurant.PurchaseFax)
+			&restaurant.PurchaseFax,
+			&restaurant.PurchaseCCID)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+
+		if restaurant.PurchaseCCID.Valid {
+			var econtact EmailContact
+			err = db.QueryRow("SELECT id, email FROM contact_emails WHERE id=$1;", restaurant.PurchaseCCID.Int64).Scan(
+				&econtact.ID, &econtact.Email)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			restaurant.PurchaseCC = append(restaurant.PurchaseCC, econtact)
 		}
 
 		w.Header().Set("Content-Type", "application/json")

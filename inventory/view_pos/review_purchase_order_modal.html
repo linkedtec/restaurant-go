@@ -63,11 +63,11 @@
         <div class="col-xs-9">{{review_obj.order.purchase_fax}}</div>
       </div>
       <div ng-repeat="dorder in review_obj.distributor_orders">
-        <div style="font-size:1.2em; margin-bottom:4px; margin-top:24px">Order to: {{dorder.distributor}}</div>
-        <div style="font-size:1.0em; margin-bottom:0px; margin-top:0px">Purchase Order #: {{dorder.do_num}}</div>
-        <div style="font-size:1.0em; margin-bottom:6px; margin-top:0px">Deliver By: {{dorder.delivery_date_pretty}}</div>
+        <div style="font-size:1.2em; margin-bottom:0px; margin-top:24px;">Order to: {{dorder.distributor}}</div>
+        <div style="font-size:0.9em; margin-bottom:0px; margin-top:0px; display:inline-block">Purchase Order #: {{dorder.do_num}}</div>
+        <div style="font-size:0.9em; margin-bottom:6px; margin-top:0px; display:inline-block; margin-left:36px; font-style:italic">Deliver By: {{dorder.delivery_date_pretty}}</div>
         <hr style="margin-top:0px; margin-bottom:12px"/>
-        <div ng-repeat="item in dorder.items" style="font-size:0.9em">
+        <div ng-repeat="item in dorder.items" ng-class-even="'inv_row_even_borderless'" ng-class-odd="'inv_row_odd_borderless'" style="font-size:0.9em">
           <div class="row">
             <div class="col-xs-7">
               <span>{{item.product}} </span>

@@ -194,9 +194,7 @@
         Basic Information
       </div>
       <div class="col-xs-8" style="text-align:right">
-
         <div style="display:inline-block; float:right; margin-top:4px; margin-left:10px">
-          
           <date-button date="order.order_date" end-of-day="false" on-date-change="orderDateChanged()"/>
         </div>
         <div style="display:inline-block; float:right; font-size:1.1em; margin-top:2px" ng-class="{'my_error_txt': form_ver.error_order_date===true}">
@@ -209,10 +207,10 @@
     </div>
     <div class="row">
       <div class="col-xs-12" style="margin:12px 0px 4px; font-size:1.1em; text-align:center">
-        Purchase Order #: <b>{{order.po_num}}</b> <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;"  uib-popover="This is the unique number associated with this Purchase Order, and can be used to verify the PO upon delivery, or to reference when corresponding with your distributors." popover-trigger="mouseenter"></span>
+        Purchase Order #: <b>{{order.po_num}}</b> <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;"  uib-popover="Unique number which will be associated with this Purchase Order upon placement, and can be used to verify the PO upon delivery, or to reference when corresponding with your distributors." popover-trigger="mouseenter" popover-append-to-body="true"></span>
       </div>
     </div>
-    <div class="row" style="padding:12px 16px 16px">
+    <div class="row" style="padding:12px 16px 10px">
       <div class="col-xs-3">
         <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_contact===true}">
           <label class="control-label bold label_small"> Restaurant Contact</label>
@@ -222,7 +220,7 @@
       <div class="col-xs-3">
         <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_email===true}">
           <label class="control-label bold label_small"> Restaurant Email</label>
-          <input ng-model="order.purchase_email_edit" class="form-control input_small" placeholder="Email" ng-change="purchasingChanged()">
+          <input ng-model="order.purchase_email_edit" class="form-control input_small" placeholder="contact@restaurant.com" ng-change="purchasingChanged()">
         </div>
       </div>
       <div class="col-xs-3">
@@ -238,11 +236,22 @@
         </div>
       </div>
     </div>
-    <div class="row" ng-if="showPurchaseSave===true" style="margin:0; margin-top:-4px; text-align:left; padding-right:16px">
-      <input ng-checked="defaultContactChecked" type="checkbox" id="cb_default_contact" class="customCbSqr" style="z-index:-99;" ng-click="toggleDefaultContact()"/>
-        <label for="cb_default_contact" ng-click="toggleDefaultContact()" style="margin-left:16px"></label>
-      <div style="display:inline-block; margin-top:-6px; margin-left:4px; vertical-align:middle">
-         Save changes to default P/O contact info 
+    <div class="row" style="padding:0px 16px 16px">
+      <div class="col-xs-3">
+        <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_cc===true}">
+          <label class="control-label label_small">
+            Fwd Purchase Order to:
+            <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;"  uib-popover="A copy of the full Purchase Order will be forwarded to this email.  Useful for internal use by managers, for example." popover-trigger="mouseenter" popover-append-to-body="true">
+          </label>
+          <input ng-model="order.purchase_cc_edit" class="form-control input_small" placeholder="manager@restaurant.com" ng-change="purchasingChanged()">
+        </div>
+      </div>
+      <div class="col-xs-9" ng-if="showPurchaseSave===true" style="margin:0; margin-top:24px; text-align:left; padding-left:0px">
+        <input ng-model="defaultContactChecked.value" type="checkbox" id="cb_default_contact" style="z-index:-99;"/>
+          <label for="cb_default_contact" style="margin-left:16px"></label>
+        <div style="display:inline-block; margin-top:-6px; margin-left:4px; vertical-align:middle">
+           Save changes to default P/O contact info 
+        </div>
       </div>
     </div>
 
@@ -510,7 +519,8 @@
   <div class="col-xs-6" style="padding-left:4px; text-align:center">
     <div class="gray_shadow po_box po_save_box" ng-click="reviewAndSave()" style="padding:8px">
       <span class="glyphicon glyphicon-ok"></span>
-      <span ng-if="order.send_method!==send_methods[2]"> Review and Send</span>
+      <span ng-if="order.send_method!==send_methods[2] && order.send_later!==true"> Review and Send</span>
+      <span ng-if="order.send_method!==send_methods[2] && order.send_later===true"> Review & Add to Pending List</span>
       <span ng-if="order.send_method===send_methods[2]"> Review and Save</span>
     </div>
   </div>
