@@ -14,6 +14,8 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
 
   $scope.purchase_orders = [];
 
+  $scope.search_po = {'query':null, 'active':false};
+
   $scope.startDateLocal = function() {
     return DateService.clientTimeToRestaurantTime($scope.start_date);
   };
@@ -21,6 +23,43 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
   $scope.endDateLocal = function() {
     return DateService.clientTimeToRestaurantTime($scope.end_date);
   };
+
+  $scope.clearSearchByPO = function() {
+    $scope.search_po['query'] = null;
+    $scope.search_po['active'] = false;
+  };
+
+  $scope.searchByPO = function() {
+    var po_num = $scope.search_po['query'];
+    if (po_num.length < 4) {
+      swal({
+        title: "Invalid PO Num",
+        text: "The PO Num you provided is too short!  Please enter a valid PO num.",
+        type: "warning",
+        timer: 4000,
+        allowOutsideClick: true});
+      return;
+    }
+
+    var params = {
+      po_num: $scope.search_po['query']
+    };
+    $http.get('/purchase/po',
+      {params: params})
+    .success(function(data, status, headers, config) {
+      // this callback will be called asynchronously when the response
+      // is available
+      console.log(data);
+      $scope.purchase_orders = data;
+      $scope.search_po['active'] = true;
+
+      ItemsService.processPurchaseOrders($scope.purchase_orders);
+
+    })
+    .error(function(data, status, headers, config) {
+      $scope.search_po['active'] = false;
+    });
+  }
 
   $scope.getPurchaseOrders = function() {
     var params = { 
@@ -58,11 +97,15 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
   $scope.startDateChanged = function() {
     console.log($scope.start_date);
 
+    $scope.clearSearchByPO();
+
     $scope.getPurchaseOrders();
   };
 
   $scope.endDateChanged = function() {
     console.log($scope.end_date);
+
+    $scope.clearSearchByPO();
 
     $scope.getPurchaseOrders();
   };

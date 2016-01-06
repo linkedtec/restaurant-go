@@ -235,7 +235,7 @@ angular.module('myApp')
 
       scope.getPONum = function() {
         // get the next available unique id for this purchase order
-        $http.get('/purchase/ponum').
+        $http.get('/purchase/nextponum').
         success(function(data, status, headers, config) {
           console.log(data);
           if (data != null) {

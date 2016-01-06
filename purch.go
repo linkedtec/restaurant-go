@@ -98,8 +98,9 @@ func setupPurchaseOrderHandlers() {
 	http.HandleFunc("/purchase/all", purchaseOrderAllAPIHandler)
 	http.HandleFunc("/purchase/pending", purchaseOrderPendingAPIHandler)
 	http.HandleFunc("/purchase/auto", purchaseOrderAutoAPIHandler)
-	http.HandleFunc("/purchase/ponum", purchaseOrderNumAPIHandler)
+	http.HandleFunc("/purchase/nextponum", purchaseOrderNextNumAPIHandler)
 	http.HandleFunc("/purchase/dorder", distributorOrderAPIHandler)
+	http.HandleFunc("/purchase/po", purchaseOrderSearchPOAPIHandler)
 }
 
 func setupSendPendingPOsCron() {
@@ -809,7 +810,7 @@ func getPurchaseOrderNumForRestaurant(restaurant_id string) string {
 	return fmt.Sprintf("%04d", prev_po+1)
 }
 
-func purchaseOrderNumAPIHandler(w http.ResponseWriter, r *http.Request) {
+func purchaseOrderNextNumAPIHandler(w http.ResponseWriter, r *http.Request) {
 	privilege := checkUserPrivilege()
 
 	switch r.Method {
@@ -1150,7 +1151,137 @@ func purchaseOrderPendingAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
+}
 
+// this is an internal helper function which, given a slice of PurchaseOrders
+// populated with only their IDs, retrieves the relevant information for
+// viewing their history, such as created time, order date, send method, etc.
+// Used for getting PO history within time range (purchaseOrderAllAPIHandler),
+// or by specific po_num (purchaseOrderSearchPOAPIHandler)
+func getPurchaseOrderHistoryFromPurchaseOrderIds(pos []PurchaseOrder, w http.ResponseWriter, r *http.Request) (ret_pos []PurchaseOrder, err error) {
+	//ret_pos = make([]PurchaseOrder, len(pos), (cap(pos)+1)*2)
+	ret_pos = pos
+	tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
+	for i, po := range ret_pos {
+		err = db.QueryRow(`
+			SELECT created AT TIME ZONE 'UTC' AT TIME ZONE $1, id, (order_date AT TIME ZONE 'UTC' AT TIME ZONE $1) AS local_order_date, send_method, po_num 
+				FROM purchase_orders WHERE id=$2;`,
+			tz_str, po.Order.ID).Scan(
+			&ret_pos[i].Order.Created,
+			&ret_pos[i].Order.ID,
+			&ret_pos[i].Order.OrderDate,
+			&ret_pos[i].Order.SendMethod,
+			&ret_pos[i].Order.PO_Num)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return ret_pos, err
+		}
+
+		drows, err := db.Query(`
+				SELECT id, distributor_id, distributor, total, do_num 
+					FROM distributor_orders WHERE purchase_order_id=$1;`, po.Order.ID)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			continue
+		}
+
+		defer drows.Close()
+		for drows.Next() {
+			var distributor_order DistributorOrder
+			if err := drows.Scan(
+				&distributor_order.ID,
+				&distributor_order.DistributorID,
+				&distributor_order.Distributor,
+				&distributor_order.Total,
+				&distributor_order.DO_Num); err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+
+			err = db.QueryRow("SELECT COUNT(beverage_id) FROM distributor_order_items WHERE distributor_order_id=$1;", distributor_order.ID).Scan(
+				&distributor_order.ItemCount)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+			ret_pos[i].DistributorOrders = append(ret_pos[i].DistributorOrders, distributor_order)
+		}
+	}
+
+	return ret_pos, err
+}
+
+func purchaseOrderSearchPOAPIHandler(w http.ResponseWriter, r *http.Request) {
+	privilege := checkUserPrivilege()
+
+	switch r.Method {
+
+	case "GET":
+		if !hasBasicPrivilege(privilege) {
+			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
+			return
+		}
+
+		po_num := r.URL.Query().Get("po_num")
+		// if po_num starts with '#', trim it
+		if string(po_num[0]) == "#" {
+			po_num = string(po_num[1:len(po_num)])
+		}
+
+		if len(po_num) < 4 {
+			http.Error(w, "po_num provided is too short!", http.StatusBadRequest)
+		}
+
+		log.Println(po_num)
+
+		var purchase_orders []PurchaseOrder
+		rows, err := db.Query(`
+			SELECT DISTINCT purchase_order_id 
+			FROM distributor_orders 
+			WHERE distributor_orders.do_num LIKE '%' || $1 || '%' ORDER BY purchase_order_id DESC;`, po_num)
+		if err != nil {
+			switch {
+			// If there were no rows, that means the beverage was probably deleted (no current).  In that case don't do the update
+			case err == sql.ErrNoRows:
+				// do nothing
+			case err != nil:
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var purchase_order PurchaseOrder
+			if err := rows.Scan(
+				&purchase_order.Order.ID); err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+
+			purchase_orders = append(purchase_orders, purchase_order)
+		}
+
+		purchase_orders, err = getPurchaseOrderHistoryFromPurchaseOrderIds(purchase_orders, w, r)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(purchase_orders)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+	}
 }
 
 func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
@@ -1167,15 +1298,14 @@ func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		start_date := r.URL.Query().Get("start_date")
 		end_date := r.URL.Query().Get("end_date")
-		tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
+		//tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
 
 		var purchase_orders []PurchaseOrder
 		rows, err := db.Query(`
-			SELECT created AT TIME ZONE 'UTC' AT TIME ZONE $1, id, (order_date AT TIME ZONE 'UTC' AT TIME ZONE $1) AS local_order_date, send_method, po_num 
-				FROM purchase_orders 
-				WHERE order_date BETWEEN $2 AND $3 AND restaurant_id=$4 AND sent=TRUE 
+			SELECT id FROM purchase_orders 
+				WHERE order_date BETWEEN $1 AND $2 AND restaurant_id=$3 AND sent=TRUE 
 			ORDER BY order_date DESC;`,
-			tz_str, start_date, end_date, test_restaurant_id)
+			start_date, end_date, test_restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1185,49 +1315,21 @@ func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			var purchase_order PurchaseOrder
 			if err := rows.Scan(
-				&purchase_order.Order.Created,
-				&purchase_order.Order.ID,
-				&purchase_order.Order.OrderDate,
-				&purchase_order.Order.SendMethod,
-				&purchase_order.Order.PO_Num); err != nil {
+				&purchase_order.Order.ID); err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
-			}
-
-			drows, err := db.Query(`
-				SELECT id, distributor_id, distributor, total, do_num 
-					FROM distributor_orders WHERE purchase_order_id=$1;`, purchase_order.Order.ID)
-			if err != nil {
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				continue
-			}
-			defer drows.Close()
-			for drows.Next() {
-				var distributor_order DistributorOrder
-				if err := drows.Scan(
-					&distributor_order.ID,
-					&distributor_order.DistributorID,
-					&distributor_order.Distributor,
-					&distributor_order.Total,
-					&distributor_order.DO_Num); err != nil {
-					log.Println(err.Error())
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					continue
-				}
-
-				err = db.QueryRow("SELECT COUNT(beverage_id) FROM distributor_order_items WHERE distributor_order_id=$1;", distributor_order.ID).Scan(
-					&distributor_order.ItemCount)
-				if err != nil {
-					log.Println(err.Error())
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					continue
-				}
-				purchase_order.DistributorOrders = append(purchase_order.DistributorOrders, distributor_order)
 			}
 
 			purchase_orders = append(purchase_orders, purchase_order)
+		}
+
+		purchase_orders, err = getPurchaseOrderHistoryFromPurchaseOrderIds(purchase_orders, w, r)
+
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -1238,7 +1340,6 @@ func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Write(js)
 	}
-
 }
 
 func distributorOrderAPIHandler(w http.ResponseWriter, r *http.Request) {

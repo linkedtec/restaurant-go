@@ -15,6 +15,17 @@
       <date-range start-date="start_date" end-date="end_date" on-start-change="startDateChanged()" on-end-change="endDateChanged()" show-helpers="true"></date_range>
 
     </div>
+    <div class="col-xs-4 min_padding" style="text-align:right">
+      <input ng-model="search_po.query" class="form-control input_small" ng-class="{'blue_box_glow':search_po.active===true}" style="width:140px; display:inline-block;" placeholder="Search by PO#"/>
+      <div ng-if="search_po.query.length>0" style="position:absolute; top:0px; right:76px;">
+        <button ng-click="clearSearchByPO();getPurchaseOrders();" type="button" class="btn btn-md btn_frameless hover_gray_transparent noselect" style="background-color:none">
+            <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span>
+        </button>
+      </div>
+      <button ng-click="searchByPO()" type="button" class="btn btn-default btn-sm" style="vertical-align:top; width:72px" ng-disabled="search_po.query===null || search_po.query.length < 4">
+        <span class="glyphicon glyphicon-search"></span> Search
+      </button>
+    </div>
   </div>
 
   <table id="purchaseOrdersTable" summary="Data table for Purchase Orders history." rules="groups" frame="hsides" border="2" style="width:100%; margin-top:8px; margin-bottom:120px">

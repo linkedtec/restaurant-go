@@ -917,6 +917,11 @@ like enclosed space */
   color:#222222;
 }
 
+.blue_box_glow {
+  box-shadow: 0px 0px 5px #BFEDFF;
+  border-color: #82CAEC;
+}
+
 .btn_right {
   margin-right: 4px;
   float: right;
