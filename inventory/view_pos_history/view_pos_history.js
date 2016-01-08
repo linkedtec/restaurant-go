@@ -12,9 +12,9 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
 
 .controller('ViewPurchaseHistoryCtrl', function($scope, $modal, $http, DateService, ItemsService) {
 
-  $scope.purchase_orders = [];
+  $scope.searchPOControl = {};
 
-  $scope.search_po = {'query':null, 'active':false};
+  $scope.purchase_orders = [];
 
   $scope.startDateLocal = function() {
     return DateService.clientTimeToRestaurantTime($scope.start_date);
@@ -24,13 +24,8 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
     return DateService.clientTimeToRestaurantTime($scope.end_date);
   };
 
-  $scope.clearSearchByPO = function() {
-    $scope.search_po['query'] = null;
-    $scope.search_po['active'] = false;
-  };
-
-  $scope.searchByPO = function() {
-    var po_num = $scope.search_po['query'];
+  $scope.searchByPO = function(query) {
+    var po_num = query;
     if (po_num.length < 4) {
       swal({
         title: "Invalid PO Num",
@@ -38,11 +33,10 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
         type: "warning",
         timer: 4000,
         allowOutsideClick: true});
-      return;
     }
 
     var params = {
-      po_num: $scope.search_po['query']
+      po_num: po_num
     };
     $http.get('/purchase/po',
       {params: params})
@@ -51,20 +45,23 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
       // is available
       console.log(data);
       $scope.purchase_orders = data;
-      $scope.search_po['active'] = true;
 
       ItemsService.processPurchaseOrders($scope.purchase_orders);
+      // return true to searchClickBox directive to highlight
+      $scope.searchPOControl.activate();
 
     })
     .error(function(data, status, headers, config) {
-      $scope.search_po['active'] = false;
+      // return false to searchClickBox directive to inactivate highlight
+      $scope.searchPOControl.deactivate();
     });
-  }
+  };
 
   $scope.getPurchaseOrders = function() {
     var params = { 
       start_date: $scope.startDateLocal(),
-      end_date: $scope.endDateLocal()
+      end_date: $scope.endDateLocal(),
+      include_pending: false
     };
     $http.get('/purchase/all', 
       {params: params })
@@ -97,7 +94,7 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
   $scope.startDateChanged = function() {
     console.log($scope.start_date);
 
-    $scope.clearSearchByPO();
+    $scope.searchPOControl.deactivate();
 
     $scope.getPurchaseOrders();
   };
@@ -105,7 +102,7 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
   $scope.endDateChanged = function() {
     console.log($scope.end_date);
 
-    $scope.clearSearchByPO();
+    $scope.searchPOControl.deactivate();
 
     $scope.getPurchaseOrders();
   };

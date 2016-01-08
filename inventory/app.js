@@ -222,7 +222,7 @@ config(['$routeProvider', function($routeProvider) {
     }
   }
 
-  var getAdditionalPricingShortDescription = function(additional_pricing, container_type, purchase_count) {
+  var getAdditionalPricingShortDescription = function(additional_pricing, container_type, purchase_count, short_short) {
     if (additional_pricing===null || additional_pricing===undefined || additional_pricing.length===0) {
       return null;
     }
@@ -231,22 +231,43 @@ config(['$routeProvider', function($routeProvider) {
     var sign = additional_pricing[0];
     var trailing = additional_pricing.substring(1);
     if (sign==='*') {
-      return "Apply " + MathService.fixFloat2(trailing) + "% discount"
+      if (short_short===true) {
+        return MathService.fixFloat2(trailing) + "% discount";
+      } else {
+        return "Apply " + MathService.fixFloat2(trailing) + "% discount";
+      }
+      
     } else {
       var value = trailing.split("|")[0];
       var apply_type = trailing.split("|")[1];
       var ret_str = "";
       if (sign==='+') {
         if (apply_type==='unit') {
-          return "Add $" + value + " per " + unit_str;
+          if (short_short===true) {
+            return "+ $" + value + " /unit";
+          } else {
+            return "Add $" + value + " per " + unit_str;
+          }
         } else {
-          return "Add $" + value + " to subtotal"; 
+          if (short_short===true) {
+            return "+ $" + value + " subtotal";
+          } else {
+            return "Add $" + value + " to subtotal";
+          }
         }
       } else {
         if (apply_type==='unit') {
-          return "Subtract $" + value + " per " + unit_str;
+          if (short_short===true) {
+            return "- $" + value + " /unit";
+          } else {
+            return "Subtract $" + value + " per " + unit_str;
+          }
         } else {
-          return "Subtract $" + value + " from subtotal"; 
+          if (short_short===true) {
+            return "- $" + value + " subtotal";
+          } else {
+            return "Subtract $" + value + " from subtotal"; 
+          }
         }
       }
     }
@@ -372,8 +393,8 @@ config(['$routeProvider', function($routeProvider) {
       return getResolvedSubtotal(item);
     },
 
-    getAdditionalPricingShortDescription: function(additional_pricing, container_type, purchase_count) {
-      return getAdditionalPricingShortDescription(additional_pricing, container_type, purchase_count);
+    getAdditionalPricingShortDescription: function(additional_pricing, container_type, purchase_count, short_short) {
+      return getAdditionalPricingShortDescription(additional_pricing, container_type, purchase_count, short_short);
     },
 
     getItemIcon: function(item) {

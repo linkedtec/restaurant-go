@@ -296,7 +296,8 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
         item['additional_pricing_short'] = ItemsService.getAdditionalPricingShortDescription(
           item['additional_pricing'],
           item['container_type'],
-          item['purchase_count']);
+          item['purchase_count'],
+          false);
       }
     }
   }

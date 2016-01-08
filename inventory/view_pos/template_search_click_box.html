@@ -1,0 +1,9 @@
+<input ng-model="search_query.query" class="form-control input_small" ng-class="{'blue_box_glow':search_query.active===true}" style="width:140px; display:inline-block;" placeholder="{{queryPlaceholder}}"/>
+<div ng-if="search_query.query.length>0" style="position:absolute; top:0px; right:76px;">
+  <button ng-click="clickedClear()" type="button" class="btn btn-md btn_frameless hover_gray_transparent noselect" style="background-color:none">
+    <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span>
+  </button>
+</div>
+<button ng-click="clickedSearch()" type="button" class="btn btn-default btn-sm" style="vertical-align:top; width:72px" ng-disabled="search_query.query===null || search_query.query.length < minLength">
+  <span class="glyphicon glyphicon-search"></span> Search
+</button>

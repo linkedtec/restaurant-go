@@ -16,22 +16,14 @@
 
     </div>
     <div class="col-xs-4 min_padding" style="text-align:right">
-      <input ng-model="search_po.query" class="form-control input_small" ng-class="{'blue_box_glow':search_po.active===true}" style="width:140px; display:inline-block;" placeholder="Search by PO#"/>
-      <div ng-if="search_po.query.length>0" style="position:absolute; top:0px; right:76px;">
-        <button ng-click="clearSearchByPO();getPurchaseOrders();" type="button" class="btn btn-md btn_frameless hover_gray_transparent noselect" style="background-color:none">
-            <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span>
-        </button>
-      </div>
-      <button ng-click="searchByPO()" type="button" class="btn btn-default btn-sm" style="vertical-align:top; width:72px" ng-disabled="search_po.query===null || search_po.query.length < 4">
-        <span class="glyphicon glyphicon-search"></span> Search
-      </button>
+      <search-click-box min-length="4" control="searchPOControl" query-placeholder="'Search by PO#'" on-search="searchByPO(query)" on-clear="getPurchaseOrders()"></search-click-box>
     </div>
   </div>
 
   <table id="purchaseOrdersTable" summary="Data table for Purchase Orders history." rules="groups" frame="hsides" border="2" style="width:100%; margin-top:8px; margin-bottom:120px">
     <tr>
       <td></td> <!--For view button-->
-      <td>Order Date / Status</td> <!--For date-->
+      <td>Order Date</td> <!--For date-->
       <td>Sent via</td>
       <td>PO #</td>
       <td>Distributor</td>
@@ -39,7 +31,7 @@
       <td>Total ($)</td>
     </tr>
     <tbody ng-repeat="po in purchase_orders" style="border-bottom: 1px solid #b0b0b0">
-      <tr class="inv_loc_row" style="font-style:italic; border-bottom:1px solid #d0d0d0; background-color:#eeeeee">
+      <tr class="inv_loc_row" style="font-style:italic; border-bottom:1px solid #d0d0d0; background-color:#f3f3f3; border-color:#dadada">
         <td>
           <button ng-click="viewPurchaseOrder(po)" type="button" class="btn btn-md btn_frameless hover_blue" style="font-size:16px; margin-top:1px; padding:2px 4px;">
             <span class="glyphicon glyphicon-eye-open"></span>
@@ -53,7 +45,7 @@
         <td style="font-weight:bold">{{po.order.total | number:2}}</td>
       </tr>
       <!--tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#F6FFEC; border-bottom:1px solid #d0d0d0"-->
-      <tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#fefefe; border-bottom:1px solid #d0d0d0;" height="32px">
+      <tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#fefefe; border-bottom:1px solid #d0d0d0; border-color:#eaeaea;" height="26px">
         <td></td>
         <td></td>
         <td></td>
@@ -66,7 +58,7 @@
     </tbody>
   </table>
 
-  <div class="row" ng-if="purchase_orders.length===0" style="margin-bottom:120px">
+  <div class="row" ng-if="purchase_orders===null || purchase_orders.length===0" style="margin-bottom:120px">
     <div class="col-xs-12 hint_text" style="font-size:1.5em; text-align:center">
       No data for selected time period.
     </div> 

@@ -3,44 +3,152 @@
   <div class="row" style="font-size:1.6em; margin-top:32px; text-align:center;">
     How would you like to create your new Purchase Order?
   </div>
-  <div class="row" style="margin-top:12px">
-    <div class="col-xs-1"></div>
-    <div class="col-xs-5" style="padding:0px 8px 0px 16px; cursor:pointer">
-      <div class="clickable_box gray_shadow" style="height:300px" ng-click="setShowMode(1, 'auto')">
-        <div style="text-align:center; margin-top:24px; font-size:1.5em; color:#4499cc">
-          Automatic / Match Par
-        </div>
-        <div style="text-align:center; margin-top:24px">
-          <img src="images/po_auto.png" height="88px" width="88px">
-        </div>
-        <div style="position:absolute; bottom:0; padding:20px">
-          <span style="font-size:1.1em">
-            Easily bulk order beverages on your menu, using 
-            Par minus Inventory.  </br>
-          </span>
-          <span style="font-style:italic; font-size:1.0em">
-            Requires up-to-date <b>Menu Plan</b> and <b>Inventory</b>.</br>
-            For more info, <a ng-click="showAutoHelp($event)" class="help_link">click here</a>.
-          </span>
-        </div>
+  <div class="row" style="margin-top:12px; text-align:center">
+    <div class="clickable_box gray_shadow" style="width:29%; cursor:pointer; height:280px; display:inline-block; vertical-align:top; margin-right:4px" ng-click="setShowMode(1, 'auto')">
+      <div style="text-align:center; margin-top:24px; font-size:1.4em; color:#4499cc">
+        Automatic / Match Par
+      </div>
+      <div style="text-align:center; margin-top:24px">
+        <img src="images/po_auto.png" height="72px" width="72px">
+      </div>
+      <div style="padding:12px; text-align:left; margin-top:12px;">
+        <span style="font-size:1.0em">
+          One-click refill Par for all active / seasonal beverages on your menu.  </br>
+        </span>
+        <span style="font-style:italic; font-size:0.9em; color:#aaaaaa">
+          Requires up-to-date <b>Menu Plan</b> and <b>Inventory</b>.  <a ng-click="showAutoHelp($event)" class="help_link">More info</a>
+        </span>
       </div>
     </div>
-    <div class="col-xs-5" style="padding:0px 16px 0px 8px; cursor:pointer">
-      <div class="clickable_box gray_shadow" style="height:300px" ng-click="setShowMode(1, 'manual')">
-        <div style="text-align:center; margin-top:24px; font-size:1.5em; color:#4499cc">
-          Manual Entry
-        </div>
-        <div style="text-align:center; margin-top:24px">
-          <img src="images/po_manual.png" height="88px" width="88px">
-        </div>
-        <div style="position:absolute; bottom:0; padding:20px; padding-bottom:30px">
-          <span style="font-size:1.1em;">
-            Manually build custom Purchase Orders to send to Distributors. 
-            Good for ordering one-offs, for example.
-          </span>
-        </div>
+    <div class="clickable_box gray_shadow" style="width:29%; cursor:pointer; height:280px; display:inline-block; vertical-align:top" ng-click="setShowMode(1, 'manual')">
+      <div style="text-align:center; margin-top:24px; font-size:1.4em; color:#4499cc">
+        Manual Entry
+      </div>
+      <div style="text-align:center; margin-top:24px">
+        <img src="images/po_manual.png" height="72px" width="72px">
+      </div>
+      <div style="padding:12px; text-align:left; margin-top:12px;">
+        <span style="font-size:1.0em;">
+          Manually populate Purchase Orders to send to Distributors. 
+        </span>
       </div>
     </div>
+    <div class="clickable_box gray_shadow" style="width:29%; cursor:pointer; height:280px; display:inline-block; vertical-align:top; margin-left:4px" ng-click="setShowMode(11, 'copy')">
+      <div style="text-align:center; margin-top:24px; font-size:1.4em; color:#4499cc">
+        Copy Previous PO
+      </div>
+      <div style="text-align:center; margin-top:24px">
+        <img src="images/po_manual.png" height="72px" width="72px">
+      </div>
+      <div style="padding:12px; text-align:left; margin-top:12px;">
+        <span style="font-size:1.0em;">
+          Copy a previously submitted PO as a starting point for your new PO.
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!--=========================== SHOW MODE 11 ==============================-->
+<!--========================= COPY PREVIOUS PO ============================-->
+<div ng-if="showMode===11" style="margin-bottom:42px">
+  <div class="row" style="font-size:1.6em; margin-top:12px; text-align:center">
+    <div class="col-xs-2 help_link" ng-click="cancelPurchaseOrder(true)">
+      <span class="glyphicon glyphicon-menu-left" style="font-size:16px;"></span>
+      <span style="font-size:0.9em"> Restart</span>
+    </div>
+    <div class="col-xs-8">
+      Select a previous P.O. to copy from
+    </div>
+  </div>
+  <div style="margin: 16px 32px">
+    <div class="row" style="margin:0">
+      <div class="col-xs-8" style="text-align:left; padding:0">
+
+        <date-range start-date="start_date.date" end-date="end_date.date" on-start-change="startDateChanged()" on-end-change="endDateChanged()" show-helpers="true"></date_range>
+
+      </div>
+      <div class="col-xs-4 min_padding" style="text-align:right">
+        <search-click-box min-length="4" control="searchPOControl" query-placeholder="'Search by PO#'" on-search="searchByPO(query)" on-clear="getOldPurchaseOrders()"></search-click-box>
+      </div>
+    </div>
+
+    <div style="height:300px; margin-top:4px; overflow-y:scroll; border:1px solid #b0b0b0">
+      <table id="purchaseOrdersTable" summary="Data table for Purchase Orders history." rules="groups" frame="hsides" border="2" style="width:100%;">
+        <tr>
+          <td></td> <!--For view button-->
+          <td>Order Date</td> <!--For date-->
+          <td>Sent via</td>
+          <td>PO #</td>
+          <td>Distributor</td>
+          <td># Items</td>
+          <td>Total ($)</td>
+          <td></td> <!--For choosing-->
+        </tr>
+        <tbody ng-repeat="po in old_purchase_orders" style="border-bottom: 1px solid #b0b0b0">
+          <tr class="inv_loc_row" ng-class="{'selected_row':selectedCopyPO.id!==null && selectedCopyPO.id===po.order.id}" style="font-style:italic; border-bottom:1px solid #d0d0d0; background-color:#f3f3f3; border-color:#dadada;">
+            <td>
+              <button ng-click="viewOldPurchaseOrder(po)" type="button" class="btn btn-md btn_frameless hover_blue" style="font-size:16px; margin-top:1px; padding:0px 4px;">
+                <span class="glyphicon glyphicon-eye-open"></span>
+              </button>
+            </td>
+            <td style="font-weight:bold">{{po.order.order_date_pretty}}</td>
+            <td>{{po.order.send_method_pretty}}</td>
+            <td style="color:#aaaaaa">{{po.order.po_num}}</td>
+            <td></td>
+            <td></td>
+            <td style="font-weight:bold">{{po.order.total | number:2}}</td>
+            <td style="text-align:right; padding: 1px 4px 1px 0px">
+              <button type="button" class="btn btn-success btn-sm" style="padding:0px 10px; font-size:1.0em" ng-click="selectCopyPO(po)"> 
+                <span ng-if="po.order.id!==selectedCopyPO.id"> Choose</span>
+                <span ng-if="po.order.id===selectedCopyPO.id"> Chosen!</span> 
+              </button>
+            </td>
+          </tr>
+          <!--tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#F6FFEC; border-bottom:1px solid #d0d0d0"-->
+          <tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" ng-class="{'selected_row2':selectedCopyPO.id!==null && selectedCopyPO.id===po.order.id}" style="background-color:#fefefe; border-bottom:1px solid #d0d0d0; border-color:#eaeaea;" height="24px">
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>{{dorder.do_num}}</td>
+            <td>{{dorder.distributor}}</td>
+            <td>{{dorder.item_count}}</td>
+            <td>{{dorder.total | number:2}}</td>
+            <td></td>
+          </tr>
+          <tr><td colspan="8"></td></tr>
+        </tbody>
+      </table>
+
+      <div class="row" ng-if="old_purchase_orders===null || old_purchase_orders.length===0">
+        <div class="col-xs-12 hint_text" style="font-size:1.5em; text-align:center; margin-top:64px">
+          No data for selected time period.
+        </div> 
+      </div>
+    </div>
+
+
+    <div class="row" ng-if="selectedCopyPO.id!==null" style="margin-top:32px">
+      <div class="col-xs-12" style="text-align:center; font-size:1.6em">
+        Should we copy the Quantities from the old PO?
+      </div>
+    </div>
+    <div class="row" ng-if="selectedCopyPO.id!==null" style="margin-top:16px">
+      <div class="col-xs-2"></div>
+      <div class="col-xs-8">
+        <div class="btn-group btn-group-justified" style="display:inline-block; width:100%;">
+          <label ng-repeat="atype in copyQuantityOptions" class="btn btn-default" ng-model="copyQuantities.value" uib-btn-radio="atype" style="height:46px; font-size:1.3em">
+            <span>{{atype}}</span>
+          </label>
+        </div>
+      </div>
+      <div class="col-xs-2" style="padding-left:0;" ng-if="copyQuantities.value!==null">
+        <button class="btn btn-lg btn-primary"  ng-click="confirmCopyPO()" style="width:100%">
+          Next <span class="glyphicon glyphicon-menu-right"></span>
+        </button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -49,7 +157,7 @@
   <div class="row" style="font-size:1.6em; margin-top:32px; text-align:center">
     <div class="col-xs-2 help_link" ng-click="cancelPurchaseOrder(true)">
       <span class="glyphicon glyphicon-menu-left" style="font-size:16px;"></span>
-      <span style="font-size:0.9em"> Back</span>
+      <span style="font-size:0.9em"> Restart</span>
     </div>
     <div class="col-xs-8">
       When should this P.O. be <b>sent</b> to Distributors?
@@ -105,7 +213,7 @@
   <div class="row" style="font-size:1.6em; margin-top:32px; text-align:center">
     <div class="col-xs-2 help_link" ng-click="cancelPurchaseOrder(true)">
       <span class="glyphicon glyphicon-menu-left" style="font-size:16px;"></span>
-      <span style="font-size:0.9em"> Back</span>
+      <span style="font-size:0.9em"> Restart</span>
     </div>
     <div class="col-xs-8" style="text-align:center;">
       How should we send the Purchase Order to Distributors?
@@ -162,8 +270,7 @@
 <div ng-if="showMode===3" style="margin-top:24px;">
   <div class="row" style="border-bottom:1px solid #e0e0e0; margin:0; margin-bottom:16px;">
     <div class="col-xs-4 help_link" style="font-size:1.4em; margin-top:6px;" ng-click="cancelPurchaseOrder(false)">
-      <span class="glyphicon glyphicon-menu-left" style="font-size:16px;"></span>
-       Back
+      <span class="glyphicon glyphicon-menu-left" style="font-size:16px;"></span> Restart
     </div>
     <div class="col-xs-4 min_padding" style="font-size:1.7em; text-align:center;">
       New Purchase Order

@@ -98,6 +98,7 @@ func setupPurchaseOrderHandlers() {
 	http.HandleFunc("/purchase/all", purchaseOrderAllAPIHandler)
 	http.HandleFunc("/purchase/pending", purchaseOrderPendingAPIHandler)
 	http.HandleFunc("/purchase/auto", purchaseOrderAutoAPIHandler)
+	http.HandleFunc("/purchase/copy", purchaseOrderCopyAPIHandler)
 	http.HandleFunc("/purchase/nextponum", purchaseOrderNextNumAPIHandler)
 	http.HandleFunc("/purchase/dorder", distributorOrderAPIHandler)
 	http.HandleFunc("/purchase/po", purchaseOrderSearchPOAPIHandler)
@@ -934,6 +935,122 @@ func purchaseOrderAutoAPIHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// For creating the Copied Purchase Order
+// Much like the Auto handler, Returns DistributorOrders populated with
+// active menu PO_Items.  In additional to id and version_id and items,
+// returns the order's contact info, delivery address type, and additional
+// comments for the distributor orders
+func purchaseOrderCopyAPIHandler(w http.ResponseWriter, r *http.Request) {
+	privilege := checkUserPrivilege()
+
+	switch r.Method {
+
+	case "GET":
+		if !hasBasicPrivilege(privilege) {
+			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
+			return
+		}
+
+		// XXX in the future need to validate poster is authenticated to query
+		// for this restaurant.  Need to replace user_id in query with restaurant_id
+		//restaurant_id := r.URL.Query().Get("restaurant_id")
+
+		copy_id := r.URL.Query().Get("copy_id")
+
+		// first get the purchase order, along with contact information
+		var copy_po PurchaseOrder
+		var purchase_cc_id NullInt64
+		err := db.QueryRow(`
+			SELECT purchase_contact, purchase_email, purchase_phone, purchase_fax, purchase_cc 
+			FROM purchase_orders WHERE id=$1;`, copy_id).Scan(
+			&copy_po.Order.PurchaseContact,
+			&copy_po.Order.PurchaseEmail,
+			&copy_po.Order.PurchasePhone,
+			&copy_po.Order.PurchaseFax,
+			&purchase_cc_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// for purchase_cc_id, need to fetch contact from contact_emails table
+		if purchase_cc_id.Valid {
+			var cc_email EmailContact
+			err = db.QueryRow(`
+				SELECT email FROM contact_emails WHERE id=$1`, purchase_cc_id.Int64).Scan(&cc_email.Email)
+			copy_po.Order.PurchaseCC = append(copy_po.Order.PurchaseCC, cc_email)
+		}
+
+		// now get all distributor orders associated with the purchase order
+		drows, err := db.Query(`
+			SELECT id, distributor_id, distributor_email, distributor_phone, additional_notes 
+			FROM distributor_orders WHERE purchase_order_id=$1;`, copy_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer drows.Close()
+		for drows.Next() {
+			var dist_order DistributorOrder
+			if err := drows.Scan(
+				&dist_order.ID,
+				&dist_order.DistributorID,
+				&dist_order.DistributorEmail,
+				&dist_order.DistributorPhone,
+				&dist_order.AdditionalNotes); err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+
+			// now get the items for this distributor order
+			// make sure to get each item's version_id in addition to beverage_id
+			irows, err := db.Query(`
+				SELECT beverage_id, quantity, additional_pricing, additional_pricing_description 
+				FROM distributor_order_items WHERE distributor_order_id=$1;`, dist_order.ID)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+			defer irows.Close()
+			for irows.Next() {
+				var item PO_Item
+				if err := irows.Scan(
+					&item.BeverageID,
+					&item.Quantity,
+					&item.AdditionalPricing,
+					&item.AdditionalPricingDescription); err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+				// get the version_id
+				err = db.QueryRow(`SELECT version_id FROM beverages WHERE id=$1`, item.BeverageID).Scan(&item.VersionID)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+				dist_order.Items = append(dist_order.Items, item)
+			}
+
+			copy_po.DistributorOrders = append(copy_po.DistributorOrders, dist_order)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(&copy_po)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+
+	}
+}
+
 func purchaseOrderPendingAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	privilege := checkUserPrivilege()
@@ -1298,13 +1415,19 @@ func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		start_date := r.URL.Query().Get("start_date")
 		end_date := r.URL.Query().Get("end_date")
+		include_pending := r.URL.Query().Get("include_pending")
 		//tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
+		log.Println(start_date)
+		log.Println(end_date)
+
+		query_str := `SELECT id FROM purchase_orders WHERE order_date BETWEEN $1 AND $2 AND restaurant_id=$3 `
+		if include_pending != "true" {
+			query_str += `AND sent=TRUE `
+		}
+		query_str += `ORDER BY order_date DESC;`
 
 		var purchase_orders []PurchaseOrder
-		rows, err := db.Query(`
-			SELECT id FROM purchase_orders 
-				WHERE order_date BETWEEN $1 AND $2 AND restaurant_id=$3 AND sent=TRUE 
-			ORDER BY order_date DESC;`,
+		rows, err := db.Query(query_str,
 			start_date, end_date, test_restaurant_id)
 		if err != nil {
 			log.Println(err.Error())

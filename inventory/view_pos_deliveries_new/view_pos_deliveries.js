@@ -34,7 +34,8 @@ angular.module('myApp.viewPODeliveries', ['ngRoute'])
   $scope.getPurchaseOrders = function() {
     var params = { 
       start_date: $scope.startDateLocal(),
-      end_date: $scope.endDateLocal()
+      end_date: $scope.endDateLocal(),
+      include_pending: false
     };
     $http.get('/purchase/all', 
       {params: params })

@@ -50,6 +50,246 @@ angular.module('myApp')
 
       scope.note_char_limit = 140;
 
+      // =======================================================================
+      // dates for purchase history for copying old POs
+      // =======================================================================
+      scope.searchPOControl = {};
+      scope.old_purchase_orders = [];
+
+      scope.startDateLocal = function() {
+        return DateService.clientTimeToRestaurantTime(scope.start_date.date);
+      };
+
+      scope.endDateLocal = function() {
+        return DateService.clientTimeToRestaurantTime(scope.end_date.date);
+      };
+
+      scope.getOldPurchaseOrders = function() {
+        var params = { 
+          start_date: scope.startDateLocal(),
+          end_date: scope.endDateLocal(),
+          include_pending: true
+        };
+        $http.get('/purchase/all', 
+          {params: params })
+        .success(function(data, status, headers, config) {
+          // this callback will be called asynchronously when the response
+          // is available
+          console.log(data);
+          scope.old_purchase_orders = data;
+
+          ItemsService.processPurchaseOrders(scope.old_purchase_orders);
+
+        })
+        .error(function(data, status, headers, config) {
+
+        });
+
+      };
+
+      scope.viewOldPurchaseOrder = function(purchase_order) {
+        var params = { 
+          id: purchase_order.order.id
+        };
+        $http.get('/purchase', 
+          {params: params })
+        .success(function(data, status, headers, config) {
+          console.log(data);
+          
+          var modalEditInstance = $modal.open({
+            templateUrl: 'reviewPurchaseOrderModal.html',
+            controller: 'reviewPurchaseOrderModalCtrl',
+            windowClass: 'review-purch-modal',
+            backdropClass: 'white-modal-backdrop',
+            backdrop : 'static',
+            resolve: {
+              content_type: function() {
+                if (purchase_order.order.send_method==="email") {
+                  return "pdf";
+                } else if (purchase_order.order.send_method==="text") {
+                  return "sms";
+                } else {
+                  return "html";
+                }
+                
+              },
+              review_obj: function() {
+                if (purchase_order.order.send_method==="email") {
+                  var URL = data['url'];
+                  return URL;
+                } else if (purchase_order.order.send_method==="text") {
+                  return data;
+                } else {
+                  var po = data;
+                  ItemsService.processPurchaseOrders([po]);
+                  return po;
+                }
+                
+              },
+              post_order: function() {
+                return null;
+              },
+              read_mode: function() {
+                return 'sent';
+              },
+              po_id: function() {
+                return null;
+              },
+              send_later: function() {
+                return false;
+              }
+            }
+          });
+        })
+        .error(function(data, status, headers, config) {
+
+        });
+      };
+
+      scope.initDate = function() {
+        var today = new Date();
+        scope.start_date = {date:null};
+        scope.start_date.date = new Date(today.setDate(today.getDate() - 6));
+        scope.start_date.date.setHours(0,0,0,0);
+        scope.end_date = {date:null};
+        scope.end_date.date = new Date();
+        scope.end_date.date.setHours(23,59,59,999);
+
+        scope.getOldPurchaseOrders();
+      };
+      scope.initDate();
+
+      scope.startDateChanged = function() {
+        console.log(scope.start_date.date);
+
+        scope.selectedCopyPO.id = null;
+
+        scope.searchPOControl.deactivate();
+
+        scope.getOldPurchaseOrders();
+      };
+
+      scope.endDateChanged = function() {
+        console.log(scope.end_date.date);
+
+        scope.selectedCopyPO.id = null;
+
+        scope.searchPOControl.deactivate();
+
+        scope.getOldPurchaseOrders();
+      };
+
+      scope.searchByPO = function(query) {
+        scope.selectedCopyPO.id = null;
+
+        var po_num = query;
+        if (po_num.length < 4) {
+          swal({
+            title: "Invalid PO Num",
+            text: "The PO Num you provided is too short!  Please enter a valid PO num.",
+            type: "warning",
+            timer: 4000,
+            allowOutsideClick: true});
+        }
+
+        var params = {
+          po_num: po_num
+        };
+        $http.get('/purchase/po',
+          {params: params})
+        .success(function(data, status, headers, config) {
+          // this callback will be called asynchronously when the response
+          // is available
+          console.log(data);
+          scope.old_purchase_orders = data;
+
+          ItemsService.processPurchaseOrders(scope.old_purchase_orders);
+          // return true to searchClickBox directive to highlight
+          scope.searchPOControl.activate();
+
+        })
+        .error(function(data, status, headers, config) {
+          // return false to searchClickBox directive to inactivate highlight
+          scope.searchPOControl.deactivate();
+        });
+      };
+
+      scope.selectedCopyPO = {id:null};
+      scope.copyQuantityOptions = ['Copy previous Quantities', 'Start Quantities from scratch'];
+      scope.copyQuantities = {value:null};
+      scope.selectCopyPO = function(po) {
+        console.log(po);
+        scope.selectedCopyPO.id = po.order.id;
+      };
+
+      scope.confirmCopyPO = function() {
+        scope.setShowMode(1, 'copy');
+      };
+
+      scope.getCopyPurchaseOrder = function() {
+
+        var params = { 
+          copy_id: scope.selectedCopyPO.id
+        };
+
+        $http.get('/purchase/copy',
+          {params: params}).
+        success(function(data, status, headers, config) {
+          // this callback will be called asynchronously when the response
+          // is available
+          console.log(data);
+          if (data != null) {
+            var new_po = data;
+            scope.order['purchase_contact'] = new_po['order']['purchase_contact'];
+            scope.order['purchase_contact_edit'] = new_po['order']['purchase_contact'];
+            scope.order['purchase_email'] = new_po['order']['purchase_email'];
+            scope.order['purchase_email_edit'] = new_po['order']['purchase_email'];
+            scope.order['purchase_phone'] = new_po['order']['purchase_phone'];
+            scope.order['purchase_phone_edit'] = new_po['order']['purchase_phone'];
+            scope.order['purchase_fax'] = new_po['order']['purchase_fax'];
+            scope.order['purchase_fax_edit'] = new_po['order']['purchase_fax'];
+            if (new_po['order']['purchase_cc']!==null && new_po['order']['purchase_cc'].length > 0) {
+              scope.order['purchase_cc'] = new_po['order']['purchase_cc'][0]['email'];
+              scope.order['purchase_cc_edit'] = new_po['order']['purchase_cc'][0]['email'];
+            }
+            
+            for (var i in new_po.distributor_orders) {
+              var dist_order = new_po.distributor_orders[i];
+
+              // if user specified to copy quantities from previous PO,
+              // set copy_quantity_str to 'copy' so addPrepopulatedDistributorOrder
+              // knows to handle it
+              var copy_quantity_str = '';
+              if (scope.copyQuantities.value===scope.copyQuantityOptions[0]) {
+                copy_quantity_str = 'copy';
+              }
+              scope.addPrepopulatedDistributorOrder(dist_order, true, copy_quantity_str);
+            }
+
+            scope.refreshSelectableDistributors();
+            /*
+            for (var i in data) {
+              var dist_order = data[i];
+              if (dist_order.items !== null && dist_order.items.length > 0) {
+                scope.addCopyDistributorOrder(dist_order['distributor_id'], dist_order.items);
+              }
+            }
+            scope.refreshSelectableDistributors();
+            */
+          } else {
+            ;
+          }
+          
+        }).
+        error(function(data, status, headers, config) {
+
+        });
+      };
+
+      // =======================================================================
+      // end dates for purchase history
+      // =======================================================================
+
       scope.showAutoHelp = function($event) {
         $event.preventDefault();
         $event.stopPropagation();
@@ -135,8 +375,8 @@ angular.module('myApp')
         }
       };
 
-      scope.addEmptyDistributorOrder = function() {
-        scope.order['dist_orders'].push({
+      scope.getNewEmptyDistributorOrder = function() {
+        return {
           distributor:null, 
           delivery_date: null, 
           addable_items: [],
@@ -148,90 +388,127 @@ angular.module('myApp')
           additional_notes: null,
           save_default_email: null,
           save_default_phone: null,
-          double_sort: -1});
-      };
-
-      scope.addAutoDistributorOrder = function(dist_id, items) {
-
-        var new_dorder = {
-          distributor:null, 
-          delivery_date: scope.order['delivery_date'], 
-          addable_items: [],
-          items:[],
-          total:null,
-          show_add_ui:false,
-          addableControl: {},
-          sort_key: null,
-          additional_notes: null,
-          save_default_email: null,
-          save_default_phone: null,
           double_sort: -1
         };
+      }
+
+      scope.addEmptyDistributorOrder = function() {
+        scope.order['dist_orders'].push(
+          scope.getNewEmptyDistributorOrder());
+      };
+
+      scope.addPrepopulatedDistributorOrder = function(copy_dorder, isCopyPO, quantityCopyOrPar) {
+
+        var new_dorder = scope.getNewEmptyDistributorOrder();
+        new_dorder.delivery_date = scope.order['delivery_date'];
 
         for (var i in scope.all_distributors) {
           var dist = scope.all_distributors[i];
-          if (dist['id'] === dist_id) {
+          if (dist['id'] === copy_dorder['distributor_id']) {
             scope.selectDistributor(new_dorder, dist);
             break;
           }
         }
 
+        if (isCopyPO===true) {
+          new_dorder['additional_notes'] = copy_dorder['additional_notes'];
+          new_dorder['distributor_email'] = copy_dorder['distributor_email'];
+          new_dorder['distributor_phone'] = copy_dorder['distributor_phone'];
+        }
+
         // for each of the items in @items, find the corresponding addable bev
         // from scope.all_bevs, and add it to this dorder using scope.addItem,
         // and automatically resolve its par using scope.matchQuantityToPar
-        for (var i in items) {
-          var id_bev = items[i];
+        for (var i in copy_dorder.items) {
+          var copy_bev = copy_dorder.items[i];
           var bev = null;
           for (var j in scope.all_bevs) {
             var check_bev = scope.all_bevs[j];
-            if (id_bev['version_id'] === check_bev['version_id']) {
+            if (copy_bev['version_id'] === check_bev['version_id']) {
               bev = check_bev;
               break;
             }
           }
           if (bev !== null) {
-            
             scope.addItem(new_dorder, bev);
-            scope.matchQuantityToPar(bev, new_dorder);
+
+            if (isCopyPO===true) {
+              // this is for copying an existing PO, so copy_bev will have things
+              // we will want to copy
+              if (quantityCopyOrPar==='copy') {
+                bev['quantity'] = copy_bev['quantity'];
+              }
+              //if we're copying PO, we want to apply discounts regardless
+              // of copying quantities or starting from scratch
+              //
+              // copy apply discounts if any exist,
+              // and recalculate resolved_subtotal based on new quantity
+              // and discounts.
+              bev['additional_pricing'] = copy_bev['additional_pricing'];
+              bev['additional_pricing_description'] = copy_bev['additional_pricing_description'];
+              bev['additional_pricing_short'] = ItemsService.getAdditionalPricingShortDescription(
+                copy_bev['additional_pricing'],
+                bev['container_type'],
+                bev['purchase_count'],
+                true);
+
+              scope.updateQuantity(bev, new_dorder);
+            } else {
+              // this is for automatic POs, so we're only interested in matching
+              // quantities to par
+              scope.matchQuantityToPar(bev, new_dorder);
+            }
           }
         }
 
         scope.order['dist_orders'].push(new_dorder);
       }
 
-      scope.initDistOrders = function() {
-        scope.order['dist_orders'] = [];
-        scope.addEmptyDistributorOrder();
-      };
-
-      scope.initManualForm = function() {
+      scope.initForm = function() {
         scope.new_failure_msg = null;
-        scope.getAllDistributors();
-        scope.initDistOrders();
         scope.refreshSelectableDistributors();
-
-        console.log(scope.order['dist_orders']);
-        scope.getRestaurant();
         scope.getPONum();
-
         // don't forget to clear form verification!
         scope.form_ver = {};
+      }
+
+      scope.initManualForm = function() {
+
+        scope.getAllDistributors(false, false);
+
+        // must call this after getAllDistributors, since it calls
+        // refereshSelectableDistributors()
+        scope.initForm();
+        scope.addEmptyDistributorOrder();
+        
+        scope.getRestaurant();
 
       };
 
       scope.initAutoForm = function() {
-        scope.new_failure_msg = null;
+
         scope.order['dist_orders'] = [];
-        scope.getAllDistributors(true);
+        scope.getAllDistributors(true, false);
         // getAllDistributors will call getAutoPurchaseOrder after it's done
-        scope.refreshSelectableDistributors();
+
+        // must call this after getAllDistributors, since it calls
+        // refereshSelectableDistributors()
+        scope.initForm();
 
         scope.getRestaurant();
-        scope.getPONum();
-
-        scope.form_ver = {};
 
       };
+
+      scope.initCopyForm = function() {
+        scope.getAllDistributors(false, true);
+
+        // must call this after getAllDistributors, since it calls
+        // refereshSelectableDistributors()
+        scope.initForm();
+
+        // don't call getRestaurant, that should copy from the
+        // previous purchase order
+      }
 
       scope.getPONum = function() {
         // get the next available unique id for this purchase order
@@ -262,7 +539,7 @@ angular.module('myApp')
             for (var i in data) {
               var dist_order = data[i];
               if (dist_order.items !== null && dist_order.items.length > 0) {
-                scope.addAutoDistributorOrder(dist_order['distributor_id'], dist_order.items);
+                scope.addPrepopulatedDistributorOrder(dist_order, false, 'par');
               }
             }
             scope.refreshSelectableDistributors();
@@ -303,11 +580,21 @@ angular.module('myApp')
       scope.setShowMode = function(mode, use_mode) {
         scope.showMode = mode;
 
+        // showModes:
+        // 0  : the start screen, choosing auto / manual / previous
+        // 1  : when should PO be sent, when delivered
+        // 2  : how should it be sent?  email / sms / save only
+        // 3  : PO form
+        // 11 : If copying, the list of previous POs, and start from scratch or previous quantities
+
         // if mode is 0 we are resetting everything
         if (mode === 0) {
+          scope.order['dist_orders'] = [];
           scope.order['delivery_date'] = null;
           scope.order['order_date'] = null;
           scope.order['order_date_type'] = scope.order_date_types[0];
+          scope.selectedCopyPO.id = null;
+          scope.copyQuantities.value = null;
         }
 
         if (use_mode !== null) {
@@ -324,7 +611,14 @@ angular.module('myApp')
             scope.initManualForm();
           } else if (use_mode==='auto') {
             scope.initAutoForm();
+          } else if (use_mode==='copy') {
+            scope.initCopyForm();
           }
+        }
+
+        if (mode===11) {
+          // for copy PO, need to refetch old purchase orders
+          scope.getOldPurchaseOrders();
         }
         
       };
@@ -520,7 +814,7 @@ angular.module('myApp')
         
       };
 
-      scope.getAllDistributors = function( doAuto ) {
+      scope.getAllDistributors = function( doAuto, doCopy ) {
 
         scope.all_distributors = [];
 
@@ -536,8 +830,12 @@ angular.module('myApp')
             scope.sel_distributors.push(dist);
           }
 
+          // keep this here, as it depends on getting distributors
+          // finishing first
           if (doAuto === true) {
             scope.getAutoPurchaseOrder();
+          } else if (doCopy === true) {
+            scope.getCopyPurchaseOrder();
           }
 
           console.log(data);
@@ -546,7 +844,6 @@ angular.module('myApp')
             ; // do nothing for now
           });
       };
-      //scope.getAllDistributors();
 
       scope.distEmailChanged = function(dorder) {
         var dist = dorder.distributor;
@@ -1094,7 +1391,8 @@ angular.module('myApp')
           valid_dorders.push(dorder);
         }
         if (valid_dorders.length == 0) {
-          scope.initDistOrders();
+          scope.order['dist_orders'] = [];
+          scope.addEmptyDistributorOrder();
           scope.new_failure_msg = "Please add items to your empty Distributor Orders and try again!";
           return;
         }

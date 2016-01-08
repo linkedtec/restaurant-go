@@ -47,8 +47,11 @@
           <span style="vertical-align:middle">
             {{po.order.order_date_pretty}}
           </span>
-          <span ng-if="po.order.days_til_send <= 5" style="font-size:0.8em; margin-top:0; border-radius:4px; padding:3px 6px; background-color:#44aa00; text-align:center; margin-left:6px; font-weight:normal; color:white" uib-popover="This Purchase Order will automatically be sent to Distributors in {{po.order.days_til_send}} days!" popover-trigger="mouseenter" popover-append-to-body="true">
+          <span ng-if="po.order.days_til_send <= 5 && po.order.days_til_send > 0" style="font-size:0.8em; margin-top:0; border-radius:4px; padding:3px 6px; background-color:#44aa00; text-align:center; margin-left:6px; font-weight:normal; color:white" uib-popover="This Purchase Order will automatically be sent to Distributors in {{po.order.days_til_send}} days!" popover-trigger="mouseenter" popover-append-to-body="true">
             In {{po.order.days_til_send}} days!
+          </span>
+          <span ng-if="po.order.days_til_send===0" style="font-size:0.8em; margin-top:0; border-radius:4px; padding:3px 6px; background-color:#44aa00; text-align:center; margin-left:6px; font-weight:normal; color:white" uib-popover="This Purchase Order will automatically be sent to Distributors an hour before business hours today" popover-trigger="mouseenter" popover-append-to-body="true">
+            Today!
           </span>
         </td>
         <td>{{po.order.send_method_pretty}}</td>
@@ -64,7 +67,7 @@
         </td>
       </tr>
       <!--tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#F6FFEC; border-bottom:1px solid #d0d0d0"-->
-      <tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#fefefe; border-bottom:1px solid #d0d0d0;" height="32px">
+      <tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#fefefe; border-bottom:1px solid #d0d0d0;" height="28px">
         <td></td>
         <td></td>
         <td></td>
