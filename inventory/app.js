@@ -227,7 +227,7 @@ config(['$routeProvider', function($routeProvider) {
       return null;
     }
 
-    var unit_str = getPurchaseUnitName(container_type, purchase_count);
+    var unit_str = getPOUnitName(container_type, purchase_count);
     var sign = additional_pricing[0];
     var trailing = additional_pricing.substring(1);
     if (sign==='*') {
@@ -291,7 +291,7 @@ config(['$routeProvider', function($routeProvider) {
     return item.product;
   }
 
-  var getPurchaseUnitName = function(container_type, purchase_count) {
+  var getPOUnitName = function(container_type, purchase_count) {
     if (purchase_count > 1) {
       return 'Case';
     }
@@ -405,8 +405,8 @@ config(['$routeProvider', function($routeProvider) {
       return getDisplayName(item);
     },
 
-    getPurchaseUnitName: function(container_type, purchase_count) {
-      return getPurchaseUnitName(container_type, purchase_count);
+    getPOUnitName: function(container_type, purchase_count) {
+      return getPOUnitName(container_type, purchase_count);
     },
 
     getBevUnitCost: function(bev) {
@@ -531,6 +531,8 @@ config(['$routeProvider', function($routeProvider) {
         item['batch_cost'] = getBevCost(item, 'batch');
 
         item['display_name'] = getDisplayName(item);
+
+        item['po_unit'] = getPOUnitName(item['container_type'], item['purchase_count']);
 
         item['icon'] = getItemIcon(item);
 

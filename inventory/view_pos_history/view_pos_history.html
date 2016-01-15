@@ -23,12 +23,13 @@
   <table id="purchaseOrdersTable" summary="Data table for Purchase Orders history." rules="groups" frame="hsides" border="2" style="width:100%; margin-top:8px; margin-bottom:120px">
     <tr>
       <td></td> <!--For view button-->
-      <td>Order Date</td> <!--For date-->
+      <td>Order Date / Status</td> <!--For date-->
       <td>Sent via</td>
       <td>PO #</td>
       <td>Distributor</td>
       <td># Items</td>
       <td>Total ($)</td>
+      <td></td>
     </tr>
     <tbody ng-repeat="po in purchase_orders" style="border-bottom: 1px solid #b0b0b0">
       <tr class="inv_loc_row" style="font-style:italic; border-bottom:1px solid #d0d0d0; background-color:#f3f3f3; border-color:#dadada">
@@ -43,18 +44,30 @@
         <td></td>
         <td></td>
         <td style="font-weight:bold">{{po.order.total | number:2}}</td>
+        <td></td>
       </tr>
       <!--tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#F6FFEC; border-bottom:1px solid #d0d0d0"-->
       <tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#fefefe; border-bottom:1px solid #d0d0d0; border-color:#eaeaea;" height="26px">
         <td></td>
-        <td></td>
+        <td>
+          <div style="font-size:0.9em; display:inline-block; color:#927D2E; background-color:#FFFAE6; border:1px solid #DCC25E; padding:3px 8px; border-radius:4px; width:120px; text-align:center" ng-if="dorder.delivered!==true" uib-popover="The Purchase Order has been sent to the Distributor, but you have not yet confirmed receipt of the Delivery.  When you receive the Delivery and Invoice from {{dorder.distributor}}, press the 'Record Delivery' button." popover-trigger="mouseenter" popover-popup-delay="300">
+            Pending Delivery...
+          </div>
+          <div style="font-size:1.0em; display:inline-block; color:#2C8811; background-color:#ECFDDD; border:1px solid #94DC5E; padding:3px 8px; border-radius:4px; width:120px; text-align:center" ng-if="dorder.delivered===true" uib-popover="A record has been saved for this Delivery." popover-trigger="mouseenter" popover-popup-delay="300">
+            <span class="glyphicon glyphicon-star"></span> Delivered!
+          </div>
+        </td>
         <td></td>
         <td>{{dorder.do_num}}</td>
         <td>{{dorder.distributor}}</td>
         <td>{{dorder.item_count}}</td>
         <td>{{dorder.total | number:2}}</td>
+        <td style="padding-top:5px; padding-bottom:5px">
+          <button ng-if="dorder.delivered!==true" ng-click="recordDelivery(po, dorder, false)" type="button" class="btn btn-success btn-sm" style="float:right; padding:4px 8px; font-size:13px"><span class="glyphicon glyphicon-pencil"></span> Record Delivery</button>
+          <button ng-if="dorder.delivered===true" ng-click="recordDelivery(po, dorder, true)" type="button" class="btn btn-default btn-sm" style="float:right; padding:4px 8px; font-size:13px"> View / Edit Delivery</button>
+        </td>
       </tr>
-      <tr><td colspan="7"></td></tr>
+      <tr><td colspan="8"></td></tr>
     </tbody>
   </table>
 

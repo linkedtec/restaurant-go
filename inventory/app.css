@@ -1,7 +1,20 @@
 /* app css stylesheet */
 
+.red_color {
+  color:#cc2200 !important;
+}
+
+.black_color {
+  color: black !important;
+}
+
 *:focus {
   outline: 0 !important;
+}
+
+/* Don't want the gray background after clicking a button */
+.btn-default:focus {
+  background-color: white;
 }
 
 body {
@@ -574,15 +587,15 @@ body {
 }
 
 .hover_red:hover {
-  color:#cc2200;
+  color:#cc2200 !important;
 }
 
 .hover_green:hover {
-  color:#22aa55;
+  color:#22aa55 !important;
 }
 
 .hover_blue:hover {
-  color:#2299cc;
+  color:#2299cc !important;
 }
 
 .hover_gray_transparent:hover {
@@ -932,7 +945,13 @@ like enclosed space */
   background-color: #C7EFBD !important;
 }
 .selected_row2 {
-  background-color: #E0FBD2 !important;
+  background-color: #EFFFE4 !important;
+  border-color: #90D289 !important;
+}
+
+.selected_row3 {
+  background-color: #FFF7F5 !important;
+  border-color: #E4AFAF !important;
 }
 
 .btn_right {
@@ -1154,6 +1173,11 @@ like enclosed space */
 
 .inv-qty-modal .modal-dialog{
   margin-top:80px;
+  min-width:480px;
+}
+
+.inv-qty-modal-hi .modal-dialog {
+  margin-top:20px;
   min-width:480px;
 }
 

@@ -1584,7 +1584,7 @@ angular.module('myApp')
   console.log($scope.item);
 
   $scope.apply_to_types = ["Subtotal"];
-  $scope.purchase_unit = ItemsService.getPurchaseUnitName($scope.item.container_type, $scope.item.purchase_count);
+  $scope.purchase_unit = ItemsService.getPOUnitName($scope.item.container_type, $scope.item.purchase_count);
   $scope.apply_to_types.push("Each individual " + $scope.purchase_unit);
   
   $scope.apply_to = {'value':null};

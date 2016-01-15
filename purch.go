@@ -62,6 +62,7 @@ type PO_Item struct {
 	// only for saving & not sending PO form:
 	Product        string      `json:"product"`
 	Brewery        NullString  `json:"brewery"`
+	AlcoholType    string      `json:"alcohol_type"`
 	PurchaseVolume NullFloat64 `json:"purchase_volume"`
 	PurchaseUnit   NullString  `json:"purchase_unit"`
 	PurchaseCost   float32     `json:"purchase_cost"`
@@ -85,6 +86,7 @@ type DistributorOrder struct {
 	Total                       float32    `json:"total"`
 	AdditionalNotes             NullString `json:"additional_notes"`
 	DO_Num                      NullString `json:"do_num"`
+	Delivered                   bool       `json:"delivered"`
 }
 
 type PO_SMS struct {
@@ -200,9 +202,10 @@ func createPurchaseOrderSaveOnly(user_id string, restaurant_id string, purchase_
 			purchase_order.DistributorOrders[i].DeliveryDate = getTimeAtTimezone(dorder.DeliveryDate, tz_str, true)
 
 			for j, item := range dorder.Items {
-				err := db.QueryRow("SELECT product, brewery, purchase_volume, purchase_unit, purchase_cost, purchase_count, container_type FROM beverages WHERE id=$1;", item.BeverageID).Scan(
+				err := db.QueryRow("SELECT product, brewery, alcohol_type, purchase_volume, purchase_unit, purchase_cost, purchase_count, container_type FROM beverages WHERE id=$1;", item.BeverageID).Scan(
 					&purchase_order.DistributorOrders[i].Items[j].Product,
 					&purchase_order.DistributorOrders[i].Items[j].Brewery,
+					&purchase_order.DistributorOrders[i].Items[j].AlcoholType,
 					&purchase_order.DistributorOrders[i].Items[j].PurchaseVolume,
 					&purchase_order.DistributorOrders[i].Items[j].PurchaseUnit,
 					&purchase_order.DistributorOrders[i].Items[j].PurchaseCost,
@@ -1325,6 +1328,17 @@ func getPurchaseOrderHistoryFromPurchaseOrderIds(pos []PurchaseOrder, w http.Res
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
 			}
+
+			// to see whether this distributor order has a recorded delivery,
+			// check to see if any entries in TABLE do_deliveries reference it
+			err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM do_deliveries WHERE distributor_order_id=$1);", distributor_order.ID).Scan(
+				&distributor_order.Delivered)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+
 			ret_pos[i].DistributorOrders = append(ret_pos[i].DistributorOrders, distributor_order)
 		}
 	}
@@ -1667,6 +1681,12 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// for display back, for reviewing "Send Now" versions of pending orders
 		// if none was specified will be empty string ""
 		order_date_override := r.URL.Query().Get("order_date_override")
+		// optional argument if we want to view the purchase order in a different
+		// way than it was originally sent.  e.g., if send_method was originally
+		// 'email' and we want to view it as 'text'.
+		// this is also used for recording deliveries, when we want to get
+		// everything as 'save' so we get additional product info
+		view_override := r.URL.Query().Get("view_override")
 
 		po_id, _ := strconv.Atoi(_po_id)
 		purchase_order, err := getPurchaseOrderFromID(po_id)
@@ -1685,11 +1705,16 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 			purchase_order.Order.OrderDate = order_date
 		}
 
-		if purchase_order.Order.SendMethod.String == "email" {
+		view_method := purchase_order.Order.SendMethod.String
+		if view_override != "" && len(view_override) > 1 {
+			view_method = view_override
+		}
+
+		if view_method == "email" {
 			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, false, false, w, r)
-		} else if purchase_order.Order.SendMethod.String == "text" {
+		} else if view_method == "text" {
 			createPurchaseOrderSMS(test_user_id, test_restaurant_id, purchase_order, false, w, r)
-		} else if purchase_order.Order.SendMethod.String == "save" {
+		} else if view_method == "save" {
 			createPurchaseOrderSaveOnly(test_user_id, test_restaurant_id, purchase_order, false, w, r)
 		}
 

@@ -1,0 +1,116 @@
+<script type="text/ng-template" id="dlvFlagInvoiceModalCtrl.html">
+  <div class="modal-header" style="padding-top:8px; padding-bottom:4px;">
+    <button ng-click="cancel()" type="button" class="btn btn-default btn_modal_x" style="float:left">
+      <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+    </button>
+    <span style="font-size:1.2em;margin-left:24px"> Flag Invoice Discrepancy: <b>{{item.product}}</b> </span>
+  </div>
+  <div class="modal-body" style="font-size:1.0em; height:100%; background-color:#ffffff; margin-bottom:16px; padding: 24px 48px">
+    <div class="row" style="text-align:center; font-size:2.0em">
+      <span class="glyphicon glyphicon-flag" style="font-size:1.0em; color:#cc2200"></span> Invoice Discrepancy
+    </div>
+    <div class="row" style="margin-top:12px">
+      <div class="col-xs-12" style="font-size:1.1em;">
+        Please enter the amount you were invoiced for <b>{{item.product}}</b>:
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px; font-size:1.0em">
+      <div class="col-xs-2"></div>
+      <div class="col-xs-8" style="text-align:center">
+        <div class="row" style="padding:6px 0px 8px; background-color: #eaeaea; border-radius:6px">
+          <div class="col-xs-6">
+            <div>Original Estimate</div>
+            <div style="font-size:1.6em;">
+              $ {{item.resolved_subtotal | number:2}}
+            </div>
+          </div>
+          <div class="col-xs-6">
+            <div style="font-weight:bold">Invoiced Amount</div>
+            <input ng-model="dlv_invoice.value" type="number" min="0" class="form-control" ng-class="{'my_error': form_ver.error_dlv_invoice===true}" style="text-align:center; width:120px; margin:0 auto; padding:2px 10px; font-size:20px">
+          </div>
+        </div>
+      </div>
+    </div>
+    <hr style="margin-bottom:16px; margin-top:24px"/>
+    <div class="row" style="">
+      <div class="col-xs-12" style="font-size:1.1em">
+        <span>Did the <b>Unit Wholesale Cost (excluding Deposit)</b> <b>change</b>, compared to 
+        our records?</span> &nbsp;
+        <span class="hint_text" style="font-style:italic; font-size:1.0em">Leave blank if wholesale price has not changed.</span>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px; font-size:1.0em">
+      <div class="col-xs-2"></div>
+      <div class="col-xs-8" style="text-align:center">
+        <div class="row" style="padding:6px 0px 8px; background-color: #eaeaea; border-radius:6px">
+          <div class="col-xs-6">
+            <div>Wholesale on Record</div>
+            <div style="font-size:1.6em;">
+              $ {{item.purchase_cost | number:2}}
+            </div>
+          </div>
+          <div class="col-xs-6">
+            <div>Invoiced Wholesale</div>
+            <input ng-model="dlv_wholesale.value" type="number" min="0" class="form-control" ng-class="{'my_error': form_ver.error_dlv_wholesale===true}" style="text-align:center; width:120px; margin:0 auto; padding:2px 10px; font-size:20px">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row" ng-if="dlv_wholesale.value!==null" style="margin-top:4px; font-size:1.0em; font-weight:bold;">
+      <div class="col-xs-2"></div>
+      <div class="col-xs-8" style="background-color:#B5EBFF">
+        <div class="row" style="padding:0px 4px 2px">
+          <div class="col-xs-1 min_padding" style="padding-right:0;">
+            <input ng-model="dlv_update_wholesale.value" type="checkbox" id="checkboxUpdateWholesale" style="z-index:-99;"/>
+            <label for="checkboxUpdateWholesale" style="margin:0; margin-top:-2px; height:0; font-size:1.1em;"></label>
+          </div>
+          <div class="col-xs-11 min_padding" style="margin-top:6px">
+            Update wholesale price in our Datebase. <span class="glyphicon glyphicon-question-sign" style="color:#aaaaaa" uib-popover="If checked, saves the new wholesale price as the default for this item for future transactions.  Do not check this option if the invoiced wholesale price is non-recurring / one-time, or is erroneous." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="200"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <hr ng-if="item.additional_pricing!==null" style="margin-bottom:16px; margin-top:24px"/>
+    <div class="row" ng-if="item.additional_pricing!==null" style="margin-top:16px">
+      <div class="col-xs-12" style="font-size:1.1em" ng-class="{'my_error_txt': form_ver.error_dlv_discount_applied===true}">
+        The P.O. listed a <b>discount</b> for this item below; was it properly applied?<br/>
+      </div>
+      <div class="col-xs-12" style="font-size:1.2em; text-align:center; font-weight:bold; margin-top:12px">
+        <span class="glyphicon glyphicon-tag" style="font-size:1.5em; vertical-align:bottom; color:#3CA7D4;"></span>
+        <span ng-if="item.additional_pricing_description!==null">
+          {{item.additional_pricing_description}} : 
+        </span>
+        <span>
+          {{item.additional_pricing_short}}<br/>
+        </span>
+      </div>
+      <div class="col-xs-12" style="text-align:center; margin-top:12px">
+        <div class="btn-group btn-group-justified" style="display:inline-block; width:80px; font-weight:bold; margin-top:-2px">
+          <label class="btn btn-default btn-md" ng-class="{'btn-danger':dlv_discount_applied.value===false}" ng-model="dlv_discount_applied.value" uib-btn-radio="false">
+            <span class="glyphicon glyphicon-remove" style="color:#E4AFAF; font-weight:bold"></span>
+          </label>
+          <label class="btn btn-default btn-md" ng-class="{'btn-success':dlv_discount_applied.value===true}" ng-model="dlv_discount_applied.value" uib-btn-radio="true">
+            <span class="glyphicon glyphicon-ok" style="color:#AADAAA; font-weight:bold"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <hr style="margin-bottom:16px; margin-top:24px"/>
+    <div class="row" ng-if="new_failure_msg!==null" style="margin: 12px 0px">
+      <div class="alert alert-danger" data-html="true" role="alert" style="margin-bottom:0px">
+        {{new_failure_msg}}
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-xs-12" style="text-align:center">
+        <button ng-click="deleteFlag()" ng-if="loaded_existing===true" type="button" class="btn btn-success btn-danger btn_ok" style="font-size:1.2em">
+          <span class="glyphicon glyphicon-trash" aria-hidden="true"></span> Remove Flag
+        </button>
+        <button ng-click="saveFlag()" type="button" class="btn btn-success btn_ok" ng-disabled="dlv_invoice.value===null" style="font-size:1.2em">
+          <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> Save & Flag Invoice
+        </button>
+      </div>
+    </div>
+    
+  </div>
+</script>

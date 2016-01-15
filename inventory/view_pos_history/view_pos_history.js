@@ -212,23 +212,110 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
       function() {
         ;
       });
-  }
+  };
 
-  $scope.recordDelivery = function(dorder) {
+  $scope.editDelivery = function(dorder) {
     console.log(dorder);
 
-    var params = { 
+    var params = {
       id: dorder.id
     };
 
+    $http.get('/deliveries',
+      {params: params})
+    .success(function(data, status, headers, config) {
+
+      console.log('edit delivery:');
+      console.log(data);
+      if (data===null) {
+        return;
+      }
+
+      // need to combine returned delivery data into the input dorder to form
+      // a combined dorder ready for editing
+      dorder['delivery_timely'] = data['delivery_timely'];
+      dorder['delivery_invoice'] = data['delivery_invoice'];
+      dorder['delivery_invoice_acceptable'] = data['delivery_invoice_acceptable'];
+      var dlv_time = DateService.getDateFromUTCTimeStamp(
+            data['delivery_time'], true);
+      var dlv_date = DateService.getDateFromUTCTimeStamp(
+            data['delivery_time'], true);
+      dlv_date.setHours(0,0,0,0)
+      dorder['delivery_time'] = dlv_time;
+      dorder['delivery_date'] = dlv_date;
+      dorder['additional_notes'] = data['additional_notes'];
+
+      for (var i in dorder.items) {
+        var item = dorder.items[i];
+        var dlv_item = null;
+        for (var j in data['items']) {
+          if (data['items'][j]['beverage_id'] == item.beverage_id) {
+            dlv_item = data['items'][j];
+            break;
+          }
+        }
+        if (dlv_item===null) {
+          continue;
+        }
+        item['satisfactory'] = dlv_item['satisfactory'];
+        item['dlv_quantity'] = dlv_item['dlv_quantity'];
+        item['dlv_invoice'] = dlv_item['dlv_invoice'];
+        item['dlv_discount_applied'] = dlv_item['dlv_discount_applied'];
+        item['dlv_wholesale'] = dlv_item['dlv_wholesale'];
+        item['dlv_update_wholesale'] = dlv_item['dlv_update_wholesale'];
+        item['dlv_damaged_goods'] = dlv_item['dlv_damaged_goods'];
+        item['dlv_rough_handling'] = dlv_item['dlv_rough_handling'];
+        item['dlv_wrong_item'] = dlv_item['dlv_wrong_item'];
+        item['dlv_comments'] = dlv_item['dlv_comments'];
+      }
+
+      $scope.launchRecordDeliveryModal(dorder);
+
+    })
+    .error(function(data, status, headers, config) {
+
+    });
+  };
+
+  $scope.recordDelivery = function(order, dorder, is_edit) {
+    console.log(order);
+
+    var params = { 
+      id: order['order'].id,
+      // view_override will access the purchase as 'save only' to get a 
+      // comprehensive order returned
+      view_override: "save"
+    };
+
     // first get the full distributor_order from the server
-    $http.get('/purchase/dorder', 
+    $http.get('/purchase', 
       {params: params })
     .success(function(data, status, headers, config) {
-      // this callback will be called asynchronously when the response
-      // is available
+
+      console.log('record delivery:');
       console.log(data);
-      $scope.launchRecordDeliveryModal(data);
+      if (data===null) {
+        return;
+      }
+
+      ItemsService.processPurchaseOrders([data]);
+
+      // data returned is the ENTIRE purchase order, need to only pass the
+      // distributor order
+      var pass_dorder;
+      for (var i in data.distributor_orders) {
+        var check_dorder = data.distributor_orders[i];
+        if (check_dorder.id===dorder.id) {
+          pass_dorder = check_dorder;
+          break;
+        }
+      }
+      ItemsService.processBevsForAddable(pass_dorder.items);
+      if (is_edit===true) {
+        $scope.editDelivery(pass_dorder);
+      } else {
+        $scope.launchRecordDeliveryModal(pass_dorder);
+      }
 
     })
     .error(function(data, status, headers, config) {

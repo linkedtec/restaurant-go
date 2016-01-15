@@ -359,9 +359,20 @@ func volumeUnitsHandler(w http.ResponseWriter, r *http.Request) {
 // with the same version_id
 func updateBeverageVersion(old_id int) (int, error) {
 
+	// XXX find the latest id with the same version_id as old_id.  We might
+	// be retiring an old beverage id which isn't latest, for example, when
+	// confirming deliveries.
+	var latest_id int
+	err := db.QueryRow(`
+		SELECT id FROM beverages WHERE current=TRUE AND 
+		version_id=(SELECT version_id FROM beverages WHERE id=$1);`, old_id).Scan(&latest_id)
+	if err != nil {
+		return -1, err
+	}
+
 	// duplicate the entry, which will create a new serial id
 	var new_id int
-	err := db.QueryRow(`
+	err = db.QueryRow(`
 		INSERT INTO beverages (
 			distributor_id, keg_id, product, brewery, alcohol_type, abv, 
 			purchase_volume, purchase_cost, purchase_unit, flavor_profile, 
@@ -371,14 +382,14 @@ func updateBeverageVersion(old_id int) (int, error) {
 			purchase_volume, purchase_cost, purchase_unit, flavor_profile, 
 			restaurant_id, container_type, serve_type, purchase_count, version_id, 
 			sale_status, sale_start, sale_end, par 
-		FROM beverages WHERE id=$1 RETURNING id;`, old_id).Scan(&new_id)
+		FROM beverages WHERE id=$1 RETURNING id;`, latest_id).Scan(&new_id)
 	if err != nil {
 		return -1, err
 	}
 
 	// outmode the old id
 	cur_time := time.Now().UTC()
-	_, err = db.Exec("UPDATE beverages SET end_date=$1, current=FALSE where id=$2", cur_time, old_id)
+	_, err = db.Exec("UPDATE beverages SET end_date=$1, current=FALSE where id=$2", cur_time, latest_id)
 	if err != nil {
 		return -1, err
 	}
