@@ -8,7 +8,7 @@ import (
 )
 
 type DistributorDelivery struct {
-	DistributorOrderID        int            `json:"do_id"` // the distributor order id
+	DistributorOrderID        int            `json:"id"` // the distributor order id
 	DeliveryTime              time.Time      `json:"delivery_time"`
 	DeliveryTimely            bool           `json:"delivery_timely"`
 	DeliveryInvoice           float32        `json:"delivery_invoice"`
@@ -29,6 +29,12 @@ type DeliveryItem struct {
 	WrongItem       NullBool    `json:"dlv_wrong_item"`
 	Comments        NullString  `json:"dlv_comments"`
 	Satisfactory    bool        `json:"satisfactory"`
+	ChangeKeys      []string    `json:"change_keys"` // for PUTing on delivery update
+}
+
+type DeliveryUpdate struct {
+	Delivery   DistributorDelivery `json:"dist_order"`
+	ChangeKeys []string            `json:"change_keys"`
 }
 
 func setupDeliveriesHandlers() {
@@ -130,6 +136,243 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Write(js)
 
+	// puts to edit an existing delivery
+	case "PUT":
+		if !hasBasicPrivilege(privilege) {
+			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
+			return
+		}
+
+		decoder := json.NewDecoder(r.Body)
+		var dlv_update DeliveryUpdate
+		err := decoder.Decode(&dlv_update)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		log.Println("Received PUT")
+		log.Println(dlv_update)
+
+		// Is there already an entry in do_deliveries
+		var dlv_exists bool
+		err = db.QueryRow(`
+				SELECT EXISTS(SELECT 1 FROM do_deliveries
+					WHERE distributor_order_id=$1);`, dlv_update.Delivery.DistributorOrderID).Scan(&dlv_exists)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// If delivery does not exist, cannot edit it
+		if dlv_exists != true {
+			log.Println("Delivery not found.  Quitting...")
+			http.Error(w, "Delivery not found.  Quitting...", http.StatusBadRequest)
+			return
+		}
+
+		// first update distributor order change keys
+		for _, key := range dlv_update.ChangeKeys {
+			if key == "delivery_time" {
+				_, err = db.Exec(`
+					UPDATE do_deliveries SET delivery_time=$1 
+					WHERE distributor_order_id=$2;`,
+					dlv_update.Delivery.DeliveryTime, dlv_update.Delivery.DistributorOrderID)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+			} else if key == "delivery_timely" {
+				_, err = db.Exec(`
+					UPDATE do_deliveries SET delivery_timely=$1 
+					WHERE distributor_order_id=$2;`,
+					dlv_update.Delivery.DeliveryTimely, dlv_update.Delivery.DistributorOrderID)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+			} else if key == "delivery_invoice" {
+				_, err = db.Exec(`
+					UPDATE do_deliveries SET delivery_invoice=$1 
+					WHERE distributor_order_id=$2;`,
+					dlv_update.Delivery.DeliveryInvoice, dlv_update.Delivery.DistributorOrderID)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+			} else if key == "delivery_invoice_acceptable" {
+				_, err = db.Exec(`
+					UPDATE do_deliveries SET delivery_invoice_acceptable=$1 
+					WHERE distributor_order_id=$2;`,
+					dlv_update.Delivery.DeliveryInvoiceAcceptable, dlv_update.Delivery.DistributorOrderID)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+			} else if key == "additional_notes" {
+				_, err = db.Exec(`
+					UPDATE do_deliveries SET additional_notes=$1 
+					WHERE distributor_order_id=$2;`,
+					dlv_update.Delivery.AdditionalNotes, dlv_update.Delivery.DistributorOrderID)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+			}
+		}
+
+		for _, item := range dlv_update.Delivery.Items {
+
+			for _, key := range item.ChangeKeys {
+
+				//quantity, invoice,
+				//wholesale, update_wholesale, discount_applied,
+				//rough_handling, damaged_goods, wrong_item,
+				//comments, satisfactory)
+
+				if key == "dlv_quantity" {
+					_, err = db.Exec(`
+					UPDATE do_item_deliveries SET quantity=$1 
+					WHERE distributor_order_id=$2 AND beverage_id=$3;`,
+						item.Quantity, dlv_update.Delivery.DistributorOrderID, item.BeverageID)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+				} else if key == "dlv_invoice" {
+					_, err = db.Exec(`
+					UPDATE do_item_deliveries SET invoice=$1 
+					WHERE distributor_order_id=$2 AND beverage_id=$3;`,
+						item.Invoice, dlv_update.Delivery.DistributorOrderID, item.BeverageID)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+				} else if key == "dlv_wholesale" {
+					_, err = db.Exec(`
+					UPDATE do_item_deliveries SET wholesale=$1 
+					WHERE distributor_order_id=$2 AND beverage_id=$3;`,
+						item.Wholesale, dlv_update.Delivery.DistributorOrderID, item.BeverageID)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+				} else if key == "dlv_update_wholesale" {
+					_, err = db.Exec(`
+					UPDATE do_item_deliveries SET update_wholesale=$1 
+					WHERE distributor_order_id=$2 AND beverage_id=$3;`,
+						item.UpdateWholesale, dlv_update.Delivery.DistributorOrderID, item.BeverageID)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+
+					if item.UpdateWholesale.Valid && item.UpdateWholesale.Bool == true {
+
+						if !item.Wholesale.Valid {
+							continue
+						}
+
+						var exists bool
+						err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, item.BeverageID).Scan(&exists)
+						if err != nil {
+							log.Println(err.Error())
+							http.Error(w, err.Error(), http.StatusInternalServerError)
+							continue
+						}
+						if !exists {
+							http.Error(w, "The beverage does not belong to the user!", http.StatusInternalServerError)
+							continue
+						}
+						new_bev_id, err := updateBeverageVersion(item.BeverageID)
+						if err != nil {
+							log.Println(err.Error())
+							http.Error(w, err.Error(), http.StatusInternalServerError)
+							continue
+						}
+						_, err = db.Exec("UPDATE beverages SET purchase_cost=$1 WHERE id=$2;", item.Wholesale, new_bev_id)
+						if err != nil {
+							log.Println(err.Error())
+							http.Error(w, err.Error(), http.StatusInternalServerError)
+							continue
+						}
+					}
+				} else if key == "dlv_discount_applied" {
+					_, err = db.Exec(`
+					UPDATE do_item_deliveries SET discount_applied=$1 
+					WHERE distributor_order_id=$2 AND beverage_id=$3;`,
+						item.DiscountApplied, dlv_update.Delivery.DistributorOrderID, item.BeverageID)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+				} else if key == "dlv_rough_handling" {
+					_, err = db.Exec(`
+					UPDATE do_item_deliveries SET rough_handling=$1 
+					WHERE distributor_order_id=$2 AND beverage_id=$3;`,
+						item.RoughHandling, dlv_update.Delivery.DistributorOrderID, item.BeverageID)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+				} else if key == "dlv_damaged_goods" {
+					_, err = db.Exec(`
+					UPDATE do_item_deliveries SET damaged_goods=$1 
+					WHERE distributor_order_id=$2 AND beverage_id=$3;`,
+						item.DamagedGoods, dlv_update.Delivery.DistributorOrderID, item.BeverageID)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+				} else if key == "dlv_wrong_item" {
+					_, err = db.Exec(`
+					UPDATE do_item_deliveries SET wrong_item=$1 
+					WHERE distributor_order_id=$2 AND beverage_id=$3;`,
+						item.WrongItem, dlv_update.Delivery.DistributorOrderID, item.BeverageID)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+				} else if key == "dlv_comments" {
+					_, err = db.Exec(`
+					UPDATE do_item_deliveries SET comments=$1 
+					WHERE distributor_order_id=$2 AND beverage_id=$3;`,
+						item.Comments, dlv_update.Delivery.DistributorOrderID, item.BeverageID)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+				} else if key == "satisfactory" {
+					_, err = db.Exec(`
+					UPDATE do_item_deliveries SET satisfactory=$1 
+					WHERE distributor_order_id=$2 AND beverage_id=$3;`,
+						item.Satisfactory, dlv_update.Delivery.DistributorOrderID, item.BeverageID)
+					if err != nil {
+						log.Println(err.Error())
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						continue
+					}
+				}
+
+			}
+		}
+
 	// post a new delivery
 	case "POST":
 		if !hasBasicPrivilege(privilege) {
@@ -153,8 +396,8 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// Is there already an entry in do_deliveries
 		var dlv_exists bool
 		err = db.QueryRow(`
-			SELECT EXISTS(SELECT 1 FROM do_deliveries 
-				WHERE distributor_order_id=$1);`, dorder.DistributorOrderID).Scan(&dlv_exists)
+				SELECT EXISTS(SELECT 1 FROM do_deliveries
+					WHERE distributor_order_id=$1);`, dorder.DistributorOrderID).Scan(&dlv_exists)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)

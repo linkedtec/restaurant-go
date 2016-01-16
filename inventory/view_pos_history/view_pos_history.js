@@ -166,7 +166,7 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
     });
   };
 
-  $scope.launchRecordDeliveryModal = function(dorder) {
+  $scope.launchRecordDeliveryModal = function(dorder, is_edit) {
     var modalEditInstance = $modal.open({
       templateUrl: 'recordDeliveryModal.html',
       controller: 'recordDeliveryModalCtrl',
@@ -176,6 +176,9 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
       resolve: {
         dorder: function() {
           return dorder;
+        },
+        is_edit: function() {
+          return is_edit;
         }
       }
     });
@@ -197,6 +200,18 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
             type: "success",
             allowOutsideClick: true,
             html: true});
+
+          for (var i in $scope.purchase_orders) {
+            var po = $scope.purchase_orders[i];
+            for (var j in po.distributor_orders) {
+              var check_dorder = po.distributor_orders[j];
+              if (check_dorder.id === dorder.id) {
+                check_dorder.delivered = true;
+                //$scope.$apply();
+                break;
+              }
+            }
+          }
 
         } else if (status === 'error') {
           swal({
@@ -269,7 +284,7 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
         item['dlv_comments'] = dlv_item['dlv_comments'];
       }
 
-      $scope.launchRecordDeliveryModal(dorder);
+      $scope.launchRecordDeliveryModal(dorder, true);
 
     })
     .error(function(data, status, headers, config) {
@@ -314,7 +329,7 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
       if (is_edit===true) {
         $scope.editDelivery(pass_dorder);
       } else {
-        $scope.launchRecordDeliveryModal(pass_dorder);
+        $scope.launchRecordDeliveryModal(pass_dorder, false);
       }
 
     })
@@ -326,10 +341,16 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
 
 })
 
-.controller('recordDeliveryModalCtrl', function($scope, $modalInstance, $http, dorder) {
+.controller('recordDeliveryModalCtrl', function($scope, $modalInstance, $http, dorder, is_edit) {
 
   $scope.dist_order = dorder;
+  $scope.is_edit = is_edit;
   console.log($scope.dist_order);
+
+  $scope.closeOnSave = function() {
+
+    $modalInstance.close(['save', $scope.dist_order]);
+  };
 
   $scope.cancel = function() {
     console.log("cancel edit");

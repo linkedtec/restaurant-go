@@ -23,7 +23,7 @@
   <table id="purchaseOrdersTable" summary="Data table for Purchase Orders history." rules="groups" frame="hsides" border="2" style="width:100%; margin-top:8px; margin-bottom:120px">
     <tr>
       <td></td> <!--For view button-->
-      <td>Order Date / Status</td> <!--For date-->
+      <td>Order Date / Delivery Status</td> <!--For date-->
       <td>Sent via</td>
       <td>PO #</td>
       <td>Distributor</td>
@@ -34,8 +34,8 @@
     <tbody ng-repeat="po in purchase_orders" style="border-bottom: 1px solid #b0b0b0">
       <tr class="inv_loc_row" style="font-style:italic; border-bottom:1px solid #d0d0d0; background-color:#f3f3f3; border-color:#dadada">
         <td>
-          <button ng-click="viewPurchaseOrder(po)" type="button" class="btn btn-md btn_frameless hover_blue" style="font-size:16px; margin-top:1px; padding:2px 4px;">
-            <span class="glyphicon glyphicon-eye-open"></span>
+          <button ng-click="viewPurchaseOrder(po)" type="button" class="btn btn-sm btn_frameless hover_blue" style="font-size:0.9em; margin:3px 2px; padding:2px 4px; border:1px solid #dadada" uib-popover="Review the P.O. which was sent to Distributors." popover-trigger="mouseenter" popover-popup-delay="300" popover-append-to-body="true">
+            <span class="glyphicon glyphicon-eye-open" style="font-size:14px"></span> P.O.
           </button>
         </td>
         <td style="font-weight:bold">{{po.order.order_date_pretty}}</td>
@@ -50,8 +50,8 @@
       <tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#fefefe; border-bottom:1px solid #d0d0d0; border-color:#eaeaea;" height="26px">
         <td></td>
         <td>
-          <div style="font-size:0.9em; display:inline-block; color:#927D2E; background-color:#FFFAE6; border:1px solid #DCC25E; padding:3px 8px; border-radius:4px; width:120px; text-align:center" ng-if="dorder.delivered!==true" uib-popover="The Purchase Order has been sent to the Distributor, but you have not yet confirmed receipt of the Delivery.  When you receive the Delivery and Invoice from {{dorder.distributor}}, press the 'Record Delivery' button." popover-trigger="mouseenter" popover-popup-delay="300">
-            Pending Delivery...
+          <div style="font-size:0.9em; display:inline-block; color:#927D2E; background-color:#FFFAE6; border:1px solid #DCC25E; padding:3px 2px; border-radius:4px; width:120px; text-align:center" ng-if="dorder.delivered!==true" uib-popover="The Purchase Order has been sent to the Distributor, but you have not yet confirmed receipt of the Delivery.  When you receive the Delivery and Invoice from {{dorder.distributor}}, press the 'Record Delivery' button." popover-trigger="mouseenter" popover-popup-delay="300">
+            <span class="glyphicon glyphicon-time"></span> Pending Delivery
           </div>
           <div style="font-size:1.0em; display:inline-block; color:#2C8811; background-color:#ECFDDD; border:1px solid #94DC5E; padding:3px 8px; border-radius:4px; width:120px; text-align:center" ng-if="dorder.delivered===true" uib-popover="A record has been saved for this Delivery." popover-trigger="mouseenter" popover-popup-delay="300">
             <span class="glyphicon glyphicon-star"></span> Delivered!
@@ -63,7 +63,7 @@
         <td>{{dorder.item_count}}</td>
         <td>{{dorder.total | number:2}}</td>
         <td style="padding-top:5px; padding-bottom:5px">
-          <button ng-if="dorder.delivered!==true" ng-click="recordDelivery(po, dorder, false)" type="button" class="btn btn-success btn-sm" style="float:right; padding:4px 8px; font-size:13px"><span class="glyphicon glyphicon-pencil"></span> Record Delivery</button>
+          <button ng-if="dorder.delivered!==true" ng-click="recordDelivery(po, dorder, false)" type="button" class="btn btn-primary btn-sm" style="float:right; padding:4px 8px; font-size:13px"><span class="glyphicon glyphicon-pencil"></span> Record Delivery</button>
           <button ng-if="dorder.delivered===true" ng-click="recordDelivery(po, dorder, true)" type="button" class="btn btn-default btn-sm" style="float:right; padding:4px 8px; font-size:13px"> View / Edit Delivery</button>
         </td>
       </tr>
