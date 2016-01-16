@@ -10,8 +10,8 @@
   </div>
 
   <div class="row" style="margin-top:24px">
-    <div class="col-xs-6">
-      <div class="btn-group" uib-dropdown style="width:160px">
+    <div class="col-xs-4" style="padding-right:0">
+      <div class="btn-group" uib-dropdown style="width:140px">
         <button type="button" class="btn btn-default btn-sm dropdown-toggle" uib-dropdown-toggle style="font-size:1.0em; width:100%;">
           <span style="float:left; text-align:left; width:94%; overflow:hidden">
             {{active_filter}} 
@@ -25,7 +25,7 @@
           </li>
         </ul>
       </div>
-      <div style="display:inline-block; width:160px; position:relative; margin-left:6px">
+      <div style="display:inline-block; width:120px; position:relative; margin-left:6px">
         <input ng-model="filter_query.query" class="form-control input-md" style="height:33px; font-size:0.9em" placeholder="Search Items...">
         <div ng-if="filter_query.query.length>0" style="position:absolute; top:2px; right:0px;">
           <button ng-click="filter_query.query=''" type="button" class="btn btn-md btn_frameless hover_gray_transparent noselect" style="background-color:none">
@@ -34,7 +34,8 @@
         </div>
       </div>
     </div>
-    <div class="col-xs-6" style="text-align:right">
+
+    <div class="col-xs-4" style="text-align:center">
       <div style="display:inline-block; font-size:1.2em;">
         <span class="glyphicon glyphicon-question-sign" style="color:#88ccdd" uib-popover="Enter a desired target margin for your beverage sales.  For example, if sales per volume should be 4x your wholesale cost per volume, enter '4.0'. Beverage margins will be color-coded based on whether they are above or below the target margin." popover-trigger="mouseenter"></span>
         <b>Target Margin</b>:
@@ -42,6 +43,11 @@
       <div style="display:inline-block">
         <input ng-model="target_margin.value" type="number" ng-change="targetMarginChanged()" class="form-control input-md" style="width:80px; height:33px; font-size:1.2em; padding:0; text-align:center" placeholder="e.g., 4.0"/>
       </div>
+    </div>
+    <div class="col-xs-4" style="text-align:right">
+      <input ng-model="group_by_type.value" type="checkbox" id="checkboxGroupByType" style="z-index:-99;" ng-change="applyActiveFilter()"/>
+      <label for="checkboxGroupByType" style="margin:0; margin-top:2px; height:0;"></label>
+      <div class="hint_text" style="display:inline-block">Group by Beverage Type</div>
     </div>
   </div>
 
@@ -84,7 +90,9 @@
 
     <tbody ng-repeat="bev in beverages | filter:filter_query.query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row inv_row_odd'" style="font-size:13px; border-bottom:1px solid #e5e5e5">
       <tr>
-        <td ng-if="bev.is_title===true" class="all_inv_span" colspan="{{title_span}}" style="background-color:#ececec; color:#555555; font-size:0.9em; text-align:center; padding:0; border-bottom:1px solid #d4d4d4">{{bev.product}}</td>
+        <td ng-if="bev.is_title===true" class="all_inv_span" colspan="7" style="background-color:#ececec; color:#555555; font-size:0.9em; text-align:center; padding:0; border-bottom:1px solid #d4d4d4">
+          {{bev.product}}
+        </td>
         <td ng-if="bev.is_title!==true" class="all_inv_span" style="width:190px; padding:3px 6px;">
           <div style="display:inline-block; float:left; margin-top:2px">
             <img ng-if="bev.icon==='keg'" src="images/bev_keg.png" height="28px" width="28px">

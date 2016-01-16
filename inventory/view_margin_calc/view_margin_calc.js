@@ -15,6 +15,7 @@ angular.module('myApp.viewMarginCalc', ['ngRoute', 'ui.bootstrap'])
   $scope.sort_key = null;
   $scope.double_sort = -1;
   $scope.firstTimeSort = true;
+  $scope.group_by_type = {'value':true};
 
   $scope.all_beverages = null;
   $scope.beverages = null;
@@ -23,7 +24,7 @@ angular.module('myApp.viewMarginCalc', ['ngRoute', 'ui.bootstrap'])
   $scope.active_filters = ['Active Beverages', 'Staples Only', 'Seasonal Only', 'All Beverages'];
   $scope.active_filter = $scope.active_filters[0];
 
-  $scope.filter_query = {'query':null};
+  $scope.filter_query = {'query':''};
 
   $scope.target_margin = {'value': 4.0};
 
@@ -57,7 +58,7 @@ angular.module('myApp.viewMarginCalc', ['ngRoute', 'ui.bootstrap'])
 
     if ($scope.firstTimeSort) {
       $scope.firstTimeSort = false;
-      $scope.sortBy('product');
+      $scope.sortBy('margin');
     } else {
       $scope.sortBy($scope.sort_key);
       $scope.sortBy($scope.sort_key);
@@ -237,72 +238,114 @@ angular.module('myApp.viewMarginCalc', ['ngRoute', 'ui.bootstrap'])
       $scope.double_sort = -1;
     }
     $scope.sort_key = sort_str;
-    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_cost' || sort_str==='margin');
-    var isDist = (sort_str === 'distributor');
-    var isDep = (sort_str === 'deposit');
-    if (isDep) sort_str = 'keg';
-    $scope.beverages.sort(function(a, b) {
-      var keyA = null;
-      var keyB = null;
-      if (sort_str==='margin') {
-        if (a.size_prices!==null && a.size_prices.length > 0)
-        {
-          keyA = a.size_prices[0][sort_str];
-        } else {
-          keyA = null;
+
+    var new_beverages = [];
+
+    if ($scope.group_by_type.value===true) {
+      // break down beverages into sublists based on alcohol_type
+      // logic borrowed from view_sales_plan
+      var alcohol_types = [];
+      var type_item_dict = {};
+      for (var i in $scope.beverages) {
+        var item = $scope.beverages[i];
+
+        if (item['is_title'] === true) {
+          // 'is_title' is an attribute given to rows that are just meant to be
+          // displayed as a subtitle of the alcohol type
+          continue;
         }
-        if (b.size_prices!==null && b.size_prices.length > 0)
-        {
-          keyB = b.size_prices[0][sort_str];
-        } else {
-          keyB = null;
+        var alc_type = item['alcohol_type'];
+
+        // special rule: cider should be sorted with beer
+        if (alc_type === 'Cider') {
+          alc_type = 'Beer';
         }
-      } else {
-        keyA = a[sort_str];
-        keyB = b[sort_str];
+
+        if ( alcohol_types.indexOf(alc_type) < 0 ) {
+          alcohol_types.push(alc_type);
+          type_item_dict[alc_type] = [];
+        }
+        type_item_dict[alc_type].push(item);
       }
+      alcohol_types.sort();
+      console.log(alcohol_types);
+
+      for (var i in alcohol_types) {
+        var key = alcohol_types[i];
+        if (type_item_dict.hasOwnProperty(key)) {
+          // 'is_title' is an attribute given to rows that are just meant to be
+          // displayed as a subtitle of the alcohol type
+          new_beverages.push({product:key, is_title:true})
+          new_beverages = new_beverages.concat(type_item_dict[key].sort($scope.sortFunc));
+        }
+      }
+    } else {
+      // remove all is_title bevs in case switching from group_by_type to not
+      // group_by_type
       
-      if ($scope.double_sort > 0) {
-        if (keyA === null) {
-          return -1;
-        } else if (keyB === null) {
-          return 1;
-        }
-        if (isNum)
-        {
-          return parseFloat(keyA) - parseFloat(keyB);
-        } else if (isDist) {
-          return -keyA.name.localeCompare(keyB.name);
-        } else if (isDep) {
-          var keyA = keyA.deposit;
-          var keyB = keyB.deposit;
-          if (keyA === null) return -1;
-          if (keyB === null) return 1;
-          return parseFloat(keyA) - parseFloat(keyB);
+      for (var i in $scope.beverages) {
+        var item = $scope.beverages[i];
+        if (item['is_title']===true) {
+          ;
         } else {
-          return -keyA.localeCompare(keyB);
+          new_beverages.push(item);
         }
       }
+      new_beverages.sort($scope.sortFunc);
+    }
+    
+    console.log(new_beverages);
+    $scope.beverages = new_beverages;
+  };
+
+  $scope.sortFunc = function(a, b) {
+    var sort_str = $scope.sort_key;
+    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_cost' || sort_str==='margin');
+
+    var keyA = null;
+    var keyB = null;
+    if (sort_str==='margin') {
+      if (a.size_prices!==null && a.size_prices.length > 0)
+      {
+        keyA = a.size_prices[0][sort_str];
+      } else {
+        keyA = null;
+      }
+      if (b.size_prices!==null && b.size_prices.length > 0)
+      {
+        keyB = b.size_prices[0][sort_str];
+      } else {
+        keyB = null;
+      }
+    } else {
+      keyA = a[sort_str];
+      keyB = b[sort_str];
+    }
+    
+    if ($scope.double_sort > 0) {
       if (keyA === null) {
-        return 1;
-      } else if (keyB === null) {
         return -1;
+      } else if (keyB === null) {
+        return 1;
       }
       if (isNum)
       {
-        return parseFloat(keyB) - parseFloat(keyA);
-      } else if (isDist) {
-        return keyA.name.localeCompare(keyB.name);
-      } else if (isDep) {
-        var keyA = keyA.deposit;
-        var keyB = keyB.deposit;
-        if (keyA === null) return -1;
-        if (keyB === null) return 1;
-        return parseFloat(keyB) - parseFloat(keyA);
+        return parseFloat(keyA) - parseFloat(keyB);
       } else {
-        return keyA.localeCompare(keyB);
+        return -keyA.localeCompare(keyB);
       }
-    });
+    }
+    if (keyA === null) {
+      return 1;
+    } else if (keyB === null) {
+      return -1;
+    }
+    if (isNum)
+    {
+      return parseFloat(keyB) - parseFloat(keyA);
+    } else {
+      return keyA.localeCompare(keyB);
+    }
   };
 
 });
