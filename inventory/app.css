@@ -235,7 +235,7 @@ body {
   border-right: solid 1px #dddddd;
   position:relative;
   height:100%;
-  border-bottom: solid 1px #eeeeee;
+  border-bottom: solid 1px #f0f0f0;
 }
 
 .inv_row_container {
@@ -393,7 +393,7 @@ body {
 }
 
 .inv_row_even {
-  background-color: #fafafa;
+  background-color: #f8f8f8;
   border-bottom: solid 1px #eeeeee;
 }
 
@@ -403,7 +403,7 @@ body {
 }
 
 .inv_row_even_borderless {
-  background-color: #fafafa;
+  background-color: #f8f8f8;
   padding: 1px 5px 1px;
 }
 

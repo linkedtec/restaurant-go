@@ -9,7 +9,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   });
 }])
 
-.controller('ViewAllInvCtrl', function($scope, $modal, $http, $filter, ItemsService, MathService, DistributorsService) {
+.controller('ViewAllInvCtrl', function($scope, $modal, $http, $filter, ItemsService, MathService, DistributorsService, VolUnitsService) {
 
   $scope.show_add_ui = false;
   $scope.all_distributors = [];
@@ -61,46 +61,13 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
     for (var i = 0; i < $scope.inventory_items.length; i++) {
       var item = $scope.inventory_items[i];
-      $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(
+      $scope.inventory_items[i]['price_per_volume'] = VolUnitsService.getPricePerVolume(
         item['purchase_volume'],
         item['purchase_unit'],
         item['purchase_cost'],
-        item['purchase_count']);
-    }
-  };
-
-  $scope.getPricePerVolume = function(vol, unit, cost, count) {
-
-    // returning -1 means invalid
-    if (vol === null || cost === null) {
-      return -1;
-    }
-
-    // if volume is 0, return negative number
-    if (vol === 0) {
-      return -1;
-    }
-
-    var in_liters = 0;
-    for (var i=0; i < $scope.volume_units_full.length; i++){
-      var vol_unit = $scope.volume_units_full[i];
-      if (unit === vol_unit['abbr_name']) {
-        in_liters = vol_unit['in_liters'];
-        break;
-      }
-    }
-
-    var vol_in_liters = in_liters * vol;
-
-    var cost_per_mL = cost / count / vol_in_liters / 1000.0;
-
-    // if display is cost / mL
-    if ($scope.selected_cost_unit.indexOf('mL') >= 0) {
-      return cost_per_mL;
-    }
-    // if display is cost / oz
-    else {
-      return cost_per_mL * 29.5735;
+        item['purchase_count'],
+        $scope.volume_units_full,
+        $scope.selected_cost_unit);
     }
   };
 
@@ -119,11 +86,13 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     new_beverage['count'] = 0;
     new_beverage['inventory'] = 0;
 
-    new_beverage['price_per_volume'] = $scope.getPricePerVolume(
+    new_beverage['price_per_volume'] = VolUnitsService.getPricePerVolume(
       new_beverage['purchase_volume'],
       new_beverage['purchase_unit'],
       new_beverage['purchase_cost'],
-      new_beverage['purchase_count']
+      new_beverage['purchase_count'],
+      $scope.volume_units_full,
+      $scope.selected_cost_unit
       );
 
     // need to populate distributor and keg based on distributor_id and keg_id
@@ -219,11 +188,13 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
         // calculate price per volume.  Do this after keg has been populated
         // otherwise deposit will be incorrect
-        $scope.inventory_items[i]['price_per_volume'] = $scope.getPricePerVolume(
+        $scope.inventory_items[i]['price_per_volume'] = VolUnitsService.getPricePerVolume(
           $scope.inventory_items[i]['purchase_volume'],
           $scope.inventory_items[i]['purchase_unit'],
           $scope.inventory_items[i]['purchase_cost'],
-          $scope.inventory_items[i]['purchase_count']);
+          $scope.inventory_items[i]['purchase_count'],
+          $scope.volume_units_full,
+          $scope.selected_cost_unit);
       }
 
       if ($scope.firstTimeSort) {
@@ -351,11 +322,13 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
         else if (status === 'save') {
           console.log(edit_bev);
 
-          edit_bev['price_per_volume'] = $scope.getPricePerVolume(
+          edit_bev['price_per_volume'] = VolUnitsService.getPricePerVolume(
             edit_bev.purchase_volume, 
             edit_bev.purchase_unit, 
             edit_bev.purchase_cost, 
-            edit_bev.purchase_count);
+            edit_bev.purchase_count,
+            $scope.volume_units_full,
+            $scope.selected_cost_unit);
 
           if ($scope.all_breweries.indexOf(edit_bev.brewery) < 0) {
             $scope.all_breweries.push(edit_bev.brewery);
@@ -416,25 +389,26 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   };
 
   $scope.getVolUnits = function() {
-    $http.get('/volume_units').
-    success(function(data, status, headers, config) {
-      // this callback will be called asynchronously when the response
-      // is available
-      console.log(data);
-      $scope.volume_units_full = data;
-      $scope.volume_units = [];
-      for (var i=0; i < data.length; i++)
-      {
-        $scope.volume_units.push(data[i].abbr_name);
-      }
-      // need to first load vol units before getting all distributors
-      $scope.getAllDistributors();
-    }).
-    error(function(data, status, headers, config) {
 
-    });
+    var result = VolUnitsService.get();
+    result.then(
+      function(payload) {
+        var data = payload.data;
+        if (data !== null) {
+          $scope.volume_units_full = data;
+          $scope.volume_units = [];
+          for (var i=0; i < data.length; i++)
+          {
+            $scope.volume_units.push(data[i].abbr_name);
+          }
+          // need to first load vol units before getting all distributors
+          $scope.getAllDistributors();
+        }
+      },
+      function(errorPayload) {
+        ; // do nothing for now
+      });
   };
-
   $scope.getVolUnits();
 })
 

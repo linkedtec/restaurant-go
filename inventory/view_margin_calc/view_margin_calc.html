@@ -1,0 +1,168 @@
+<div ng-include src="'./bev_subnav.html'"></div>
+<div class="container" style="min-width:880px; max-width:960px">
+
+  <div style="width:100%; margin-top:24px; padding-bottom:4px; font-size:1.3em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_calc.png" height="32" width="32" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:8px; margin-left:2px">Margin Calculator</div>
+  </div>
+  <div class="hint_text" style="width:100%; padding-top:2px; font-size:1.0em">
+    View and set target margins for your beverage sales.
+  </div>
+
+  <div class="row" style="margin-top:24px">
+    <div class="col-xs-6">
+      <div class="btn-group" uib-dropdown style="width:160px">
+        <button type="button" class="btn btn-default btn-sm dropdown-toggle" uib-dropdown-toggle style="font-size:1.0em; width:100%;">
+          <span style="float:left; text-align:left; width:94%; overflow:hidden">
+            {{active_filter}} 
+          </span>
+          <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:10px; color:#888888">
+          </span>
+        </button>
+        <ul class="dropdown-menu" role="menu">
+          <li class="loc_li" ng-repeat="type in active_filters">
+            <a ng-click="selectActiveFilter(type)" class="noselect">{{type}}</a>
+          </li>
+        </ul>
+      </div>
+      <div style="display:inline-block; width:160px; position:relative; margin-left:6px">
+        <input ng-model="filter_query.query" class="form-control input-md" style="height:33px; font-size:0.9em" placeholder="Search Items...">
+        <div ng-if="filter_query.query.length>0" style="position:absolute; top:2px; right:0px;">
+          <button ng-click="filter_query.query=''" type="button" class="btn btn-md btn_frameless hover_gray_transparent noselect" style="background-color:none">
+              <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="col-xs-6" style="text-align:right">
+      <div style="display:inline-block; font-size:1.2em;">
+        <span class="glyphicon glyphicon-question-sign" style="color:#88ccdd" uib-popover="Enter a desired target margin for your beverage sales.  For example, if sales per volume should be 4x your wholesale cost per volume, enter '4.0'. Beverage margins will be color-coded based on whether they are above or below the target margin." popover-trigger="mouseenter"></span>
+        <b>Target Margin</b>:
+      </div>
+      <div style="display:inline-block">
+        <input ng-model="target_margin.value" type="number" ng-change="targetMarginChanged()" class="form-control input-md" style="width:80px; height:33px; font-size:1.2em; padding:0; text-align:center" placeholder="e.g., 4.0"/>
+      </div>
+    </div>
+  </div>
+
+  <table style="width: 100%; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-bottom:24px; margin-top:12px;">
+    <tr style="font-size:13px; ;background-color: #e7f7fa;; border-bottom:1px solid #dddddd">
+      <td class="all_inv_label_span noselect" style="width:190px; border-left: 1px solid #dddddd">
+        <div class="sort_div" ng-click="sortBy('product')">
+          <span>Product</span>
+          <span ng-show="sort_key === 'product'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:150px;">
+        <div class="sort_div" ng-click="sortBy('brewery')">
+          <span>Brewery</span>
+          <span ng-show="sort_key === 'brewery'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:80px;">
+        <div class="sort_div" ng-click="sortBy('purchase_cost')">
+          <span>Wholesale</span>
+          <span ng-show="sort_key === 'purchase_cost'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_span" style="width:70px; border-bottom:none">Serving</td>
+      <td class="all_inv_span" style="width:60px; border-bottom:none">Retail</td>
+      <td class="all_inv_label_span noselect" style="width:80px;">
+        <div class="sort_div" ng-click="sortBy('margin')">
+          <span style="font-weight:bold">Margin</span>
+          <span ng-show="sort_key === 'margin'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_span" style="width:20px; border-bottom:none"></td>
+    </tr>
+
+    <tr ng-if="beverages===null || beverages.length===0" class="inv_row">
+      <td class="all_inv_span hint_text" colspan="100" style="font-size:1.5em; text-align:center; padding: 24px 0px; background-color:white">
+        No Beverages found.
+      </td>
+    </tr>
+
+    <tbody ng-repeat="bev in beverages | filter:filter_query.query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row inv_row_odd'" style="font-size:13px; border-bottom:1px solid #e5e5e5">
+      <tr>
+        <td ng-if="bev.is_title===true" class="all_inv_span" colspan="{{title_span}}" style="background-color:#ececec; color:#555555; font-size:0.9em; text-align:center; padding:0; border-bottom:1px solid #d4d4d4">{{bev.product}}</td>
+        <td ng-if="bev.is_title!==true" class="all_inv_span" style="width:190px; padding:3px 6px;">
+          <div style="display:inline-block; float:left; margin-top:2px">
+            <img ng-if="bev.icon==='keg'" src="images/bev_keg.png" height="28px" width="28px">
+            <img ng-if="bev.icon==='draft'" src="images/bev_draft.png" height="28px" width="28x">
+            <img ng-if="bev.icon==='wine'" src="images/bev_wine.png" height="28px" width="28px" style="margin-left:0px">
+            <img ng-if="bev.icon==='bottle'" src="images/bev_bottle.png" height="28px" width="28px" style="margin-left:0px">
+            <img ng-if="bev.icon==='can'" src="images/bev_can.png" height="28px" width="28px" style="margin-left:0px">
+            <img ng-if="bev.icon==='liquor'" src="images/bev_xo.png" height="28px" width="28px" style="margin-left:0px">
+          </div>
+          <div style="display:inline-block; float:left; vertical-align:top; padding-left:4px">
+            <div style="margin-top:0px">
+              {{bev.product}}
+            </div>
+            <div class="hint_text" style="font-size:0.9em; margin-top:-3px">
+              <span ng-if="bev.purchase_volume!==null">{{bev.purchase_volume | number:1}} {{bev.purchase_unit}}</span>
+              <span>{{bev.container_type}}</span>
+            </div>
+          </div>
+        </td>
+        <td ng-if="bev.is_title!==true" class="all_inv_span" style="width:150px;">{{bev.brewery}}</td>
+        <td ng-if="bev.is_title!==true" class="all_inv_span" style="width:80px;">{{bev.purchase_cost | number:2}}</td>
+        <td ng-if="bev.is_title!==true" class="all_inv_span" style="width:70px;">
+          <div ng-if="bev.size_prices!==null && bev.size_prices.length>0" style="padding:2px 0px">
+            <span style="display:inline-block; min-width:50%">
+              {{bev.size_prices[0].volume | number:2}} 
+            </span>
+            <span style="color:#999999">
+              {{bev.size_prices[0].unit}}
+            </span>
+          </div>
+        </td>
+        <td ng-if="bev.is_title!==true" class="all_inv_span" style="width:60px;">
+          <div ng-if="bev.size_prices!==null && bev.size_prices.length>0" style="padding:2px 0px">
+            <span ng-if="sp.price !== null"><span class="inv_symbol">$</span> {{bev.size_prices[0].price | number:2}}</span>
+            <span ng-if="sp.price === null"> -- </span>
+          </div>
+        </td>
+        <td ng-if="bev.is_title!==true" class="all_inv_span" style="width:80px; text-align:center; color:{{bev.size_prices[0].margin_color}}; background-color:{{bev.size_prices[0].margin_bg_color}}">
+          <span ng-if="bev.size_prices===null || bev.size_prices.length===0 || bev.size_prices[0].margin===null" class="glyphicon glyphicon-alert" style="font-size:14px; color:#dd6622;" uib-popover="Margin cannot be calculated.  Please make sure the sales prices and sales volumes are properly specified." popover-trigger="mouseenter" popover-append-to-body="true"></span>
+          <span ng-if="bev.size_prices===null || bev.size_prices.length===0 || bev.size_prices[0].margin===null" style="font-size:13px; padding-left:4px; cursor:pointer; text-decoration:underline; color:#dd6622" ng-click="editMarginModal(bev)">Fix</span>
+          <span ng-if="bev.size_prices[0].margin!==null">{{bev.size_prices[0].margin | number:2}}</span>
+        </td>
+        <td ng-if="bev.is_title!==true" class="all_inv_span" style="text-align:center">
+          <button ng-if="bev.size_prices!==null && bev.size_prices.length>0 && bev.size_prices[0].margin!==null" ng-click="editBeverage(bev)" type="button" class="btn btn-xs btn_frameless hover_green" uib-popover="Edit purchase and sales information." popover-trigger="mouseenter" popover-popup-delay="300" popover-append-to-body="true">
+            <span class="glyphicon glyphicon-pencil"></span>
+          </button>
+        </td>
+      </tr>
+      <tr class="inv_row" ng-if="bev.size_prices!==null && bev.size_prices.length > 0 && $index>0" ng-repeat="sp in bev.size_prices" class="all_inv_span" style="border-left: 1px solid #dddddd">
+        <td class="all_inv_span"></td>
+        <td class="all_inv_span"></td>
+        <td class="all_inv_span"></td>
+        <td class="all_inv_span">
+          <div ng-if="bev.size_prices!==null && bev.size_prices.length>0">
+            <span style="display:inline-block; min-width:50%">
+              {{sp.volume | number:2}} 
+            </span>
+            <span style="color:#999999">
+              {{sp.unit}}
+            </span>
+          </div>
+        </td>
+        <td class="all_inv_span">
+          <div ng-if="bev.size_prices!==null && bev.size_prices.length>0">
+              {{sp.price | number:2}} 
+          </div>
+        </td>
+        <td class="all_inv_span" style="text-align:center; color:{{sp.margin_color}}; background-color:{{sp.margin_bg_color}}">
+          <span ng-if="sp.margin===null" class="glyphicon glyphicon-alert" style="font-size:14px; color:#dd6622;" uib-popover="Margin cannot be calculated.  Please make sure the sales prices and sales volumes are properly specified." popover-trigger="mouseenter" popover-append-to-body="true"></span>
+          <span ng-if="sp.margin===null" style="font-size:13px; padding-left:4px; cursor:pointer; text-decoration:underline; color:#dd6622" ng-click="editMarginModal(bev)">Fix</span>
+          <span ng-if="sp.margin!==null">{{sp.margin | number:2}}</span>
+        </td>
+        <td class="all_inv_span" style="text-align:center">
+          <button ng-if="sp.margin!==null" ng-click="editBeverage(bev)" type="button" class="btn btn-xs btn_frameless hover_green" uib-popover="Edit purchase and sales information." popover-trigger="mouseenter" popover-popup-delay="300" popover-append-to-body="true">
+            <span class="glyphicon glyphicon-pencil"></span>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

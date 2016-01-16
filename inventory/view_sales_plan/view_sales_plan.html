@@ -214,6 +214,7 @@
             <span ng-if="sp.price !== null"><span class="inv_symbol">$</span> {{sp.price | number:2}}</span>
             <span ng-if="sp.price === null"> -- </span>
           </div>
+        </td>
         <td ng-if="use_mode!==2 && inv.is_title!==true" class="all_inv_span" style="width:60px;">
           <div style="margin-top:-8px">
             <span ng-if="inv.par===null" class="glyphicon glyphicon-alert" style="font-size:13px; color:#dd6622; float:left" uib-popover="No Par specified!  Click 'Fix' to add one." popover-trigger="mouseenter" popover-append-to-body="true"></span>

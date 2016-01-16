@@ -4,6 +4,7 @@
 angular.module('myApp', [
   'ngRoute',
   'myApp.viewAllInv',
+  'myApp.viewMarginCalc',
   'myApp.viewDistributors',
   'myApp.viewRestaurant',
   'myApp.viewSalesPlan',
@@ -111,10 +112,72 @@ config(['$routeProvider', function($routeProvider) {
 
 .factory("VolUnitsService", function($http) {
 
+  /*
+  var volume_units_full;
+  var volume_units;
+
+  $http.get('/volume_units').
+    success(function(data, status, headers, config) {
+      // this callback will be called asynchronously when the response
+      // is available
+      console.log(data);
+      volume_units_full = data;
+      volume_units = [];
+      for (var i=0; i < data.length; i++)
+      {
+        volume_units.push(data[i].abbr_name);
+      }
+    }).
+    error(function(data, status, headers, config) {
+      volume_units_full = [];
+      volume_units = [];
+    });
+*/
+
   return {
     get: function() {
       var promise = $http.get('/volume_units');
       return promise;
+    },
+    /*
+    getVolumeUnitsFull: function() {
+      return volume_units_full;
+    }
+    */
+
+    getPricePerVolume: function(vol, unit, cost, count, volume_units_array, cost_unit) {
+
+      // returning -1 means invalid
+      if (vol === null || cost === null) {
+        return -1;
+      }
+
+      // if volume is 0, return negative number
+      if (vol === 0) {
+        return -1;
+      }
+
+      var in_liters = 0;
+      for (var i=0; i < volume_units_array.length; i++){
+        var vol_unit = volume_units_array[i];
+        if (unit === vol_unit['abbr_name']) {
+          in_liters = vol_unit['in_liters'];
+          break;
+        }
+      }
+
+      var vol_in_liters = in_liters * vol;
+
+      var cost_per_mL = cost / count / vol_in_liters / 1000.0;
+
+      // if display is cost / mL
+      if (cost_unit.indexOf('mL') >= 0) {
+        return cost_per_mL;
+      }
+      // if display is cost / oz
+      else if (cost_unit.indexOf('oz') >= 0) {
+        return cost_per_mL * 29.5735;
+      }
     }
   }
   
