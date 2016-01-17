@@ -468,6 +468,11 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if item.UpdateWholesale.Valid == true && item.UpdateWholesale.Bool == true {
+
+				if !item.Wholesale.Valid {
+					continue
+				}
+
 				var exists bool
 				err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, item.BeverageID).Scan(&exists)
 				if err != nil {
