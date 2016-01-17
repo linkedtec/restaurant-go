@@ -696,7 +696,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		for i := range old_ids {
 			old_id := old_ids[i]
-			check_tables := []string{"location_beverages", "tap_beverages", "distributor_order_items", "delivery_items"}
+			check_tables := []string{"location_beverages", "tap_beverages", "distributor_order_items", "do_item_deliveries" /*"delivery_items",*/}
 			for t_i := range check_tables {
 				table_name := check_tables[t_i]
 				if table_name == "location_beverages" {
@@ -707,7 +707,6 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 				}
 
 				if err != nil {
-					// if query failed will exit here, so loc_id is guaranteed below
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return

@@ -16,7 +16,7 @@
     </div>
   </div>
 </div>
-<hr/ style="margin:2px 2px 16px; border-color:#cacaca">
+<hr style="margin:2px 2px 16px; border-color:#cacaca"/>
 <div class="row" style="font-size:1.1em; height:72px;">
   <div class="col-xs-1"></div>
   <div class="col-xs-3" style="text-align:center">
@@ -31,7 +31,7 @@
     </div>
   </div>
   <div class="col-xs-4" style="text-align:center; padding-right:24px">
-    <div style="font-weight:bold; font-size:1.0em">Is invoice acceptable?</div>
+    <div style="font-weight:bold; font-size:1.0em">Accept this invoice?</div>
     <div class="btn-group btn-group-justified" style="display:inline-block; width:80px; font-weight:bold; margin-top:2px;">
       <label class="btn btn-default btn-md" ng-class="{'btn-danger':newDistOrder.delivery_invoice_acceptable===false, 'my_error':form_ver.error_dlv_invoice_acceptable===true}" ng-model="newDistOrder.delivery_invoice_acceptable" uib-btn-radio="false">
         <span class="glyphicon glyphicon-remove" style="color:#E4AFAF; font-weight:bold"></span>
@@ -42,7 +42,14 @@
     </div>
   </div>
 </div>
-<hr/ style="margin:0px 2px; border-color:#cacaca">
+<hr style="margin:2px 2px 12px; border-color:#cacaca"/>
+<div class="row" style="font-size:1.1em;">
+  <div class="col-xs-12" style="text-align:center">
+    <div style="display:inline-block">If applicable, enter the <b>Distributor's Invoice #</b> for tracking: </div>
+    <input ng-model="newDistOrder.invoice_num" class="form-control" maxlength="15" style="text-align:center; font-size:1.1em; padding-top:5px; width:160px; display:inline-block">
+  </div>
+</div>
+<hr style="margin:12px 2px 0px; border-color:#cacaca"/>
 <div class="row" style="margin:20px 6px 12px">
   <div class="col-xs-12 min_padding" style="font-size:1.1em">
     For each item ordered, please indicate whether the delivery was satisfactory.<br/>

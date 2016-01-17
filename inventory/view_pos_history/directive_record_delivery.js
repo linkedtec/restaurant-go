@@ -44,6 +44,7 @@ angular.module('myApp')
         scope.newDistOrder['delivery_timely'] = null;
         scope.newDistOrder['delivery_invoice'] = null;
         scope.newDistOrder['delivery_invoice_acceptable'] = null;
+        scope.newDistOrder['invoice_num'] = null;
         scope.newDistOrder['additional_notes'] = null;
 
         for (var i in scope.newDistOrder.items) {
@@ -54,40 +55,6 @@ angular.module('myApp')
           item['dlv_has_notes'] = false; // just a convenience param for tracking whether client added notes
         }
       }
-      
-      /*
-      scope.delivery_time = null;
-      scope.delivery_date = null;
-
-      scope.dlv_timely = {'value':null};
-      scope.dlv_invoice = {'value':null};
-      scope.dlv_invoice_acceptable = {'value':null};
-
-      scope.dlv_additional_notes = {'value': null};
-
-      console.log(scope.distOrder);
-      
-      // do preloading of delivery variables if scope.distOrder was passed in
-      // for editing
-      if (scope.distOrder['delivery_invoice']!==undefined && scope.distOrder['delivery_invoice']!==null) {
-        scope.dlv_invoice.value = scope.distOrder['delivery_invoice'];
-        scope.dlv_timely.value = scope.distOrder['delivery_timely'];
-        scope.dlv_invoice_acceptable.value = scope.distOrder['delivery_invoice_acceptable'];
-        scope.delivery_date = scope.distOrder['delivery_date'];
-        scope.delivery_time = scope.distOrder['delivery_time'];
-        scope.dlv_additional_notes.value = scope.distOrder['additional_notes'];
-
-      } else {
-        // if there was no preloading, init delivery params on item
-        for (var i in scope.distOrder.items) {
-          var item = scope.distOrder.items[i];
-          item['satisfactory'] = null;
-          item['dlv_quantity'] = null;
-          item['dlv_invoice'] = null;
-          item['dlv_has_notes'] = false; // just a convenience param for tracking whether client added notes
-        }
-      }
-      */
 
       scope.addAdditionalNote = function() {
         scope.newDistOrder['additional_notes'] = '';
@@ -157,6 +124,9 @@ angular.module('myApp')
         if (scope.newDistOrder['additional_notes']===null || scope.newDistOrder['additional_notes'].length===0 || scope.newDistOrder['additional_notes']===' ') {
           scope.newDistOrder['additional_notes'] = null;
         }
+        if (scope.newDistOrder['invoice_num']==='' || scope.newDistOrder['invoice_num']===' ') {
+          scope.newDistOrder['invoice_num'] = null;
+        }
 
         if (scope.isEdit!==true) {
           // creating a new delivery record, copy params into a post_order object
@@ -200,6 +170,7 @@ angular.module('myApp')
             post_order['items'].push(new_item);
           }
           post_order['additional_notes'] = scope.newDistOrder['additional_notes'];
+          post_order['invoice_num'] = scope.newDistOrder['invoice_num'];
           console.log('POST ORDER');
           console.log(post_order);
           $http.post('/deliveries', {
@@ -209,7 +180,8 @@ angular.module('myApp')
             delivery_invoice: post_order['delivery_invoice'],
             delivery_invoice_acceptable: post_order['delivery_invoice_acceptable'],
             items: post_order['items'],
-            additional_notes: post_order['additional_notes']
+            additional_notes: post_order['additional_notes'],
+            invoice_num: post_order['invoice_num']
           }).
           success(function(data, status, headers, config) {
             console.log(data);
@@ -237,7 +209,7 @@ angular.module('myApp')
           var dorder_valid_keys = [
             'delivery_timely', 
             'delivery_invoice', 'delivery_invoice_acceptable', 
-            'additional_notes'];
+            'invoice_num', 'additional_notes'];
           var dorder_change_keys = [];
 
           for (var i in dorder_valid_keys) {
@@ -342,11 +314,7 @@ angular.module('myApp')
               allowOutsideClick: true,
               html: true});
           });
-
-
-
         }
-
       };
 
       scope.launchFlagQuantityModal = function(item) {

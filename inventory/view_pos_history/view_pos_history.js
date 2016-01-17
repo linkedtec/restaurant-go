@@ -259,6 +259,7 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
       dorder['delivery_time'] = dlv_time;
       dorder['delivery_date'] = dlv_date;
       dorder['additional_notes'] = data['additional_notes'];
+      dorder['invoice_num'] = data['invoice_num'];
 
       for (var i in dorder.items) {
         var item = dorder.items[i];

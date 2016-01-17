@@ -4,7 +4,7 @@
 angular.module('myApp', [
   'ngRoute',
   'myApp.viewAllInv',
-  'myApp.viewMarginCalc',
+  'myApp.viewMarkupCalc',
   'myApp.viewDistributors',
   'myApp.viewRestaurant',
   'myApp.viewSalesPlan',

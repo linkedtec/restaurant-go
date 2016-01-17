@@ -15,6 +15,7 @@ type DistributorDelivery struct {
 	DeliveryInvoiceAcceptable bool           `json:"delivery_invoice_acceptable"`
 	Items                     []DeliveryItem `json:"items"`
 	AdditionalNotes           NullString     `json:"additional_notes"`
+	InvoiceNum                NullString     `json:"invoice_num"`
 }
 
 type DeliveryItem struct {
@@ -79,15 +80,16 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 		var dorder_dlv DistributorDelivery
 		err = db.QueryRow(`
 			SELECT distributor_order_id, delivery_time, delivery_timely, 
-			delivery_invoice, delivery_invoice_acceptable, additional_notes FROM
-			do_deliveries WHERE distributor_order_id=$1;
+			delivery_invoice, delivery_invoice_acceptable, additional_notes, invoice_num 
+			FROM do_deliveries WHERE distributor_order_id=$1;
 			`, do_id).Scan(
 			&dorder_dlv.DistributorOrderID,
 			&dorder_dlv.DeliveryTime,
 			&dorder_dlv.DeliveryTimely,
 			&dorder_dlv.DeliveryInvoice,
 			&dorder_dlv.DeliveryInvoiceAcceptable,
-			&dorder_dlv.AdditionalNotes)
+			&dorder_dlv.AdditionalNotes,
+			&dorder_dlv.InvoiceNum)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -220,6 +222,16 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 					UPDATE do_deliveries SET additional_notes=$1 
 					WHERE distributor_order_id=$2;`,
 					dlv_update.Delivery.AdditionalNotes, dlv_update.Delivery.DistributorOrderID)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+			} else if key == "invoice_num" {
+				_, err = db.Exec(`
+					UPDATE do_deliveries SET invoice_num=$1 
+					WHERE distributor_order_id=$2;`,
+					dlv_update.Delivery.InvoiceNum, dlv_update.Delivery.DistributorOrderID)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -414,14 +426,15 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 		_, err = db.Exec(`
 			INSERT INTO do_deliveries(
 				distributor_order_id, delivery_time, delivery_timely, 
-				delivery_invoice, delivery_invoice_acceptable, additional_notes) 
-			VALUES($1, $2, $3, $4, $5, $6);`,
+				delivery_invoice, delivery_invoice_acceptable, additional_notes, invoice_num) 
+			VALUES($1, $2, $3, $4, $5, $6, $7);`,
 			dorder.DistributorOrderID,
 			dorder.DeliveryTime,
 			dorder.DeliveryTimely,
 			dorder.DeliveryInvoice,
 			dorder.DeliveryInvoiceAcceptable,
-			dorder.AdditionalNotes)
+			dorder.AdditionalNotes,
+			dorder.InvoiceNum)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -1,15 +1,15 @@
 'use strict';
 
-angular.module('myApp.viewMarginCalc', ['ngRoute', 'ui.bootstrap'])
+angular.module('myApp.viewMarkupCalc', ['ngRoute', 'ui.bootstrap'])
 
 .config(['$routeProvider', function($routeProvider) {
-  $routeProvider.when('/viewMarginCalc', {
-    templateUrl: 'view_margin_calc/view_margin_calc.html',
-    controller: 'ViewMarginCalcCtrl'
+  $routeProvider.when('/viewMarkupCalc', {
+    templateUrl: 'view_markup_calc/view_markup_calc.html',
+    controller: 'ViewMarkupCalcCtrl'
   });
 }])
 
-.controller('ViewMarginCalcCtrl', function($scope, $modal, $http, $filter, ItemsService, MathService, VolUnitsService) {
+.controller('ViewMarkupCalcCtrl', function($scope, $modal, $http, $filter, ItemsService, MathService, VolUnitsService) {
 
   // sorting
   $scope.sort_key = null;
@@ -26,7 +26,7 @@ angular.module('myApp.viewMarginCalc', ['ngRoute', 'ui.bootstrap'])
 
   $scope.filter_query = {'query':''};
 
-  $scope.target_margin = {'value': 4.0};
+  $scope.target_markup = {'value': 4.0};
 
   $scope.selectActiveFilter = function(type) {
     $scope.active_filter = type;
@@ -58,7 +58,7 @@ angular.module('myApp.viewMarginCalc', ['ngRoute', 'ui.bootstrap'])
 
     if ($scope.firstTimeSort) {
       $scope.firstTimeSort = false;
-      $scope.sortBy('margin');
+      $scope.sortBy('markup');
     } else {
       $scope.sortBy($scope.sort_key);
       $scope.sortBy($scope.sort_key);
@@ -66,10 +66,10 @@ angular.module('myApp.viewMarginCalc', ['ngRoute', 'ui.bootstrap'])
 
   };
 
-  $scope.targetMarginChanged = function() {
-    console.log($scope.target_margin.value);
+  $scope.targetMarkupChanged = function() {
+    console.log($scope.target_markup.value);
 
-    var target = $scope.target_margin.value;
+    var target = $scope.target_markup.value;
     if (target===undefined || target===null || MathService.numIsInvalidOrNegative(target)) {
       return;
     }
@@ -83,39 +83,39 @@ angular.module('myApp.viewMarginCalc', ['ngRoute', 'ui.bootstrap'])
 
       for (var j in item['size_prices']) {
         var sp = item['size_prices'][j];
-        $scope.calculateMarginColor(sp);
+        $scope.calculateMarkupColor(sp);
       }
     }
   }
 
-  $scope.calculateMarginColor = function(sp) {
-    if (sp['margin'] === null) {
+  $scope.calculateMarkupColor = function(sp) {
+    if (sp['markup'] === null) {
       return;
     }
 
-    var diff = sp['margin'] - $scope.target_margin.value;
-    var pct = diff / $scope.target_margin.value;
+    var diff = sp['markup'] - $scope.target_markup.value;
+    var pct = diff / $scope.target_markup.value;
     if (diff >= 0) {
-      // if margin is 25% above target margin, dark green
+      // if markup is 25% above target markup, dark green
       if ( pct >= 0.25) {
-        sp['margin_color'] = '#1B6B00; font-weight:bold;';
-        sp['margin_bg_color'] = '#B4E278;';
+        sp['markup_color'] = '#1B6B00; font-weight:bold;';
+        sp['markup_bg_color'] = '#B4E278;';
       } else {
         // otherwise, regular green
-        sp['margin_color'] = '#228800; font-weight:bold;';
-        sp['margin_bg_color'] = '#D3F3AA;';
+        sp['markup_color'] = '#228800; font-weight:bold;';
+        sp['markup_bg_color'] = '#D3F3AA;';
       }
       
     } else if (diff < 0) {
 
-      // if margin is 25% below target margin or below, red
+      // if markup is 25% below target markup or below, red
       if (pct < -0.25) {
-        sp['margin_color'] = '#cc2200; font-weight:bold;';
-        sp['margin_bg_color'] = '#FFD3C1';
+        sp['markup_color'] = '#cc2200; font-weight:bold;';
+        sp['markup_bg_color'] = '#FFD3C1';
       } else {
         // otherwise, yellow
-        sp['margin_color'] = '#aa8800; font-weight:bold;';
-        sp['margin_bg_color'] = '#FFE8A6';
+        sp['markup_color'] = '#aa8800; font-weight:bold;';
+        sp['markup_bg_color'] = '#FFE8A6';
       }
     }
   };
@@ -153,13 +153,13 @@ angular.module('myApp.viewMarginCalc', ['ngRoute', 'ui.bootstrap'])
           $scope.volume_units_full = data;
           for (var i in $scope.all_beverages) {
             var item = $scope.all_beverages[i];
-            $scope.initMargins(item);
+            $scope.initMarkups(item);
           }
           console.log($scope.all_beverages);
 
           $scope.applyActiveFilter();
 
-          $scope.targetMarginChanged();
+          $scope.targetMarkupChanged();
 
         }
       },
@@ -169,7 +169,7 @@ angular.module('myApp.viewMarginCalc', ['ngRoute', 'ui.bootstrap'])
       });
   };
 
-  $scope.initMargins = function(item) {
+  $scope.initMarkups = function(item) {
 
     if (item['size_prices']===undefined || item['size_prices']===null) {
       return;
@@ -181,7 +181,7 @@ angular.module('myApp.viewMarginCalc', ['ngRoute', 'ui.bootstrap'])
       var sp = item['size_prices'][i];
 
       // Handle 'Unit' sales specially
-      // if sold by 'Unit', margin is:
+      // if sold by 'Unit', markup is:
       //     sale_price / (purchase_cost / purchase_count) / sale_vol*
       //     * where sale_vol actually represents num units
       if (sp['unit']==='Unit') {
@@ -190,17 +190,17 @@ angular.module('myApp.viewMarginCalc', ['ngRoute', 'ui.bootstrap'])
         var purchase_count = item['purchase_count'];
         var sale_units = sp['volume'];
         if (sale_price===null || purchase_cost===null || purchase_cost===0) {
-          sp['margin'] = null;
+          sp['markup'] = null;
           continue;
         }
         // purchase_cost / purchase_count yields cost per sold unit
-        sp['margin'] = sale_price / (purchase_cost / purchase_count) / sale_units;
+        sp['markup'] = sale_price / (purchase_cost / purchase_count) / sale_units;
         continue;
       }
       else {
         // get price per volume for wholesale
         // get price per volume for single sale
-        // price_per_volume_sale / price_per_volume_wholesale = margin
+        // price_per_volume_sale / price_per_volume_wholesale = markup
         var price_per_volume_wholesale = VolUnitsService.getPricePerVolume(
           item['purchase_volume'],
           item['purchase_unit'],
@@ -209,7 +209,7 @@ angular.module('myApp.viewMarginCalc', ['ngRoute', 'ui.bootstrap'])
           $scope.volume_units_full,
           'mL');
         if (price_per_volume_wholesale <= 0) {
-          sp['margin'] = null;
+          sp['markup'] = null;
           continue;
         }
 
@@ -222,9 +222,9 @@ angular.module('myApp.viewMarginCalc', ['ngRoute', 'ui.bootstrap'])
           'mL');
 
         if (price_per_volume_sale < 0) {
-          sp['margin'] = null;
+          sp['markup'] = null;
         } else {
-          sp['margin'] = price_per_volume_sale / price_per_volume_wholesale;
+          sp['markup'] = price_per_volume_sale / price_per_volume_wholesale;
         }
       }
     }
@@ -300,11 +300,11 @@ angular.module('myApp.viewMarginCalc', ['ngRoute', 'ui.bootstrap'])
 
   $scope.sortFunc = function(a, b) {
     var sort_str = $scope.sort_key;
-    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_cost' || sort_str==='margin');
+    var isNum = (sort_str === 'abv' || sort_str === 'purchase_volume' || sort_str === 'purchase_cost' || sort_str==='markup');
 
     var keyA = null;
     var keyB = null;
-    if (sort_str==='margin') {
+    if (sort_str==='markup') {
       if (a.size_prices!==null && a.size_prices.length > 0)
       {
         keyA = a.size_prices[0][sort_str];

@@ -294,11 +294,33 @@ angular.module('myApp')
         $event.preventDefault();
         $event.stopPropagation();
 
+        var help_content = "Automatic PO works by comparing " + 
+        "the par levels of all <i>actively sold</i> beverages against the stock " + 
+        "levels from your latest inventory records, and automatically " +
+        "ordering to make up the difference.<br/><br/>" + 
+        "First, to determine which beverages are <i>active</i> and what " + 
+        "their par levels should be, make sure your list of Active and " +
+        "Seasonal beverages " + 
+        "are up-to-date in the <b>Menu Plan</b> page." + 
+        ".<br/><br/>" + 
+        "Then, to determine recent stock levels, record inventory in the " + 
+        "<b>Count Inventory</b> page within the last 3 days.<br/><br/>" + 
+        "And that's it!  POs will be populated with your " +
+        "active beverages, with the quantities automatically determined." + 
+        "<br/><hr/>" + 
+        "For example, let's say we're selling a bar staple named 'BeerA'. " + 
+        "<br/></br>" + 
+        "First, we add 'BeerA' to the Staples list in the <b>Menu Plan</b>, " + 
+        "and set the Par level to 3 kegs.<br/><br/>" + 
+        "On Monday, during weekly inventorying, we count 2 kegs of 'BeerA' " + 
+        "in our storage via the <b>Count Inventory</b> page.<br/><br/>" + 
+        "On Tuesday, we're ready to replenish our inventory, and choose to " +
+        "create a PO via the Automatic / Match Par option.  The app will " + 
+        "put in an order of 1 keg of 'BeerA' to the distributor."
         swal({
-          title: "Test!",
-          text: "hi.",
-          type: "success",
-          timer: 4000,
+          title: "Automatic Purchasing",
+          text: help_content,
+          /*type: "success",*/
           allowOutsideClick: true,
           html: true});
       };
