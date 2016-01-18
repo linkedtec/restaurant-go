@@ -233,6 +233,7 @@ angular.module('myApp')
         scope.form_ver.error_par = false;
         scope.form_ver.error_sale_start = false;
         scope.form_ver.error_sale_end = false;
+        scope.form_ver.error_sale_status_missing_distributor = false;
       };
 
       scope.internalControl.clearNewForm();
@@ -607,6 +608,17 @@ angular.module('myApp')
             }
           }
 
+          // if sale_status was set to 'Staple' or 'Seasonal', we have the
+          // additional requirement that the Distributor must not be empty.
+          // This is so automatic PO ordering does not end up with active 
+          // menu items which do not belong under any DistributorOrder
+          if (scope.new_beverage['sale_status'] === 'Staple' || scope.new_beverage['sale_status'] === 'Seasonal') {
+            if (scope.new_beverage.distributor===null || scope.new_beverage.distributor_id===null) {
+              all_clear = false;
+              scope.form_ver.error_sale_status_missing_distributor = true;
+            }
+          }
+
           if (scope.new_unit_sale.value !== null && scope.new_unit_sale.value !== '' && MathService.numIsInvalidOrNegative(scope.new_unit_sale.value) )
           {
             scope.form_ver.error_unit_sale=true;
@@ -923,7 +935,7 @@ angular.module('myApp')
   }
 })
 
-.controller('newDistModalCtrl', function($scope, $modalInstance, DistributorsService, all_distributors) {
+.controller('newDistModalCtrl', function($scope, $modalInstance, MathService, DistributorsService, all_distributors) {
 
   $scope.distributors = all_distributors;
 

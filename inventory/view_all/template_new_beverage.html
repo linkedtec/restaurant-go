@@ -56,7 +56,7 @@
           <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_distributor===true}">
             <label class="control-label optional label_small"> Distributor / Supplier</label>
             <div class="btn-group" style="width:100% !important" uib-dropdown>
-              <button type="button" class="btn btn-default btn-md dropdown-toggle input_small" style="width:100%" uib-dropdown-toggle>
+              <button type="button" ng-class="{'my_error':form_ver.error_sale_status_missing_distributor===true}" class="btn btn-default btn-md dropdown-toggle input_small" style="width:100%" uib-dropdown-toggle>
                 <span ng-if="new_beverage.distributor !== null" style="float:left; text-align:left; width:90%;">
                   {{new_beverage.distributor.name}} 
                 </span>
@@ -267,6 +267,11 @@
               </span>
             </div>
           </div>
+        </div>
+      </div>
+      <div class="row red_color" ng-if="form_ver.error_sale_status_missing_distributor===true" style="margin-top:4px;">
+        <div class="col-xs-12">
+          <li>May not set an active sale status without providing a Distributor!</li>
         </div>
       </div>
       <div class="row" style="padding-left:0px; margin-bottom:4px; margin-top:10px; font-size:13px">

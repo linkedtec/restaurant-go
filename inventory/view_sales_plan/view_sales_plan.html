@@ -67,7 +67,7 @@
       </uib-tabset>
       <div style="display:block; position:relative; bottom:0; top:0px; left: 0; right:0; margin:0px 12px 12px; padding:4px 8px; padding-bottom:12px; background-color:#ffffff; border:1px solid #dddddd; border-top:none" ng-style="addUIHeight">
         <div ng-if="add_mode===0">
-          <addable-inv all-bevs="add_inv_unadded" all-kegs="[]" added-items="inventory_items" control="addableControl" show-tabs="false" use-override-add-func="true" override-add-func="showParModal(item, use_mode, false, true)"></addable-inv>
+          <addable-inv all-bevs="add_inv_unadded" all-kegs="[]" added-items="inventory_items" control="addableControl" show-tabs="false" use-override-add-func="true" override-add-func="showParModal(item, use_mode, false, true, false)"></addable-inv>
         </div>
         <div ng-if="add_mode===1">
           <new-beverage all-distributors="all_distributors" all-breweries="all_breweries" volume-units="volume_units" prepopulate-vars="{'sale_status':sale_statuses[use_mode]}" required-vars="['par','sale_status']" control="newBevControl" edit-mode="'all'" close-on-save="newBeverageCloseOnSave(new_beverage)"></new-beverage>
@@ -218,7 +218,7 @@
         <td ng-if="use_mode!==2 && inv.is_title!==true" class="all_inv_span" style="width:60px;">
           <div style="margin-top:-8px">
             <span ng-if="inv.par===null" class="glyphicon glyphicon-alert" style="font-size:13px; color:#dd6622; float:left" uib-popover="No Par specified!  Click 'Fix' to add one." popover-trigger="mouseenter" popover-append-to-body="true"></span>
-            <span ng-if="inv.par===null" style="font-size:12px; padding-left:4px; cursor:pointer; text-decoration:underline; color:#dd6622" ng-click="showParModal(inv, use_mode, false, false)">Fix</span>
+            <span ng-if="inv.par===null" style="font-size:12px; padding-left:4px; cursor:pointer; text-decoration:underline; color:#dd6622" ng-click="showParModal(inv, use_mode, false, false, false)">Fix</span>
             <span ng-if="inv.par!==null">{{inv.par | number:1}}</span>
           </div>
         </td>
@@ -255,4 +255,5 @@
 
 <div ng-include src="'./view_all/edit_inv_modal.html'">
 <div ng-include src="'./view_sales_plan/modal_par_quantity.html'">
+<div ng-include src="'./view_sales_plan/modal_item_distributor.html'">
 <div ng-include src="'./view_sales_plan/template_date_button.html'">

@@ -349,7 +349,8 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 		sale_status := r.URL.Query().Get("sale_status")
 
 		rows, err := db.Query(`
-      SELECT id, version_id, product, container_type, serve_type, brewery, alcohol_type, 
+      SELECT id, version_id, product, distributor_id, container_type, 
+      serve_type, brewery, alcohol_type, 
       purchase_volume, purchase_unit, purchase_cost, purchase_count, 
       sale_status, sale_start, sale_end, par 
       FROM beverages WHERE restaurant_id=$1 AND current 
@@ -369,6 +370,7 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 				&bev.ID,
 				&bev.VersionID,
 				&bev.Product,
+				&bev.DistributorID,
 				&bev.ContainerType,
 				&bev.ServeType,
 				&bev.Brewery,

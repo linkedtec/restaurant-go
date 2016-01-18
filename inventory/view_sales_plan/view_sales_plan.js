@@ -144,6 +144,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       console.log(data);
     });
   };
+  $scope.getAllDistributors();
 
   $scope.selectAddMode = function(mode) {
     if (mode === $scope.add_modes[$scope.add_mode]) {
@@ -158,10 +159,6 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
     } else {
       $scope.addUIStyle = {width:'100%'};
       $scope.addUIHeight = {height:'100%'};
-
-      if ($scope.all_distributors.length===0) {
-        $scope.getAllDistributors();
-      }
     }
   };
   $scope.selectAddMode($scope.add_modes[0]);
@@ -250,7 +247,6 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       type = 'Seasonal';
     }
 
-    // currently bogus test data
     $http.get('/inv/menu', {
       params: {
         sale_status:type
@@ -382,16 +378,65 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
   $scope.moveToMenu = function(item, menu) {
     if (menu === $scope.move_menus[0]) {
-      $scope.showParModal(item, 0, true, false);
+      $scope.showParModal(item, 0, true, false, false);
     } else if (menu === $scope.move_menus[1]) {
-      $scope.showParModal(item, 1, true, false);
+      $scope.showParModal(item, 1, true, false, false);
     }
   }
 
-  $scope.showParModal = function(item, menu_type, from_inactive, from_addable) {
+  $scope.showParModal = function(item, menu_type, from_inactive, from_addable, updated_distributor) {
     // this could have come from the inactive menu type (from_inactive),
     // the addable bev directive (from_addable),
     // or just as an edit on an existing item (neither)
+
+    // first, if we're adding from the addable menu or from the inactive menu,
+    // we need to make sure that the item has a proper distributor.  If it
+    // does not, we show a modal first that requires them to set a distributor.
+    var dist_id = item['distributor_id'];
+    if (dist_id===null) {
+      var modalStartInstance = $modal.open({
+        templateUrl: 'modalItemDistributor.html',
+        controller: 'modalItemDistributorCtrl',
+        windowClass: 'inv-qty-modal',
+        backdropClass: 'gray-modal-backdrop',
+        backdrop : 'static',
+        size: 'sm',
+        resolve: {
+          item: function() {
+            return item;
+          },
+          all_distributors: function() {
+            return $scope.all_distributors;
+          }
+        }
+      });
+
+      modalStartInstance.result.then(
+        // success status
+        function( result ) {
+          // result is a list, first item is string for status, e.g.,
+          // 'save' or 'delete'
+          // second item is the affected beverage
+          var status = result[0];
+          var item = result[1];
+          
+          if (status === 'cancel') {
+            item.par = null;
+          }
+          // after a save, we want to re-calculate cost per mL, for instance
+          else if (status === 'save') {
+            console.log(item);
+
+            $scope.showParModal(item, menu_type, from_inactive, from_addable, true);
+          }
+          
+        }, 
+        // error status
+        function() {
+          ;
+        });
+      return;
+    }
 
     console.log('show par');
     console.log(item);
@@ -400,6 +445,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       controller: 'modalParQuantityCtrl',
       windowClass: 'inv-qty-modal',
       backdropClass: 'gray-modal-backdrop',
+      backdrop : 'static',
       size: 'sm',
       resolve: {
         item: function() {
@@ -407,6 +453,9 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
         },
         is_seasonal: function() {
           return ( menu_type===1 );
+        },
+        updated_distributor: function() {
+          return updated_distributor;
         }
       }
     });
@@ -778,11 +827,143 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
 })
 
-.controller('modalParQuantityCtrl', function($scope, $modalInstance, $modal, DateService, MathService, item, is_seasonal) {
+.controller('modalItemDistributorCtrl', function($scope, $modalInstance, $modal, BeveragesService, item, all_distributors) {
+  $scope.item = item;
+  $scope.all_distributors = all_distributors;
+
+  $scope.distributor = null;
+  $scope.keg = null;
+
+  $scope.selectDistributor = function(dist) {
+    $scope.distributor = dist;
+  };
+
+  $scope.selectKeg = function(keg) {
+    $scope.keg = keg;
+  };
+
+  $scope.clearKeg = function() {
+    $scope.keg = null;
+  }
+
+  $scope.addNewDistributor = function() {
+    var modalNewInstance = $modal.open({
+      templateUrl: 'newDistModal.html',
+      controller: 'newDistModalCtrl',
+      windowClass: 'new-dist-modal',
+      backdropClass: 'green-modal-backdrop',
+      resolve: {
+        all_distributors: function() {
+          return $scope.all_distributors;
+        }
+      }
+    });
+
+    modalNewInstance.result.then(
+      // success status
+      function( result ) {
+        // result is a list, first item is string for status, e.g.,
+        // 'save' or 'delete'
+        // second item is old dist id
+        // third item is new dist id
+        var status = result[0];
+        var new_dist = result[1];
+        if (status === 'save') {
+          var dist_name = new_dist.name;
+          swal({
+            title: "New Distributor Added!",
+            text: "<b>" + dist_name + "</b> has been added to your Distributors.",
+            type: "success",
+            timer: 4000,
+            allowOutsideClick: true,
+            html: true});
+        }
+        $scope.distributor = new_dist;
+      }, 
+      // error status
+      function() {
+        ;
+      });
+  };
+
+  $scope.addNewKeg = function() {
+    var modalNewInstance = $modal.open({
+      templateUrl: 'newKegModal.html',
+      controller: 'newKegModalCtrl',
+      windowClass: 'new-dist-modal',
+      backdropClass: 'green-modal-backdrop',
+      resolve: {
+        distributor: function() {
+          return $scope.distributor;
+        }
+      }
+    });
+
+    modalNewInstance.result.then(
+      function(result) {
+        var status = result[0];
+        var new_keg = result[1];
+        if (status === 'save') {
+          $scope.keg = new_keg;
+        }
+      },
+      // error status
+      function() {
+        ;
+      });
+  };
+
+  $scope.save = function() {
+    // assigning a distributor to a beverage is really just calling a PUT
+    // with the beverage's id, with change_keys distributor_id and keg_id, 
+    // and pointing to the distributor's and keg's id
+    var putObj = {};
+    putObj.id = $scope.item.id;
+    var change_keys = [];
+    if ($scope.distributor !== null) {
+      change_keys.push('distributor_id');
+      putObj['distributor_id'] = $scope.distributor.id;
+    } 
+    if ($scope.keg !== null) {
+      change_keys.push('keg_id');
+      putObj['keg_id'] = $scope.keg.id;
+    }
+
+    var result = BeveragesService.put(putObj, change_keys);
+    result.then(
+    function(payload) {
+      var new_bev_id = payload.data['id'];
+      $scope.item.id = new_bev_id;
+      $scope.item['distributor'] = $scope.distributor;
+      $scope.item['distributor_id'] = $scope.distributor.id;
+      if ($scope.keg!==null) {
+        $scope.item['keg_id'] = $scope.keg.id;
+      }
+      
+      $modalInstance.close(['save', $scope.item]);
+
+    },
+    function(errorPayload) {
+      ; // do nothing for now
+    });
+  };
+
+  $scope.cancel = function() {
+    $modalInstance.dismiss('cancel');
+  };
+
+})
+
+.controller('modalParQuantityCtrl', function($scope, $modalInstance, $modal, DateService, MathService, item, is_seasonal, updated_distributor) {
 
   $scope.item = item;
 
   $scope.new_failure_msg = null;
+
+  // if we came from a screen which required setting the beverage's distributor
+  // (e.g., before adding it to the Staple / Seasonal Menu), show a hint text
+  // saying it's been saved.
+  $scope.updated_distributor = updated_distributor;
 
   $scope.quantity = null;
   if (item['par'] !== null) {

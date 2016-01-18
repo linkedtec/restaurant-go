@@ -37,6 +37,7 @@ type BeverageSalePlan struct {
 	ID             int         `json:"id"`
 	VersionID      int         `json:"version_id"`
 	Product        string      `json:"product"`
+	DistributorID  NullInt64   `json:"distributor_id"`
 	ContainerType  string      `json:"container_type"`
 	ServeType      int         `json:"serve_type"`
 	Brewery        NullString  `json:"brewery"`

@@ -142,6 +142,8 @@ angular.module('myApp')
       scope.internalControl.clearNewForm = function() {
         scope.new_distributor = {};
         scope.new_distributor['name'] = null;
+        scope.new_distributor['phone'] = null;
+        scope.new_distributor['email'] = null;
         scope.new_distributor['kegs'] = [{volume:null, unit:null, deposit:null}];
 
         // form verification
