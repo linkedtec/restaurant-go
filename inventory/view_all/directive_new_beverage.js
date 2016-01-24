@@ -550,13 +550,11 @@ angular.module('myApp')
             scope.form_ver.error_pcount=true;
             all_clear = false;
           }
-          if ( scope.new_beverage['purchase_count'] === null || scope.new_beverage['purchase_count'] === '' || MathService.numIsInvalidOrNegative(scope.new_beverage['purchase_count']) )
+          if ( scope.new_beverage['purchase_count'] === null || scope.new_beverage['purchase_count'] === '' || MathService.numIsInvalidOrNegative(scope.new_beverage['purchase_count']) || scope.new_beverage['purchase_count'] < 1 )
           {
             scope.form_ver.error_pcount=true;
             all_clear = false;
           }
-          // this could have become a string, so need to make sure it's a float
-          scope.new_beverage['purchase_count'] = MathService.fixFloat2(scope.new_beverage['purchase_count']);
 
           scope.form_ver.error_par=false;
           if ( scope.requiredMissing('par') ) {
@@ -619,16 +617,17 @@ angular.module('myApp')
             }
           }
 
-          if (scope.new_unit_sale.value !== null && scope.new_unit_sale.value !== '' && MathService.numIsInvalidOrNegative(scope.new_unit_sale.value) )
+          if (scope.new_unit_sale.value === '') {
+            scope.new_unit_sale.value = null;
+          }
+          if (scope.new_unit_sale.value !== null && MathService.numIsInvalidOrNegative(scope.new_unit_sale.value) )
           {
             scope.form_ver.error_unit_sale=true;
             all_clear=false;
           } else {
             scope.form_ver.error_unit_sale=false;
           }
-          if (scope.new_unit_sale.value === '') {
-            scope.new_unit_sale.value = null;
-          }
+          
         }
 
         // Collect the final list of size prices.  Careful to do the following:
@@ -695,6 +694,8 @@ angular.module('myApp')
         // the unit sale is a special entry we need to push into size_prices,
         // with volume 1, unit "Unit", and price of new_unit_sale.  Note we do this
         // after there are no form validation errors and are ready to commit.
+        // Also note that we add this even if new_unit_sale.value is null,
+        // because this item should be displayed to have be sold in 1 unit
         //
         // Should always add for single serve
         if (scope.new_beverage['serve_type'] === scope.serve_types[1] || scope.new_beverage['container_type'] !== "Keg") {
@@ -820,6 +821,7 @@ angular.module('myApp')
               }
             }
           }
+
           if (changedKeys.length == 0) {
             // there were no changes made, so call closeOnCancel and quit.
             if (scope.closeOnCancel !== null) {

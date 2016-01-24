@@ -814,7 +814,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
 
     swal({
       title: "Delete Distributor?",
-      text: "This will remove <b>" + $scope.original_distributor.name + "</b> from your Distributors, and affect all beverages which are currently carried by this Distributor.<br/><br/>Are you absolutely sure?",
+      text: "This will remove <b>" + $scope.original_distributor.name + "</b> from your Distributors.<br/><br/>All beverages currently associated with " + $scope.original_distributor.name + " will no longer be associated with a Distributor, and will become Inactive if they are currently an active Staple or Seasonal beverage.<br/><br/>Are you absolutely sure?",
       type: "warning",
       showCancelButton: true,
       html: true,

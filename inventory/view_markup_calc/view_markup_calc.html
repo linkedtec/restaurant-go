@@ -132,11 +132,11 @@
         </td>
         <td ng-if="bev.is_title!==true" class="all_inv_span" style="width:80px; text-align:center; color:{{bev.size_prices[0].markup_color}}; background-color:{{bev.size_prices[0].markup_bg_color}}">
           <span ng-if="bev.size_prices===null || bev.size_prices.length===0 || bev.size_prices[0].markup===null" class="glyphicon glyphicon-alert" style="font-size:14px; color:#dd6622;" uib-popover="Markup cannot be calculated.  Please make sure the sales prices and sales volumes are properly specified." popover-trigger="mouseenter" popover-append-to-body="true"></span>
-          <span ng-if="bev.size_prices===null || bev.size_prices.length===0 || bev.size_prices[0].markup===null" style="font-size:13px; padding-left:4px; cursor:pointer; text-decoration:underline; color:#dd6622" ng-click="editMarkupModal(bev)">Fix</span>
+          <span ng-if="bev.size_prices===null || bev.size_prices.length===0 || bev.size_prices[0].markup===null" style="font-size:13px; padding-left:4px; cursor:pointer; text-decoration:underline; color:#dd6622" ng-click="editMarkup(bev)">Fix</span>
           <span ng-if="bev.size_prices[0].markup!==null">{{bev.size_prices[0].markup | number:2}}</span>
         </td>
         <td ng-if="bev.is_title!==true" class="all_inv_span" style="text-align:center">
-          <button ng-if="bev.size_prices!==null && bev.size_prices.length>0 && bev.size_prices[0].markup!==null" ng-click="editBeverage(bev)" type="button" class="btn btn-xs btn_frameless hover_green" uib-popover="Edit purchase and sales information." popover-trigger="mouseenter" popover-popup-delay="300" popover-append-to-body="true">
+          <button ng-if="bev.size_prices!==null && bev.size_prices.length>0 && bev.size_prices[0].markup!==null" ng-click="editMarkup(bev)" type="button" class="btn btn-xs btn_frameless hover_green" uib-popover="Edit purchase and sales information." popover-trigger="mouseenter" popover-popup-delay="300" popover-append-to-body="true">
             <span class="glyphicon glyphicon-pencil"></span>
           </button>
         </td>
@@ -162,11 +162,11 @@
         </td>
         <td class="all_inv_span" style="text-align:center; color:{{sp.markup_color}}; background-color:{{sp.markup_bg_color}}">
           <span ng-if="sp.markup===null" class="glyphicon glyphicon-alert" style="font-size:14px; color:#dd6622;" uib-popover="Markup cannot be calculated.  Please make sure the sales prices and sales volumes are properly specified." popover-trigger="mouseenter" popover-append-to-body="true"></span>
-          <span ng-if="sp.markup===null" style="font-size:13px; padding-left:4px; cursor:pointer; text-decoration:underline; color:#dd6622" ng-click="editMarkupModal(bev)">Fix</span>
+          <span ng-if="sp.markup===null" style="font-size:13px; padding-left:4px; cursor:pointer; text-decoration:underline; color:#dd6622" ng-click="editMarkup(bev)">Fix</span>
           <span ng-if="sp.markup!==null">{{sp.markup | number:2}}</span>
         </td>
         <td class="all_inv_span" style="text-align:center">
-          <button ng-if="sp.markup!==null" ng-click="editBeverage(bev)" type="button" class="btn btn-xs btn_frameless hover_green" uib-popover="Edit purchase and sales information." popover-trigger="mouseenter" popover-popup-delay="300" popover-append-to-body="true">
+          <button ng-if="sp.markup!==null" ng-click="editMarkup(bev)" type="button" class="btn btn-xs btn_frameless hover_green" uib-popover="Edit purchase and sales information." popover-trigger="mouseenter" popover-popup-delay="300" popover-append-to-body="true">
             <span class="glyphicon glyphicon-pencil"></span>
           </button>
         </td>
@@ -174,3 +174,5 @@
     </tbody>
   </table>
 </div>
+
+<div ng-include src="'./view_markup_calc/modal_edit_markup.html'">

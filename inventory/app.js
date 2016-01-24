@@ -133,6 +133,26 @@ config(['$routeProvider', function($routeProvider) {
       volume_units = [];
     });
 */
+  
+  var getVolumeInLiters = function(vol, unit, volume_units_array) {
+    if (vol===null || unit===null) {
+      return -1;
+    }
+
+    var in_liters = 0;
+    for (var i=0; i < volume_units_array.length; i++){
+      var vol_unit = volume_units_array[i];
+      if (unit === vol_unit['abbr_name']) {
+        in_liters = vol_unit['in_liters'];
+        break;
+      }
+    }
+
+    var vol_in_liters = in_liters * vol;
+    return vol_in_liters;
+
+  }
+  
 
   return {
     get: function() {
@@ -145,28 +165,28 @@ config(['$routeProvider', function($routeProvider) {
     }
     */
 
+    getVolumeInLiters: function(vol, unit, volume_units_array) {
+      return getVolumeInLiters(vol, unit, volume_units_array);
+    },
+
     getPricePerVolume: function(vol, unit, cost, count, volume_units_array, cost_unit) {
 
       // returning -1 means invalid
-      if (vol === null || cost === null) {
+      if (vol===null || unit===null || cost===null || count===null || count===undefined) {
         return -1;
       }
 
-      // if volume is 0, return negative number
+      // if volume is 0, return invalid
       if (vol === 0) {
         return -1;
       }
 
-      var in_liters = 0;
-      for (var i=0; i < volume_units_array.length; i++){
-        var vol_unit = volume_units_array[i];
-        if (unit === vol_unit['abbr_name']) {
-          in_liters = vol_unit['in_liters'];
-          break;
-        }
+      // if count is less than 1, invalid
+      if (count < 1) {
+        return -1;
       }
 
-      var vol_in_liters = in_liters * vol;
+      var vol_in_liters = getVolumeInLiters(vol, unit, volume_units_array);
 
       var cost_per_mL = cost / count / vol_in_liters / 1000.0;
 

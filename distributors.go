@@ -716,7 +716,7 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	case "DELETE":
 
-		// XXX This logic closely resembles /distributors DELETE, if any changes
+		// XXX This logic closely resembles /kegs DELETE, if any changes
 		// go there they may need to be reflected here as well
 
 		dist_id := r.URL.Query().Get("id")
@@ -810,7 +810,7 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			_, err = db.Exec("UPDATE beverages SET distributor_id=NULL, keg_id=NULL where id=$1;", new_bev_id)
+			_, err = db.Exec("UPDATE beverages SET distributor_id=NULL, keg_id=NULL, sale_status=NULL where id=$1;", new_bev_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
