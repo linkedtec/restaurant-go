@@ -37,11 +37,23 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   $scope.highlight_cols = null;
 
   $scope.col_comps = {
-    supplier: true,
-    purchase: true,
-    retail: true,
-    inventory: true,
-    misc: true
+    product: true,
+    alc_type: true,
+    container: true,
+    serve: true,
+    distributor: true, 
+    brewery: true,
+    abv: true,
+    pvol: true,
+    punit: true,
+    pcost: true,
+    pcount: true,
+    cost_per_vol: true,
+    par: true,
+    sale_status: true,
+    serve_size: true,
+    ret_price: true,
+    deposit: true
   }
 
   /*
