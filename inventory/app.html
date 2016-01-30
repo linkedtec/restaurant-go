@@ -28,6 +28,7 @@
   <script src="/lib/ui-bootstrap/ui-bootstrap-tpls-0.14.1.min.js"></script>
 
   <script src="/inventory/app.js"></script>
+  <script src="/inventory/view_dashboard/view_dashboard.js"></script>
   <script src="/inventory/view_all/view_all.js"></script>
   <script src="/inventory/view_all/directive_new_beverage.js"></script>
   <script src="/inventory/view_all/service_beverages.js"></script>
@@ -80,9 +81,26 @@
 
     <div class="collapse navbar-collapse" id="main-navbar-collapse">
       <ul class="nav navbar-nav" ng-controller="myAppCtrl" style="font-size:1.0em;">
-        <li ng-class="{ 'active': isActive('/viewAllInv') || isActive('/viewMarkupCalc') || isActive('/viewDistributors') || isActive('/viewRestaurant')}"><a href="#/viewAllInv">Overview</a></li>
-        <li ng-class="{ 'active': isActive('/viewSalesPlan') || isActive('/viewPurchaseOrders') || isActive('/viewPurchaseHistory') || isActive('/viewPODeliveries') }"><a href="#/viewSalesPlan">Menu & Purchasing</a></li>
-        <li ng-class="{ 'active': isActive('/viewInvByLoc') || isActive('/viewInvByLocNew') || isActive('/viewOnTap') || isActive('/viewHistory') || isActive('/viewDeliveries') }"><a href="#/viewInvByLocNew">Inventory</a></li>
+        <li ng-class="{ 'active': isActive('/viewDashboard') || isActive('/viewAllInv') || isActive('/viewDistributors') || isActive('/viewRestaurant')}">
+          <a href="#/viewDashboard">
+            Overview
+          </a>
+        </li>
+        <li ng-class="{ 'active': isActive('/viewSalesPlan') || isActive('/viewMarkupCalc') }">
+          <a href="#/viewSalesPlan">
+            Menu & Sales
+          </a>
+        </li>
+        <li ng-class="{ 'active': isActive('/viewPurchaseOrders') || isActive('/viewPurchaseHistory') || isActive('/viewPODeliveries') }">
+          <a href="#/viewPurchaseOrders">
+            Purchasing
+          </a>
+        </li>
+        <li ng-class="{ 'active': isActive('/viewInvByLoc') || isActive('/viewInvByLocNew') || isActive('/viewOnTap') || isActive('/viewHistory') || isActive('/viewDeliveries') }">
+          <a href="#/viewInvByLocNew">
+            Inventory
+          </a>
+        </li>
         <!--li ng-class="{ 'active': isActive('/') }"><a href="#/viewDeliveries">Deliveries</a></li-->
       </ul>
     </div>

@@ -1,0 +1,176 @@
+<div ng-include src="'./bev_subnav.html'"></div>
+<div class="container" style="min-width:960px; max-width:960px">
+
+  <div style="width:100%; margin-top:24px; padding-bottom:4px; font-size:1.3em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_dashboard.png" height="32" width="32" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:8px; margin-left:2px">
+      My Dashboard <span ng-if="restaurant_name!==null" style="color:#aaaaaa"> -- {{restaurant_name}}</span>
+    </div>
+  </div>
+  <div class="hint_text" style="width:100%; padding-top:2px; font-size:1.0em">
+    Quick overview of key metrics of your Restaurant.
+  </div>
+
+  <div class="row" style="margin:0 auto; margin-top:24px; font-size:1.0em;">
+    <!-- Num Beverages -->
+    <div class="col-xs-4" style=" padding:0px 8px; color:white;">
+      <div style="padding:6px 16px; background-color:#489AD4; border-radius:2px; height:170px;">
+        <div style="position:absolute; top:8px; right:12px;">
+          <img src="images/inv_all.png" height="96" width="96" style="vertical-align:top; opacity:0.5"/>
+        </div>
+        <div style="position:relative"><!--need this position relative to make img behind text-->
+          <div style="display:block; font-size:1.1em; width:100%; text-align:left;">
+            <span style="font-size:2.6em; font-weight:bold"> {{dash_data.staple_beverages+dash_data.seasonal_beverages | number:0}}</span> &nbsp;active beverages 
+          </div>
+          <div class="row" style="margin:0; margin-top:6px; text-align:left">
+            <div class="col-xs-6 min_padding">
+              <span style="display:inline-block; width:36px; font-weight:bold; float:left">{{dash_data.beers}}</span> 
+              <span style="display:inline-block; float:left">Beers</span>
+            </div>
+            <div class="col-xs-6 min_padding">
+              <span style="display:inline-block; width:36px; font-weight:bold; float:left">{{dash_data.ciders}}</span> 
+              <span style="display:inline-block; float:left">Ciders</span>
+            </div>
+          </div>
+          <div class="row" style="margin:0; text-align:left">
+            <div class="col-xs-6 min_padding">
+              <span style="display:inline-block; width:36px; font-weight:bold; float:left">{{dash_data.wines}}</span> 
+              <span style="display:inline-block; float:left">Wines</span>
+            </div>
+            <div class="col-xs-6 min_padding">
+              <span style="display:inline-block; width:36px; font-weight:bold; float:left">{{dash_data.liquors}}</span> 
+              <span style="display:inline-block; float:left">Liquors</span>
+            </div>
+          </div>
+          <div class="row" style="margin:0; text-align:left">
+            <div class="col-xs-12 min_padding">
+              <span style="display:inline-block; width:36px; font-weight:bold; float:left">{{dash_data.non_alcoholics}}</span> 
+              <span style="display:inline-block; float:left">Non Alcoholic</span>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute; bottom:0; right:8px; left:8px; background-color:#277FA9; height:24px; text-align:right; padding-right:12px; padding-top:2px">
+          <a href="#/viewSalesPlan">
+            <span class="help_link" style="color:#CCEAF7; font-size:0.9em">Manage active beverages in Menu Plan</span>
+          </a>
+        </div>
+      </div>
+    </div>
+    <!-- Markups -->
+    <div class="col-xs-4" style=" padding:0px 8px; color:white;">
+      <div style="padding:6px 16px; background-color:#5CB16B; border-radius:2px; height:170px;">
+        <div style="position:absolute; top:8px; right:12px;">
+          <img src="images/inv_dollar.png" height="96" width="96" style="vertical-align:top; opacity:0.2"/>
+        </div>
+        <div style="position:relative"><!--need this position relative to make img behind text-->
+          <div style="display:block; font-size:1.1em; width:100%; text-align:left;">
+            <span style="font-size:2.6em; font-weight:bold"> {{dash_data.markup_avg | number:1}}</span> &nbsp;avg. sales markup
+          </div>
+          <div class="row" style="margin:0; margin-top:6px; text-align:left;">
+            <div class="col-xs-6 min_padding">
+              <span style="display:inline-block; width:36px; font-weight:bold; float:left">{{dash_data.markup_beers | number:1}}</span> 
+              <span style="display:inline-block; float:left">Beers</span>
+            </div>
+            <div class="col-xs-6 min_padding">
+              <span style="display:inline-block; width:36px; font-weight:bold; float:left">{{dash_data.markup_ciders | number:1}}</span> 
+              <span style="display:inline-block; float:left">Ciders</span>
+            </div>
+          </div>
+          <div class="row" style="margin:0; text-align:left;">
+            <div class="col-xs-6 min_padding">
+              <span style="display:inline-block; width:36px; font-weight:bold; float:left">{{dash_data.markup_wines | number:1}}</span> 
+              <span style="display:inline-block; float:left">Wines</span>
+            </div>
+            <div class="col-xs-6 min_padding">
+              <span style="display:inline-block; width:36px; font-weight:bold; float:left">{{dash_data.markup_liquors | number:1}}</span> 
+              <span style="display:inline-block; float:left">Liquors</span>
+            </div>
+          </div>
+          <div class="row" style="margin:0; text-align:left">
+            <div class="col-xs-12 min_padding">
+              <span style="display:inline-block; width:36px; font-weight:bold; float:left">{{dash_data.markup_non_alcoholics | number:1}}</span> 
+              <span style="display:inline-block; float:left">Non Alcoholic</span>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute; bottom:0; right:8px; left:8px; background-color:#369049; height:24px; text-align:right; padding-right:12px; padding-top:2px">
+          <a href="#/viewMarkupCalc">
+            <span class="help_link" style="color:#CCF7E2; font-size:0.9em">Manage markups in Markup Calculator</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Markups -->
+    <div class="col-xs-4" style=" padding:0px 8px; color:white;">
+      <div style="padding:6px 8px 6px 16px; background-color:#97AD3E; border-radius:2px; height:170px;">
+        <div style="position:absolute; top:8px; right:12px;">
+          <img src="images/inv_delivery.png" height="96" width="96" style="vertical-align:top; opacity:0.1"/>
+        </div>
+        <div style="position:relative"><!--need this position relative to make img behind text-->
+          <div style="display:block; font-size:1.1em; width:100%; text-align:left; margin-top:12px;">
+            <span style="font-size:1.4em">$ </span><span style="font-size:2.0em; font-weight:bold"> -- </span> &nbsp;monthly budget left
+          </div>
+          <div class="row" style="margin:0; margin-top:6px; text-align:left;">
+            <div class="col-xs-12 min_padding">
+              <span style="display:inline-block; font-weight:bold; float:left; width: 140px">$ --</span> 
+              <span style="display:inline-block; float:left;"> Monthly Budget</span>
+            </div>
+          </div>
+          <div class="row" style="margin:0; text-align:left;">
+            <div class="col-xs-12 min_padding">
+              <span style="display:inline-block; font-weight:bold; float:left; width: 140px">{{dash_data.last_purchase_date}}</span> 
+              <span style="display:inline-block; float:left;">Last P.O. sent</span>
+            </div>
+          </div>
+          <div class="row" style="margin:0; text-align:left">
+            <div class="col-xs-12 min_padding">
+              <span style="display:inline-block; font-weight:bold; float:left; width: 140px">{{dash_data.purchase_contact | limitTo:14}}</span> 
+              <span style="display:inline-block; float:left;">Purch. Contact</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="position:absolute; bottom:0; right:8px; left:8px; background-color:#778E1C; height:24px; text-align:right; padding-right:12px; padding-top:2px">
+        <span class="help_link" style="color:#EAECC5; font-size:0.9em" ng-click="comingSoonAlert()">Manage Monthly Purchasing Budget</span>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="row" style="margin:0 auto; margin-top:16px; font-size:1.0em;">
+    <!-- Num Beverages -->
+    <div class="col-xs-4" style=" padding:0px 8px; color:white;">
+      <div style="padding:6px 8px 6px 16px; background-color:#C58C44; border-radius:2px; height:170px;">
+        <div style="position:absolute; top:8px; right:12px;">
+          <img src="images/inv_box_brown.png" height="96" width="96" style="vertical-align:top; opacity:0.2"/>
+        </div>
+        <div style="position:relative"><!--need this position relative to make img behind text-->
+          <div style="display:block; font-size:1.1em; width:100%; text-align:left; position:relative">
+            <span style="font-size:2.6em; font-weight:bold"> {{dash_data.inventory_days_ago | number:0}}</span> <span>&nbsp;days since inventory taken</span>
+          </div>
+          <div class="row" style="margin:0; margin-top:6px; text-align:left;">
+            <div class="col-xs-12 min_padding">
+              <span style="display:inline-block; font-weight:bold; float:left; width: 140px">$ {{dash_data.last_inventory_sum | number:2}}</span>
+              <span style="display:inline-block; float:left;">Last Inv. Value</span>
+            </div>
+          </div>
+          <div class="row" style="margin:0; text-align:left;">
+            <div class="col-xs-12 min_padding">
+              <span ng-if="dash_data.num_inventory_locations!==null" style="display:inline-block; font-weight:bold; float:left; width: 140px">{{dash_data.num_inventory_locations | number:0}}</span>
+              <span ng-if="dash_data.num_inventory_locations===null" style="display:inline-block; font-weight:bold; float:left; width: 140px">0</span>
+              <span style="display:inline-block; float:left;">Storage Locations</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="position:absolute; bottom:0; right:8px; left:8px; background-color:#966B2A; height:24px; text-align:right; padding-right:12px; padding-top:2px">
+        <a href="#/viewHistory">
+          <span class="help_link" style="color:#FDEDE3; font-size:0.9em">View past Inventory Records</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+
+</div>

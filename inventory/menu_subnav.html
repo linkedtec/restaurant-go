@@ -1,0 +1,18 @@
+<nav class="subtoolbar">
+  <div class="container" style="max-width:880px">
+    <ul class="menu" ng-controller="myAppCtrl">
+      <li class="subtoolbar_item" ng-class="{ sub_active: isActive('/viewSalesPlan')}">
+        <a href="#/viewSalesPlan">
+          <div style="display:inline-block; float:left; padding: 4px 0px 4px 12px;"><img src="images/inv_menu.png"></div>
+          <div style="display:inline-block; float:left; margin-top:4px; margin-left:4px; padding: 4px 12px 4px 0px;">Menu Plan</div>
+        </a>
+      </li>
+      <li class="subtoolbar_item" ng-class="{ sub_active: isActive('/viewMarkupCalc')}" href="#/viewMarkupCalc">
+        <a href="#/viewMarkupCalc">
+          <div style="display:inline-block; float:left; padding: 4px 0px 4px 12px;"><img src="images/inv_calc.png"></div>
+          <div style="display:inline-block; float:left; margin-top:4px; margin-left:4px; padding: 4px 12px 4px 0px;">Markup Calculator</div>
+        </a>
+      </li>
+    </ul>
+  </div>
+</nav>

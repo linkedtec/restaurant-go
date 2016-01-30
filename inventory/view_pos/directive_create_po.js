@@ -326,7 +326,13 @@ angular.module('myApp')
       };
 
       scope.getRestaurant = function() {
-        $http.get('/restaurant/name').
+        var test_restaurant_id = 1;
+
+        $http.get('/restaurant/name', {
+          params: {
+            restaurant_id: test_restaurant_id
+          }
+        }).
         success(function(data, status, headers, config) {
           // this callback will be called asynchronously when the response
           // is available

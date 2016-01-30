@@ -3,6 +3,7 @@
 // Declare app level module which depends on views, and components
 angular.module('myApp', [
   'ngRoute',
+  'myApp.viewDashboard',
   'myApp.viewAllInv',
   'myApp.viewMarkupCalc',
   'myApp.viewDistributors',
@@ -19,7 +20,7 @@ angular.module('myApp', [
   'myApp.viewDeliveries'
 ]).
 config(['$routeProvider', function($routeProvider) {
-  $routeProvider.otherwise({redirectTo: '/viewAllInv'});
+  $routeProvider.otherwise({redirectTo: '/viewDashboard'});
 }])
 // this tool tip config is to bypass a bug in Safari for closing popovers on
 // focus.  See this issue:
