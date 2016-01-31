@@ -95,6 +95,19 @@ type PO_SMS struct {
 	Content          string `json:"content"`
 }
 
+type Budget struct {
+	UserID           int         `json:"user_id"`
+	MonthlyBudget    NullFloat64 `json:"monthly_budget"`
+	TargetRunRate    NullFloat64 `json:"target_run_rate"`
+	BudgetAlertEmail NullString  `json:"budget_alert_email"`
+}
+
+type BudgetUpdate struct {
+	UserID     int      `json:"user_id"`
+	Budget     Budget   `json:"budget"`
+	ChangeKeys []string `json:"change_keys"`
+}
+
 func setupPurchaseOrderHandlers() {
 	http.HandleFunc("/purchase", purchaseOrderAPIHandler)
 	http.HandleFunc("/purchase/all", purchaseOrderAllAPIHandler)
@@ -104,6 +117,7 @@ func setupPurchaseOrderHandlers() {
 	http.HandleFunc("/purchase/nextponum", purchaseOrderNextNumAPIHandler)
 	http.HandleFunc("/purchase/dorder", distributorOrderAPIHandler)
 	http.HandleFunc("/purchase/po", purchaseOrderSearchPOAPIHandler)
+	http.HandleFunc("/budget", budgetAPIHandler)
 }
 
 func setupSendPendingPOsCron() {
@@ -1939,6 +1953,131 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		if order.DoSend == true && order.Order.SendLater == false && len(order.Order.PurchaseCC) > 0 {
 			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, order, false, true, w, r)
 		}
+	}
+}
 
+func budgetAPIHandler(w http.ResponseWriter, r *http.Request) {
+	privilege := checkUserPrivilege()
+
+	switch r.Method {
+
+	case "GET":
+		if !hasBasicPrivilege(privilege) {
+			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
+			return
+		}
+
+		user_id := r.URL.Query().Get("user_id")
+		var restaurant_id string
+		err := db.QueryRow(`
+      SELECT restaurant_id 
+      FROM restaurant_users WHERE user_id=$1;`, user_id).Scan(&restaurant_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		var budget Budget
+		err = db.QueryRow(`
+			SELECT purchase_monthly_budget, purchase_target_run_rate, purchase_budget_alert_email
+			FROM restaurants WHERE id=$1;`, restaurant_id).Scan(
+			&budget.MonthlyBudget, &budget.TargetRunRate, &budget.BudgetAlertEmail)
+
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(&budget)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+
+	case "POST":
+
+		if !hasBasicPrivilege(privilege) {
+			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
+			return
+		}
+
+		decoder := json.NewDecoder(r.Body)
+		var budget Budget
+		err := decoder.Decode(&budget)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		var restaurant_id string
+		err = db.QueryRow(`
+      SELECT restaurant_id 
+      FROM restaurant_users WHERE user_id=$1;`, budget.UserID).Scan(&restaurant_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if budget.MonthlyBudget.Valid {
+			_, err = db.Exec(`
+			UPDATE restaurants SET purchase_monthly_budget=$1 WHERE id=$2;`, budget.MonthlyBudget, restaurant_id)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+
+		if budget.TargetRunRate.Valid {
+			_, err = db.Exec(`
+			UPDATE restaurants SET purchase_target_run_rate=$1 WHERE id=$2;`, budget.TargetRunRate, restaurant_id)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+
+	case "PUT":
+		if !hasBasicPrivilege(privilege) {
+			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
+			return
+		}
+
+		decoder := json.NewDecoder(r.Body)
+		var budget_update BudgetUpdate
+		err := decoder.Decode(&budget_update)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		var restaurant_id string
+		err = db.QueryRow(`
+      SELECT restaurant_id 
+      FROM restaurant_users WHERE user_id=$1;`, budget_update.UserID).Scan(&restaurant_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		for _, key := range budget_update.ChangeKeys {
+			if key == "budget_alert_email" {
+				_, err = db.Exec("UPDATE restaurants SET purchase_budget_alert_email=$1 WHERE id=$2", budget_update.Budget.BudgetAlertEmail, restaurant_id)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+			}
+		}
 	}
 }

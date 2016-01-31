@@ -1,6 +1,12 @@
 <nav class="subtoolbar">
   <div class="container" style="max-width:880px">
     <ul class="menu" ng-controller="myAppCtrl">
+      <li class="subtoolbar_item" ng-class="{ sub_active: isActive('/viewBudgetPlanner')}">
+        <a href="#/viewBudgetPlanner">
+          <div style="display:inline-block; float:left; padding: 4px 0px 4px 12px;"><img src="images/inv_money_bag.png"></div>
+          <div style="display:inline-block; float:left; margin-top:4px; margin-left:4px; padding: 4px 12px 4px 0px;">Monthly Budget</div>
+        </a>
+      </li>
       <li class="subtoolbar_item" ng-class="{ sub_active: isActive('/viewPurchaseOrders')}">
         <a href="#/viewPurchaseOrders">
           <div style="display:inline-block; float:left; padding: 4px 0px 4px 12px;"><img src="images/inv_po.png"></div>

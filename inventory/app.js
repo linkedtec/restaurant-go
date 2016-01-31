@@ -9,6 +9,7 @@ angular.module('myApp', [
   'myApp.viewDistributors',
   'myApp.viewRestaurant',
   'myApp.viewSalesPlan',
+  'myApp.viewBudgetPlanner',
   'myApp.viewPurchaseOrders',
   'myApp.viewPurchaseHistory',
   'myApp.viewPODeliveries',

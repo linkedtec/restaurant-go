@@ -196,6 +196,7 @@ func main() {
 	setupDistributorHandlers()
 	setupDeliveriesHandlers()
 	setupPurchaseOrderHandlers()
+	setupMarkupHandlers()
 
 	// cron job for refreshing online menu pages
 	setupMenuPagesCron()

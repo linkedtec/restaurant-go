@@ -1,0 +1,172 @@
+<div ng-include src="'./purch_subnav.html'"></div>
+<div class="container" style="min-width:880px; max-width:880px">
+
+  <div style="width:100%; margin-top:24px; padding-bottom:4px; font-size:1.3em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_money_bag.png" height="32" width="32" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:8px; margin-left:2px">Monthly Budget</div>
+  </div>
+  <div class="hint_text" style="width:100%; padding-top:2px; font-size:1.0em">
+    Setting a Monthly Budget helps guide the Purchasing process, as well as 
+    notify the manager when the budget is exceeded.
+  </div>
+
+  <!--div class="row" style="margin-top:6px">
+    <div class="col-xs-12 hint_text" style="font-size:1.0em">
+      
+    </div>
+  </div-->
+
+  <div ng-if="edit_mode!==true" class="row" style="margin-top:48px;">
+    <div class="col-xs-3 min_padding"></div>
+    <div class="col-xs-6 min_padding" style="text-align:center">
+      <div style="display:inline-block; width:360px; padding:6px 0px 0px; background-color: #ffffff; border-radius:6px; height:94px">
+        <div style="font-size:1.2em; color:#777777">Monthly Budget:</div>
+        <div ng-if="monthly_budget.value===null" style="font-size:2.8em">None Yet</div>
+        <div ng-if="monthly_budget.value!==null" style="margin-top:-4px">
+          <span style="font-size:1.8em; color:#aaaaaa">$ </span>
+          <span style="font-size:3.0em; color:#02A930">{{monthly_budget.value | number:2}}</span>
+        </div>
+      </div>
+      <div class="help_link" style="position:absolute; bottom:14px; right:48px; color:#888888" ng-click="setEditMode(true)">
+        <span class="glyphicon glyphicon-pencil"></span> Edit
+      </div>
+    </div>
+    <div class="col-xs-3 min_padding" style="text-align:left; height:94px;">
+      
+    </div>
+  </div>
+
+  <div ng-show="edit_mode===true" class="row" style="margin-top:36px; margin-bottom:16px">
+    <div class="col-xs-1"></div>
+    <div class="col-xs-10" style="border-radius:4px; border: 5px solid #c5e8a5; background-color:#f5faea; padding:0">
+      <div class="add_title_bar_green">
+        <button ng-click="setEditMode(false)" type="button" class="btn btn-default btn_x" style="float:left">
+          <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+        </button>
+        <div class="add_title_green">
+          <span style="font-size:1.0em;"> Edit Monthly Budget </span>
+        </div>
+        <br/>
+      </div>
+      <div class="row" ng-if="monthly_budget.value!==null" style="margin:0; margin-top:6px;">
+        <div class="col-xs-12" style="text-align:center; font-size:1.2em; color:#449046;">
+          Current Monthly Budget: $<span style="font-weight:bold; font-size:1.2em"> {{monthly_budget.value | number:2}}</span>
+        </div>
+      </div>
+      <div class="row" style="padding:16px">
+        <div class="row" style="margin:0; padding:12px 0px">
+          <div class="col-xs-12">
+            <span style="font-size:1.1em; color:#449046">
+              <b>Option A</b>: If you have a specific number in mind for the new budget, enter it below:
+            </span>
+          </div>
+          <div ng-show="new_failure_msg_specific!==null" class="col-xs-12" style="margin:6px 0px 0px">
+            <div class="alert alert-danger" data-html="true" role="alert" style="margin-bottom:6px">
+              {{new_failure_msg_specific}}
+            </div>
+          </div>
+          <div class="col-xs-4">
+            <div class="input-group" style="width:180px; margin-top:8px; margin-left:12px;">
+              <span class="input-group-addon">$</span>
+              <input ng-model="new_budget.value" type="number" min="0" class="form-control" ng-class="{'my_error':form_ver.error_specific===true}" style="text-align:center;">
+            </div>
+          </div>
+          <div ng-if="new_budget.value!==null" class="col-xs-4">
+            <button class="btn btn-success btn-md" style="display:inline-block; margin-left:-32px; margin-top:8px" ng-click="saveSpecific()">
+              Save as Monthly Budget
+            </button>
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px; margin-bottom:12px">
+          <div class="col-xs-5">
+            <hr style="margin:14px -36px 0px 16px; border-color:#d0e0c0"/>
+          </div>
+          <div class="col-xs-2" style="text-align:center; font-size:1.4em; color:#449046">
+            OR
+          </div>
+          <div class="col-xs-5">
+            <hr style="margin:14px 16px 0px -36px; border-color:#d0e0c0"/>
+          </div>
+        </div>
+        <div class="row" style="margin:0; padding:12px 0px">
+          <div class="col-xs-12">
+            <span style="font-size:1.1em; color:#449046">
+              <b>Option B</b>: Calculate your monthly budget based on target monthly sales:
+            </span>
+          </div>
+          <div ng-if="avg_markup===null || avg_markup < 0.1" class="col-xs-12 hint_text" style="font-size:1.0em; margin-top:12px; font-style:italic; padding:6px 48px">
+            This feature is unavailable because Average Markup could not be calculated for your beverages.  You might not have enough beverage or sales data in the system yet.<br/>  Please fix this in the 
+            <a class="link_text" href="#/viewMarkupCalc">Markup Calculator</a> page.
+          </div>
+          <div class="col-xs-12" ng-if="avg_markup!==null && avg_markup >= 0.1" style="margin-top:12px; text-align:center">
+            <div style="padding:12px; border-radius:4px; background-color:#E2F5D6; border:1px solid #C8E0BA;">
+              <div style="display:inline-block; width:25%; height:64px; vertical-align:top; text-align:center">
+                Target Monthly Run Rate
+                <div class="input-group" style="width:100%; margin-top:2px;">
+                  <span class="input-group-addon">$</span>
+                  <input ng-model="target_run_rate.value" type="number" min="0" class="form-control" ng-class="{'my_error':form_ver.error_target_run_rate===true}" style="text-align:center;" ng-change="runRateChanged()">
+                </div>
+              </div>
+              <div style="display:inline-block; font-size:3.4em; height:64px; vertical-align:top; width:64px; text-align:center; margin-top:-8px">
+                &divide;
+              </div>
+              <div style="display:inline-block; width:25%; height:64px; vertical-align:top">
+                <div style="width:100%; text-align:center">Avg. Beverage Markup</div>
+                <div class="blue_color" style="margin-top:0px; width:100%; text-align:center; font-size:1.8em;">
+                  <b>{{avg_markup | number:1}}</b>
+                  <span class="glyphicon glyphicon-question-sign" style="font-size:18px; color:#84C1AC;"  uib-popover="This is the average sales markup for all your active beverages. Use the Markup Calculator page to view and edit markups." popover-trigger="mouseenter" popover-append-to-body="true"></span>
+                </div>
+              </div>
+              <div style="display:inline-block; font-size:3.4em; height:64px; vertical-align:top; width:42px; text-align:center; margin-top:-8px">
+                =
+              </div>
+              <div style="display:inline-block; width:25%; margin-left:16px; height:64px; vertical-align:top">
+                Calculated Monthly Budget
+                <div style="margin-top:2px; width:100%; text-align:center; font-size:1.6em; color:#449046; font-weight:bold">
+                  <span ng-if="calc_budget===null">--</span>
+                  <span ng-if="calc_budget!==null">$ {{calc_budget | number:2}}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div ng-show="new_failure_msg_calculated!==null" class="col-xs-12" style="margin:6px 0px 0px">
+            <div class="alert alert-danger" data-html="true" role="alert" style="margin-bottom:6px">
+              {{new_failure_msg_calculated}}
+            </div>
+          </div>
+          <div class="col-xs-12" ng-if="target_run_rate.value!==null" style="text-align:right; margin-top:8px">
+            <button class="btn btn-md btn-success btn_ok" ng-click="saveCalculated()">
+              Save as Monthly Budget
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xs-1"></div>
+  </div>
+
+
+  <hr style="margin:0px 60px 0px"/>
+
+  <div ng-show="new_failure_msg_email!==null" class="row" style="margin:6px 0px 0px; text-align:center">
+    <div class="col-xs-2"></div>
+    <div class="col-xs-8">
+      <div class="alert alert-danger" data-html="true" role="alert" style="margin-bottom:0px;">
+        {{new_failure_msg_email}}
+      </div>
+    </div>
+  </div>
+  <div class="row" ng-if="monthly_budget.value!==null" style="margin-top:12px">
+    <div class="col-xs-2"></div>
+    <div class="col-xs-8" style="text-align:center; font-size:1.1em">
+      <span>If purchasing budget is exceeded, send alert email to: </span>
+      <input ng-model="budget_email_edit.value" class="form-control input_small" style="width:190px; display:inline-block; margin-left:4px" placeholder="manager@restaurant.com" ng-class="{'my_error':form_ver.error_email===true}" style="text-align:center;">
+    </div>
+    <div ng-if="budget_email_edit.value!==budget_email.value" class="col-xs-2" style="padding-left:0">
+      <button class="btn btn-success btn-sm" style="" ng-click="saveEmail()">
+        Save Email
+      </button>
+    </div>
+  </div>
+
+</div>

@@ -14,15 +14,6 @@ angular.module('myApp.viewDashboard', ['ngRoute', 'ui.bootstrap'])
   $scope.restaurant_name = null;
   $scope.dash_data = null;
 
-  $scope.comingSoonAlert = function() {
-    swal({
-      title: "Feature coming soon!",
-      text: "Monthly budgets has not yet been implemented, but will be shortly.",
-      timer: 8000,
-      allowOutsideClick: true,
-      html: true});
-  }
-
   $scope.getRestaurant = function() {
 
     var test_restaurant_id = 1;
