@@ -67,7 +67,7 @@ type Dashboard struct {
 	LastInventorySum      NullFloat64 `json:"last_inventory_sum"`
 	NumInventoryLocations NullInt64   `json:"num_inventory_locations"`
 	PurchaseContact       NullString  `json:"purchase_contact"`
-	PurchaseMonthlyBudget NullFloat64 `json:"purchase_monthly_budget"`
+	Budget                Budget      `json:"monthly_budget"`
 	LastPurchaseDate      NullTime    `json:"last_purchase_date"`
 }
 
@@ -560,7 +560,27 @@ func dashboardAPIHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		err = db.QueryRow("SELECT purchase_contact, purchase_monthly_budget FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(&dash.PurchaseContact, &dash.PurchaseMonthlyBudget)
+		dash.Budget, err = getMonthlyBudget(restaurant_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		err = db.QueryRow("SELECT purchase_contact FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(&dash.PurchaseContact)
+		if err != nil {
+			switch {
+			case err == sql.ErrNoRows:
+				// do nothing
+			case err != nil:
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+
+		// get last time a PO was sent
+		err = db.QueryRow("SELECT order_date FROM purchase_orders WHERE restaurant_id=$1 AND sent=TRUE ORDER BY order_date DESC LIMIT 1;", test_restaurant_id).Scan(&dash.LastPurchaseDate)
 		if err != nil {
 			switch {
 			// If there were no rows, that means the beverage was probably deleted (no current).  In that case don't do the update
@@ -572,21 +592,6 @@ func dashboardAPIHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-
-		err = db.QueryRow("SELECT order_date FROM purchase_orders WHERE restaurant_id=$1 ORDER BY order_date DESC LIMIT 1;", test_restaurant_id).Scan(&dash.LastPurchaseDate)
-		if err != nil {
-			switch {
-			// If there were no rows, that means the beverage was probably deleted (no current).  In that case don't do the update
-			case err == sql.ErrNoRows:
-				// do nothing
-			case err != nil:
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
-
-		// get last inventory value
 
 		w.Header().Set("Content-Type", "application/json")
 		js, err := json.Marshal(&dash)

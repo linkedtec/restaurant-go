@@ -16,15 +16,39 @@
     </div>
   </div-->
 
-  <div ng-if="edit_mode!==true" class="row" style="margin-top:48px;">
+
+  <div style="height:48px"></div>
+
+  <div ng-if="edit_mode!==true && monthly_budget.value!==null && monthly_budget.value!==remaining_budget.value" class="row">
     <div class="col-xs-3 min_padding"></div>
     <div class="col-xs-6 min_padding" style="text-align:center">
       <div style="display:inline-block; width:360px; padding:6px 0px 0px; background-color: #ffffff; border-radius:6px; height:94px">
-        <div style="font-size:1.2em; color:#777777">Monthly Budget:</div>
+        <div style="font-size:1.2em; color:#777777">
+          Remaining Budget this month:
+          <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;"  uib-popover="This is calculated by subtracting your purchases made this month from the max monthly budget.  The calculation will preferentially use final delivered invoices (from PO History + Delivery page) if available, otherwise it will use the estimates on the POs you've submitted to Distributors." popover-trigger="mouseenter" popover-append-to-body="true"></span>
+        </div>
+        <div style="margin-top:-4px">
+          <span style="font-size:1.8em; color:#aaaaaa">$ </span>
+          <span style="font-size:3.0em; color:{{remaining_budget_color}}">{{remaining_budget.value | number:2}}</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-xs-3 min_padding" style="text-align:left; height:94px;">
+      
+    </div>
+  </div>
+
+  <hr ng-if="edit_mode!==true && monthly_budget.value!==null && monthly_budget.value!==remaining_budget.value" style="margin:0px 60px 0px"/>
+  
+  <div ng-if="edit_mode!==true" class="row" style="margin-top:24px;">
+    <div class="col-xs-3 min_padding"></div>
+    <div class="col-xs-6 min_padding" style="text-align:center">
+      <div style="display:inline-block; width:360px; padding:6px 0px 0px; background-color: #ffffff; border-radius:6px; height:94px">
+        <div style="font-size:1.2em; color:#777777">Maximum Monthly Budget:</div>
         <div ng-if="monthly_budget.value===null" style="font-size:2.8em">None Yet</div>
         <div ng-if="monthly_budget.value!==null" style="margin-top:-4px">
           <span style="font-size:1.8em; color:#aaaaaa">$ </span>
-          <span style="font-size:3.0em; color:#02A930">{{monthly_budget.value | number:2}}</span>
+          <span style="font-size:3.0em; color:#876BD6">{{monthly_budget.value | number:2}}</span>
         </div>
       </div>
       <div class="help_link" style="position:absolute; bottom:14px; right:48px; color:#888888" ng-click="setEditMode(true)">
@@ -36,7 +60,7 @@
     </div>
   </div>
 
-  <div ng-show="edit_mode===true" class="row" style="margin-top:36px; margin-bottom:16px">
+  <div ng-show="edit_mode===true" class="row" style="margin-top:0px; margin-bottom:16px">
     <div class="col-xs-1"></div>
     <div class="col-xs-10" style="border-radius:4px; border: 5px solid #c5e8a5; background-color:#f5faea; padding:0">
       <div class="add_title_bar_green">
@@ -160,7 +184,7 @@
     <div class="col-xs-2"></div>
     <div class="col-xs-8" style="text-align:center; font-size:1.1em">
       <span>If purchasing budget is exceeded, send alert email to: </span>
-      <input ng-model="budget_email_edit.value" class="form-control input_small" style="width:190px; display:inline-block; margin-left:4px" placeholder="manager@restaurant.com" ng-class="{'my_error':form_ver.error_email===true}" style="text-align:center;">
+      <input ng-model="budget_email_edit.value" class="form-control" style="width:190px; display:inline-block; margin-left:4px" placeholder="manager@restaurant.com" ng-class="{'my_error':form_ver.error_email===true}" style="text-align:center;">
     </div>
     <div ng-if="budget_email_edit.value!==budget_email.value" class="col-xs-2" style="padding-left:0">
       <button class="btn btn-success btn-sm" style="" ng-click="saveEmail()">

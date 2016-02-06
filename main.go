@@ -220,6 +220,15 @@ func getCurrentTime() string {
 	return cur_time
 }
 
+func getRestaurantName(restaurant_id string) string {
+	var name string
+	err := db.QueryRow("SELECT name FROM restaurants WHERE id=$1;", restaurant_id).Scan(&name)
+	if err != nil {
+		return ""
+	}
+	return name
+}
+
 func getRestaurantTimeZone(restaurant_id string) (string, error) {
 	var tz_str string
 	err := db.QueryRow("SELECT timezone FROM restaurants WHERE id=$1;", restaurant_id).Scan(&tz_str)
@@ -475,7 +484,10 @@ func sendAttachmentEmail(email_address string, email_title string, email_body st
 	buf.WriteString(encoded[nbrLines*lineMaxLength:])
 
 	//part 3 will be the attachment
-	part3 := fmt.Sprintf("\r\nContent-Type: %s; name=\"%s\"\r\nContent-Transfer-Encoding:base64\r\nContent-Disposition: attachment; filename=\"%s\"\r\n\r\n%s\r\n--%s--", attachment_type, file_location, file_name, buf.String(), marker)
+	part3 := ""
+	if len(attachment_type) > 0 && attachment_type != "" {
+		part3 = fmt.Sprintf("\r\nContent-Type: %s; name=\"%s\"\r\nContent-Transfer-Encoding:base64\r\nContent-Disposition: attachment; filename=\"%s\"\r\n\r\n%s\r\n--%s--", attachment_type, file_location, file_name, buf.String(), marker)
+	}
 
 	//send the email
 	auth := smtp.PlainAuth(

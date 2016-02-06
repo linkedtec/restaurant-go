@@ -42,7 +42,11 @@ angular.module('myApp')
       scope.order['order_date_pretty'] = null;
       //scope.order['order_date_pretty'] = DateService.getPrettyDate((new Date()).toString(), false, true);
       scope.order['send_method'] = null;
+      scope.order['grand_total'] = null;
       scope.deliveryAddressControl = {};
+
+      scope.showBudget = true;
+      scope.remaining_monthly_budget = null;
 
       scope.form_ver = {};
       scope.new_failure_msg = null;
@@ -86,6 +90,32 @@ angular.module('myApp')
         });
 
       };
+
+      scope.getBudget = function() {
+        scope.budget_alert_email = null;
+        scope.total_monthly_budget = null;
+        scope.remaining_monthly_budget = null;
+        var test_user_id = 1;
+        $http.get('/budget', {
+          params: {
+            user_id: test_user_id
+          }
+        }).
+        success(function(data, status, headers, config) {
+          // this callback will be called asynchronously when the response
+          // is available
+          console.log(data);
+          if (data != null) {
+            scope.total_monthly_budget = data["monthly_budget"];
+            scope.remaining_monthly_budget = data["remaining_budget"];
+            scope.budget_alert_email = data["budget_alert_email"];
+          }
+        }).
+        error(function(data, status, headers, config) {
+
+        });
+      };
+      scope.getBudget();
 
       scope.viewOldPurchaseOrder = function(purchase_order) {
         var params = { 
@@ -699,12 +729,21 @@ angular.module('myApp')
           return;
         }
 
-        if ( DateService.isSameDay(new Date(), odate) ) {
+        var today = new Date();
+        // determine whether the date is send now or send on future day
+        if ( DateService.isSameDay(today, odate) ) {
           scope.order['send_later'] = false;
-        } else if (DateService.isFutureDay(new Date(), odate)) {
+        } else if (DateService.isFutureDay(today, odate)) {
           scope.order['send_later'] = true;
         } else {
           scope.order['send_later'] = false;
+        }
+
+        // if sending different month, don't show the remaining budget
+        if (scope.order['order_date'].getMonth() !== today.getMonth()) {
+          scope.showBudget = false;
+        } else {
+          scope.showBudget = true;
         }
 
       };
@@ -817,7 +856,6 @@ angular.module('myApp')
 
         scope.updateDistOrderTotal(dorder);
       };
-
 
       scope.matchQuantityToPar = function(item, dorder) {
         if (item['count_recent']===null || item['par']===null) {
@@ -980,6 +1018,20 @@ angular.module('myApp')
           var item = dorder.items[i];
           if (!MathService.numIsInvalidOrNegative(item['resolved_subtotal'])) {
             dorder.total += item['resolved_subtotal'];
+          }
+        }
+
+        scope.updateOrderGrandTotal();
+      };
+
+      scope.updateOrderGrandTotal = function() {
+        scope.order['grand_total'] = null;
+        for (var i in scope.order['dist_orders']) {
+          var dorder = scope.order['dist_orders'][i];
+          if (scope.order['grand_total']===null) {
+            scope.order['grand_total'] = dorder.total;
+          } else {
+            scope.order['grand_total'] += dorder.total;
           }
         }
       };

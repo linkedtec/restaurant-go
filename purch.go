@@ -99,6 +99,7 @@ type Budget struct {
 	UserID           int         `json:"user_id"`
 	MonthlyBudget    NullFloat64 `json:"monthly_budget"`
 	TargetRunRate    NullFloat64 `json:"target_run_rate"`
+	RemainingBudget  NullFloat64 `json:"remaining_budget"`
 	BudgetAlertEmail NullString  `json:"budget_alert_email"`
 }
 
@@ -199,6 +200,18 @@ func sendPendingPOs() {
 		if len(purchase_order.Order.PurchaseCC) > 0 {
 			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, false, true, w, &r)
 		}
+
+		// if the PO total exceeded the remaining budget, AND there is a
+		// contact specified for email alerts, send email alert
+		budget, err := getMonthlyBudget(restaurant_id)
+		if err != nil {
+			log.Println(err.Error())
+		}
+		if budget.RemainingBudget.Valid && budget.RemainingBudget.Float64 < 0 {
+			log.Println("Monthly budget exceeded, sending budget alert!")
+			_ = sendBudgetAlert(restaurant_id, budget)
+		}
+
 	}
 }
 
@@ -1215,6 +1228,18 @@ func purchaseOrderPendingAPIHandler(w http.ResponseWriter, r *http.Request) {
 			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, false, true, w, r)
 		}
 
+		// if the PO total exceeded the remaining budget, AND there is a
+		// contact specified for email alerts, send email alert
+		budget, err := getMonthlyBudget(test_restaurant_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		if budget.RemainingBudget.Valid && budget.RemainingBudget.Float64 < 0 {
+			log.Println("Monthly budget exceeded, sending budget alert!")
+			_ = sendBudgetAlert(test_restaurant_id, budget)
+		}
+
 	case "DELETE":
 
 		if !hasBasicPrivilege(privilege) {
@@ -1891,6 +1916,7 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			order.Order.ID = int(po_id)
 
+			var order_grand_total float32
 			for _, dorder := range order.DistributorOrders {
 
 				var do_id int
@@ -1923,6 +1949,7 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 					}
 				} // end for Items
 
+				order_grand_total += dorder.Total
 			} // end for DistributorOrders
 
 		} // end if doSend
@@ -1947,13 +1974,156 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// which will mark it as sent, so it doesn't show up in pending POs
 			createPurchaseOrderSaveOnly(test_user_id, test_restaurant_id, order, order.DoSend, w, r)
 		}
-		// if purchase order had a CC email, send out CC email
-		// by setting split_by_dist_order false and do_send true, it will send
-		// a single overview pdf to the CC list only
-		if order.DoSend == true && order.Order.SendLater == false && len(order.Order.PurchaseCC) > 0 {
-			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, order, false, true, w, r)
+
+		actually_sent := order.DoSend == true && (order.Order.SendLater == false || order.Order.SendMethod.String == "save")
+		if actually_sent {
+			// if purchase order had a CC email, send out CC email
+			// by setting split_by_dist_order false and do_send true, it will send
+			// a single overview pdf to the CC list only
+			if len(order.Order.PurchaseCC) > 0 {
+				createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, order, false, true, w, r)
+			}
+
+			// check if budget was overdrawn and send alert email if necessary
+			// if the PO total exceeded the remaining budget, AND there is a
+			// contact specified for email alerts, send email alert
+			budget, err := getMonthlyBudget(test_restaurant_id)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			if budget.RemainingBudget.Valid && budget.RemainingBudget.Float64 < 0 {
+				log.Println("Monthly budget exceeded, sending budget alert!")
+				_ = sendBudgetAlert(test_restaurant_id, budget)
+			}
 		}
 	}
+}
+
+func sendBudgetAlert(restaurant_id string, budget Budget) error {
+
+	// first see if the restaurant has a purchase_budget_alert_email
+	// if it doesn't, quit
+	// if it does, send an automated email warning how much budget has been
+	// exceeded by
+
+	var alert_email NullString
+	err := db.QueryRow(`
+		SELECT purchase_budget_alert_email 
+		FROM restaurants WHERE id=$1;`, restaurant_id).Scan(&alert_email)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
+	if alert_email.Valid {
+
+		restaurant_name := getRestaurantName(restaurant_id)
+
+		spent := budget.MonthlyBudget.Float64 - budget.RemainingBudget.Float64
+		email_title := restaurant_name + ": Monthly Budget Overdrawn!"
+		email_body := fmt.Sprintf(`Your purchases this month have exceeded 
+			your monthly budget!<br/><br/>
+			Monthly Budget: $ %.2f<br/>
+			Purchases to date: $ %.2f<br/>
+			Overdrawn by: $ %.2f<br/><br/>
+			To view a complete history of Purchase Orders placed this month, check out 
+			the PO History page on the app.  To adjust the monthly budget maximum, 
+			or to stop receiving this email or change the recipient for budget 
+			alerts, visit the Monthly Budget page.`,
+			budget.MonthlyBudget.Float64, spent, budget.RemainingBudget.Float64)
+		file_location := ""
+		file_name := ""
+		err = sendAttachmentEmail(alert_email.String, email_title, email_body, file_location, file_name, "")
+		if err != nil {
+			log.Println(err.Error())
+			return err
+		}
+	}
+	return err
+}
+
+func getMonthlyBudget(restaurant_id string) (Budget, error) {
+
+	var err error
+	var budget Budget
+	err = db.QueryRow(`
+			SELECT purchase_monthly_budget, purchase_target_run_rate, purchase_budget_alert_email
+			FROM restaurants WHERE id=$1;`, restaurant_id).Scan(
+		&budget.MonthlyBudget, &budget.TargetRunRate, &budget.BudgetAlertEmail)
+	if err != nil {
+		log.Println(err.Error())
+		return budget, err
+	}
+
+	// get the remaining budget.  This is done by getting the sums of all
+	// unique distributor orders for the month, then subtracting that
+	// from the monthly budget
+	//
+	// first, select all unique do_num in the distributor_orders table
+	// from the start of the month to today
+
+	var total_spent_budget float64
+	tz_str, _ := getRestaurantTimeZone(restaurant_id)
+	// the date time logic below has been verified to be correct!
+	do_rows, err := db.Query(`
+			SELECT distributor_orders.id, distributor_orders.do_num, distributor_orders.total 
+			FROM distributor_orders, purchase_orders 
+			WHERE distributor_orders.purchase_order_id=purchase_orders.id AND 
+			purchase_orders.restaurant_id=$1 AND 
+			purchase_orders.sent=TRUE AND 
+			purchase_orders.order_date < now() AT TIME ZONE 'UTC' AND 
+			purchase_orders.order_date > date_trunc('month', now() AT TIME ZONE 'UTC') AT TIME ZONE $2 AT TIME ZONE 'UTC';`,
+		restaurant_id, tz_str)
+	if err != nil {
+		log.Println(err.Error())
+		return budget, err
+	}
+
+	defer do_rows.Close()
+	for do_rows.Next() {
+		var dorder DistributorOrder
+		if err := do_rows.Scan(
+			&dorder.ID,
+			&dorder.DO_Num,
+			&dorder.Total); err != nil {
+			log.Println(err.Error())
+			continue
+		}
+
+		// XXX for each delivery order num, check if its distributor_orders id has
+		// a corresponding do_deliveries entry.  If so, use the delivery_invoice
+		// there as the amount, otherwise use the do_total as the amount
+		var delivery_invoice NullFloat64
+		err = db.QueryRow(`
+			SELECT delivery_invoice 
+			FROM do_deliveries 
+			WHERE distributor_order_id=$1;`, dorder.ID).Scan(
+			&delivery_invoice)
+		switch {
+		case err == sql.ErrNoRows:
+			delivery_invoice.Valid = false
+			err = nil
+		case err != nil:
+			log.Println(err.Error())
+			continue
+		}
+
+		if delivery_invoice.Valid {
+			total_spent_budget += delivery_invoice.Float64
+		} else {
+			total_spent_budget += float64(dorder.Total)
+		}
+	}
+
+	if !budget.MonthlyBudget.Valid {
+		budget.RemainingBudget.Valid = false
+	} else {
+		budget.RemainingBudget.Valid = true
+		budget.RemainingBudget.Float64 = budget.MonthlyBudget.Float64 - total_spent_budget
+	}
+
+	return budget, err
 }
 
 func budgetAPIHandler(w http.ResponseWriter, r *http.Request) {
@@ -1978,12 +2148,7 @@ func budgetAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		var budget Budget
-		err = db.QueryRow(`
-			SELECT purchase_monthly_budget, purchase_target_run_rate, purchase_budget_alert_email
-			FROM restaurants WHERE id=$1;`, restaurant_id).Scan(
-			&budget.MonthlyBudget, &budget.TargetRunRate, &budget.BudgetAlertEmail)
-
+		budget, err := getMonthlyBudget(restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)

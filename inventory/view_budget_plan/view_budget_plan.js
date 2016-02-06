@@ -13,6 +13,8 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
 
   $scope.edit_mode = false;
   $scope.monthly_budget = {value:null};
+  $scope.remaining_budget = {value:null};
+  $scope.remaining_budget_color="#02A930";
   $scope.budget_email = {value:null};
   $scope.budget_email_edit = {value:null};
 
@@ -27,6 +29,22 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
   $scope.new_failure_msg_email = null;
 
   $scope.form_ver = {};
+
+  $scope.refreshRemainingBudgetColor = function() {
+    if ($scope.remaining_budget.value !== null) {
+      var percentage_left = $scope.remaining_budget.value / $scope.monthly_budget.value;
+      if ( percentage_left <= 0 ) {
+        // if negative budget left, red
+        $scope.remaining_budget_color = "#EC5E55";
+      } else if ( percentage_left < 0.25 ) {
+        // if budget is less than 25% of monthly budget, yellow
+        $scope.remaining_budget_color = "#DAAD23";
+      } else {
+        // otherwise green for normal
+        $scope.remaining_budget_color="#02A930";
+      } 
+    }
+  };
 
   $scope.getBudget = function() {
     var test_user_id = 1;
@@ -44,6 +62,9 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
         $scope.target_run_rate.value = data["target_run_rate"];
         $scope.budget_email.value = data["budget_alert_email"];
         $scope.budget_email_edit.value = data["budget_alert_email"];
+        $scope.remaining_budget.value = data["remaining_budget"];
+
+        $scope.refreshRemainingBudgetColor();
       }
       $scope.getMarkups();
     }).
@@ -139,6 +160,8 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
       $scope.monthly_budget.value = $scope.new_budget.value;
       $scope.new_budget.value = null;
       $scope.setEditMode(false);
+      $scope.refreshRemainingBudgetColor();
+      $scope.getBudget();
 
     }).
     error(function(data, status, headers, config) {
@@ -181,6 +204,8 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
 
       $scope.monthly_budget.value = $scope.calc_budget;
       $scope.setEditMode(false);
+      $scope.refreshRemainingBudgetColor();
+      $scope.getBudget();
 
     }).
     error(function(data, status, headers, config) {

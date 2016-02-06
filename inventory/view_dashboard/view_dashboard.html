@@ -109,24 +109,24 @@
         </div>
         <div style="position:relative"><!--need this position relative to make img behind text-->
           <div style="display:block; font-size:1.1em; width:100%; text-align:left; margin-top:12px;">
-            <span ng-if="dash_data.purchase_monthly_budget===null">
+            <span ng-if="dash_data.monthly_budget.remaining_budget===null">
               <span style="font-size:1.4em">$ </span>
               <span style="font-size:2.0em; font-weight:bold"> -- </span>
             </span>
-            <span ng-if="dash_data.purchase_monthly_budget!==null">
+            <span ng-if="dash_data.monthly_budget.remaining_budget!==null">
               <span style="font-size:1.4em">$ </span>
-              <span style="font-size:2.0em; font-weight:bold"> {{dash_data.purchase_monthly_budget | number:2}} </span>
+              <span style="font-size:2.0em; font-weight:bold"> {{dash_data.monthly_budget.remaining_budget | number:2}} </span>
             </span>
              &nbsp;mo. budget left
           </div>
           <div class="row" style="margin:0; margin-top:6px; text-align:left;">
             <div class="col-xs-12 min_padding">
               <span style="display:inline-block; font-weight:bold; float:left; width: 140px">
-                <span ng-if="dash_data.purchase_monthly_budget===null">
+                <span ng-if="dash_data.monthly_budget.monthly_budget===null">
                   $ --
                 </span>
-                <span ng-if="dash_data.purchase_monthly_budget!==null">
-                  $ {{dash_data.purchase_monthly_budget | number:2}}
+                <span ng-if="dash_data.monthly_budget.monthly_budget!==null">
+                  $ {{dash_data.monthly_budget.monthly_budget | number:2}}
                 </span>
               </span> 
               <span style="display:inline-block; float:left;"> Monthly Budget</span>
