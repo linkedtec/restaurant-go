@@ -858,10 +858,16 @@ angular.module('myApp')
       };
 
       scope.matchQuantityToPar = function(item, dorder) {
-        if (item['count_recent']===null || item['par']===null) {
+        if (item['par']===null) {
           return;
         }
-        var diff = item['par'] - item['count_recent'];
+
+        var count_recent = 0;
+        if (item['count_recent']!==null) {
+          count_recent = item['count_recent']
+        }
+
+        var diff = item['par'] - count_recent;
         if (diff <= 0) {
           item['quantity'] = 0;
         } else {

@@ -535,31 +535,32 @@
         </div>
         <div class="col-xs-2 min_padding">
           <div>
-            <span ng-if="item.count_recent!==null" style="color:{{item.stock_color}}">{{item.count_recent | number:1}}</span>
-            <span ng-if="item.count_recent===null" class="glyphicon glyphicon-alert" style="font-size:16px; color:#dadada; margin-right:4px" uib-popover="No Inventory records in the past 3 days!" popover-trigger="mouseenter" popover-append-to-body="true"> </span>
-            <span ng-if="item.par!==null" style="font-size: 1.0em"> / {{item.par | number:1}}</span>
-            <span ng-if="item.par===null" style="font-size: 1.0em; color:#999999"> / None</span>
+            <span ng-if="item.count_recent_case!==null" style="color:{{item.stock_color}}">{{item.count_recent_case | number:1}}</span>
+            <span ng-if="item.count_recent_case===null" class="glyphicon glyphicon-alert" style="font-size:16px; color:#dadada; margin-right:4px" uib-popover="No Inventory records in the past 3 days!" popover-trigger="mouseenter" popover-append-to-body="true"> </span>
+            <span ng-if="item.par_case!==null" style="font-size: 1.0em"> 
+              / {{item.par_case | number:1}}
+            </span>
+            <span ng-if="item.par_case===null" style="font-size: 1.0em; color:#999999"> / None</span>
+            <span ng-if="item.purchase_count > 1" style="background-color:#B44DD6; border-radius:2px; font-size:0.8em; color:white; text-align:center; padding:2px; margin-left:4px; margin-top:-2px" uib-popover="This item is purchased by cases of {{item.purchase_count}} units." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="300">
+              Case ({{item.purchase_count | number:0}})
+            </span>
           </div>
           <div style="color:#bbbbbb; font-style:italic; font-size:0.8em">
             <span ng-if="item.last_inv_update_pretty!==null" uib-popover="The last time inventory was recorded for this item." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">{{item.last_inv_update_pretty}}</span>
             <span ng-if="item.last_inv_update_pretty===null" uib-popover="This item has never ever been recorded in inventory." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">No records</span>
           </div>
-          
         </div>
         <div class="col-xs-2 min_padding" style="padding-left:0">
           <div>
-            <div ng-if="item.count_recent!==null && item.quantity===null && item.par !== null" style="width:32px; display:inline-block; float:left">
+            <div ng-if="item.quantity===null && item.par !== null" style="width:32px; display:inline-block; float:left">
               <button ng-click="matchQuantityToPar(item, dorder)" type="button" class="btn btn-sm btn-default blue_btn" style="float:left; font-size:18px; padding: 4px 5px 0px; margin-right:4px;" uib-popover="Match Par" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">
                 <span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span>
               </button>
             </div>
-            <div ng-if="item.count_recent===null || item.quantity!==null || item.par === null" style="width:32px; display:inline-block; float:left">
+            <div ng-if="item.quantity!==null || item.par === null" style="width:32px; display:inline-block; float:left">
               &nbsp
             </div>
             <input ng-model="item.quantity" class="form-control" ng-class="{'input_error': item.error_quantity===true}" style="max-width:70px; text-align:center; font-size:16px; float:left" placeholder="" ng-change="updateQuantity(item, dorder)">
-          </div>
-          <div ng-if="item.purchase_count > 1" style="background-color:#B44DD6; border-radius:2px; font-size:0.8em; float:left; color:white; text-align:center; margin-left:24px; width:86px; padding:2px; margin-top:2px;" uib-popover="This item is purchased by cases of {{item.purchase_count}} units." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="300">
-            By the Case ({{item.purchase_count | number:0}})
           </div>
         </div> 
         <div class="col-xs-2 min_padding" style="">
@@ -639,7 +640,7 @@
     <span ng-if="order.grand_total===null"> --</span>
     <span ng-if="order.grand_total!==null"> $ {{order.grand_total | number:2}}</span>
   </div>
-  <div ng-if="remaining_monthly_budget!==null && order.grand_total!==null && remaining_monthly_budget < order.grand_total && showBudget===true" class="col-xs-12 red_color" style="text-align:right; padding-right:4px; font-style:italic">
+  <div ng-if="remaining_monthly_budget!==null && order.grand_total!==null && remaining_monthly_budget < order.grand_total && showBudget===true && order.grand_total > 0" class="col-xs-12 red_color" style="text-align:right; padding-right:4px; font-style:italic">
     <span class="glyphicon glyphicon-alert"></span> Warning: Order total exceeds monthly budget!  <span ng-if="budget_alert_email!==null">{{budget_alert_email}} will be sent an email notification</span>
   </div>
 </div>

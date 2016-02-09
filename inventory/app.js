@@ -611,6 +611,18 @@ config(['$routeProvider', function($routeProvider) {
           item['type'] = 'bev';
         }
 
+        // these are for displaying inv / par by the case, e.g., for PO
+        if (item['par']!==undefined && item['par']!==null) {
+          item['par_case'] = Math.ceil( item['par'] / item['purchase_count'] );
+        } else {
+          item['par_case'] = null;
+        }
+        if (item['count_recent']!==undefined && item['count_recent']!==null) {
+          item['count_recent_case'] = Math.ceil( item['count_recent'] / item['purchase_count'] );
+        } else {
+          item['count_recent_case'] = null;
+        }
+
         item['unit_cost'] = getBevCost(item, 'unit');
 
         item['batch_cost'] = getBevCost(item, 'batch');
