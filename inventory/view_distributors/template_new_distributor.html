@@ -6,6 +6,12 @@
         <input ng-model="new_distributor.name" class="form-control input_add input_small" placeholder="e.g., California Beer & Beverage">
       </div>
     </div>
+    <div class="col-xs-6">
+      <div class="form-group" ng-class="{'has-error': form_ver.error_contact_name===true}">
+        <label class="control-label label_small bold"> Contact Name</label>
+        <input ng-model="new_distributor.contact_name" class="form-control input_add input_small" placeholder="e.g., Jane Doe">
+      </div>
+    </div>
   </div>
 
   <div class="row" style="margin-top:0px; padding-left:10px; margin-right:0px">

@@ -244,12 +244,14 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
   $scope.distributors = distributors;
 
   $scope.edit_name = $scope.distributor.name;
+  $scope.edit_contact_name = $scope.distributor.contact_name;
   $scope.edit_email = $scope.distributor.email;
   $scope.edit_phone = $scope.distributor.phone;
 
   // form verification
   $scope.form_ver = {};
   $scope.form_ver.error_name = false;
+  $scope.form_ver.error_contact_name = false;
   $scope.form_ver.error_volumes = [];
   $scope.form_ver.error_units = [];
   $scope.form_ver.error_deposits = [];
@@ -308,6 +310,33 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
       function(errorPayload) {
         $scope.distributor.name = old_name;
         $scope.edit_name = old_name;
+      });
+
+  };
+
+  $scope.saveDistContactName = function(new_contact_name) {
+
+    $scope.form_ver.error_contact_name = false;
+
+    if (new_contact_name.length >= 32) {
+      $scope.new_failure_msg = "Contact name is too long (32 character limit)!";
+      $scope.form_ver.error_contact_name = true;
+      return;
+    }
+
+    var old_contact_name = $scope.distributor.contact_name;
+
+    $scope.distributor.contact_name = new_contact_name;
+    $scope.edit_contact_name = new_contact_name;
+
+    var result = DistributorsService.put($scope.distributor, ['contact_name']);
+    result.then(
+      function(payload) {
+        $scope.original_distributor.contact_name = new_contact_name;
+      },
+      function(errorPayload) {
+        $scope.distributor.contact_name = old_contact_name;
+        $scope.edit_contact_name = old_contact_name;
       });
 
   };
@@ -394,6 +423,12 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
   $scope.revertDistName = function() {
     $scope.edit_name = $scope.distributor.name;
     $scope.form_ver.error_name = false;
+    $scope.new_failure_msg = null;
+  };
+
+  $scope.revertDistContactName = function() {
+    $scope.edit_contact_name = $scope.distributor.contact_name;
+    $scope.form_ver.error_contact_name = false;
     $scope.new_failure_msg = null;
   };
 

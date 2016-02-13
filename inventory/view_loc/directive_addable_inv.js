@@ -51,7 +51,7 @@ angular.module('myApp')
       scope.type_filters = ['All Beverages', 'Beer', 'Cider', 'Wine', 'Liquor', 'Non Alcoholic'];
       scope.type_filter = scope.type_filters[0];
 
-      scope.container_filters = ['All Containers', 'Draft', 'Bottle', 'Can'];
+      scope.container_filters = ['All Containers', 'Keg', 'Bottle', 'Can'];
       scope.container_filter = scope.container_filters[0];
 
       scope.dist_filters = ['All Distributors'];
@@ -247,9 +247,6 @@ angular.module('myApp')
       scope.selectContainer = function(cont) {
 
         var check_cont = cont;
-        if (check_cont==='Draft') {
-          check_cont = "Keg";
-        }
 
         if (check_cont===scope.container_filter) {
           return;
@@ -275,10 +272,10 @@ angular.module('myApp')
 
         // reset container filters when type filter has changed
         if (check_type===scope.type_filters[0]) {
-          scope.container_filters = ['All Containers', 'Draft', 'Bottle', 'Can'];
+          scope.container_filters = ['All Containers', 'Keg', 'Bottle', 'Can'];
         }
         else if (check_type==='Beer' || check_type==='Cider') {
-          scope.container_filters = ['All Containers', 'Draft', 'Bottle', 'Can'];
+          scope.container_filters = ['All Containers', 'Keg', 'Bottle', 'Can'];
         } else if (check_type==='Wine' || check_type==='Liquor') {
           scope.container_filters = ['All Containers', 'Bottle'];
         } else {

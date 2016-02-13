@@ -898,6 +898,7 @@ angular.module('myApp')
             var dist = data[i];
             dist['email_edit'] = dist['email'];
             dist['phone_edit'] = dist['phone'];
+            dist['contact_name_edit'] = dist['contact_name'];
             scope.all_distributors.push(dist);
             scope.sel_distributors.push(dist);
           }
@@ -926,7 +927,7 @@ angular.module('myApp')
           dist.email_edit = null;
         }
 
-        if (dorder.save_default_email===null && dist.email_edit !==dist.email) {
+        if (dorder.save_default_email===null && dist.email_edit!==dist.email) {
           dorder.save_default_email = true;
         }
       };
@@ -940,10 +941,29 @@ angular.module('myApp')
           dist.phone_edit = null;
         }
 
-        if (dorder.save_default_phone===null && dist.phone_edit !==dist.phone) {
+        if (dorder.save_default_phone===null && dist.phone_edit!==dist.phone) {
           dorder.save_default_phone = true;
         }
       };
+
+      scope.distContactNameChanged = function(dorder) {
+        var dist = dorder.distributor;
+        if (dist===undefined || dist===null) {
+          return;
+        }
+        if (dist.contact_name_edit === '') {
+          dist.contact_name_edit = null;
+        }
+
+        if (scope.order['send_method']===scope.send_methods[0]) {
+          dorder.save_default_email = true;
+          dorder.save_default_phone = false;
+        }
+        if (scope.order['send_method']===scope.send_methods[1]) {
+          dorder.save_default_phone = true;
+          dorder.save_default_email = false;
+        }
+      }
 
 
       scope.refreshSelectableDistributors = function() {
@@ -1489,6 +1509,7 @@ angular.module('myApp')
           var dorder = scope.order.dist_orders[i];
           dorder.error_dist_email = false;
           dorder.error_dist_phone = false;
+          dorder.error_dist_contact_name = false;
           dorder.error_delivery_date = false;
           dorder.error_empty_items = false;
 
@@ -1504,7 +1525,12 @@ angular.module('myApp')
               all_clear = false;
               dorder.error_dist_phone = true;
             }
-          }      
+          }
+
+          if (dorder.distributor.contact_name_edit!==null && dorder.distributor.contact_name_edit.length > 32) {
+            all_clear = false;
+            dorder.error_dist_contact_name = true;
+          }
 
           if (dorder.delivery_date === null || !DateService.isValidDate(dorder.delivery_date)) {
             all_clear = false;
@@ -1605,6 +1631,10 @@ angular.module('myApp')
           } else if (scope.order['send_method'] === scope.send_methods[1]) {
             dorder['distributor_phone'] = copy_dorder['distributor']['phone_edit'];
             dorder['distributor_phone_save_default'] = copy_dorder['save_default_phone'];
+          }
+          // we don't save contact name for save only
+          if (scope.order['send_method']!==scope.send_methods[2]) {
+            dorder['distributor_contact_name'] = copy_dorder['distributor']['contact_name_edit'];
           }
           
           dorder['delivery_date'] = DateService.clientTimeToRestaurantTime(copy_dorder['delivery_date']);

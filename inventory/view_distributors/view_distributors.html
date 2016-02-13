@@ -1,5 +1,5 @@
 <div ng-include src="'./bev_subnav.html'"></div>
-<div class="container" style="min-width:820px; max-width:920px">
+<div class="container" style="min-width:920px; max-width:960px">
 
   <div style="width:100%; margin-top:24px; padding-bottom:4px; font-size:1.3em; border-bottom:solid 1px #dddddd">
     <img src="images/inv_delivery.png" height="32" width="32" style="vertical-align:top"/>
@@ -56,22 +56,27 @@
     <tr style="background-color: #e7f7fa;">
       <td class="all_inv_label_span noselect" style="width:30px; border-left: 1px solid #dddddd">
       </td>
-      <td class="all_inv_label_span noselect" style="width:140px; overflow:auto">
+      <td class="all_inv_label_span noselect" style="width:130px; overflow:auto">
         <div class="sort_div" ng-click="sortBy('name')">
           <span>Distributor</span>
           <span ng-show="sort_key === 'name'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
-      <td class="all_inv_label_span noselect" style="width:140px; overflow:auto">
+      <td class="all_inv_label_span noselect" style="width:120px; overflow:auto">
+        <div class="sort_div" ng-click="sortBy('contact_name')">
+          <span>Contact Name</span>
+          <span ng-show="sort_key === 'contact_name'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:120px; overflow:auto">
         <div class="sort_div" ng-click="sortBy('email')">
           <span>Email</span>
           <span ng-show="sort_key === 'email'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
-      <td class="all_inv_label_span noselect" style="width:100px; overflow:auto">
-        <div class="sort_div" ng-click="sortBy('phone')">
+      <td class="all_inv_label_span noselect" style="width:90px; overflow:auto">
+        <div class="sort_div">
           <span>Phone (for SMS)</span>
-          <span ng-show="sort_key === 'phone'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:40px; overflow:auto">
@@ -86,14 +91,14 @@
           <span>Keg Volume</span>
         </div>
       </td>
-      <td class="all_inv_label_span noselect" style="width:70px; overflow:auto">
-        <div class="sort_div">
-          <span>Keg Deposit</span>
-        </div>
-      </td>
       <td class="all_inv_label_span noselect" style="width:60px; overflow:auto">
         <div class="sort_div">
-          <span>Keg Bevs</span>
+          <span>Deposit</span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:50px; overflow:auto">
+        <div class="sort_div">
+          <span>Bevs</span>
         </div>
       </td>
     </tr>
@@ -105,6 +110,7 @@
           </button>
         </td>
         <td class="all_inv_span">{{dist.name}}</td>
+        <td class="all_inv_span">{{dist.contact_name}}</td>
         <td class="all_inv_span">{{dist.email}}</td>
         <td class="all_inv_span">{{dist.phone}}</td>
         <td class="all_inv_span">{{dist.bev_count}}</td>
@@ -127,6 +133,7 @@
         <td class="all_inv_span"></td>
         <td class="all_inv_span"></td>
         <td class="all_inv_span"></td>
+        <td class="all_inv_span"></td>
         <td class="all_inv_span">
           <div ng-if="dist.kegs!==null && dist.kegs.length>0">
             <div style="width:50%; display:inline-block">{{dist.kegs[$index].volume | number:1}}</div>
@@ -139,7 +146,7 @@
     </tbody>
     <!-- Empty row -->
     <tr ng-if="distributors.length===0" style="width:100%">
-      <td class="hint_text" colspan="8" style="text-align:center; font-size:1.4em; padding:16px 0px; border-left: 1px solid #dddddd; border-right: 1px solid #dddddd">
+      <td class="hint_text" colspan="9" style="text-align:center; font-size:1.4em; padding:16px 0px; border-left: 1px solid #dddddd; border-right: 1px solid #dddddd">
         Empty
       </td>
     </tr>

@@ -81,6 +81,7 @@ type DistributorOrder struct {
 	DistributorEmailSaveDefault NullBool   `json:"distributor_email_save_default"`
 	DistributorPhone            NullString `json:"distributor_phone"`
 	DistributorPhoneSaveDefault NullBool   `json:"distributor_phone_save_default"`
+	DistributorContactName      NullString `json:"distributor_contact_name"`
 	DeliveryDate                time.Time  `json:"delivery_date"`
 	Items                       []PO_Item  `json:"items"`
 	Total                       float32    `json:"total"`
@@ -525,6 +526,11 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 		pdf.SetFont("helvetica", "", 13)
 		pdf.MultiCell(content_width/2.6, 6, dorder.Distributor, "", "", false)
 		pdf.SetFont("helvetica", "", 11)
+		has_contact_name := false
+		if dorder.DistributorContactName.Valid == true && len(dorder.DistributorContactName.String) > 0 {
+			pdf.MultiCell(content_width/2.6, 5, dorder.DistributorContactName.String, "", "", false)
+			has_contact_name = true
+		}
 		if dorder.DistributorEmail.Valid == true {
 			pdf.MultiCell(content_width/2.6, 5, dorder.DistributorEmail.String, "", "", false)
 		} else if dorder.DistributorPhone.Valid == true {
@@ -533,7 +539,11 @@ func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_o
 
 		pdf.SetFont("helvetica", "", 10)
 		pdf.SetTextColor(255, 255, 255)
-		pdf.Ln(8)
+		if has_contact_name {
+			pdf.Ln(3)
+		} else {
+			pdf.Ln(8)
+		}
 
 		pdf.CellFormat(content_width/2.6, 6, " DELIVERY DATE", "", 0, "", true, 0, "")
 		pdf.Ln(8)
@@ -1014,7 +1024,7 @@ func purchaseOrderCopyAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// now get all distributor orders associated with the purchase order
 		drows, err := db.Query(`
-			SELECT id, distributor_id, distributor_email, distributor_phone, additional_notes 
+			SELECT id, distributor_id, distributor_email, distributor_phone, distributor_contact_name, additional_notes 
 			FROM distributor_orders WHERE purchase_order_id=$1;`, copy_id)
 		if err != nil {
 			log.Println(err.Error())
@@ -1029,6 +1039,7 @@ func purchaseOrderCopyAPIHandler(w http.ResponseWriter, r *http.Request) {
 				&dist_order.DistributorID,
 				&dist_order.DistributorEmail,
 				&dist_order.DistributorPhone,
+				&dist_order.DistributorContactName,
 				&dist_order.AdditionalNotes); err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1647,6 +1658,7 @@ func getPurchaseOrderFromID(po_id int) (PurchaseOrder, error) {
 
 	rows, err := db.Query(`
 			SELECT id, distributor, distributor_id, distributor_email, distributor_phone, 
+				distributor_contact_name, 
 				delivery_date, total, additional_notes, do_num FROM distributor_orders 
 			WHERE purchase_order_id=$1`,
 		po_id)
@@ -1662,6 +1674,7 @@ func getPurchaseOrderFromID(po_id int) (PurchaseOrder, error) {
 			&distributor_order.DistributorID,
 			&distributor_order.DistributorEmail,
 			&distributor_order.DistributorPhone,
+			&distributor_order.DistributorContactName,
 			&distributor_order.DeliveryDate,
 			&distributor_order.Total,
 			&distributor_order.AdditionalNotes,
@@ -1850,14 +1863,14 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		for _, dorder := range order.DistributorOrders {
 			if dorder.DistributorEmailSaveDefault.Valid && dorder.DistributorEmailSaveDefault.Bool == true {
-				_, err = db.Exec("UPDATE distributors SET email=$1 WHERE id=$2", dorder.DistributorEmail, dorder.DistributorID)
+				_, err = db.Exec("UPDATE distributors SET email=$1, contact_name=$2 WHERE id=$3", dorder.DistributorEmail, dorder.DistributorContactName, dorder.DistributorID)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
 			} else if dorder.DistributorPhoneSaveDefault.Valid && dorder.DistributorPhoneSaveDefault.Bool == true {
-				_, err = db.Exec("UPDATE distributors SET phone=$1 WHERE id=$2", dorder.DistributorPhone, dorder.DistributorID)
+				_, err = db.Exec("UPDATE distributors SET phone=$1, contact_name=$2 WHERE id=$3", dorder.DistributorPhone, dorder.DistributorContactName, dorder.DistributorID)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1923,11 +1936,12 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 				err = db.QueryRow(`
 				INSERT INTO distributor_orders 
 					(purchase_order_id, distributor_id, distributor, distributor_email, 
-					distributor_phone, delivery_date, total, additional_notes, do_num) 
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+					distributor_phone, distributor_contact_name, delivery_date, total, 
+					additional_notes, do_num) 
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
 					po_id, dorder.DistributorID, dorder.Distributor, dorder.DistributorEmail,
-					dorder.DistributorPhone, dorder.DeliveryDate, dorder.Total,
-					dorder.AdditionalNotes, dorder.DO_Num).Scan(&do_id)
+					dorder.DistributorPhone, dorder.DistributorContactName, dorder.DeliveryDate,
+					dorder.Total, dorder.AdditionalNotes, dorder.DO_Num).Scan(&do_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)

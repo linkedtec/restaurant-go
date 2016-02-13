@@ -142,6 +142,7 @@ angular.module('myApp')
       scope.internalControl.clearNewForm = function() {
         scope.new_distributor = {};
         scope.new_distributor['name'] = null;
+        scope.new_distributor['contact_name'] = null;
         scope.new_distributor['phone'] = null;
         scope.new_distributor['email'] = null;
         scope.new_distributor['kegs'] = [{volume:null, unit:null, deposit:null}];
@@ -149,6 +150,7 @@ angular.module('myApp')
         // form verification
         scope.form_ver = {};
         scope.form_ver.error_name = false;
+        scope.form_ver.error_contact_name = false;
         scope.form_ver.error_email = false;
         scope.form_ver.error_phone = false;
         scope.form_ver.errors_kegs_volume = [];
@@ -190,17 +192,16 @@ angular.module('myApp')
         var all_clear = true;
 
         // check all necessary fields are present
+        scope.form_ver.error_name = false;
         if (scope.new_distributor['name'] === null || scope.new_distributor['name'] === '' )
         {
           scope.form_ver.error_name = true;
           all_clear = false;
         } else if (scope.new_distributor['name'].length >= 32) {
           scope.form_ver.error_name = true;
-          scope.dist_name_msg = "Distributor name is too long!  Please limit name to 32 characters or less."
+          scope.dist_name_msg = "Distributor name is too long!  Please limit name to 32 characters or less.";
           all_clear = false;
-        } else {
-          scope.form_ver.error_name = false;
-        }
+        } 
 
         // check new distributor name does not already exist in existing distributors
         for (var i in scope.distributors) {
@@ -210,6 +211,16 @@ angular.module('myApp')
             scope.dist_name_msg = "Distributor name already exists!  Please provide a unique name for this distributor."
             break;
           }
+        }
+
+        scope.form_ver.error_contact_name = false;
+        if (scope.new_distributor['contact_name'] === '') {
+          scope.new_distributor['contact_name'] = null;
+        }
+        if (scope.new_distributor['contact_name'].length >= 32) {
+          scope.form_ver.error_contact_name = true;
+          scope.dist_name_msg = "Distributor contact name is too long!  Please limit name to 32 characters or less.";
+          all_clear = false;
         }
 
         scope.form_ver.error_email = false;

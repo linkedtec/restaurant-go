@@ -73,6 +73,7 @@ angular.module('myApp')
     post: function(new_distributor) {
       var promise = $http.post('/distributors', {
         name:new_distributor['name'],
+        contact_name:new_distributor['contact_name'],
         email:new_distributor['email'],
         phone:new_distributor['phone'],
         kegs:new_distributor['kegs']

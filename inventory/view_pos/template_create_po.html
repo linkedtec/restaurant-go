@@ -419,17 +419,24 @@
           <input ng-model="dorder.distributor.phone_edit" class="form-control input_small" placeholder="(000) 000-0000" ng-change="distPhoneChanged(dorder)">
         </div>
       </div>
+      <div class="col-xs-3">
+        <div ng-if="order.send_method!==send_methods[2]" class="form-group" style="margin-bottom:0px" ng-class="{'has-error': dorder.error_dist_contact_name===true}">
+          <label class="control-label label_small bold"> 
+            Dist. Contact Name
+          </label>
+          <input ng-model="dorder.distributor.contact_name_edit" class="form-control input_small" placeholder="i.e., Jane Doe" ng-change="distContactNameChanged(dorder)">
+        </div>
+      </div>
       <div class="col-xs-3 min_padding" style="margin-top:26px">
-        <span ng-if="order.send_method===send_methods[0] && dorder.distributor.email_edit!==dorder.distributor.email" >
+        <span ng-if="order.send_method===send_methods[0] && (dorder.distributor.email_edit!==dorder.distributor.email || dorder.distributor.contact_name_edit!==dorder.distributor.contact_name)" >
           <my-checkbox value="dorder.save_default_email" is-toggle="true"></my-checkbox>
-          Save as default Dist. email
+          Save as default Dist. info
         </span>
-        <span ng-if="order.send_method===send_methods[1] && dorder.distributor.phone_edit!==dorder.distributor.phone" >
+        <span ng-if="order.send_method===send_methods[1] && (dorder.distributor.phone_edit!==dorder.distributor.phone || dorder.distributor.contact_name_edit!==dorder.distributor.contact_name)" >
           <my-checkbox value="dorder.save_default_phone" is-toggle="true"></my-checkbox>
-          Save as default Dist. phone
+          Save as default Dist. info
         </span>
       </div>
-      <div class="col-xs-3"></div>
       <div class="col-xs-3">
         <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': dorder.error_delivery_date===true}">
           <label class="control-label label_small"> 
