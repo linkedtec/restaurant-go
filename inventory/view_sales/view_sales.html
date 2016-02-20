@@ -1,0 +1,71 @@
+<div ng-include src="'./menu_subnav.html'"></div>
+<div class="container" style="min-width:880px; max-width:960px">
+
+  <span us-spinner spinner-theme="default" spinner-on="showSpinner"></span>
+
+  <div style="width:100%; margin-top:24px; padding-bottom:4px; font-size:1.3em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_pricetag.png" height="32" width="32" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:8px; margin-left:2px">Sales</div>
+  </div>
+  <div class="hint_text" style="width:100%; padding-top:2px; font-size:1.0em">
+    View sales data imported from your Point of Sale system
+  </div>
+
+  <div class="row" style="margin-top:20px">
+    <div class="col-xs-8" style="text-align:left;">
+
+      <date-range start-date="start_date" end-date="end_date" on-start-change="startDateChanged()" on-end-change="endDateChanged()" show-helpers="true"></date_range>
+
+    </div>
+  </div>
+  <table style="width: 100%; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-bottom:128px; margin-top:8px;">
+    <tr style="font-size:13px; ;background-color: #e7f7fa;; border-bottom:1px solid #dddddd">
+      <td class="all_inv_label_span noselect" style="width:190px; border-left: 1px solid #dddddd">
+        <div class="sort_div" ng-click="sortBy('name')">
+          <span>Product</span>
+          <span ng-show="sort_key === 'name'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:100px;">
+        <div class="sort_div" ng-click="sortBy('total')">
+          <span>Total Sales</span>
+          <span ng-show="sort_key === 'total'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:80px;">
+        <div class="sort_div" ng-click="sortBy('count')">
+          <span>Units Sold</span>
+          <span ng-show="sort_key === 'count'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:80px;">
+        <div class="sort_div" ng-click="sortBy('price')">
+          <span>Unit Price</span>
+          <span ng-show="sort_key === 'price'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+    </tr>
+
+    <tr ng-if="pos_data===null || pos_data.length===0" class="inv_row">
+      <td class="all_inv_span hint_text" colspan="100" style="font-size:1.5em; text-align:center; padding: 24px 0px; background-color:white">
+        No Sales Data found.
+      </td>
+    </tr>
+
+    <tr ng-repeat="item in pos_data | filter:filter_query.query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row inv_row_odd'" style="font-size:1.0em; border-bottom:1px solid #e5e5e5">
+      <td class="all_inv_span">
+        {{item.name}}
+      </td>
+      <td class="all_inv_span">
+        <span style="color:#cccccc">$</span> {{item.total | number:2}}
+      </td>
+      <td class="all_inv_span">
+        <span style="color:#777777">{{item.count}}</span>
+      </td>
+      <td class="all_inv_span">
+        <span style="color:#cccccc">$</span> <span style="color:#777777">{{item.price | number:2}}</span>
+      </td>
+    </tr>
+  </table>
+
+</div>

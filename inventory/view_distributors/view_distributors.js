@@ -11,6 +11,8 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
 
 .controller('ViewDistributorsCtrl', function($scope, $modal, $http, MathService, DistributorsService, VolUnitsService) {
 
+  $scope.showSpinner = false;
+
   $scope.show_add_ui = false;
 
   // filter search query, needs to be object and not string
@@ -41,8 +43,11 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
 
   $scope.getDistributors = function() {
 
+    $scope.showSpinner = true;
+
     var result = DistributorsService.get();
     result.then(function(payload) {
+      $scope.showSpinner = false;
       var data = payload.data;
       
       $scope.distributors = data;

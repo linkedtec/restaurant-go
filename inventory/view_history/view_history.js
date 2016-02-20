@@ -11,6 +11,8 @@ angular.module('myApp.viewHistory', ['ngRoute'])
 
 .controller('ViewHistoryCtrl', function($scope, $http, $timeout, DateService) { 
 
+  $scope.showSpinner = false;
+
   $scope.use_modes = ['History Tables', 'Graphs'];
   $scope.use_mode = 0;
 
@@ -354,6 +356,9 @@ angular.module('myApp.viewHistory', ['ngRoute'])
   };
 
   $scope.getAllInventorySum = function() {
+
+    $scope.showSpinner = true;
+
     $http.get('/inv/history', {
       params: { 
         type: 'all_sum',
@@ -362,6 +367,9 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       }
     }).
     success(function(data, status, headers, config) {
+
+      $scope.showSpinner = false;
+
       console.log(data);
 
       $scope.invData['all_sum'] = [];
@@ -383,11 +391,13 @@ angular.module('myApp.viewHistory', ['ngRoute'])
 
     }).
     error(function(data, status, headers, config) {
-
+      $scope.showSpinner = false;
     });
   };
 
   $scope.getAllInventoryItemized = function() {
+
+    $scope.showSpinner = true;
 
     console.log($scope.startDateLocal());
     console.log($scope.endDateLocal());
@@ -401,6 +411,9 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       }
     }).
     success(function(data, status, headers, config) {
+
+      $scope.showSpinner = false;
+
       console.log(data);
 
       $scope.invData['all_itemized'] = [];
@@ -431,11 +444,14 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       console.log($scope.display_items);
     }).
     error(function(data, status, headers, config) {
-
+      $scope.showSpinner = false;
     });
   };
 
   $scope.getLocationsSum = function() {
+
+    $scope.showSpinner = true;
+
     $http.get('/inv/history', {
       params: { 
         type: 'loc_sum',
@@ -444,6 +460,9 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       }
     }).
     success(function(data, status, headers, config) {
+
+      $scope.showSpinner = false;
+
       // this callback will be called asynchronously when the response
       // is available
       console.log(data);
@@ -481,11 +500,14 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       $scope.plotInvData();
     }).
     error(function(data, status, headers, config) {
-
+      $scope.showSpinner = false;
     });
   };
 
   $scope.getLocationsItemized = function() {
+
+    $scope.showSpinner = true;
+
     $http.get('/inv/history', {
       params: { 
         type: 'loc_itemized',
@@ -494,6 +516,9 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       }
     }).
     success(function(data, status, headers, config) {
+
+      $scope.showSpinner = false;
+
       // We want to have the first order key be dates, and the second order
       // key be locations.  This way the user can view single location inventory
       // by date if they single out a single location with location filter
@@ -525,11 +550,14 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       $scope.display_items = $scope.invData['loc_itemized'];
     }).
     error(function(data, status, headers, config) {
-
+      $scope.showSpinner = false;
     });
   };
 
   $scope.getBevTypesSum = function() {
+
+    $scope.showSpinner = true;
+
     $http.get('/inv/history', {
       params: { 
         type: 'type_sum',
@@ -538,6 +566,9 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       }
     }).
     success(function(data, status, headers, config) {
+
+      $scope.showSpinner = false;
+
       // this callback will be called asynchronously when the response
       // is available
       console.log(data);
@@ -575,11 +606,14 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       $scope.plotInvData();
     }).
     error(function(data, status, headers, config) {
-
+      $scope.showSpinner = false;
     });
   };
 
   $scope.getBevTypesItemized = function() {
+
+    $scope.showSpinner = true;
+
     $http.get('/inv/history', {
       params: { 
         type: 'type_itemized',
@@ -588,6 +622,9 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       }
     }).
     success(function(data, status, headers, config) {
+
+      $scope.showSpinner = false;
+
       // We want to have the first order key be dates, and the second order
       // key be locations.  This way the user can view single location inventory
       // by date if they single out a single location with location filter
@@ -621,7 +658,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       $scope.display_items = $scope.invData['type_itemized'];
     }).
     error(function(data, status, headers, config) {
-
+      $scope.showSpinner = false;
     });
   };
 
@@ -638,6 +675,8 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       return;
     }
 
+    $scope.showSpinner = true;
+
     $http.get('/inv/history', {
       params: { 
         type: 'items',
@@ -647,6 +686,9 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       }
     }).
     success(function(data, status, headers, config) {
+
+      $scope.showSpinner = false;
+
       console.log(data);
 
       // first remove existing product entries of the products we just
@@ -681,7 +723,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       }
     }).
     error(function(data, status, headers, config) {
-
+      $scope.showSpinner = false;
     });
   };
 

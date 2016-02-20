@@ -3,12 +3,14 @@
 // Declare app level module which depends on views, and components
 angular.module('myApp', [
   'ngRoute',
+  'angularSpinner',
   'myApp.viewDashboard',
   'myApp.viewAllInv',
   'myApp.viewMarkupCalc',
   'myApp.viewDistributors',
   'myApp.viewRestaurant',
   'myApp.viewSalesPlan',
+  'myApp.viewPOSSales',
   'myApp.viewBudgetPlanner',
   'myApp.viewPurchaseOrders',
   'myApp.viewPurchaseHistory',
@@ -45,6 +47,13 @@ config(['$routeProvider', function($routeProvider) {
   }
 })
 */
+
+.config(['usSpinnerConfigProvider', function (usSpinnerConfigProvider) {
+  usSpinnerConfigProvider.setTheme('default', {
+    lines:11, radius:20, width:10, length:10, color:'#999', 
+    shadow:false, opacity:0.2,  top:'45%'});
+  //usSpinnerConfigProvider.setTheme('smallRed', {color: 'red', radius: 6});
+}])
 
 .run(function($rootScope, $http, DateService) {
   // Place run-once-at-startup functions here
@@ -774,6 +783,12 @@ config(['$routeProvider', function($routeProvider) {
     },
 
     clientTimeToRestaurantTime: function(in_time) {
+      // In usual usage, client time and restaurant time should be the same.
+      // e.g., if I'm an owner using the app in California, and my restaurant 
+      // is in California.
+      // However, if I'm on a business trip in Europe, and managing my 
+      // restaurant remotely, then this helper function makes sure my user 
+      // client time is converted to restaurant time.
 
       if (!_isValidDate(in_time)) {
         return in_time;

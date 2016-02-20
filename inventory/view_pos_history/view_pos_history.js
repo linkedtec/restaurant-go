@@ -12,6 +12,8 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
 
 .controller('ViewPurchaseHistoryCtrl', function($scope, $modal, $http, DateService, ItemsService) {
 
+  $scope.showSpinner = false;
+
   $scope.searchPOControl = {};
 
   $scope.purchase_orders = [];
@@ -35,12 +37,17 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
         allowOutsideClick: true});
     }
 
+    $scope.showSpinner = true;
+
     var params = {
       po_num: po_num
     };
     $http.get('/purchase/po',
       {params: params})
     .success(function(data, status, headers, config) {
+
+      $scope.showSpinner = false;
+
       // this callback will be called asynchronously when the response
       // is available
       console.log(data);
@@ -54,10 +61,14 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
     .error(function(data, status, headers, config) {
       // return false to searchClickBox directive to inactivate highlight
       $scope.searchPOControl.deactivate();
+      $scope.showSpinner = false;
     });
   };
 
   $scope.getPurchaseOrders = function() {
+
+    $scope.showSpinner = true;
+
     var params = { 
       start_date: $scope.startDateLocal(),
       end_date: $scope.endDateLocal(),
@@ -66,6 +77,9 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
     $http.get('/purchase/all', 
       {params: params })
     .success(function(data, status, headers, config) {
+
+      $scope.showSpinner = false;
+
       // this callback will be called asynchronously when the response
       // is available
       console.log(data);
@@ -75,7 +89,7 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
 
     })
     .error(function(data, status, headers, config) {
-
+      $scope.showSpinner = false;
     });
 
   };

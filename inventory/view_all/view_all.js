@@ -11,6 +11,8 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
 .controller('ViewAllInvCtrl', function($scope, $modal, $http, $filter, ItemsService, MathService, DistributorsService, VolUnitsService) {
 
+  $scope.showSpinner = false;
+
   $scope.show_add_ui = false;
   $scope.all_distributors = [];
   $scope.all_breweries = [];
@@ -147,8 +149,13 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
   $scope.getAllInv = function() {
 
+    $scope.showSpinner = true;
+
     $http.get('/inv').
     success(function(data, status, headers, config) {
+
+      $scope.showSpinner = false;
+
       // this callback will be called asynchronously when the response
       // is available
       console.log(data);
@@ -215,7 +222,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       }
     }).
     error(function(data, status, headers, config) {
-
+      $scope.showSpinner = false;
     });
   };
 

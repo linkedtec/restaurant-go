@@ -198,6 +198,9 @@ func main() {
 	setupPurchaseOrderHandlers()
 	setupMarkupHandlers()
 
+	// connecting to POS
+	setupPOSCloverHandlers()
+
 	// cron job for refreshing online menu pages
 	setupMenuPagesCron()
 

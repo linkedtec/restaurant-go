@@ -27,6 +27,9 @@
   <!--script src="/lib/ui-bootstrap/ui-bootstrap-tpls-0.12.1.min.js"></script-->
   <script src="/lib/ui-bootstrap/ui-bootstrap-tpls-0.14.1.min.js"></script>
 
+  <script src="/lib/angular-spinner/spin.min.js"></script>
+  <script src="/lib/angular-spinner/angular-spinner.min.js"></script>
+
   <script src="/inventory/app.js"></script>
   <script src="/inventory/view_dashboard/view_dashboard.js"></script>
   <script src="/inventory/view_all/view_all.js"></script>
@@ -40,6 +43,7 @@
   <script src="/inventory/view_distributors/directive_new_distributor.js"></script>
   <script src="/inventory/view_sales_plan/view_sales_plan.js"></script>
   <script src="/inventory/view_sales_plan/directive_date_button.js"></script>
+  <script src="/inventory/view_sales/view_sales.js"></script>
   <script src="/inventory/view_budget_plan/view_budget_plan.js"></script>
   <script src="/inventory/view_pos/directive_delivery_address.js"></script>
   <script src="/inventory/view_pos/directive_my_checkbox.js"></script>
@@ -87,7 +91,7 @@
             Overview
           </a>
         </li>
-        <li ng-class="{ 'active': isActive('/viewSalesPlan') || isActive('/viewMarkupCalc') }">
+        <li ng-class="{ 'active': isActive('/viewSalesPlan') || isActive('/viewMarkupCalc') || isActive('/viewPOSSales') }">
           <a href="#/viewSalesPlan">
             Menu & Sales
           </a>

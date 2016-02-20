@@ -11,6 +11,8 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
 .controller('ViewSalesPlanCtrl', function($scope, $modal, $http, ItemsService, DateService, BeveragesService, DistributorsService, MathService) {
 
+  $scope.showSpinner = false;
+
   $scope.active_menu_count = 0;
 
   $scope.use_modes = ['Staples', 'Seasonal', 'Inactive'];
@@ -247,12 +249,17 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       type = 'Seasonal';
     }
 
+    $scope.showSpinner = true;
+
     $http.get('/inv/menu', {
       params: {
         sale_status:type
       }
     }).
     success(function(data, status, headers, config) {
+
+      $scope.showSpinner = false;
+
       // this callback will be called asynchronously when the response
       // is available
       console.log(data);
@@ -289,7 +296,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       
     }).
     error(function(data, status, headers, config) {
-
+      $scope.showSpinner = false;
     });
   };
   //$scope.getInvData();

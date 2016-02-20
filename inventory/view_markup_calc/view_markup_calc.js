@@ -11,6 +11,8 @@ angular.module('myApp.viewMarkupCalc', ['ngRoute', 'ui.bootstrap'])
 
 .controller('ViewMarkupCalcCtrl', function($scope, $modal, $http, $filter, ItemsService, MathService, VolUnitsService) {
 
+  $scope.showSpinner = false;
+
   // sorting
   $scope.sort_key = null;
   $scope.double_sort = -1;
@@ -177,8 +179,13 @@ angular.module('myApp.viewMarkupCalc', ['ngRoute', 'ui.bootstrap'])
 
   $scope.getBeverages = function() {
 
+    $scope.showSpinner = true;
+
     $http.get('/inv').
     success(function(data, status, headers, config) {
+
+      $scope.showSpinner = false;
+
       // this callback will be called asynchronously when the response
       // is available
       console.log(data);
@@ -194,7 +201,7 @@ angular.module('myApp.viewMarkupCalc', ['ngRoute', 'ui.bootstrap'])
 
     }).
     error(function(data, status, headers, config) {
-
+      $scope.showSpinner = false;
     });
   };
   $scope.getBeverages();
