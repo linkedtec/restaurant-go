@@ -9,8 +9,9 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
   });
 }])
 
-.controller('ViewPOSSalesCtrl', function($scope, $modal, $http, DateService) {
+.controller('ViewPOSSalesCtrl', function($scope, $modal, $http, DateService, ItemsService, MathService) {
 
+  $scope.inventory_items = [];
   $scope.pos_data = [];
 
   // sorting
@@ -54,6 +55,44 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
       if (data != null) {
         $scope.pos_data = data;
 
+        // match clover_pos data to our own data using Levenshtein distance
+        // algorithm
+        for (var i in $scope.pos_data) {
+          var best_match = null;
+          var best_score = 9999;
+          var pos_item = $scope.pos_data[i];
+          var pos_str = pos_item['name'];
+          // if the pos_str starts with the sell volume, such as 1L or .5L,
+          // remove the first substring prior to a space, e.g.,
+          // 1L Black Lager ==> Black Lager
+          if (pos_str[0]==='.' || !isNaN(parseInt(pos_str[0]))) {
+            if (pos_str.indexOf(' ') > 0) {
+              pos_str = pos_str.substring(pos_str.indexOf(' ')+1);
+            }
+          }
+
+          for (var j in $scope.inventory_items) {
+            var our_item = $scope.inventory_items[j];
+
+            // the pos string concatenates product with brewery, so we try
+            // to match that
+            var our_str = our_item['product'] + ' ' + our_item['brewery'];
+            console.log("Comparing: " + pos_str + " AND " + our_str);
+            var score = MathService.getLevenshteinDistance(pos_str, our_str);
+            console.log("    " + score);
+            if (score < best_score) {
+              best_score = score;
+              best_match = our_item;
+            }
+          }
+
+          console.log("Best match is: " + best_match['product'] + " with a score of " + best_score);
+          $scope.pos_data[i]['product'] = best_match['product'];
+          $scope.pos_data[i]['brewery'] = best_match['brewery'];
+          $scope.pos_data[i]['match_score'] = best_score;
+          
+        }
+
         if ($scope.firstTimeSort===true) {
           $scope.firstTimeSort = false;
           $scope.sortBy('total');
@@ -69,7 +108,33 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
       $scope.showSpinner = false;
     });
   };
-  $scope.getSalesData();
+  
+  $scope.getAllInv = function() {
+
+    $scope.showSpinner = true;
+
+    $http.get('/inv').
+    success(function(data, status, headers, config) {
+
+      // this callback will be called asynchronously when the response
+      // is available
+      console.log(data);
+      $scope.inventory_items = data;
+
+      if ($scope.inventory_items===null || $scope.inventory_items.length === 0) {
+        $scope.inventory_items = [];
+      }
+
+      ItemsService.processBevsForAddable($scope.inventory_items);
+      $scope.getSalesData();
+    }).
+    error(function(data, status, headers, config) {
+      $scope.getSalesData();
+    });
+  };
+  // this is the entry point to this controller
+  // after it is done, will get PoS data
+  $scope.getAllInv();
 
   $scope.startDateChanged = function() {
     $scope.getSalesData();
@@ -88,7 +153,7 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
       $scope.double_sort = -1;
     }
     $scope.sort_key = sort_str;
-    var isNum = (sort_str === 'count' || sort_str === 'total' || sort_str === 'price');
+    var isNum = (sort_str === 'count' || sort_str === 'total' || sort_str === 'price' || sort_str === 'match_score');
     $scope.pos_data.sort(function(a, b) {
       var keyA = a[sort_str];
       var keyB = b[sort_str];

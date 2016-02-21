@@ -20,25 +20,37 @@
   </div>
   <table style="width: 100%; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-bottom:128px; margin-top:8px;">
     <tr style="font-size:13px; ;background-color: #e7f7fa;; border-bottom:1px solid #dddddd">
-      <td class="all_inv_label_span noselect" style="width:190px; border-left: 1px solid #dddddd">
+      <td class="all_inv_label_span noselect" style="width:120px; border-left: 1px solid #dddddd">
         <div class="sort_div" ng-click="sortBy('name')">
-          <span>Product</span>
+          <span>PoS Name</span>
           <span ng-show="sort_key === 'name'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
-      <td class="all_inv_label_span noselect" style="width:100px;">
+      <td class="all_inv_label_span noselect" style="width:120px; border-left: 1px solid #dddddd">
+        <div class="sort_div" ng-click="sortBy('product')">
+          <span>Product</span>
+          <span ng-show="sort_key === 'product'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:40px; border-left: 1px solid #dddddd">
+        <div class="sort_div" ng-click="sortBy('match_score')">
+          <span>Match</span>
+          <span ng-show="sort_key === 'match_score'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
+      <td class="all_inv_label_span noselect" style="width:80px;">
         <div class="sort_div" ng-click="sortBy('total')">
           <span>Total Sales</span>
           <span ng-show="sort_key === 'total'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
-      <td class="all_inv_label_span noselect" style="width:80px;">
+      <td class="all_inv_label_span noselect" style="width:60px;">
         <div class="sort_div" ng-click="sortBy('count')">
           <span>Units Sold</span>
           <span ng-show="sort_key === 'count'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
-      <td class="all_inv_label_span noselect" style="width:80px;">
+      <td class="all_inv_label_span noselect" style="width:60px;">
         <div class="sort_div" ng-click="sortBy('price')">
           <span>Unit Price</span>
           <span ng-show="sort_key === 'price'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
@@ -55,6 +67,12 @@
     <tr ng-repeat="item in pos_data | filter:filter_query.query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row inv_row_odd'" style="font-size:1.0em; border-bottom:1px solid #e5e5e5">
       <td class="all_inv_span">
         {{item.name}}
+      </td>
+      <td class="all_inv_span">
+        {{item.product}} {{item.brewery}}
+      </td>
+      <td class="all_inv_span">
+        {{item.match_score}}
       </td>
       <td class="all_inv_span">
         <span style="color:#cccccc">$</span> {{item.total | number:2}}
