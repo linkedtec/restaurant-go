@@ -92,41 +92,14 @@ config(['$routeProvider', function($routeProvider) {
 
 .factory("MathService", function() {
 
-  return {
-    numIsInvalid: function(num) {
-      return isNaN(num);
-    },
-
-    numIsInvalidOrNegative: function(num) {
-      return isNaN(num) || num < 0;
-    },
-
-    fixFloat2: function(fnum) {
-      if (fnum===null || isNaN(fnum))
-        return fnum
-      fnum = parseFloat(fnum);
-      return parseFloat(fnum.toFixed(2));
-    },
-
-    fixFloat1: function(fnum) {
-      if (fnum===null || isNaN(fnum))
-        return fnum
-      fnum = parseFloat(fnum);
-      return parseFloat(fnum.toFixed(1));
-    },
-
-    isInt: function(num) {
-      return num % 1 === 0;
-    },
-
-    /*
-      Copyright (c) 2011 Andrei Mackenzie
-      Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-      The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    */
-    getLevenshteinDistance: function(a, b){
-      if(a.length == 0) return b.length; 
+  /*
+    Copyright (c) 2011 Andrei Mackenzie
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+    The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+  */
+  var _getLevenshteinDistance = function(a,b) {
+    if(a.length == 0) return b.length; 
       if(b.length == 0) return a.length; 
 
       var matrix = [];
@@ -156,6 +129,75 @@ config(['$routeProvider', function($routeProvider) {
         }
       }
       return matrix[b.length][a.length];
+  }
+
+  // performs a fuzzy heuristic to gauge how similar product1 and product2
+  // are to each other, using name and brewery
+  // Compare product
+  //   Levenshtein distance * product_length/total_length
+  // Compare brewery
+  //   Levenshtein distance * brewery_length/total_length
+  // Add them
+  var _getBevNameFuzzyMatch = function(name1, name2, brewery1, brewery2) {
+
+    if (name1 === null) {
+      name1 = '';
+    }
+    if (name2 === null) {
+      name2 = '';
+    }
+    if (brewery1 === null) {
+      brewery1 = '';
+    }
+    if (brewery2 === null) {
+      brewery2 = '';
+    }
+
+    var name_length = name1.length + name2.length;
+    var brewery_length = brewery1.length + brewery2.length;
+    var total_length = name_length + brewery_length;
+    var name_weight = name_length / total_length;
+    var brewery_weight = brewery_length / total_length;
+
+    var name_score = _getLevenshteinDistance(name1, name2) * name_weight;
+    var brewery_score = _getLevenshteinDistance(brewery1, brewery2) * brewery_weight;
+
+    return (name_score + brewery_score) / total_length;
+  }
+
+  return {
+    numIsInvalid: function(num) {
+      return isNaN(num);
+    },
+
+    numIsInvalidOrNegative: function(num) {
+      return isNaN(num) || num < 0;
+    },
+
+    fixFloat2: function(fnum) {
+      if (fnum===null || isNaN(fnum))
+        return fnum
+      fnum = parseFloat(fnum);
+      return parseFloat(fnum.toFixed(2));
+    },
+
+    fixFloat1: function(fnum) {
+      if (fnum===null || isNaN(fnum))
+        return fnum
+      fnum = parseFloat(fnum);
+      return parseFloat(fnum.toFixed(1));
+    },
+
+    isInt: function(num) {
+      return num % 1 === 0;
+    },
+
+    getLevenshteinDistance: function(a, b){
+      return _getLevenshteinDistance(a, b);
+    },
+
+    getBevNameFuzzyMatch: function(name1, name2, brewery1, brewery2) {
+      return _getBevNameFuzzyMatch(name1, name2, brewery1, brewery2);
     }
   }
 })

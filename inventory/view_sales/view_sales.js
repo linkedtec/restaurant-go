@@ -79,7 +79,14 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
             var our_str = our_item['product'] + ' ' + our_item['brewery'];
             console.log("Comparing: " + pos_str + " AND " + our_str);
             var score = MathService.getLevenshteinDistance(pos_str, our_str);
+            var len_factor = Math.max(pos_str.length, our_str.length);
+            score = score / len_factor;
             console.log("    " + score);
+
+            /*
+            var score = MathService.getBevNameFuzzyMatch(
+              our_item['product'], pos_str, our_item['brewery'], pos_str);
+            */
             if (score < best_score) {
               best_score = score;
               best_match = our_item;
