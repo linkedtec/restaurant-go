@@ -32,12 +32,6 @@
           <span ng-show="sort_key === 'product'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
-      <td class="all_inv_label_span noselect" style="width:40px; border-left: 1px solid #dddddd">
-        <div class="sort_div" ng-click="sortBy('match_score')">
-          <span>Match</span>
-          <span ng-show="sort_key === 'match_score'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
-        </div>
-      </td>
       <td class="all_inv_label_span noselect" style="width:80px;">
         <div class="sort_div" ng-click="sortBy('total')">
           <span>Total Sales</span>
@@ -69,10 +63,16 @@
         {{item.name}}
       </td>
       <td class="all_inv_span">
-        {{item.product}} {{item.brewery}}
-      </td>
-      <td class="all_inv_span">
-        {{item.match_score | number:2}}
+        <span ng-if="item.id!==null">
+          {{item.product}} 
+          <span ng-if="item.brewery!==null" style="color:#aaaaaa">
+            {{item.brewery}}
+          </span>
+        </span>
+        <span ng-if="item.id===null">
+          <span class="glyphicon glyphicon-alert" style="font-size:13px; color:#dd6622; float:left" uib-popover="Missing matching product on app!  Click 'Fix' to add one." popover-trigger="mouseenter" popover-append-to-body="true"></span>
+          <span style="font-size:12px; padding-left:4px; cursor:pointer; text-decoration:underline; color:#dd6622" ng-click="pickMatchingProduct(item)">Fix</span>
+        </span>
       </td>
       <td class="all_inv_span">
         <span style="color:#cccccc">$</span> {{item.total | number:2}}
@@ -85,5 +85,7 @@
       </td>
     </tr>
   </table>
-
 </div>
+
+<div ng-include src="'./view_sales/modal_pos_pick_matching.html'">
+<div ng-include src="'./view_sales/modal_pos_confirm_matching.html'">

@@ -11,7 +11,7 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
 
 .controller('ViewPOSSalesCtrl', function($scope, $modal, $http, DateService, ItemsService, MathService) {
 
-  $scope.inventory_items = [];
+  $scope.all_beverages = [];
   $scope.pos_data = [];
 
   // sorting
@@ -58,6 +58,8 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
         // match clover_pos data to our own data using Levenshtein distance
         // algorithm
         for (var i in $scope.pos_data) {
+
+          /*
           var best_match = null;
           var best_score = 9999;
           var pos_item = $scope.pos_data[i];
@@ -71,8 +73,8 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
             }
           }
 
-          for (var j in $scope.inventory_items) {
-            var our_item = $scope.inventory_items[j];
+          for (var j in $scope.all_beverages) {
+            var our_item = $scope.all_beverages[j];
 
             // the pos string concatenates product with brewery, so we try
             // to match that
@@ -83,10 +85,9 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
             score = score / len_factor;
             console.log("    " + score);
 
-            /*
-            var score = MathService.getBevNameFuzzyMatch(
-              our_item['product'], pos_str, our_item['brewery'], pos_str);
-            */
+            // var score = MathService.getBevNameFuzzyMatch(
+            //  our_item['product'], pos_str, our_item['brewery'], pos_str);
+            
             if (score < best_score) {
               best_score = score;
               best_match = our_item;
@@ -97,7 +98,9 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
           $scope.pos_data[i]['product'] = best_match['product'];
           $scope.pos_data[i]['brewery'] = best_match['brewery'];
           $scope.pos_data[i]['match_score'] = best_score;
-          
+          */
+
+          var item = $scope.pos_data[i];
         }
 
         if ($scope.firstTimeSort===true) {
@@ -126,13 +129,13 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
       // this callback will be called asynchronously when the response
       // is available
       console.log(data);
-      $scope.inventory_items = data;
+      $scope.all_beverages = data;
 
-      if ($scope.inventory_items===null || $scope.inventory_items.length === 0) {
-        $scope.inventory_items = [];
+      if ($scope.all_beverages===null || $scope.all_beverages.length === 0) {
+        $scope.all_beverages = [];
       }
 
-      ItemsService.processBevsForAddable($scope.inventory_items);
+      ItemsService.processBevsForAddable($scope.all_beverages);
       $scope.getSalesData();
     }).
     error(function(data, status, headers, config) {
@@ -149,6 +152,46 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
 
   $scope.endDateChanged = function() {
     $scope.getSalesData();
+  };
+
+  $scope.pickMatchingProduct = function(item) {
+    var modalEditInstance = $modal.open({
+      templateUrl: 'modalPOSPickMatching.html',
+      controller: 'modalPOSPickMatchingCtrl',
+      windowClass: 'edit-inv-modal',
+      backdropClass: 'white-modal-backdrop',
+      resolve: {
+        item: function() {
+          return item;
+        },
+        all_beverages: function() {
+          return $scope.all_beverages;
+        }
+      }
+    });
+
+    modalEditInstance.result.then(
+      // success status
+      function( result ) {
+        // result is a list, first item is string for status, e.g.,
+        // 'save' or 'delete'
+        // second item is the affected beverage
+        var status = result[0];
+        var match = result[1];
+        
+        if (status === 'save') {
+          console.log(match);
+
+          item['product'] = match['product'];
+          item['brewery'] = match['brewery'];
+          item['id'] = match['id'];
+        }
+
+      }, 
+      // error status
+      function() {
+        ;
+      });
   };
 
 
@@ -191,4 +234,86 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
     });
   };
 
+})
+
+.controller('modalPOSPickMatchingCtrl', function($scope, $http, $modalInstance, $modal, item, all_beverages) {
+
+  $scope.item = item;
+  $scope.all_beverages = all_beverages;
+
+  $scope.addableControl = {};
+
+  $scope.new_failure_msg = null;
+
+  $scope.pickMatch = function(match) {
+    console.log(match);
+
+    // pop up a modal asking for confirmation
+    var modalEditInstance = $modal.open({
+      templateUrl: 'modalPOSConfirmMatching.html',
+      controller: 'modalPOSConfirmMatchingCtrl',
+      windowClass: 'start-count-modal',
+      backdropClass: 'white-modal-backdrop',
+      resolve: {
+        item: function() {
+          return $scope.item;
+        },
+        match: function() {
+          return match;
+        }
+      }
+    });
+
+    modalEditInstance.result.then(
+      // success status
+      function( result ) {
+        // result is a list, first item is string for status, e.g.,
+        // 'save' or 'delete'
+        // second item is the affected beverage
+        var status = result[0];
+        
+        var test_restaurant_id = 1;
+        if (status === 'save') {
+          $http.post('/pos/clover/match', {
+            restaurant_id:test_restaurant_id,
+            app_version_id:match.version_id,
+            pos_item_id:item.item_id
+          }).
+          success(function(data, status, headers, config) {
+            console.log(data)
+
+            $modalInstance.close(['save', match]);
+
+          }).
+          error(function(data, status, headers, config) {
+          });
+        }
+      }, 
+      // error status
+      function() {
+        ;
+      });
+  };
+
+  $scope.cancel = function() {
+    $modalInstance.dismiss('cancel');
+  };
+
+})
+
+.controller('modalPOSConfirmMatchingCtrl', function($scope, $modalInstance, $modal, item, match) {
+
+  $scope.item = item;
+  $scope.match = match;
+
+  $scope.save = function() {
+
+    $modalInstance.close(['save', null]);
+
+  };
+
+
+  $scope.cancel = function() {
+    $modalInstance.dismiss('cancel');
+  };
 });

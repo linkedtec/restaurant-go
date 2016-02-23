@@ -17,7 +17,8 @@ angular.module('myApp')
       useOverrideAddFunc: '=',
       distributorFilter: '=?', // only show bevs from this distributor
       saleStatusFilter: '=?', // only show bevs with active (Staple, Seasonal) sale_status
-      overrideAddFunc: '&' // by default adding will bring up inv quantity modal, if override callback is specified will call that instead
+      overrideAddFunc: '&', // by default adding will bring up inv quantity modal, if override callback is specified will call that instead
+      customButtonTitle: '=?'
     },
     templateUrl: './view_loc/template_addable_inv.html',
     link: function(scope, elem, attrs) {

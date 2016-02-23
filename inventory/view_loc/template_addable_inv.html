@@ -150,8 +150,10 @@
           </div>
         </div>
         <div ng-class="{'col-xs-2':showPurchase!==true, 'col-xs-1':showPurchase===true}" style="padding-left:4px; padding-right:6px">
-          <button ng-click="enterInvQuantity(bev, false)" type="button" class="btn btn-sm btn-success" style="font-size:12px; float:right; width:60px; height:30px; border-radius:4px; margin-top:4px;">
-            ADD <span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>
+          <button ng-click="enterInvQuantity(bev, false)" type="button" class="btn btn-sm btn-success" style="font-size:12px; float:right; min-width:60px; height:30px; border-radius:4px; margin-top:4px;">
+            <span ng-if="customButtonTitle===null || customButtonTitle===undefined">ADD </span>
+            <span ng-if="customButtonTitle!==null">{{customButtonTitle}} </span>
+            <span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>
           </button>
         </div>
       </div>
