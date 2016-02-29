@@ -1,0 +1,41 @@
+<div ng-include src="'./menu_subnav.html'"></div>
+<div class="container" style="min-width:880px; max-width:960px">
+
+  <span us-spinner spinner-theme="default" spinner-on="showSpinner"></span>
+
+  <div style="width:100%; margin-top:24px; padding-bottom:4px; font-size:1.3em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_margins.png" height="32" width="32" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:8px; margin-left:2px">Margins</div>
+  </div>
+  <div class="hint_text" style="width:100%; padding-top:2px; font-size:1.0em">
+    View calculated margins for items based on sales, inventory, and purchasing data
+  </div>
+
+  <div class="row" style="margin-top:24px">
+    <div class="col-xs-12">
+      <span>
+        <div class="btn-group" uib-dropdown>
+          <button type="button" class="btn btn-default btn-md dropdown-toggle loc_dropdown" uib-dropdown-toggle style="font-size:1.1em;">
+            <span style="float:left; text-align:left; width:90%">
+              {{margin_type}} 
+            </span>
+            <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:14px; color:#888888"></span>
+          </button>
+          <ul class="loc_dropdown dropdown-menu" role="menu">
+            <li class="loc_li" ng-repeat="type in margin_types">
+               <a ng-click="selectMarginType(type)" class="noselect">{{type}}</a>
+            </li>
+          </ul>
+        </div>
+      </span>
+    </div>
+  </div>
+
+  <!--div class="row" style="margin-top:20px">
+    <div class="col-xs-8" style="text-align:left;">
+
+      <date-range start-date="start_date" end-date="end_date" on-start-change="startDateChanged()" on-end-change="endDateChanged()" show-helpers="true"></date_range>
+
+    </div>
+  </div-->
+</div>

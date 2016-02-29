@@ -24,9 +24,13 @@ angular.module('myApp')
       // make edits into the tmp object and compare against the original
       // object when saving
       scope.newDistOrder = JSON.parse( JSON.stringify( scope.distOrder ) );
+      
 
       if (scope.isEdit) {
 
+        scope.newDistOrder['delivery_date'] = DateService.getDateFromUTCTimeStamp(scope.newDistOrder['delivery_date'], true);
+        scope.newDistOrder['delivery_time'] = DateService.getDateFromUTCTimeStamp(scope.newDistOrder['delivery_time'], true);
+        console.log(scope.newDistOrder);
         // cloned newDistOrder should already have all the params we need
         //
         // init some UI state:

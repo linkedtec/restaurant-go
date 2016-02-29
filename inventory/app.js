@@ -20,7 +20,8 @@ angular.module('myApp', [
 //  'myApp.viewOnTap',
  // 'myApp.viewEmptyKegs',
   'myApp.viewHistory',
-  'myApp.viewDeliveries'
+  'myApp.viewDeliveries',
+  'myApp.viewMargins'
 ]).
 config(['$routeProvider', function($routeProvider) {
   $routeProvider.otherwise({redirectTo: '/viewDashboard'});

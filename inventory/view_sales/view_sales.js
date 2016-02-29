@@ -13,6 +13,7 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
 
   $scope.all_beverages = [];
   $scope.pos_data = [];
+  $scope.period_total = null;
 
   // sorting
   $scope.sort_key = null;
@@ -40,6 +41,8 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
 
   $scope.getSalesData = function() {
 
+    $scope.period_total = null;
+
     $scope.showSpinner = true;
     $http.get('/pos/clover', {
       params: {
@@ -54,6 +57,8 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
       console.log(data);
       if (data != null) {
         $scope.pos_data = data;
+
+        $scope.period_total = 0;
 
         // match clover_pos data to our own data using Levenshtein distance
         // algorithm
@@ -101,6 +106,7 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
           */
 
           var item = $scope.pos_data[i];
+          $scope.period_total += item['total'];
         }
 
         if ($scope.firstTimeSort===true) {
@@ -154,7 +160,7 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
     $scope.getSalesData();
   };
 
-  $scope.pickMatchingProduct = function(item) {
+  $scope.pickMatchingProduct = function(item, is_edit) {
     var modalEditInstance = $modal.open({
       templateUrl: 'modalPOSPickMatching.html',
       controller: 'modalPOSPickMatchingCtrl',
@@ -166,6 +172,9 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
         },
         all_beverages: function() {
           return $scope.all_beverages;
+        },
+        is_edit: function() {
+          return is_edit;
         }
       }
     });
@@ -236,10 +245,11 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
 
 })
 
-.controller('modalPOSPickMatchingCtrl', function($scope, $http, $modalInstance, $modal, item, all_beverages) {
+.controller('modalPOSPickMatchingCtrl', function($scope, $http, $modalInstance, $modal, item, all_beverages, is_edit) {
 
   $scope.item = item;
   $scope.all_beverages = all_beverages;
+  $scope.is_edit = is_edit; // edit mode just changes some text
 
   $scope.addableControl = {};
 

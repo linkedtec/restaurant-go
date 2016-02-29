@@ -18,8 +18,13 @@
 
     </div>
   </div>
-  <table style="width: 100%; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-bottom:128px; margin-top:8px;">
-    <tr style="font-size:13px; ;background-color: #e7f7fa;; border-bottom:1px solid #dddddd">
+  <div class="row" style="margin: 0px 0px" ng-if="period_total !== null">
+    <div class="col-xs-12" style="text-align:right; padding-right:0; text-align:1.1em">
+      Total Sales for Period: <span class="hint_text">$</span><span style="font-size:1.1em; font-weight:bold">{{period_total | number:2}}</b>
+    </div>
+  </div>
+  <table style="width: 100%; border-bottom:1px solid #dddddd; border-top: 1px solid #dddddd; margin-bottom:128px; margin-top:2px;">
+    <tr style="font-size:13px; background-color: #e7f7fa; border-bottom:1px solid #dddddd">
       <td class="all_inv_label_span noselect" style="width:120px; border-left: 1px solid #dddddd">
         <div class="sort_div" ng-click="sortBy('name')">
           <span>PoS Name</span>
@@ -71,8 +76,11 @@
         </span>
         <span ng-if="item.id===null">
           <span class="glyphicon glyphicon-alert" style="font-size:13px; color:#dd6622; float:left" uib-popover="Missing matching product on app!  Click 'Fix' to add one." popover-trigger="mouseenter" popover-append-to-body="true"></span>
-          <span style="font-size:12px; padding-left:4px; cursor:pointer; text-decoration:underline; color:#dd6622" ng-click="pickMatchingProduct(item)">Fix</span>
+          <span style="font-size:12px; padding-left:4px; cursor:pointer; text-decoration:underline; color:#dd6622" ng-click="pickMatchingProduct(item, false)">Fix</span>
         </span>
+        <button ng-if="item.id!==null" style="float:right;" class="btn btn-xs btn_frameless hover_blue" type="button" ng-click="pickMatchingProduct(item, true)" uib-popover="Edit product match" popover-trigger="mouseenter" popover-popup-delay="300" popover-append-to-body="true">
+          <span class="glyphicon glyphicon-pencil"></span>
+        </button>
       </td>
       <td class="all_inv_span">
         <span style="color:#cccccc">$</span> {{item.total | number:2}}

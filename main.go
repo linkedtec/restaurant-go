@@ -197,6 +197,7 @@ func main() {
 	setupDeliveriesHandlers()
 	setupPurchaseOrderHandlers()
 	setupMarkupHandlers()
+	setupMarginsHandlers()
 
 	// connecting to POS
 	setupPOSCloverHandlers()

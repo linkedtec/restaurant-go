@@ -69,6 +69,7 @@
   <script src="/inventory/view_pos_deliveries/directive_new_delivery_new.js"></script>
   <script src="/inventory/view_pos_deliveries/service_deliveries.js"></script>
   <!--script src="/lib/tableToExcel/tableToExcel.js"></script-->
+  <script src="/inventory/view_margins/view_margins.js"></script>
 </head>
 <body>
   
@@ -91,7 +92,7 @@
             Overview
           </a>
         </li>
-        <li ng-class="{ 'active': isActive('/viewSalesPlan') || isActive('/viewMarkupCalc') || isActive('/viewPOSSales') }">
+        <li ng-class="{ 'active': isActive('/viewSalesPlan') || isActive('/viewMarkupCalc') || isActive('/viewPOSSales') || isActive('/viewMargins') }">
           <a href="#/viewSalesPlan">
             Menu & Sales
           </a>
