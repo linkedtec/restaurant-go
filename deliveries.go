@@ -307,7 +307,7 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 							http.Error(w, "The beverage does not belong to the user!", http.StatusInternalServerError)
 							continue
 						}
-						new_bev_id, err := updateBeverageVersion(item.BeverageID)
+						new_bev_id, err := updateBeverageVersion(item.BeverageID, true)
 						if err != nil {
 							log.Println(err.Error())
 							http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -484,7 +484,7 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 					http.Error(w, "The beverage does not belong to the user!", http.StatusInternalServerError)
 					continue
 				}
-				new_bev_id, err := updateBeverageVersion(item.BeverageID)
+				new_bev_id, err := updateBeverageVersion(item.BeverageID, true)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)

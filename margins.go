@@ -13,7 +13,11 @@ type Margin struct {
 	InvTimes      int         `json:"inv_times"`
 	InvUpdate1    time.Time   `json:"inv_update1"`
 	InvUpdate2    time.Time   `json:"inv_update2"`
+	InvSum1       NullFloat64 `json:"inv_sum1"`
+	InvSum2       NullFloat64 `json:"inv_sum2"`
 	DeliveriesSum NullFloat64 `json:"deliveries_sum"`
+	TotalSales    NullFloat64 `json:"total_sales"`
+	Waste         float64     `json:"waste"`
 }
 
 func setupMarginsHandlers() {
@@ -63,77 +67,111 @@ func marginsAPIHandler(w http.ResponseWriter, r *http.Request) {
          inv_update2 (latest inventory update time) 
          deliveries_sum (sum of all deliveries in the inventory period b/w updates 1 and 2)
       */
-      WITH final_two_inv_bevs AS (
-        WITH two_inv_bevs AS (
-          SELECT * FROM (
-            /* in_clover_ids gets all available version_ids from clover_join for 
-             this restaurant. This will let us discard any inventory records 
-             which do not have associated sales data, since we can't calculate
-             margins for those */
-            WITH in_clover_ids AS (
-              SELECT DISTINCT app_version_id FROM clover_join WHERE restaurant_id=$1
-            ), 
-            versioned_updates AS (
-              /* more_than_two_inv_bevs are inventory records of version_id'ed 
-                 beverages which have more than 2 records, since we need a start and 
-                 an end period to calculate margins.  inv_times column tracks how many 
-                 times this beverage has been recorded in inventory */
-              WITH more_than_two_inv_bevs AS (
-                SELECT * FROM (
-                  SELECT beverages.version_id, COUNT(beverages.version_id) AS inv_times 
+      WITH inv_dates_and_delivery_sum AS (
+        WITH final_two_inv_bevs AS (
+          /* START final_two_inv_bevs query */
+          WITH two_inv_bevs AS (
+            SELECT * FROM (
+              /* in_clover_ids gets all available version_ids from clover_join for 
+               this restaurant. This will let us discard any inventory records 
+               which do not have associated sales data, since we can't calculate
+               margins for those */
+              WITH in_clover_ids AS (
+                SELECT DISTINCT version_id FROM clover_join WHERE restaurant_id=$1
+              ), 
+              versioned_updates AS (
+                /* more_than_two_inv_bevs are inventory records of version_id'ed 
+                   beverages which have more than 2 records, since we need a start and 
+                   an end period to calculate margins.  inv_times column tracks how many 
+                   times this beverage has been recorded in inventory */
+                WITH more_than_two_inv_bevs AS (
+                  SELECT * FROM (
+                    SELECT beverages.version_id, COUNT(beverages.version_id) AS inv_times 
+                    FROM location_beverages 
+                      INNER JOIN beverages ON (beverages.id=location_beverages.beverage_id) 
+                    WHERE beverages.restaurant_id=$1 
+                    GROUP BY beverages.version_id) q1 WHERE inv_times > 1
+                ),
+                /* version_id_dates is beverage_id and unique update time (one per 
+                   date) for each inventory entry so we can associate those with 
+                   more_than_two_inv_bevs based on their matching version_ids */
+                version_id_dates AS (
+                  SELECT DISTINCT ON ((location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2)::date, beverages.version_id) 
+                  beverages.version_id, location_beverages.beverage_id, beverages.product, 
+                  location_beverages.update, (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2)::date 
                   FROM location_beverages 
                     INNER JOIN beverages ON (beverages.id=location_beverages.beverage_id) 
-                  WHERE beverages.restaurant_id=$1 
-                  GROUP BY beverages.version_id) q1 WHERE inv_times > 1
-              ),
-              /* version_id_dates is beverage_id and unique update time (one per 
-                 date) for each inventory entry so we can associate those with 
-                 more_than_two_inv_bevs based on their matching version_ids */
-              version_id_dates AS (
-                SELECT DISTINCT ON ((location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2)::date, beverages.version_id) 
-                beverages.version_id, location_beverages.beverage_id, beverages.product, 
-                location_beverages.update, (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2)::date 
-                FROM location_beverages 
-                  INNER JOIN beverages ON (beverages.id=location_beverages.beverage_id) 
-                WHERE beverages.restaurant_id=$1 AND location_beverages.active IS TRUE 
-                AND location_beverages.type='bev' 
-                ORDER BY (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2)::date DESC
-              )
-              SELECT version_id_dates.beverage_id, version_id_dates.product, 
-              version_id_dates.version_id, more_than_two_inv_bevs.inv_times, version_id_dates.update  
-              FROM more_than_two_inv_bevs, version_id_dates 
-              WHERE version_id_dates.version_id=more_than_two_inv_bevs.version_id 
-              ORDER BY more_than_two_inv_bevs.version_id
-            ) 
-          SELECT beverage_id, product, version_id, inv_times, update, 
-          rank() OVER (PARTITION BY version_id ORDER BY update DESC) AS inv_date_rank FROM in_clover_ids, versioned_updates 
-          WHERE in_clover_ids.app_version_id=versioned_updates.version_id
-        ) q2 WHERE inv_date_rank <=2),
-        /* rank_one_bevs are the most recent unique inventory dates for each bev,
-           rank_two_bevs are the second-most recent unique inventory dates */
-        rank_one_bevs AS (
-          SELECT * FROM two_inv_bevs WHERE inv_date_rank=1),
-        rank_two_bevs AS (
-          SELECT * FROM two_inv_bevs WHERE inv_date_rank=2) 
-        SELECT rank_one_bevs.beverage_id, rank_one_bevs.product, rank_one_bevs.version_id, rank_one_bevs.inv_times,
-        rank_two_bevs.update AS inv_update1, rank_one_bevs.update AS inv_update2 
-        FROM rank_one_bevs, rank_two_bevs WHERE rank_one_bevs.version_id=rank_two_bevs.version_id
+                  WHERE beverages.restaurant_id=$1 AND location_beverages.active IS TRUE 
+                  AND location_beverages.type='bev' 
+                  ORDER BY (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2)::date DESC
+                )
+                SELECT version_id_dates.beverage_id, version_id_dates.product, 
+                version_id_dates.version_id, more_than_two_inv_bevs.inv_times, version_id_dates.update  
+                FROM more_than_two_inv_bevs, version_id_dates 
+                WHERE version_id_dates.version_id=more_than_two_inv_bevs.version_id 
+                ORDER BY more_than_two_inv_bevs.version_id
+              ) 
+              SELECT beverage_id, product, version_id, inv_times, update, 
+              rank() OVER (PARTITION BY version_id ORDER BY update DESC) AS inv_date_rank FROM in_clover_ids, versioned_updates 
+              WHERE in_clover_ids.version_id=versioned_updates.version_id 
+            ) q2 WHERE inv_date_rank <=2
+          ),
+          /* rank_one_bevs are the most recent unique inventory dates for each bev,
+             rank_two_bevs are the second-most recent unique inventory dates */
+          rank_one_bevs AS (
+            SELECT * FROM two_inv_bevs WHERE inv_date_rank=1),
+          rank_two_bevs AS (
+            SELECT * FROM two_inv_bevs WHERE inv_date_rank=2) 
+          SELECT rank_one_bevs.beverage_id, rank_one_bevs.product, rank_one_bevs.version_id, rank_one_bevs.inv_times,
+          rank_two_bevs.update AS inv_update1, rank_one_bevs.update AS inv_update2 
+          FROM rank_one_bevs, rank_two_bevs WHERE rank_one_bevs.version_id=rank_two_bevs.version_id
+          /* END final_two_inv_bevs query */
+        ) 
+        SELECT final_two_inv_bevs.version_id, final_two_inv_bevs.product, 
+        final_two_inv_bevs.inv_times, final_two_inv_bevs.inv_update1, 
+        final_two_inv_bevs.inv_update2, SUM(COALESCE(do_item_deliveries.invoice, distributor_order_items.subtotal)) AS deliveries_sum 
+        FROM final_two_inv_bevs 
+          INNER JOIN beverages ON (final_two_inv_bevs.version_id=beverages.version_id) 
+          LEFT OUTER JOIN do_item_deliveries ON (beverages.id=do_item_deliveries.beverage_id) 
+          LEFT OUTER JOIN do_deliveries ON (do_item_deliveries.distributor_order_id=do_deliveries.distributor_order_id 
+            AND do_deliveries.delivery_time > final_two_inv_bevs.inv_update1 
+            AND do_deliveries.delivery_time < final_two_inv_bevs.inv_update2) 
+          LEFT OUTER JOIN distributor_order_items ON (
+            distributor_order_items.distributor_order_id=do_item_deliveries.distributor_order_id AND 
+            distributor_order_items.beverage_id=do_item_deliveries.beverage_id) 
+        GROUP BY final_two_inv_bevs.version_id, final_two_inv_bevs.product, 
+        final_two_inv_bevs.inv_times, final_two_inv_bevs.inv_update1, 
+        final_two_inv_bevs.inv_update2),
+      inv_sum_table1 AS (
+        SELECT SUM(location_beverages.inventory) AS sum, 
+        beverages.version_id as version_id 
+        FROM inv_dates_and_delivery_sum, location_beverages, beverages 
+        WHERE beverages.version_id=inv_dates_and_delivery_sum.version_id AND 
+          location_beverages.beverage_id=beverages.id AND 
+          (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2)::date=(inv_dates_and_delivery_sum.inv_update1 AT TIME ZONE 'UTC' AT TIME ZONE $2)::date 
+          GROUP BY beverages.version_id
+      ), 
+      inv_sum_table2 AS (
+      SELECT SUM(location_beverages.inventory) AS sum, 
+        beverages.version_id as version_id 
+        FROM inv_dates_and_delivery_sum, location_beverages, beverages 
+        WHERE beverages.version_id=inv_dates_and_delivery_sum.version_id AND 
+          location_beverages.beverage_id=beverages.id AND 
+          (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2)::date=(inv_dates_and_delivery_sum.inv_update2 AT TIME ZONE 'UTC' AT TIME ZONE $2)::date 
+          GROUP BY beverages.version_id
       ) 
-      SELECT final_two_inv_bevs.version_id, final_two_inv_bevs.product, 
-      final_two_inv_bevs.inv_times, final_two_inv_bevs.inv_update1, 
-      final_two_inv_bevs.inv_update2, SUM(COALESCE(do_item_deliveries.invoice, distributor_order_items.subtotal)) AS deliveries_sum 
-      FROM final_two_inv_bevs 
-        INNER JOIN beverages ON (final_two_inv_bevs.version_id=beverages.version_id) 
-        LEFT OUTER JOIN do_item_deliveries ON (beverages.id=do_item_deliveries.beverage_id) 
-        LEFT OUTER JOIN do_deliveries ON (do_item_deliveries.distributor_order_id=do_deliveries.distributor_order_id) 
-        LEFT OUTER JOIN distributor_order_items ON (
-          distributor_order_items.distributor_order_id=do_item_deliveries.distributor_order_id AND 
-          distributor_order_items.beverage_id=do_item_deliveries.beverage_id) 
-      WHERE do_deliveries.delivery_time > final_two_inv_bevs.inv_update1 
-      AND do_deliveries.delivery_time < final_two_inv_bevs.inv_update2 
-      GROUP BY final_two_inv_bevs.version_id, final_two_inv_bevs.product, 
-      final_two_inv_bevs.inv_times, final_two_inv_bevs.inv_update1, 
-      final_two_inv_bevs.inv_update2;
+      SELECT inv_dates_and_delivery_sum.version_id, 
+        inv_dates_and_delivery_sum.product, 
+        inv_dates_and_delivery_sum.inv_times, 
+        inv_dates_and_delivery_sum.inv_update1, 
+        inv_dates_and_delivery_sum.inv_update2, 
+        inv_sum_table1.sum AS inv_sum1, 
+        inv_sum_table2.sum AS inv_sum2, 
+        inv_dates_and_delivery_sum.deliveries_sum 
+      FROM 
+        inv_dates_and_delivery_sum, inv_sum_table1, inv_sum_table2 WHERE 
+        inv_sum_table1.version_id=inv_dates_and_delivery_sum.version_id AND 
+        inv_sum_table2.version_id=inv_dates_and_delivery_sum.version_id;
       `, restaurant_id, tz_str)
 		if err != nil {
 			log.Println(err.Error())
@@ -149,13 +187,52 @@ func marginsAPIHandler(w http.ResponseWriter, r *http.Request) {
 				&margin.InvTimes,
 				&margin.InvUpdate1,
 				&margin.InvUpdate2,
+				&margin.InvSum1,
+				&margin.InvSum2,
 				&margin.DeliveriesSum); err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
 			}
 			log.Println(margin)
-			margins = append(margins, margin)
+
+			// Now, use the version_id and the clover_join table to query clover
+			// for total sales in the period
+			total_sales, err := getTotalSalesInPeriodClover(margin.VersionID, margin.InvUpdate1, margin.InvUpdate2, restaurant_id)
+
+			// Note that valid total sales are REQUIRED to calculate margins
+			// if total sales are errored, empty or invalid, we don't have any
+			// margin to calculate, so don't append this entry
+			if err != nil || !total_sales.Valid || total_sales.Float64 == 0 {
+				margin.TotalSales.Valid = false
+			} else {
+				margin.TotalSales.Float64 = total_sales.Float64
+				margin.TotalSales.Valid = true
+
+				// Now that we have everything we need, we calculate the margin
+				// by first calculating waste:
+				//
+				//     inventory_old + deliveries - sales - waste = inventory_new
+				//     cost_of_goods = inventory_old - inventory_new + deliveries
+				//     waste = sales - cost_of_goods
+				//     profit = sales - waste
+				//     waste = inventory_old - inventory_new + deliveries - sales
+				//     utilization = 1 - (waste / (inv_old - inv_new + deliveries))
+				//     theoretical margin = (revenue_per_vol - cost_per_vol) / revenue_per_vol
+				//     actual margin = sales - waste -
+
+				inventory_old := margin.InvSum1.Float64
+				inventory_new := margin.InvSum2.Float64
+				deliveries := margin.DeliveriesSum.Float64
+				sales := margin.TotalSales.Float64
+				margin.Waste = inventory_old - inventory_new + deliveries - sales
+
+				// calculate theoretical margin:
+				// (price_per_volume - cost_per_volume) / price_per_volume
+				// if there are multiple sell points, take the average
+
+				margins = append(margins, margin)
+			}
 		}
 
 		w.Header().Set("Content-Type", "application/json")

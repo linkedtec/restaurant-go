@@ -372,15 +372,17 @@ func volumeUnitsHandler(w http.ResponseWriter, r *http.Request) {
 // version to inactive (current=FALSE).  Duplicates a beverage entry in the
 // beverages table, setting the old entry inactive and the new one active
 // with the same version_id
-func updateBeverageVersion(old_id int) (int, error) {
+func updateBeverageVersion(old_id int, duplicate_size_prices bool) (int, error) {
 
 	// XXX find the latest id with the same version_id as old_id.  We might
 	// be retiring an old beverage id which isn't latest, for example, when
 	// confirming deliveries.
 	var latest_id int
+	var restaurant_id int
 	err := db.QueryRow(`
-		SELECT id FROM beverages WHERE current=TRUE AND 
-		version_id=(SELECT version_id FROM beverages WHERE id=$1);`, old_id).Scan(&latest_id)
+		SELECT id, restaurant_id FROM beverages WHERE current=TRUE AND 
+		version_id=(SELECT version_id FROM beverages WHERE id=$1);`, old_id).Scan(
+		&latest_id, &restaurant_id)
 	if err != nil {
 		return -1, err
 	}
@@ -400,6 +402,42 @@ func updateBeverageVersion(old_id int) (int, error) {
 		FROM beverages WHERE id=$1 RETURNING id;`, latest_id).Scan(&new_id)
 	if err != nil {
 		return -1, err
+	}
+
+	if duplicate_size_prices == true {
+
+		_, err = db.Exec(`
+			INSERT INTO size_prices (
+				serving_size, serving_unit, serving_price, beverage_id) 
+			SELECT serving_size, serving_unit, serving_price, $1 
+			FROM size_prices WHERE beverage_id=$2;
+			`, new_id, latest_id)
+		if err != nil {
+			log.Println(err.Error())
+			return -1, err
+		}
+
+		// also duplicate the clover_join entries to point to new size_prices
+		_, err = db.Exec(`
+			WITH old_clover_join AS (
+				SELECT clover_join.restaurant_id, clover_join.pos_item_id,
+				  clover_join.version_id, clover_join.beverage_id, clover_join.size_prices_id, 
+				  size_prices.serving_size, size_prices.serving_unit 
+				  FROM clover_join 
+				  INNER JOIN size_prices ON (clover_join.size_prices_id=size_prices.id)
+				  WHERE clover_join.beverage_id=$3
+				) 
+			INSERT INTO clover_join (
+				restaurant_id, pos_item_id, version_id, beverage_id, size_prices_id) 
+			SELECT $1, old_clover_join.pos_item_id, old_clover_join.version_id, $2, size_prices.id 
+			FROM size_prices, old_clover_join 
+			WHERE size_prices.beverage_id=$2 
+			AND size_prices.serving_size=old_clover_join.serving_size 
+			AND size_prices.serving_unit=old_clover_join.serving_unit;
+			`, restaurant_id, new_id, latest_id)
+		if err != nil {
+			log.Println(err.Error())
+		}
 	}
 
 	// outmode the old id

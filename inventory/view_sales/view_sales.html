@@ -27,7 +27,7 @@
     <tr style="font-size:13px; background-color: #e7f7fa; border-bottom:1px solid #dddddd">
       <td class="all_inv_label_span noselect" style="width:120px; border-left: 1px solid #dddddd">
         <div class="sort_div" ng-click="sortBy('name')">
-          <span>PoS Name</span>
+          <span>PoS Entry</span>
           <span ng-show="sort_key === 'name'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
@@ -73,6 +73,7 @@
           <span ng-if="item.brewery!==null" style="color:#aaaaaa">
             {{item.brewery}}
           </span>
+          <span style="color:#aaaaaa">&nbsp;&nbsp;&nbsp;{{item.volume | number:1}} {{item.unit}}</span>
         </span>
         <span ng-if="item.id===null">
           <span class="glyphicon glyphicon-alert" style="font-size:13px; color:#dd6622; float:left" uib-popover="Missing matching product on app!  Click 'Fix' to add one." popover-trigger="mouseenter" popover-append-to-body="true"></span>
@@ -97,3 +98,4 @@
 
 <div ng-include src="'./view_sales/modal_pos_pick_matching.html'">
 <div ng-include src="'./view_sales/modal_pos_confirm_matching.html'">
+<div ng-include src="'./view_all/edit_inv_modal.html'">

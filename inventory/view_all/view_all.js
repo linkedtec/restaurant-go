@@ -454,6 +454,13 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
 
     for (var key in new_beverage) {
       if ($scope.edit_beverage.hasOwnProperty(key)) {
+        /* XXX commented out, should be more correct but haven't tested
+        var value = $scope.edit_beverage[key];
+        // for e.g., arrays, want to make a deep copy
+        if (typeof value === 'object' && value!==null) {
+          $scope.edit_beverage[key] = JSON.parse( JSON.stringify( new_beverage[key] ) );
+        } else {
+          */
         $scope.edit_beverage[key] = new_beverage[key];
       }
     }

@@ -17,17 +17,24 @@ type CloverSale struct {
 	Price  NullFloat64 `json:"price"`
 	ItemID string      `json:"item_id"`
 	// app-side vars
-	ID      NullInt64  `json:"id"`
-	Product NullString `json:"product"`
-	Brewery NullString `json:"brewery"`
+	ID            NullInt64  `json:"id"`
+	Product       NullString `json:"product"`
+	Brewery       NullString `json:"brewery"`
+	ServingVolume float64    `json:"volume"`
+	ServingUnit   string     `json:"unit"`
+	ServingPrice  float64    `json:"app_price"`
 	//	Category    NullString  `json:"category"`
 	//	CreatedTime time.Time   `json:"created_time"`
 }
 
 type CloverJoin struct {
-	RestaurantID int    `json:"restaurant_id"`
-	AppVersionID int    `json:"app_version_id"`
-	POSItemID    string `json:"pos_item_id"`
+	RestaurantID int     `json:"restaurant_id"`
+	VersionID    int     `json:"version_id"`
+	POSItemID    string  `json:"pos_item_id"`
+	SellVolume   float64 `json:"sell_volume"`
+	SellUnit     string  `json:"sell_unit"`
+	BeverageID   int     `json:"beverage_id"`
+	SizePricesID int     `json:"size_prices_id"`
 }
 
 var clover_db *sql.DB
@@ -35,6 +42,65 @@ var clover_db *sql.DB
 func setupPOSCloverHandlers() {
 	http.HandleFunc("/pos/clover", posCloverAPIHandler)
 	http.HandleFunc("/pos/clover/match", posCloverMatchAPIHandler)
+}
+
+func getTotalSalesInPeriodClover(version_id int,
+	start_date time.Time, end_date time.Time, restaurant_id string) (NullFloat64, error) {
+
+	var item_total NullFloat64
+	item_total.Valid = false
+	item_total.Float64 = 0
+
+	// note that there can be multiple PoS items per version id (since there
+	// can be multiple sales points), so we query for multiple rows
+	rows, err := db.Query(`
+		SELECT pos_item_id FROM clover_join 
+		WHERE restaurant_id=$1 AND version_id=$2;`, restaurant_id, version_id)
+	if err != nil {
+		log.Println(err.Error())
+		return item_total, err
+	}
+
+	connectToCloverDB()
+
+	defer rows.Close()
+	for rows.Next() {
+
+		var pos_id string
+
+		if err := rows.Scan(
+			&pos_id); err != nil {
+			log.Println(err.Error())
+			continue
+		}
+
+		// For testing validity:
+		//     Tests sum over period of single item:
+		// SELECT SUM(COALESCE(order_items.price, 0))/100.0 AS total FROM itemcat, order_items, orders WHERE orders.id=order_items.orderRef AND order_items.name=itemcat.name AND order_items.item='CX5TXMT46DTN4' AND itemcat.current=1 AND food_bev_cat='beverage' AND order_items.createdTime>='2016-03-01 21:33:13' AND state = 'locked';
+		//     Prints individual occurrences of item over same period:
+		// SELECT order_items.createdTime, order_items.name, order_items.price AS total FROM itemcat, order_items, orders WHERE orders.id=order_items.orderRef AND order_items.name=itemcat.name AND order_items.item='CX5TXMT46DTN4' AND itemcat.current=1 AND food_bev_cat='beverage' AND order_items.createdTime>='2016-03-01 21:33:13' AND state = 'locked';
+
+		// note: each item on PoS shares a unique id column 'order_items.item',
+		// not to be confused with 'order_items.id', which is a unique id per
+		// TRANSACTION
+		var this_sale float64
+		err = clover_db.QueryRow(`
+      SELECT SUM(COALESCE(order_items.price, 0))/100.0 AS total 
+      FROM itemcat, order_items, orders 
+      WHERE orders.id=order_items.orderRef AND order_items.name=itemcat.name 
+      AND order_items.item=? 
+      AND itemcat.current=1 AND food_bev_cat='beverage' AND 
+      order_items.createdTime>=? AND order_items.createdTime<=? 
+      AND state = 'locked';`, pos_id, start_date, end_date).Scan(&this_sale)
+		if err != nil {
+			log.Println(err.Error)
+			continue
+		}
+		item_total.Float64 += this_sale
+	}
+
+	item_total.Valid = true
+	return item_total, nil
 }
 
 func posCloverMatchAPIHandler(w http.ResponseWriter, r *http.Request) {
@@ -62,34 +128,24 @@ func posCloverMatchAPIHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(cjoin)
 
 		// check that version_id exists
-		vid_exists := false
 		err = db.QueryRow(`
-			SELECT EXISTS(
-				SELECT 1 FROM beverages WHERE restaurant_id=$1 AND version_id=$2);`,
-			cjoin.RestaurantID, cjoin.AppVersionID).Scan(
-			&vid_exists)
+				SELECT beverages.id, size_prices.id FROM size_prices, beverages 
+				WHERE beverages.restaurant_id=$1 AND beverages.version_id=$2 
+				AND beverages.current=TRUE 
+				AND size_prices.serving_size=$3 AND size_prices.serving_unit=$4 
+				AND size_prices.beverage_id=beverages.id;`,
+			cjoin.RestaurantID, cjoin.VersionID, cjoin.SellVolume, cjoin.SellUnit).Scan(
+			&cjoin.BeverageID,
+			&cjoin.SizePricesID)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		if !vid_exists {
-			log.Println("Posted version_id does not exist, quitting...")
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		// if the pos_item_id was already associated with an app_version_id,
-		// delete that existing entry.  pos_item_id is unique, and can only be
-		// associated with ONE app_version_id (although the converse is not true)
-		_, _ = db.Exec(`
-			DELETE FROM clover_join 
-			WHERE restaurant_id=$1 AND pos_item_id=$2;`,
-			cjoin.RestaurantID, cjoin.POSItemID)
 
 		_, err = db.Exec(`
-			INSERT INTO clover_join VALUES($1, $2, $3);`,
-			cjoin.RestaurantID, cjoin.AppVersionID, cjoin.POSItemID)
+			INSERT INTO clover_join VALUES($1, $2, $3, $4, $5);`,
+			cjoin.RestaurantID, cjoin.POSItemID, cjoin.VersionID, cjoin.BeverageID, cjoin.SizePricesID)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -188,15 +244,21 @@ func posCloverAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// now link the entries in csales to our app using the clover_join DB
 		for i, csale := range csales {
 			err := db.QueryRow(`
-				SELECT beverages.id, beverages.product, beverages.brewery 
-				FROM beverages, clover_join 
+				SELECT beverages.id, beverages.product, beverages.brewery,
+					size_prices.serving_size, size_prices.serving_unit, size_prices.serving_price  
+				FROM beverages, clover_join, size_prices 
 				WHERE beverages.restaurant_id=$1 AND clover_join.restaurant_id=$1 
-				AND beverages.current=TRUE AND 
-				beverages.version_id=clover_join.app_version_id AND 
-				clover_join.pos_item_id=$2;`, test_restaurant_id, csale.ItemID).Scan(
+				AND beverages.current=TRUE 
+				AND size_prices.beverage_id=beverages.id 
+				AND beverages.version_id=clover_join.version_id 
+				AND clover_join.size_prices_id=size_prices.id 
+				AND clover_join.pos_item_id=$2 LIMIT 1;`, test_restaurant_id, csale.ItemID).Scan(
 				&csales[i].ID,
 				&csales[i].Product,
-				&csales[i].Brewery)
+				&csales[i].Brewery,
+				&csales[i].ServingVolume,
+				&csales[i].ServingUnit,
+				&csales[i].ServingPrice)
 			switch {
 			case err == sql.ErrNoRows:
 				csale.ID.Valid = false

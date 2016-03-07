@@ -442,9 +442,12 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// Only need to duplicate the beverage into new entry with new id if
 		// sizePrices changed or beverageChanged, NOT if only saleStatusChanged.
 		if doDuplicate {
+
 			// duplicate old beverage into new entry with new id, this will be the
 			// updated entry we update with the new changes we received from user
-			new_bev_id, err = updateBeverageVersion(old_bev_id)
+			// if sizePricesChanged we don't duplicate size_prices, we'll insert
+			// it manually after duplicating.
+			new_bev_id, err = updateBeverageVersion(old_bev_id, !sizePricesChanged)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -577,35 +580,29 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 					continue
 				}
 			}
-		} else if doDuplicate {
-			// Note we only duplicate and reassign size_prices to the new bev ID if
-			// doDuplicate was specified and we duplicated the beverage
-			// find all old size_prices with old_bev_id
-			rows, err := db.Query("SELECT serving_size, serving_unit, serving_price, beverage_id FROM size_prices WHERE beverage_id=$1;", old_bev_id)
-			if err != nil {
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			defer rows.Close()
-			for rows.Next() {
-				var sp SalePrice
-				if err := rows.Scan(
-					&sp.Volume,
-					&sp.Unit,
-					&sp.Price,
-					&sp.ID); err != nil {
-					log.Println(err.Error())
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					continue
-				}
-				_, err = db.Exec("INSERT INTO size_prices(serving_size, serving_unit, serving_price, beverage_id) VALUES ($1, $2, $3, $4);", sp.Volume, sp.Unit, sp.Price, new_bev_id)
-				if err != nil {
-					log.Println(err.Error())
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-			}
+
+			// if the previous version had the same size_price vol + unit as this
+			// one, duplicate the clover_join entry corresponding to that
+			// size_price, if one is available, and change its size_prices id
+			// to the new id, and beverage_id to the new beverage_id as well.
+			// also duplicate the clover_join entries to point to new size_prices
+			_, err = db.Exec(`
+					WITH old_clover_join AS (
+						SELECT clover_join.restaurant_id, clover_join.pos_item_id,
+						  clover_join.version_id, clover_join.beverage_id, clover_join.size_prices_id, 
+						  size_prices.serving_size, size_prices.serving_unit 
+						  FROM clover_join 
+						  INNER JOIN size_prices ON (clover_join.size_prices_id=size_prices.id)
+						  WHERE clover_join.beverage_id=$3
+						) 
+					INSERT INTO clover_join (
+						restaurant_id, pos_item_id, version_id, beverage_id, size_prices_id) 
+					SELECT $1, old_clover_join.pos_item_id, old_clover_join.version_id, $2, size_prices.id 
+					FROM size_prices, old_clover_join 
+					WHERE size_prices.beverage_id=$2 
+					AND size_prices.serving_size=old_clover_join.serving_size 
+					AND size_prices.serving_unit=old_clover_join.serving_unit;
+					`, test_restaurant_id, new_bev_id, old_bev_id)
 		}
 
 		// Finally, handle sale status changes

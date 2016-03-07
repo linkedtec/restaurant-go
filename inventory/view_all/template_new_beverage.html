@@ -138,73 +138,75 @@
       </div>
     </div>
 
-    <div style="font-size:1.0em; color:#479558; margin-top:20px; background-color:#d8f0ca; padding:3px 4px 0px">
-      Purchase / Order Info
-      <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd" uib-popover="When you order new stock from your supplier, what is the volume of an individual order item, and how much does it cost?" popover-trigger="mouseenter"></span>
-    </div>
-    <hr class="add_hr"/>
-    <div class="row" style="padding-left:0px; margin-top:4px">
-      <div class="col-xs-3">
-        <div class="form-group" style="width:100%; margin-bottom:0" ng-class="{'has-error': form_ver.error_pvolume===true || form_ver.error_punit===true}">
-          <label class="control-label optional label_small"> 
-            Volume per {{new_beverage.container_type}}
-          </label>
-          <div>
-            <span>
-              <input ng-model="new_beverage.purchase_volume" type="number" min="0" class="form-control input_small" style="width:50%; float:left">
-            </span>
-            <span class="btn-group" style="width:50%; float:right" uib-dropdown>
-              <button type="button" class="btn btn-default btn-md dropdown-toggle unit_dropdown input_small" style="width:90%; float:right" uib-dropdown-toggle>
-                <span ng-if="new_beverage.purchase_unit!==null" style="float:left; text-align:left; width:80%">
-                  {{new_beverage.purchase_unit}} 
-                </span>
-                <span ng-if="new_beverage.purchase_unit===null" class="noselect" style="float:left; text-align:left; width:80%;  color:#999999"> &nbsp;
-                </span>
-                <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:12px; color:#888888"></span>
-              </button>
-              <ul class="unit_dropdown dropdown-menu" role="menu" style="min-width:90px !important">
-                <li class="inv_dropdown_li" ng-if="new_beverage.purchase_unit!==null">
-                  <a ng-click="clearPurchaseUnit()" class="noselect" style="color:#aaaaaa">None</a>
-                </li>
-                <li class="inv_dropdown_li" ng-repeat="aunit in volume_units">
-                  <a ng-click="selectPurchaseUnit(aunit)" class="noselect">{{aunit}}</a>
-                </li>
-              </ul>
-            </span>
-          </div>
+    <div ng-if="showPurchase===true">
+      <div style="font-size:1.0em; color:#479558; margin-top:20px; background-color:#d8f0ca; padding:3px 4px 0px">
+        Purchase / Order Info
+        <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd" uib-popover="When you order new stock from your supplier, what is the volume of an individual order item, and how much does it cost?" popover-trigger="mouseenter"></span>
+      </div>
+      <hr class="add_hr"/>
+      <div class="row" style="padding-left:0px; margin-top:4px">
+        <div class="col-xs-3">
+          <div class="form-group" style="width:100%; margin-bottom:0" ng-class="{'has-error': form_ver.error_pvolume===true || form_ver.error_punit===true}">
+            <label class="control-label optional label_small"> 
+              Volume per {{new_beverage.container_type}}
+            </label>
+            <div>
+              <span>
+                <input ng-model="new_beverage.purchase_volume" type="number" min="0" class="form-control input_small" style="width:50%; float:left">
+              </span>
+              <span class="btn-group" style="width:50%; float:right" uib-dropdown>
+                <button type="button" class="btn btn-default btn-md dropdown-toggle unit_dropdown input_small" style="width:90%; float:right" uib-dropdown-toggle>
+                  <span ng-if="new_beverage.purchase_unit!==null" style="float:left; text-align:left; width:80%">
+                    {{new_beverage.purchase_unit}} 
+                  </span>
+                  <span ng-if="new_beverage.purchase_unit===null" class="noselect" style="float:left; text-align:left; width:80%;  color:#999999"> &nbsp;
+                  </span>
+                  <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:12px; color:#888888"></span>
+                </button>
+                <ul class="unit_dropdown dropdown-menu" role="menu" style="min-width:90px !important">
+                  <li class="inv_dropdown_li" ng-if="new_beverage.purchase_unit!==null">
+                    <a ng-click="clearPurchaseUnit()" class="noselect" style="color:#aaaaaa">None</a>
+                  </li>
+                  <li class="inv_dropdown_li" ng-repeat="aunit in volume_units">
+                    <a ng-click="selectPurchaseUnit(aunit)" class="noselect">{{aunit}}</a>
+                  </li>
+                </ul>
+              </span>
+            </div>
 
-          <!--div>
-            <select ng-model="new_beverage.purchase_unit" class="form-control input-small" ng-options="aunit for aunit in volume_units" style="width:60px; float:left"></select>
-          </div-->
-        </div>
-      </div>
-      <div class="col-xs-3">
-        <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_pcost===true}">
-          <label class="control-label label_small"> 
-            <b>Wholesale</b> <span ng-if="new_beverage.container_type==='Keg'" style="color:#888888; font-style:italic; font-size:0.9em">exclude Deposit</span>
-          </label>
-          <div class="input-group input_small">
-            <span class="input-group-addon">$</span>
-            <input ng-model="new_beverage.purchase_cost" type="number" min="0" class="form-control input_small" style="width:100%;">
+            <!--div>
+              <select ng-model="new_beverage.purchase_unit" class="form-control input-small" ng-options="aunit for aunit in volume_units" style="width:60px; float:left"></select>
+            </div-->
           </div>
         </div>
-      </div>
-      <div class="col-xs-3" ng-show="new_beverage.container_type!=='Keg'">
-        <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_pcount===true}">
-          <label class="control-label bold label_small">
-            Purchase Count
-            <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;" uib-popover="For a single purchase, you might buy, e.g., a case of 12 bottles of wine for $40.  In that case, enter 12 for Purchase Count, and $40 for Wholesale" popover-trigger="mouseenter"></span>
-          </label>
-          <input ng-model="new_beverage.purchase_count" type="number" min="1" class="form-control input_small" placeholder="">
+        <div class="col-xs-3">
+          <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_pcost===true}">
+            <label class="control-label label_small"> 
+              <b>Wholesale</b> <span ng-if="new_beverage.container_type==='Keg'" style="color:#888888; font-style:italic; font-size:0.9em">exclude Deposit</span>
+            </label>
+            <div class="input-group input_small">
+              <span class="input-group-addon">$</span>
+              <input ng-model="new_beverage.purchase_cost" type="number" min="0" class="form-control input_small" style="width:100%;">
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="col-xs-3">
-        <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_par===true}">
-          <label class="control-label optional label_small" ng-class="{'bold': requiredVars.indexOf('par')>=0}">
-            Par Level
-            <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;" uib-popover="How much inventory you need to maintain in stock between purchasing periods." popover-trigger="mouseenter"></span>
-          </label>
-          <input ng-model="new_beverage.par" ng-class="{'my_error': form_ver.error_par===true}" class="form-control input_small" placeholder="">
+        <div class="col-xs-3" ng-show="new_beverage.container_type!=='Keg'">
+          <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_pcount===true}">
+            <label class="control-label bold label_small">
+              Purchase Count
+              <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;" uib-popover="For a single purchase, you might buy, e.g., a case of 12 bottles of wine for $40.  In that case, enter 12 for Purchase Count, and $40 for Wholesale" popover-trigger="mouseenter"></span>
+            </label>
+            <input ng-model="new_beverage.purchase_count" type="number" min="1" class="form-control input_small" placeholder="">
+          </div>
+        </div>
+        <div class="col-xs-3">
+          <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_par===true}">
+            <label class="control-label optional label_small" ng-class="{'bold': requiredVars.indexOf('par')>=0}">
+              Par Level
+              <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;" uib-popover="How much inventory you need to maintain in stock between purchasing periods." popover-trigger="mouseenter"></span>
+            </label>
+            <input ng-model="new_beverage.par" ng-class="{'my_error': form_ver.error_par===true}" class="form-control input_small" placeholder="">
+          </div>
         </div>
       </div>
     </div>

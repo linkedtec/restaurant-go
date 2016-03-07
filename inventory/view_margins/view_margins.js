@@ -13,8 +13,10 @@ angular.module('myApp.viewMargins', ['ngRoute', 'ui.bootstrap'])
 
   $scope.showSpinner = false;
 
-  $scope.margin_types = ['Latest Inventory Period'];
+  $scope.margin_types = ['Latest Inventory Period for each Beverage'];
   $scope.margin_type = $scope.margin_types[0];
+
+  $scope.margins_data = null;
 
   $scope.initDate = function() {
     var today = new Date();
@@ -55,6 +57,8 @@ angular.module('myApp.viewMargins', ['ngRoute', 'ui.bootstrap'])
       $scope.showSpinner = false;
 
       console.log(data);
+
+      $scope.margins_data = data;
 
     }).
     error(function(data, status, headers, config) {

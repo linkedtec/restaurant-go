@@ -187,6 +187,7 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
         // second item is the affected beverage
         var status = result[0];
         var match = result[1];
+        var should_refresh = result[2];
         
         if (status === 'save') {
           console.log(match);
@@ -194,6 +195,11 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
           item['product'] = match['product'];
           item['brewery'] = match['brewery'];
           item['id'] = match['id'];
+        }
+
+        // size_prices and PoS matches might have changed, refresh
+        if (should_refresh) {
+          $scope.getSalesData();
         }
 
       }, 
@@ -255,8 +261,12 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
 
   $scope.new_failure_msg = null;
 
+  $scope.should_refresh = false;
+
   $scope.pickMatch = function(match) {
     console.log(match);
+
+    $scope.should_refresh = true;
 
     // pop up a modal asking for confirmation
     var modalEditInstance = $modal.open({
@@ -282,21 +292,11 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
         // second item is the affected beverage
         var status = result[0];
         
-        var test_restaurant_id = 1;
         if (status === 'save') {
-          $http.post('/pos/clover/match', {
-            restaurant_id:test_restaurant_id,
-            app_version_id:match.version_id,
-            pos_item_id:item.item_id
-          }).
-          success(function(data, status, headers, config) {
-            console.log(data)
 
-            $modalInstance.close(['save', match]);
-
-          }).
-          error(function(data, status, headers, config) {
-          });
+          // sp is a returned size_price object
+          var sp = result[1];
+            $modalInstance.close(['save', match, $scope.should_refresh]);
         }
       }, 
       // error status
@@ -306,22 +306,126 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
   };
 
   $scope.cancel = function() {
-    $modalInstance.dismiss('cancel');
+    $modalInstance.close(['cancel', null, $scope.should_refresh]);
   };
 
 })
 
-.controller('modalPOSConfirmMatchingCtrl', function($scope, $modalInstance, $modal, item, match) {
+.controller('modalPOSConfirmMatchingCtrl', function($scope, $modalInstance, $modal, $http, item, match) {
 
   $scope.item = item;
   $scope.match = match;
 
-  $scope.save = function() {
+  $scope.size_price = null;
+  $scope.new_failure_msg = null;
+  $scope.form_ver = {};
 
-    $modalInstance.close(['save', null]);
-
+  $scope.selectSizePrice = function(sp) {
+    $scope.size_price = sp;
   };
 
+  $scope.editServingSizes = function() {
+
+    // pop up a modal asking for confirmation
+    var modalEditInstance = $modal.open({
+      templateUrl: 'editInvModal.html',
+      controller: 'editInvModalCtrl',
+      windowClass: 'edit-inv-modal',
+      backdropClass: 'white-modal-backdrop',
+      resolve: {
+        edit_beverage: function() {
+          return $scope.match;
+        },
+        all_distributors: function() {
+          return [];
+        },
+        all_breweries: function() {
+          return [];
+        },
+        volume_units: function() {
+          return [];
+        },
+        edit_mode: function() {
+          return "sales";
+        },
+        hide_delete: function() {
+          return true;
+        },
+        required_vars: function() {
+          return [];  // this means no ADDITIONAL required vars
+        }
+      }
+    });
+
+    modalEditInstance.result.then(
+      // success status
+      function( result ) {
+        // result is a list, first item is string for status, e.g.,
+        // 'save' or 'delete'
+        // second item is the affected beverage
+        var status = result[0];
+        var edit_bev = result[1];
+        
+        if (status === 'save') {
+
+          console.log(edit_bev);
+
+          swal({
+            title: "Beverage Updated!",
+            text: "<b>" + $scope.match.product + "</b> serving sizes has been updated!",
+            type: "success",
+            timer: 4000,
+            allowOutsideClick: true,
+            html: true});
+        }
+      }, 
+      // error status
+      function() {
+        ;
+      });
+  };
+
+  $scope.save = function() {
+
+    $scope.form_ver = {};
+    $scope.form_ver.error_missing_size_price = false;
+    $scope.new_failure_msg = null;
+
+    var all_clear = true;
+
+    if ($scope.size_price===undefined || $scope.size_price === null) {
+      $scope.form_ver.error_missing_size_price = true;
+      $scope.new_failure_msg = "Please select the in-app serving size which matches the PoS entry."
+      all_clear = false;
+    }
+
+    if (all_clear!==true) {
+      return;
+    }
+
+    var test_restaurant_id = 1;
+    $http.post('/pos/clover/match', {
+      restaurant_id:test_restaurant_id,
+      version_id:$scope.match.version_id,
+      pos_item_id:$scope.item.item_id,
+      sell_volume: $scope.size_price['volume'],
+      sell_unit: $scope.size_price['unit']
+    }).
+    success(function(data, status, headers, config) {
+      console.log(data)
+
+      $modalInstance.close(['save', $scope.size_price]);
+
+    }).
+    error(function(data, status, headers, config) {
+      swal({
+        title: "Save Match Failed",
+        text: "You most likely already matched this beverage + serving size to another PoS entry.  Either change that one first and try again, or pick a different beverage + serving size!",
+        type: "error",
+        allowOutsideClick: true});
+    });
+
+  };
 
   $scope.cancel = function() {
     $modalInstance.dismiss('cancel');

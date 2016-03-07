@@ -277,7 +277,7 @@ func kegsAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// update all keg bevs to reference the new keg id.  Must bump their version
 		for _, bev := range keg_bevs {
 
-			new_bev_id, err := updateBeverageVersion(bev.ID)
+			new_bev_id, err := updateBeverageVersion(bev.ID, true)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -417,7 +417,7 @@ func kegsAPIHandler(w http.ResponseWriter, r *http.Request) {
 			for _, bev := range keg_bevs {
 				old_bev_id := bev.ID
 
-				new_bev_id, err := updateBeverageVersion(old_bev_id)
+				new_bev_id, err := updateBeverageVersion(old_bev_id, true)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -816,7 +816,7 @@ func distAPIHandler(w http.ResponseWriter, r *http.Request) {
 		for _, bev := range dist_bevs {
 			old_bev_id := bev.ID
 
-			new_bev_id, err := updateBeverageVersion(old_bev_id)
+			new_bev_id, err := updateBeverageVersion(old_bev_id, true)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)

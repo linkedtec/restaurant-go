@@ -8,13 +8,13 @@
 
     <div class="row" style="margin:32px 16px 6px;">
       <div class="col-xs-12" style="font-size:1.4em; text-align:center; color:#777777">
-        Please Confirm Match:
+        Please Confirm Matching Product and Serving Size:
       </div>
     </div>
     <table style="width: 94%; table-layout:fixed; border: 1px solid #dddddd; margin:auto;">
       <tr style="padding:4px 8px; color:#888888; border:1px solid #dddddd">
-        <td style="width:50%; padding:4px; text-align:center; background-color:#f0f0f0; border-right:1px solid #dddddd">Point of Sale Name:</td>
-        <td style="width:50%; padding:4px; text-align:center; background-color:#f0f0f0">In-App Name:</td>
+        <td style="width:50%; padding:4px; text-align:center; background-color:#f0f0f0; border-right:1px solid #dddddd">Point of Sale Entry:</td>
+        <td style="width:50%; padding:4px; text-align:center; background-color:#f0f0f0">In-App Product Name:</td>
       </tr>
       <tr style="font-size:1.1em">
         <td style="padding:6px 4px; text-align:center; border-right:1px solid #eeeeee">{{item.name}}</td>
@@ -23,9 +23,56 @@
         </td>
       </tr>
     </table>
+    <div class="row" style="margin:12px 18px">
+      <div class="col-xs-6 blue_color" style="text-align:right; padding:0; padding-right:4px; margin-top:4px; font-size:1.1em;">
+        Select matching Serving Size:
+      </div>
+      <div class="col-xs-6" style="padding:0; padding-left:4px">
+        <div class="btn-group" style="width:100% !important" uib-dropdown>
+          <button type="button" ng-class="{'my_error':form_ver.error_missing_size_price===true}" class="btn btn-default btn-md dropdown-toggle input_small" style="width:100%" uib-dropdown-toggle>
+            <span ng-if="size_price!==null" style="float:left; text-align:left; width:34%;">
+              {{size_price.volume | number:1}} {{size_price.unit}}
+            </span>
+            <span ng-if="size_price!==null" style="float:left; width:60%; text-align:left">
+              <span ng-if="size_price.price === null">&nbsp;</span>
+              <span ng-if="size_price.price !== null">
+                $ {{size_price.price | number:2}}
+              </span>
+            </span>
+            <span ng-if="size_price === null" class="noselect" style="float:left; text-align:left; width:94%;  color:#999999">
+              None Selected
+            </span>
+            <span class="glyphicon glyphicon-triangle-bottom" style="text-align:right; margin-top:4px; font-size:12px; color:#888888"></span>
+          </button>
+
+          <ul class="loc_dropdown dropdown-menu" role="menu">
+            <li class="inv_dropdown_li" ng-repeat="sp in match.size_prices">
+              <a ng-click="selectSizePrice(sp)" class="noselect">
+                <span style="width:50%; float:left">
+                  {{sp.volume | number:1}} {{sp.unit}}
+                </span>
+                <span ng-if="sp.price!==null" style="width:50%; float:left">
+                  <span style="color:#999999">$</span> {{sp.price | number:2}}
+                </span>
+              </a>
+            </li>
+            <li class="inv_dropdown_li">
+              <a ng-click="editServingSizes()" class="new_loc noselect">Edit Serving Sizes</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
     
     <!--hr style="margin: 4px 16px 0px"/-->
-    <div class="row" style="margin:16px 0px 16px">
+
+    <div ng-show="new_failure_msg !== null" class="row" style="margin:4px 16px">
+      <div class="alert alert-danger" data-html="true" role="alert" style="margin-bottom:6px">
+        {{new_failure_msg}}
+      </div>
+    </div>
+
+    <div class="row" style="margin:24px 0px 16px">
       <div class="col-xs-12" style="text-align:right">
         <button ng-click="cancel()" type="button" class="btn btn-default btn_ok" style="font-size:1.1em; float:left">
           <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Cancel
