@@ -45,7 +45,8 @@ func setupPOSCloverHandlers() {
 }
 
 func getTotalUnitsSoldInPeriodClover(version_id int,
-	start_date time.Time, end_date time.Time, restaurant_id string) ([]CloverSale, error) {
+	start_date time.Time, end_date time.Time, restaurant_id string,
+	clover_db *sql.DB) ([]CloverSale, error) {
 
 	var csales []CloverSale
 
@@ -63,8 +64,6 @@ func getTotalUnitsSoldInPeriodClover(version_id int,
 		log.Println(err.Error())
 		return csales, err
 	}
-
-	connectToCloverDB()
 
 	defer rows.Close()
 	for rows.Next() {

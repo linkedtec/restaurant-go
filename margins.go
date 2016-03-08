@@ -249,9 +249,11 @@ func marginsAPIHandler(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
+			connectToCloverDB()
+
 			// Now, use the version_id and the clover_join table to query clover
 			// for total sales in the period
-			clover_sales, err := getTotalUnitsSoldInPeriodClover(margin.VersionID, margin.InvUpdate1, margin.InvUpdate2, restaurant_id)
+			clover_sales, err := getTotalUnitsSoldInPeriodClover(margin.VersionID, margin.InvUpdate1, margin.InvUpdate2, restaurant_id, clover_db)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
