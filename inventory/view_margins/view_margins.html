@@ -73,15 +73,15 @@
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:60px;">
-        <div class="sort_div" ng-click="sortBy('theoretical_margin')">
-          <span>Theoretical</span>
-          <span ng-show="sort_key === 'theoretical_margin'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        <div class="sort_div" ng-click="sortBy('utilization')">
+          <span>Utilization</span>
+          <span ng-show="sort_key === 'utilization'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:60px;">
-        <div class="sort_div" ng-click="sortBy('actual_margin')">
-          <span>Actual</span>
-          <span ng-show="sort_key === 'actual_margin'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        <div class="sort_div" ng-click="sortBy('margin')">
+          <span>Margin</span>
+          <span ng-show="sort_key === 'margin'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
     </tr>
@@ -94,33 +94,34 @@
 
     <tr ng-repeat="item in margins_data | filter:filter_query.query" ng-class-even="'inv_row inv_row_even'" ng-class-odd="'inv_row inv_row_odd'" style="font-size:0.9em; border-bottom:1px solid #e5e5e5;">
       <td class="all_inv_span" height="100px">
-        {{item.product}}
+        {{item.product}} 
+        <span ng-if="item.brewery!==null" style="color:#aaaaaa"> {{item.brewery}}</span>
       </td>
       <td class="all_inv_span">
-        $ {{item.inv_sum1 | number:2}}
+        {{item.vol_inv_L_1 | number:1}} L
       </td>
       <td class="all_inv_span">
-        $ {{item.inv_sum2 | number:2}}
+        {{item.vol_inv_L_2 | number:1}} L
       </td>
       <td class="all_inv_span">
-        $ {{item.total_sales | number:2}}
+        {{item.vol_sold_L | number:1}} L
       </td>
       <td class="all_inv_span">
         <span ng-if="item.deliveries_sum===null" style="color:#aaaaaa">
           None in period
         </span>
         <span ng-if="item.deliveries_sum!==null">
-          $ {{item.deliveries_sum | number:2}}
+          {{item.vol_delivered_L | number:1}} L
         </span>
       </td>
       <td class="all_inv_span">
-        $ {{item.waste | number:2}}
+        {{item.vol_waste_L | number:1}} L
       </td>
       <td class="all_inv_span">
-        theoretical
+        {{item.utilization | number:1}} %
       </td>
       <td class="all_inv_span">
-        theoretical
+        --
       </td>
     </tr>
 

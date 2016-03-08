@@ -44,6 +44,74 @@ func setupPOSCloverHandlers() {
 	http.HandleFunc("/pos/clover/match", posCloverMatchAPIHandler)
 }
 
+func getTotalUnitsSoldInPeriodClover(version_id int,
+	start_date time.Time, end_date time.Time, restaurant_id string) ([]CloverSale, error) {
+
+	var csales []CloverSale
+
+	// note that there can be multiple PoS items per version id (since there
+	// can be multiple sales points), so we query for multiple rows
+	rows, err := db.Query(`
+		SELECT clover_join.pos_item_id, 
+			size_prices.serving_size, size_prices.serving_unit 
+		FROM clover_join 
+		INNER JOIN size_prices ON (clover_join.size_prices_id=size_prices.id) 
+		WHERE clover_join.restaurant_id=$1 AND clover_join.version_id=$2 
+		GROUP BY clover_join.pos_item_id, size_prices.serving_size, size_prices.serving_unit;`,
+		restaurant_id, version_id)
+	if err != nil {
+		log.Println(err.Error())
+		return csales, err
+	}
+
+	connectToCloverDB()
+
+	defer rows.Close()
+	for rows.Next() {
+
+		var csale CloverSale
+
+		if err := rows.Scan(
+			&csale.ItemID,
+			&csale.ServingVolume,
+			&csale.ServingUnit); err != nil {
+			log.Println(err.Error())
+			continue
+		}
+
+		// For testing validity:
+		//     Tests sum over period of single item:
+		// SELECT SUM(COALESCE(order_items.price, 0))/100.0 AS total FROM itemcat, order_items, orders WHERE orders.id=order_items.orderRef AND order_items.name=itemcat.name AND order_items.item='CX5TXMT46DTN4' AND itemcat.current=1 AND food_bev_cat='beverage' AND order_items.createdTime>='2016-03-01 21:33:13' AND state = 'locked';
+		//     Prints individual occurrences of item over same period:
+		// SELECT order_items.createdTime, order_items.name, order_items.price AS total FROM itemcat, order_items, orders WHERE orders.id=order_items.orderRef AND order_items.name=itemcat.name AND order_items.item='CX5TXMT46DTN4' AND itemcat.current=1 AND food_bev_cat='beverage' AND order_items.createdTime>='2016-03-01 21:33:13' AND state = 'locked';
+
+		// note: each item on PoS shares a unique id column 'order_items.item',
+		// not to be confused with 'order_items.id', which is a unique id per
+		// TRANSACTION
+
+		err = clover_db.QueryRow(`
+      SELECT COUNT(order_items.price), SUM(COALESCE(order_items.price, 0))/100.0 AS total 
+      FROM itemcat, order_items, orders 
+      WHERE orders.id=order_items.orderRef AND order_items.name=itemcat.name 
+      AND order_items.item=? 
+      AND itemcat.current=1 AND food_bev_cat='beverage' AND 
+      order_items.createdTime>=? AND order_items.createdTime<=? 
+      AND state = 'locked';`, csale.ItemID, start_date, end_date).Scan(
+			&csale.Count,
+			&csale.Total)
+		if err != nil {
+			log.Println(err.Error)
+			continue
+		}
+
+		csales = append(csales, csale)
+
+	}
+
+	return csales, nil
+
+}
+
 func getTotalSalesInPeriodClover(version_id int,
 	start_date time.Time, end_date time.Time, restaurant_id string) (NullFloat64, error) {
 

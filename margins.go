@@ -8,16 +8,25 @@ import (
 )
 
 type Margin struct {
-	VersionID     int         `json:"version_id"`
-	Product       string      `json:"product"`
-	InvTimes      int         `json:"inv_times"`
-	InvUpdate1    time.Time   `json:"inv_update1"`
-	InvUpdate2    time.Time   `json:"inv_update2"`
-	InvSum1       NullFloat64 `json:"inv_sum1"`
-	InvSum2       NullFloat64 `json:"inv_sum2"`
-	DeliveriesSum NullFloat64 `json:"deliveries_sum"`
-	TotalSales    NullFloat64 `json:"total_sales"`
-	Waste         float64     `json:"waste"`
+	VersionID        int         `json:"version_id"`
+	Product          string      `json:"product"`
+	Brewery          NullString  `json:"brewery"`
+	PurchaseVolume   NullFloat64 `json:"purchase_volume"`
+	PurchaseUnit     NullString  `json:"purchase_unit"`
+	PurchaseCount    int         `json:"purchase_count"`
+	PurchaseCost     NullFloat64 `json:"purchase_cost"`
+	InvTimes         int         `json:"inv_times"`
+	InvUpdate1       time.Time   `json:"inv_update1"`
+	InvUpdate2       time.Time   `json:"inv_update2"`
+	InvQuantity1     NullFloat64 `json:"inv_quantity1"`
+	InvQuantity2     NullFloat64 `json:"inv_quantity2"`
+	DeliveriesCount  NullFloat64 `json:"deliveries_count"`
+	TotalSales       NullFloat64 `json:"total_sales"`
+	VolumeInvL1      float64     `json:"vol_inv_L_1"`
+	VolumeInvL2      float64     `json:"vol_inv_L_2"`
+	VolumeSoldL      float64     `json:"vol_sold_L"`
+	VolumeDeliveredL float64     `json:"vol_delivered_L"`
+	VolumeWasteL     float64     `json:"vol_waste_L"`
 }
 
 func setupMarginsHandlers() {
@@ -60,14 +69,21 @@ func marginsAPIHandler(w http.ResponseWriter, r *http.Request) {
 		rows, err := db.Query(
 			`
       /* The final result of this query has the following columns:
-         version_id, 
-         product, 
-         inv_times (# of inv records in all history), 
-         inv_update1 (second latest inventory update time) 
-         inv_update2 (latest inventory update time) 
-         deliveries_sum (sum of all deliveries in the inventory period b/w updates 1 and 2)
+        version_id, 
+        product, 
+        brewery, 
+        inv_times (# of inv records in all history), 
+        purchase_volume (of most recent beverage_id), 
+        purchase_unit, 
+        purchase_count, 
+        purchase_cost, 
+        inv_update1 (second latest inventory update time) 
+        inv_update2 (latest inventory update time) 
+        inv_qty1 (total quantity ordered at inv_update_1 DATE), 
+        inv_qty2, 
+        deliveries_sum (sum of all deliveries in the inventory period b/w updates 1 and 2)
       */
-      WITH inv_dates_and_delivery_sum AS (
+      WITH inv_dates_and_delivery_qty AS (
         WITH final_two_inv_bevs AS (
           /* START final_two_inv_bevs query */
           WITH two_inv_bevs AS (
@@ -82,7 +98,7 @@ func marginsAPIHandler(w http.ResponseWriter, r *http.Request) {
               versioned_updates AS (
                 /* more_than_two_inv_bevs are inventory records of version_id'ed 
                    beverages which have more than 2 records, since we need a start and 
-                   an end period to calculate margins.  inv_times column tracks how many 
+                   and end period to calculate margins.  inv_times column tracks how many 
                    times this beverage has been recorded in inventory */
                 WITH more_than_two_inv_bevs AS (
                   SELECT * FROM (
@@ -97,7 +113,10 @@ func marginsAPIHandler(w http.ResponseWriter, r *http.Request) {
                    more_than_two_inv_bevs based on their matching version_ids */
                 version_id_dates AS (
                   SELECT DISTINCT ON ((location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2)::date, beverages.version_id) 
-                  beverages.version_id, location_beverages.beverage_id, beverages.product, 
+                  beverages.version_id, location_beverages.beverage_id, 
+                  beverages.product, beverages.brewery, 
+                  beverages.purchase_volume, beverages.purchase_unit, 
+                  beverages.purchase_count, beverages.purchase_cost, 
                   location_beverages.update, (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2)::date 
                   FROM location_beverages 
                     INNER JOIN beverages ON (beverages.id=location_beverages.beverage_id) 
@@ -106,13 +125,19 @@ func marginsAPIHandler(w http.ResponseWriter, r *http.Request) {
                   ORDER BY (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2)::date DESC
                 )
                 SELECT version_id_dates.beverage_id, version_id_dates.product, 
-                version_id_dates.version_id, more_than_two_inv_bevs.inv_times, version_id_dates.update  
+                version_id_dates.brewery, 
+                version_id_dates.version_id, version_id_dates.purchase_volume, 
+                version_id_dates.purchase_unit, 
+                version_id_dates.purchase_count, version_id_dates.purchase_cost, 
+                more_than_two_inv_bevs.inv_times, version_id_dates.update  
                 FROM more_than_two_inv_bevs, version_id_dates 
                 WHERE version_id_dates.version_id=more_than_two_inv_bevs.version_id 
                 ORDER BY more_than_two_inv_bevs.version_id
               ) 
-              SELECT beverage_id, product, version_id, inv_times, update, 
-              rank() OVER (PARTITION BY version_id ORDER BY update DESC) AS inv_date_rank FROM in_clover_ids, versioned_updates 
+              SELECT beverage_id, product, brewery, versioned_updates.version_id, 
+                purchase_volume, purchase_unit, purchase_count, purchase_cost, 
+                inv_times, update, 
+              rank() OVER (PARTITION BY versioned_updates.version_id ORDER BY update DESC) AS inv_date_rank FROM in_clover_ids, versioned_updates 
               WHERE in_clover_ids.version_id=versioned_updates.version_id 
             ) q2 WHERE inv_date_rank <=2
           ),
@@ -122,14 +147,22 @@ func marginsAPIHandler(w http.ResponseWriter, r *http.Request) {
             SELECT * FROM two_inv_bevs WHERE inv_date_rank=1),
           rank_two_bevs AS (
             SELECT * FROM two_inv_bevs WHERE inv_date_rank=2) 
-          SELECT rank_one_bevs.beverage_id, rank_one_bevs.product, rank_one_bevs.version_id, rank_one_bevs.inv_times,
+          SELECT rank_one_bevs.beverage_id, rank_one_bevs.product, 
+          rank_one_bevs.brewery, rank_one_bevs.version_id, 
+          rank_one_bevs.inv_times, rank_one_bevs.purchase_volume, 
+          rank_one_bevs.purchase_unit, rank_one_bevs.purchase_count, 
+          rank_one_bevs.purchase_cost, 
           rank_two_bevs.update AS inv_update1, rank_one_bevs.update AS inv_update2 
           FROM rank_one_bevs, rank_two_bevs WHERE rank_one_bevs.version_id=rank_two_bevs.version_id
           /* END final_two_inv_bevs query */
         ) 
         SELECT final_two_inv_bevs.version_id, final_two_inv_bevs.product, 
-        final_two_inv_bevs.inv_times, final_two_inv_bevs.inv_update1, 
-        final_two_inv_bevs.inv_update2, SUM(COALESCE(do_item_deliveries.invoice, distributor_order_items.subtotal)) AS deliveries_sum 
+        final_two_inv_bevs.brewery, 
+        final_two_inv_bevs.inv_times, final_two_inv_bevs.purchase_volume, 
+        final_two_inv_bevs.purchase_unit, final_two_inv_bevs.purchase_count, 
+        final_two_inv_bevs.purchase_cost, 
+        final_two_inv_bevs.inv_update1, 
+        final_two_inv_bevs.inv_update2, SUM(COALESCE(do_item_deliveries.quantity, distributor_order_items.quantity)) AS deliveries_qty 
         FROM final_two_inv_bevs 
           INNER JOIN beverages ON (final_two_inv_bevs.version_id=beverages.version_id) 
           LEFT OUTER JOIN do_item_deliveries ON (beverages.id=do_item_deliveries.beverage_id) 
@@ -140,38 +173,47 @@ func marginsAPIHandler(w http.ResponseWriter, r *http.Request) {
             distributor_order_items.distributor_order_id=do_item_deliveries.distributor_order_id AND 
             distributor_order_items.beverage_id=do_item_deliveries.beverage_id) 
         GROUP BY final_two_inv_bevs.version_id, final_two_inv_bevs.product, 
+        final_two_inv_bevs.brewery, 
+        final_two_inv_bevs.purchase_volume, final_two_inv_bevs.purchase_unit, 
+        final_two_inv_bevs.purchase_count, final_two_inv_bevs.purchase_cost, 
         final_two_inv_bevs.inv_times, final_two_inv_bevs.inv_update1, 
-        final_two_inv_bevs.inv_update2),
+        final_two_inv_bevs.inv_update2
+      ),
       inv_sum_table1 AS (
-        SELECT SUM(location_beverages.inventory) AS sum, 
+        SELECT SUM(location_beverages.quantity) AS qty, 
         beverages.version_id as version_id 
-        FROM inv_dates_and_delivery_sum, location_beverages, beverages 
-        WHERE beverages.version_id=inv_dates_and_delivery_sum.version_id AND 
+        FROM inv_dates_and_delivery_qty, location_beverages, beverages 
+        WHERE beverages.version_id=inv_dates_and_delivery_qty.version_id AND 
           location_beverages.beverage_id=beverages.id AND 
-          (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2)::date=(inv_dates_and_delivery_sum.inv_update1 AT TIME ZONE 'UTC' AT TIME ZONE $2)::date 
+          (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2)::date=(inv_dates_and_delivery_qty.inv_update1 AT TIME ZONE 'UTC' AT TIME ZONE $2)::date 
           GROUP BY beverages.version_id
       ), 
       inv_sum_table2 AS (
-      SELECT SUM(location_beverages.inventory) AS sum, 
+      SELECT SUM(location_beverages.quantity) AS qty, 
         beverages.version_id as version_id 
-        FROM inv_dates_and_delivery_sum, location_beverages, beverages 
-        WHERE beverages.version_id=inv_dates_and_delivery_sum.version_id AND 
+        FROM inv_dates_and_delivery_qty, location_beverages, beverages 
+        WHERE beverages.version_id=inv_dates_and_delivery_qty.version_id AND 
           location_beverages.beverage_id=beverages.id AND 
-          (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2)::date=(inv_dates_and_delivery_sum.inv_update2 AT TIME ZONE 'UTC' AT TIME ZONE $2)::date 
+          (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $2)::date=(inv_dates_and_delivery_qty.inv_update2 AT TIME ZONE 'UTC' AT TIME ZONE $2)::date 
           GROUP BY beverages.version_id
       ) 
-      SELECT inv_dates_and_delivery_sum.version_id, 
-        inv_dates_and_delivery_sum.product, 
-        inv_dates_and_delivery_sum.inv_times, 
-        inv_dates_and_delivery_sum.inv_update1, 
-        inv_dates_and_delivery_sum.inv_update2, 
-        inv_sum_table1.sum AS inv_sum1, 
-        inv_sum_table2.sum AS inv_sum2, 
-        inv_dates_and_delivery_sum.deliveries_sum 
+      SELECT inv_dates_and_delivery_qty.version_id, 
+        inv_dates_and_delivery_qty.product, 
+        inv_dates_and_delivery_qty.brewery, 
+        inv_dates_and_delivery_qty.inv_times, 
+        inv_dates_and_delivery_qty.purchase_volume, 
+        inv_dates_and_delivery_qty.purchase_unit, 
+        inv_dates_and_delivery_qty.purchase_count, 
+        inv_dates_and_delivery_qty.purchase_cost, 
+        inv_dates_and_delivery_qty.inv_update1, 
+        inv_dates_and_delivery_qty.inv_update2, 
+        inv_sum_table1.qty AS inv_qty1, 
+        inv_sum_table2.qty AS inv_qty2, 
+        inv_dates_and_delivery_qty.deliveries_qty 
       FROM 
-        inv_dates_and_delivery_sum, inv_sum_table1, inv_sum_table2 WHERE 
-        inv_sum_table1.version_id=inv_dates_and_delivery_sum.version_id AND 
-        inv_sum_table2.version_id=inv_dates_and_delivery_sum.version_id;
+        inv_dates_and_delivery_qty, inv_sum_table1, inv_sum_table2 WHERE 
+        inv_sum_table1.version_id=inv_dates_and_delivery_qty.version_id AND 
+        inv_sum_table2.version_id=inv_dates_and_delivery_qty.version_id;
       `, restaurant_id, tz_str)
 		if err != nil {
 			log.Println(err.Error())
@@ -184,55 +226,111 @@ func marginsAPIHandler(w http.ResponseWriter, r *http.Request) {
 			if err := rows.Scan(
 				&margin.VersionID,
 				&margin.Product,
+				&margin.Brewery,
 				&margin.InvTimes,
+				&margin.PurchaseVolume,
+				&margin.PurchaseUnit,
+				&margin.PurchaseCount,
+				&margin.PurchaseCost,
 				&margin.InvUpdate1,
 				&margin.InvUpdate2,
-				&margin.InvSum1,
-				&margin.InvSum2,
-				&margin.DeliveriesSum); err != nil {
+				&margin.InvQuantity1,
+				&margin.InvQuantity2,
+				&margin.DeliveriesCount); err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
 			}
-			log.Println(margin)
+			//log.Println(margin)
+
+			// we must have the PurchaseVolume and PurchaseUnit, otherwise we
+			// can't calculate by volumes
+			if !margin.PurchaseVolume.Valid || !margin.PurchaseUnit.Valid {
+				continue
+			}
 
 			// Now, use the version_id and the clover_join table to query clover
 			// for total sales in the period
-			total_sales, err := getTotalSalesInPeriodClover(margin.VersionID, margin.InvUpdate1, margin.InvUpdate2, restaurant_id)
-
-			// Note that valid total sales are REQUIRED to calculate margins
-			// if total sales are errored, empty or invalid, we don't have any
-			// margin to calculate, so don't append this entry
-			if err != nil || !total_sales.Valid || total_sales.Float64 == 0 {
-				margin.TotalSales.Valid = false
-			} else {
-				margin.TotalSales.Float64 = total_sales.Float64
-				margin.TotalSales.Valid = true
-
-				// Now that we have everything we need, we calculate the margin
-				// by first calculating waste:
-				//
-				//     inventory_old + deliveries - sales - waste = inventory_new
-				//     cost_of_goods = inventory_old - inventory_new + deliveries
-				//     waste = sales - cost_of_goods
-				//     profit = sales - waste
-				//     waste = inventory_old - inventory_new + deliveries - sales
-				//     utilization = 1 - (waste / (inv_old - inv_new + deliveries))
-				//     theoretical margin = (revenue_per_vol - cost_per_vol) / revenue_per_vol
-				//     actual margin = sales - waste -
-
-				inventory_old := margin.InvSum1.Float64
-				inventory_new := margin.InvSum2.Float64
-				deliveries := margin.DeliveriesSum.Float64
-				sales := margin.TotalSales.Float64
-				margin.Waste = inventory_old - inventory_new + deliveries - sales
-
-				// calculate theoretical margin:
-				// (price_per_volume - cost_per_volume) / price_per_volume
-				// if there are multiple sell points, take the average
-
-				margins = append(margins, margin)
+			clover_sales, err := getTotalUnitsSoldInPeriodClover(margin.VersionID, margin.InvUpdate1, margin.InvUpdate2, restaurant_id)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
 			}
+
+			// get volume units map so we can convert volumes to L for calculation
+			vumap := getVolumeUnitsMap()
+			purch_vol_in_liters := getVolumeInLiters(margin.PurchaseVolume, margin.PurchaseUnit, vumap)
+			margin.VolumeInvL1 = margin.InvQuantity1.Float64 * purch_vol_in_liters.Float64
+			margin.VolumeInvL2 = margin.InvQuantity2.Float64 * purch_vol_in_liters.Float64
+			margin.VolumeDeliveredL = margin.DeliveriesCount.Float64 * purch_vol_in_liters.Float64 * float64(margin.PurchaseCount)
+
+			for _, csale := range clover_sales {
+				log.Println(csale)
+				serving_vol := csale.ServingVolume
+				serving_unit := csale.ServingUnit
+				sale_count := csale.Count.Int64
+
+				var _serving_vol NullFloat64
+				_serving_vol.Float64 = serving_vol
+				_serving_vol.Valid = true
+				var _serving_unit NullString
+				_serving_unit.String = serving_unit
+				_serving_unit.Valid = true
+				vol_in_liters := getVolumeInLiters(_serving_vol, _serving_unit, vumap)
+				vol_sold := float64(sale_count) * vol_in_liters.Float64
+
+				margin.VolumeSoldL += vol_sold
+			}
+
+			// if there was no volume sold, there's nothing to calculate!
+			if margin.VolumeSoldL == 0 {
+				continue
+			}
+
+			//     waste = inventory_old - inventory_new + deliveries - sales
+			// utilization = sales / (sales + waste)
+			margin.VolumeWasteL = margin.VolumeInvL1 - margin.VolumeInvL2 + margin.VolumeDeliveredL - margin.VolumeSoldL
+
+			margins = append(margins, margin)
+
+			/*
+				total_sales, err := getTotalSalesInPeriodClover(margin.VersionID, margin.InvUpdate1, margin.InvUpdate2, restaurant_id)
+
+				// Note that valid total sales are REQUIRED to calculate margins
+				// if total sales are errored, empty or invalid, we don't have any
+				// margin to calculate, so don't append this entry
+				if err != nil || !total_sales.Valid || total_sales.Float64 == 0 {
+					margin.TotalSales.Valid = false
+				} else {
+					margin.TotalSales.Float64 = total_sales.Float64
+					margin.TotalSales.Valid = true
+
+					// Now that we have everything we need, we calculate the margin
+					// by first calculating waste:
+					//
+					//     inventory_old + deliveries - sales - waste = inventory_new
+					//     cost_of_goods = inventory_old - inventory_new + deliveries
+					//     waste = sales - cost_of_goods
+					//     profit = sales - waste
+					//     waste = inventory_old - inventory_new + deliveries - sales
+					//     utilization = 1 - (waste / (inv_old - inv_new + deliveries))
+					//     theoretical margin = (revenue_per_vol - cost_per_vol) / revenue_per_vol
+					//     actual margin = sales - waste -
+
+					inventory_old := margin.InvSum1.Float64
+					inventory_new := margin.InvSum2.Float64
+					deliveries := margin.DeliveriesSum.Float64
+					sales := margin.TotalSales.Float64
+					margin.Waste = inventory_old - inventory_new + deliveries - sales
+
+					// calculate theoretical margin:
+					// (price_per_volume - cost_per_volume) / price_per_volume
+					// if there are multiple sell points, take the average
+
+					margins = append(margins, margin)
+				}
+			*/
 		}
 
 		w.Header().Set("Content-Type", "application/json")

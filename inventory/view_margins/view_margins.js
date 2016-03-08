@@ -60,6 +60,11 @@ angular.module('myApp.viewMargins', ['ngRoute', 'ui.bootstrap'])
 
       $scope.margins_data = data;
 
+      for (var i in $scope.margins_data) {
+        var margin = $scope.margins_data[i];
+        margin['utilization'] = margin['vol_sold_L'] / (margin['vol_sold_L'] + margin['vol_waste_L']) * 100.0;
+      }
+
     }).
     error(function(data, status, headers, config) {
       $scope.showSpinner = false;
