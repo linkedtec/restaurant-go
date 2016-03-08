@@ -220,6 +220,9 @@ func marginsAPIHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		connectToCloverDB()
+
 		defer rows.Close()
 		for rows.Next() {
 			var margin Margin
@@ -248,8 +251,6 @@ func marginsAPIHandler(w http.ResponseWriter, r *http.Request) {
 			if !margin.PurchaseVolume.Valid || !margin.PurchaseUnit.Valid {
 				continue
 			}
-
-			connectToCloverDB()
 
 			// Now, use the version_id and the clover_join table to query clover
 			// for total sales in the period
