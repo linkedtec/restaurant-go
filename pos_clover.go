@@ -6,6 +6,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -17,6 +18,7 @@ type CloverSale struct {
 	Price  NullFloat64 `json:"price"`
 	ItemID string      `json:"item_id"`
 	// app-side vars
+	VersionID     int        `json:"version_id"`
 	ID            NullInt64  `json:"id"`
 	Product       NullString `json:"product"`
 	Brewery       NullString `json:"brewery"`
@@ -42,6 +44,150 @@ var clover_db *sql.DB
 func setupPOSCloverHandlers() {
 	http.HandleFunc("/pos/clover", posCloverAPIHandler)
 	http.HandleFunc("/pos/clover/match", posCloverMatchAPIHandler)
+}
+
+func batchGetUnitsSoldInPeriodClover(margins []Margin, restaurant_id string, clover_db *sql.DB) ([]CloverSale, error) {
+
+	var csales []CloverSale
+
+	// First get the matching clover item id, sale volume to margins' version_ids
+	// from our own DB
+	// Need to build a string with (VALUES($version_id1), ($version_id2))
+	// from the margins slice
+	// XXX think through: there can be multiple beverage_ids in clover_join in
+	// a time period due to history, how do we handle that?
+	version_ids_str := "(VALUES"
+	for i, margin := range margins {
+		if i > 0 {
+			version_ids_str += ","
+		}
+		version_ids_str += "(" + strconv.Itoa(margin.VersionID) + ")"
+	}
+	version_ids_str += ")"
+
+	log.Println(version_ids_str)
+
+	rows, err := db.Query(`
+		SELECT clover_join.version_id, clover_join.pos_item_id, 
+			size_prices.serving_size, size_prices.serving_unit 
+		FROM clover_join, size_prices, `+version_ids_str+` 
+			AS t (version_id) 
+		WHERE clover_join.restaurant_id=$1 AND clover_join.version_id=t.version_id 
+		AND clover_join.size_prices_id=size_prices.id 
+		GROUP BY clover_join.version_id, clover_join.pos_item_id, size_prices.serving_size, size_prices.serving_unit 
+		ORDER BY clover_join.version_id DESC;`,
+		restaurant_id)
+	if err != nil {
+		log.Println(err.Error())
+		return csales, err
+	}
+
+	// Now that we have the item_id, match the item_id to the margin, and use
+	// the item_id, version_id, inv_update1, inv_update2 to find the clover sales
+	// within the period
+
+	// store by version_id into a map so matching to margins is O(n) instead of
+	// O(n^2).  Note that a version_id can have multiple csale entries due
+	// to multipe size prices
+	csale_map_version_id := make(map[int][]CloverSale)
+	csale_map_item_id := make(map[string]CloverSale)
+
+	defer rows.Close()
+	for rows.Next() {
+
+		var csale CloverSale
+
+		if err := rows.Scan(
+			&csale.VersionID,
+			&csale.ItemID,
+			&csale.ServingVolume,
+			&csale.ServingUnit); err != nil {
+			log.Println(err.Error())
+			continue
+		}
+		csale_map_version_id[csale.VersionID] = append(csale_map_version_id[csale.VersionID], csale)
+		csale_map_item_id[csale.ItemID] = csale
+	}
+
+	log.Println("PRINTING csale_map:")
+	log.Println(csale_map_version_id)
+
+	// we're going to shove all the ItemIDs and inv update dates into 1
+	// temporary table to feed the clover DB, so as we don't incur costs of
+	// individual connections per item.  So we need to construct the string
+	// which looks like this:
+	//
+	// SELECT 'ABCDEFG' AS item, '2016-03-08 22:34:53' AS date1, '2016-03-10 22:34:53' AS date2
+	// UNION ALL
+	// SELECT 'HIJKLMNOP' AS item, '2016-03-01 22:34:53' AS date1, '2016-03-15 22:34:53' AS date2
+
+	tmp_items_dates_table := "("
+	for i, margin := range margins {
+
+		csales := csale_map_version_id[margin.VersionID]
+
+		for j, csale := range csales {
+
+			if i > 0 || j > 0 {
+				tmp_items_dates_table += " UNION ALL "
+			}
+
+			const format_layout = "2006-01-02 15:04:05"
+			start_date_str := margin.InvUpdate1.Format(format_layout)
+			end_date_str := margin.InvUpdate2.Format(format_layout)
+
+			// XXX need to format InvUpdate1
+			tmp_items_dates_table += "SELECT '" + csale.ItemID + "' AS item, '"
+			tmp_items_dates_table += start_date_str + "' AS date1, '"
+			tmp_items_dates_table += end_date_str + "' AS date2"
+		}
+	}
+	tmp_items_dates_table += ")"
+
+	//log.Println("PRINTING TMP UNION TABLE: ")
+	//log.Println(tmp_items_dates_table)
+
+	sale_rows, err := clover_db.Query(`
+    SELECT order_items.item, COUNT(order_items.price), SUM(COALESCE(order_items.price, 0))/100.0 AS total 
+	   	FROM order_items 
+	   	INNER JOIN itemcat ON order_items.name=itemcat.name 
+	   	INNER JOIN orders ON orders.id=order_items.orderRef 
+	   	INNER JOIN ` + tmp_items_dates_table + ` AS items_dates ON order_items.item=items_dates.item 
+	   WHERE itemcat.current=1 AND food_bev_cat='beverage' AND state='locked' 
+	   AND order_items.createdTime >= items_dates.date1 AND order_items.createdTime <= items_dates.date2 
+	   GROUP BY items_dates.item;`)
+	if err != nil {
+		log.Println(err.Error)
+		return csales, err
+	}
+
+	defer sale_rows.Close()
+	for sale_rows.Next() {
+		var csale CloverSale
+
+		if err := sale_rows.Scan(
+			&csale.ItemID,
+			&csale.Count,
+			&csale.Total); err != nil {
+			log.Println(err.Error())
+			continue
+		}
+		csales = append(csales, csale)
+	}
+
+	// csales currently has
+	//     item_id, count, and total sales data
+	// Need to combine it with csale_map data, which has
+	//     version_id, item_id, serving_volume, serving_unit
+	// matching based on ItemID
+	for i, csale := range csales {
+		_csale := csale_map_item_id[csale.ItemID]
+		csales[i].VersionID = _csale.VersionID
+		csales[i].ServingVolume = _csale.ServingVolume
+		csales[i].ServingUnit = _csale.ServingUnit
+	}
+
+	return csales, nil
 }
 
 func getTotalUnitsSoldInPeriodClover(version_id int,

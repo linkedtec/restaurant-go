@@ -945,14 +945,12 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 	switch history_type {
 	case "all_itemized":
 		var itemsByDate []InvDateItemHistory
-		//var dateInvMap map[string][]BeverageInv
 		err := decoder.Decode(&itemsByDate)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		//log.Println(dateInvMap)
 		//log.Println(sorted_keys)
 
 		for _, key := range sorted_keys {

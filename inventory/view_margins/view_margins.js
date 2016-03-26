@@ -63,6 +63,8 @@ angular.module('myApp.viewMargins', ['ngRoute', 'ui.bootstrap'])
       for (var i in $scope.margins_data) {
         var margin = $scope.margins_data[i];
         margin['utilization'] = margin['vol_sold_L'] / (margin['vol_sold_L'] + margin['vol_waste_L']) * 100.0;
+        margin['inv_update1_pretty'] = DateService.getPrettyDate(margin['inv_update1'], true, true);
+        margin['inv_update2_pretty'] = DateService.getPrettyDate(margin['inv_update2'], true, true);
       }
 
     }).

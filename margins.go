@@ -244,7 +244,7 @@ func marginsAPIHandler(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				continue
 			}
-			//log.Println(margin)
+			log.Println(margin)
 
 			// we must have the PurchaseVolume and PurchaseUnit, otherwise we
 			// can't calculate by volumes
@@ -252,26 +252,36 @@ func marginsAPIHandler(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
-			// Now, use the version_id and the clover_join table to query clover
-			// for total sales in the period
-			clover_sales, err := getTotalUnitsSoldInPeriodClover(margin.VersionID, margin.InvUpdate1, margin.InvUpdate2, restaurant_id, clover_db)
-			if err != nil {
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
+			margins = append(margins, margin)
+		}
 
-			// get volume units map so we can convert volumes to L for calculation
-			vumap := getVolumeUnitsMap()
+		clover_sales, err := batchGetUnitsSoldInPeriodClover(margins, restaurant_id, clover_db)
+
+		log.Println(clover_sales)
+
+		csale_map_version_id := make(map[int][]CloverSale)
+		for _, csale := range clover_sales {
+			csale_map_version_id[csale.VersionID] = append(csale_map_version_id[csale.VersionID], csale)
+		}
+
+		vumap := getVolumeUnitsMap()
+
+		for i, margin := range margins {
 			purch_vol_in_liters := getVolumeInLiters(margin.PurchaseVolume, margin.PurchaseUnit, vumap)
-			margin.VolumeInvL1 = margin.InvQuantity1.Float64 * purch_vol_in_liters.Float64
-			margin.VolumeInvL2 = margin.InvQuantity2.Float64 * purch_vol_in_liters.Float64
-			margin.VolumeDeliveredL = margin.DeliveriesCount.Float64 * purch_vol_in_liters.Float64 * float64(margin.PurchaseCount)
+			margins[i].VolumeInvL1 = margin.InvQuantity1.Float64 * purch_vol_in_liters.Float64
+			margins[i].VolumeInvL2 = margin.InvQuantity2.Float64 * purch_vol_in_liters.Float64
+			margins[i].VolumeDeliveredL = margin.DeliveriesCount.Float64 * purch_vol_in_liters.Float64 * float64(margin.PurchaseCount)
 
-			for _, csale := range clover_sales {
+			margin_csales := csale_map_version_id[margin.VersionID]
+
+			for _, csale := range margin_csales {
 				log.Println(csale)
 				serving_vol := csale.ServingVolume
 				serving_unit := csale.ServingUnit
+				if serving_unit == "Unit" || serving_unit == "unit" {
+					serving_vol = margin.PurchaseVolume.Float64
+					serving_unit = margin.PurchaseUnit.String
+				}
 				sale_count := csale.Count.Int64
 
 				var _serving_vol NullFloat64
@@ -283,57 +293,19 @@ func marginsAPIHandler(w http.ResponseWriter, r *http.Request) {
 				vol_in_liters := getVolumeInLiters(_serving_vol, _serving_unit, vumap)
 				vol_sold := float64(sale_count) * vol_in_liters.Float64
 
-				margin.VolumeSoldL += vol_sold
+				margins[i].VolumeSoldL += vol_sold
 			}
 
 			// if there was no volume sold, there's nothing to calculate!
-			if margin.VolumeSoldL == 0 {
+			if margins[i].VolumeSoldL == 0 {
+				log.Println("no volume")
 				continue
 			}
 
 			//     waste = inventory_old - inventory_new + deliveries - sales
 			// utilization = sales / (sales + waste)
-			margin.VolumeWasteL = margin.VolumeInvL1 - margin.VolumeInvL2 + margin.VolumeDeliveredL - margin.VolumeSoldL
+			margins[i].VolumeWasteL = margins[i].VolumeInvL1 - margins[i].VolumeInvL2 + margin.VolumeDeliveredL - margins[i].VolumeSoldL
 
-			margins = append(margins, margin)
-
-			/*
-				total_sales, err := getTotalSalesInPeriodClover(margin.VersionID, margin.InvUpdate1, margin.InvUpdate2, restaurant_id)
-
-				// Note that valid total sales are REQUIRED to calculate margins
-				// if total sales are errored, empty or invalid, we don't have any
-				// margin to calculate, so don't append this entry
-				if err != nil || !total_sales.Valid || total_sales.Float64 == 0 {
-					margin.TotalSales.Valid = false
-				} else {
-					margin.TotalSales.Float64 = total_sales.Float64
-					margin.TotalSales.Valid = true
-
-					// Now that we have everything we need, we calculate the margin
-					// by first calculating waste:
-					//
-					//     inventory_old + deliveries - sales - waste = inventory_new
-					//     cost_of_goods = inventory_old - inventory_new + deliveries
-					//     waste = sales - cost_of_goods
-					//     profit = sales - waste
-					//     waste = inventory_old - inventory_new + deliveries - sales
-					//     utilization = 1 - (waste / (inv_old - inv_new + deliveries))
-					//     theoretical margin = (revenue_per_vol - cost_per_vol) / revenue_per_vol
-					//     actual margin = sales - waste -
-
-					inventory_old := margin.InvSum1.Float64
-					inventory_new := margin.InvSum2.Float64
-					deliveries := margin.DeliveriesSum.Float64
-					sales := margin.TotalSales.Float64
-					margin.Waste = inventory_old - inventory_new + deliveries - sales
-
-					// calculate theoretical margin:
-					// (price_per_volume - cost_per_volume) / price_per_volume
-					// if there are multiple sell points, take the average
-
-					margins = append(margins, margin)
-				}
-			*/
 		}
 
 		w.Header().Set("Content-Type", "application/json")

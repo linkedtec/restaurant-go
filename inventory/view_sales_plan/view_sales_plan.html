@@ -229,7 +229,7 @@
             <span ng-if="inv.count_recent!==null" style="color:{{inv.stock_color}}">{{inv.count_recent | number:1}}</span>
             <span ng-if="inv.count_recent===null" class="glyphicon glyphicon-alert" style="font-size:16px; color:#dadada;" uib-popover="No Inventory records in the past 3 days!" popover-trigger="mouseenter" popover-append-to-body="true"></span>
           </div>
-          <div style="font-size:0.8em; color:#c5c5c5; font-style:italic; margin-top:-2px">
+          <div class="tiny_date" style="margin-top:-2px">
             <span ng-if="inv.last_inv_update_pretty!==null" uib-popover="The last time inventory was recorded for this item." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">{{inv.last_inv_update_pretty}}</span>
             <span ng-if="inv.last_inv_update_pretty===null" uib-popover="This item has never ever been recorded in inventory." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">No records</span>
           </div>
