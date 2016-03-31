@@ -510,6 +510,17 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						continue
 					}
+
+					// if bev is now non-alcoholic, sets its abv to 0
+					if bev_update.Bev.AlcoholType == "Non Alcoholic" {
+						_, err = db.Exec("UPDATE beverages SET abv=NULL WHERE id=$1", new_bev_id)
+						if err != nil {
+							log.Println(err.Error())
+							http.Error(w, err.Error(), http.StatusInternalServerError)
+							continue
+						}
+					}
+
 				} else if key == "abv" {
 					_, err = db.Exec("UPDATE beverages SET abv=$1 WHERE id=$2", bev_update.Bev.ABV, new_bev_id)
 					if err != nil {

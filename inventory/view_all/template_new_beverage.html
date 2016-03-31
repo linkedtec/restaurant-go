@@ -5,9 +5,12 @@
 <div ng-class="{'new_inv_border_box': is_edit===false, 'new_inv_box': is_edit===true}">
 
   <div ng-if="is_edit===true">
-    <div style="color:#666666; padding-top:0px">
-      <span style="font-size:1.3em; font-weight:bold">{{new_beverage.product}}</span>
-      <span style="font-size:1.3em; color:#aaaaaa; margin-left:12px"> {{new_beverage.alcohol_type}}</span>
+    <div style="color:#666666; padding-bottom:4px">
+      <span style="font-size:1.3em; font-weight:bold; vertical-align: bottom">{{new_beverage.product}}</span>
+      <!--span style="font-size:1.3em; color:#aaaaaa; margin-left:12px"> {{new_beverage.alcohol_type}}</span-->
+      <span class="form-group" style="margin-bottom:0px;">
+        <select ng-model="new_beverage.alcohol_type" class="form-control input_small" ng-options="atype for atype in editable_alc_types" style="width:160px; display: inline-block; margin-left: 12px; vertical-align: top;"></select>
+      </span>
     </div>
     <hr class="add_hr"/>
   </div>

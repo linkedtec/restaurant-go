@@ -138,6 +138,16 @@ angular.module('myApp')
 
         scope.new_beverage = JSON.parse( JSON.stringify( scope.editBeverage ) );
 
+        // if we're editing, we do allow changing the type of beverage, but 
+        // there are restrictions to Beer and Cider, since they're keg-only, 
+        // vs. Wine, Liquoe and Non Alcoholic, which come in containers
+        scope.editable_alc_types = [];
+        if (scope.new_beverage.alcohol_type==="Beer" || scope.new_beverage.alcohol_type==="Cider") {
+          scope.editable_alc_types = ["Beer", "Cider"];
+        } else {
+          scope.editable_alc_types = ["Wine", "Liquor", "Non Alcoholic"];
+        }
+
         // Need to convert new_beverage.serve_type, which is an int, to a string
         // Note we only do this for new_beverage, and not editBeverage.
         // When we save changes, we will convert back to int before comparing the two.

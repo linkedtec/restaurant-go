@@ -63,7 +63,7 @@
       <div style="display:inline-block;">
         <div style="display:inline-block; white-space:nowrap" class="btn-group">
           <label class="btn btn-default btn-xs btn_filter col_comp" ng-model="col_comps.product" uib-btn-checkbox ng-mouseover="highlightCols('product')" ng-mouseleave="unhighlightCols()">Product</label>
-          <label class="btn btn-default btn-xs btn_filter col_comp" ng-model="col_comps.alc_type" uib-btn-checkbox ng-mouseover="highlightCols('alc_type')" ng-mouseleave="unhighlightCols()">Alc. Type</label>
+          <label class="btn btn-default btn-xs btn_filter col_comp" ng-model="col_comps.alc_type" uib-btn-checkbox ng-mouseover="highlightCols('alc_type')" ng-mouseleave="unhighlightCols()">Bev. Type</label>
           <label class="btn btn-default btn-xs btn_filter col_comp" ng-model="col_comps.container" uib-btn-checkbox ng-mouseover="highlightCols('container')" ng-mouseleave="unhighlightCols()">Container</label>
           <label class="btn btn-default btn-xs btn_filter col_comp" ng-model="col_comps.serve" uib-btn-checkbox ng-mouseover="highlightCols('serve')" ng-mouseleave="unhighlightCols()">Serve</label>
           <label class="btn btn-default btn-xs btn_filter col_comp" ng-model="col_comps.distributor" uib-btn-checkbox ng-mouseover="highlightCols('distributor')" ng-mouseleave="unhighlightCols()">Distributor</label>
@@ -105,8 +105,8 @@
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:95px;" ng-show="col_comps.alc_type===true" ng-class="{'col_highlight':highlight_cols==='alc_type'}">
-        <div class="sort_div" ng-click="sortBy('alcohol_type')" uib-popover="Alcohol Type" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
-          <span>Alc. Type</span>
+        <div class="sort_div" ng-click="sortBy('alcohol_type')" uib-popover="Beverage Type" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
+          <span>Bev. Type</span>
           <span ng-show="sort_key === 'alcohol_type'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>

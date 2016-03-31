@@ -162,7 +162,7 @@ func main() {
 	if isProduction == "1" {
 		db_cmd = fmt.Sprintf("host=%s sslmode=disable user=restaurant_app dbname=restaurant", os.Getenv("POSTGRES_PORT_5432_TCP_ADDR"))
 	} else {
-		db_cmd = "host=localhost sslmode=disable user=dhchang dbname=dhchang"
+		db_cmd = "host=localhost sslmode=disable user=dhchang dbname=restaurant"
 	}
 
 	db, err = sql.Open("postgres", db_cmd)
