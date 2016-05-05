@@ -463,7 +463,7 @@
         <div class="col-xs-4" style="text-align:right"></div>
       </div>
       <div class="row" style="margin:0; margin-top:4px; padding-left:16px">
-        <div ng-if="dorder.show_add_ui===true" class="add_ui_box_green" style="height:480px; margin-bottom:12px">
+        <div ng-if="dorder.show_add_ui===true" class="add_ui_box_green" style="min-height:480px; margin-bottom:12px;" ng-style="dorder.addUIStyle">
           <div class="add_title_bar_green">
             <button ng-click="hideAddInv(dorder)" type="button" class="btn btn-default btn_x" style="float:left">
               <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
@@ -473,8 +473,17 @@
             </div>
             <br/>
           </div>
-          <div style="display:block; position:relative; bottom:0; top:12px; left: 0; right:0; margin:0px; padding:4px 8px; padding-bottom:12px; height:420px">
-            <addable-inv all-bevs="dorder.addable_items" all-kegs="[]" added-items="dorder.items" show-tabs="false" show-purchase="true" use-override-add-func="true" override-add-func="addItem(dorder, item)" control="dorder.addableControl" distributor-filter="dorder.distributor" sale-status-filter="true"></addable-inv>
+          <uib-tabset style="margin:12px 12px 0px; font-size:1.0em;">
+            <uib-tab ng-repeat="mode in add_modes" heading="{{mode}}" ng-click="selectAddMode(dorder, mode)">
+            </uib-tab>
+          </uib-tabset>
+          <div style="display:block; position:relative; bottom:0; top:0px; left: 0; right:0; margin:0px 12px 12px; padding:20px 8px 4px; padding-bottom:12px; min-height:420px; background-color:#ffffff; border:1px solid #dddddd; border-top:none">
+            <div ng-if="dorder.add_mode===0" style="padding-top:12px">
+              <addable-inv all-bevs="dorder.addable_items" all-kegs="[]" added-items="dorder.items" show-tabs="false" show-purchase="true" use-override-add-func="true" override-add-func="addItem(dorder, item)" control="dorder.addableControl" distributor-filter="dorder.distributor" sale-status-filter="true"></addable-inv>
+            </div>
+            <div ng-if="dorder.add_mode===1">
+              <new-beverage all-distributors="all_distributors" all-breweries="all_breweries" volume-units="volume_units" prepopulate-vars="{'distributor':dorder.distributor}" control="newBevControl" edit-mode="'all'" close-on-save="newBeverageCloseOnSave(new_beverage)"></new-beverage>
+            </div>
           </div>
         </div>
       </div>
@@ -485,7 +494,7 @@
           </span>
         </div>
         <div class="col-xs-2 add_inv_sort_div_lt min_padding noselect" ng-click="sortDistOrderBevs(dorder, 'batch_cost')">
-          Purchase Cost
+          Purch. Cost / Deposit
           <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="dorder.sort_key === 'batch_cost'" ng-class="{'glyphicon-menu-down': dorder.double_sort<0, 'glyphicon-menu-up':dorder.double_sort>0}" style="color:#cccccc;">
           </span>
         </div>
@@ -520,18 +529,21 @@
           <div style="display:inline-block; float:left; margin-left:6px">
             <div>
               {{item.product}}
-              <span ng-if="item.purchase_count>1" style="color:#777777"> (<b>{{item.purchase_count}} count</b>)</span>
+              <span ng-if="item.purchase_count>1" style="color:#777777"> (<b>{{item.purchase_count}} cnt</b>)</span>
             </div>
             <div style="font-size:0.9em; color:#999999">{{item.brewery}}</div>
           </div>
         </div>
         <div class="col-xs-2 min_padding">
-          <div>
-            <span ng-if="item.purchase_cost!==null" style="color:#999999">$ </span>{{item.purchase_cost | number:2}}
-            <span ng-if="item.purchase_count>1" style="color:#999999; font-size:0.9em"> (Case)</span>
+          <div style="width:100%; float:left">
+            <div style="display:inline-block; float:left">
+              <span ng-if="item.purchase_cost!==null" style="color:#ccc; font-size:0.8em">$ </span>{{item.purchase_cost | number:2}}
+              <span ng-if="item.purchase_count>1" style="color:#999999; font-size:0.9em"> <img src="images/inv_box_brown.png" height="18" style="margin-top:-6px; margin-left:4px" uib-popover="Cost applies to 1 Case" popover-trigger="mouseenter" popover-append-to-body="true" /></span>
+            </div>
+            <div ng-if="item.deposit!==null" style="font-size:0.9em; color:#999999; display:inline-block; float:right; margin-right:12px; color:#999"><span style="font-size:0.8em; color:#ccc">$</span> {{item.deposit | number:2}}
+            </div>
           </div>
-          <div ng-if="item.deposit!==null" style="font-size:0.9em; color:#999999">$ {{item.deposit | number:2}} dpst.</div>
-          <div style="font-size:0.9em; color:#999999">
+          <div style="font-size:0.8em; color:#999999; float:left">
             <span ng-if="item.purchase_unit!==null">
               {{item.purchase_volume | number:1}} {{item.purchase_unit}}
             </span>
@@ -548,8 +560,8 @@
               / {{item.par_case | number:1}}
             </span>
             <span ng-if="item.par_case===null" style="font-size: 1.0em; color:#999999"> / None</span>
-            <span ng-if="item.purchase_count > 1" style="background-color:#B44DD6; border-radius:2px; font-size:0.8em; color:white; text-align:center; padding:2px; margin-left:4px; margin-top:-2px" uib-popover="This item is purchased by cases of {{item.purchase_count}} units." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="300">
-              Case ({{item.purchase_count | number:0}})
+            <img ng-if="item.purchase_count > 1" src="images/inv_box_brown.png" height="18" style="margin-top:-6px; margin-left:0px" uib-popover="Par is counted in Cases of {{item.purchase_count}}." popover-trigger="mouseenter" popover-append-to-body="true" /> 
+            <span ng-if="item.purchase_count > 1" style="color:#B18448; margin-left:2px"> ({{item.purchase_count * item.par_case | number:0}}) </span>
             </span>
           </div>
           <div style="color:#bbbbbb; font-style:italic; font-size:0.8em">

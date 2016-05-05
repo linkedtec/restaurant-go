@@ -42,9 +42,6 @@ angular.module('myApp')
       scope.filtered_kegs = JSON.parse(JSON.stringify(scope.allKegs));
 
       scope.hideInactive = {value: false};
-      if (scope.saleStatusFilter===true) {
-        scope.hideInactive.value = true;
-      }
 
       // provides a way of exposing certain functions to outside controllers
       scope.internalControl = scope.control || {};

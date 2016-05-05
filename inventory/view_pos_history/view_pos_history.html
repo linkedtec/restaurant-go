@@ -49,7 +49,7 @@
         <td></td>
       </tr>
       <!--tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#F6FFEC; border-bottom:1px solid #d0d0d0"-->
-      <tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#fefefe; border-bottom:1px solid #d0d0d0; border-color:#eaeaea;" height="26px">
+      <tr ng-repeat="dorder in po.distributor_orders" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="background-color:#fefefe; border-bottom:1px solid #d0d0d0; border-color:#eaeaea;" height="52px">
         <td></td>
         <td>
           <div style="font-size:0.9em; display:inline-block; color:#927D2E; background-color:#FFFAE6; border:1px solid #DCC25E; padding:3px 2px; border-radius:4px; width:120px; text-align:center" ng-if="dorder.delivered!==true" uib-popover="The Purchase Order has been sent to the Distributor, but you have not yet confirmed receipt of the Delivery.  When you receive the Delivery and Invoice from {{dorder.distributor}}, press the 'Record Delivery' button." popover-trigger="mouseenter" popover-popup-delay="300">
@@ -65,8 +65,12 @@
         <td>{{dorder.item_count}}</td>
         <td>{{dorder.total | number:2}}</td>
         <td style="padding-top:5px; padding-bottom:5px">
+          <button type="button" class="btn btn_frameless hover_red" ng-click="promptDeleteDistOrder(po, dorder)" style="float:right; margin-left:6px" uib-popover="Delete this Distributor Order" popover-trigger="mouseenter" popover-popup-delay="300">
+            <span class="glyphicon glyphicon-trash"></span>
+          </button>
           <button ng-if="dorder.delivered!==true" ng-click="recordDelivery(po, dorder, false)" type="button" class="btn btn-primary btn-sm" style="float:right; padding:4px 8px; font-size:13px"><span class="glyphicon glyphicon-pencil"></span> Record Delivery</button>
           <button ng-if="dorder.delivered===true" ng-click="recordDelivery(po, dorder, true)" type="button" class="btn btn-default btn-sm" style="float:right; padding:4px 8px; font-size:13px"> View / Edit Delivery</button>
+
         </td>
       </tr>
       <tr><td colspan="8"></td></tr>

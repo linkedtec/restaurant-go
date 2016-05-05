@@ -1140,7 +1140,7 @@ like enclosed space */
 }
 
 .record-dlv-modal .modal-dialog {
-  min-width:920px;
+  min-width:1024px;
 }
 
 .edit-inv-modal .modal-dialog {

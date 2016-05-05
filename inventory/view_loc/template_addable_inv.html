@@ -4,13 +4,22 @@
   </uib-tab>
 </uib-tabset>
 <div ng-class="{'new_inv_border_box': showTabs===true, 'addable_tab_margin': showTabs===true}" style="display:block; position:absolute; height:auto; top:0; bottom:0; left: 0; right:0; margin-top:0px; margin-bottom:0px; margin-right:0px; margin-left:0px !important; padding:4px 12px; padding-bottom:12px">
-  <div class="row" style="margin-top:-6px" ng-if="distributorFilter!==null&&distributorFilter!==undefined">
+  <div class="row" style="min-height:24px" ng-if="distributorFilter==null || distributorFilter==undefined">
+    &nbsp;
+  </div>
+  <div class="row" style="margin-top:4px; min-height:20px" ng-if="distributorFilter!==null&&distributorFilter!==undefined">
     <div class="col-xs-6" style="color:#449046">
       <span class="glyphicon glyphicon-info-sign" style="color:#449046; font-size:18px; vertical-align:middle; margin-top:-4px"></span> Showing <b>{{distributorFilter.name}}</b> beverages only.
     </div>
     <div ng-if="saleStatusFilter===true" class="col-xs-6" style="text-align:right">
       <my-checkbox value="hideInactive.value" is-toggle="true" callback="internalControl.applyTypeFilter()"></my-checkbox>
-      Hide Inactive Menu Items
+      <span ng-if="hideInactive.value===true" style="color:#1995E2; font-weight:bold">
+        Hide Inactive Menu Items
+      </span>
+      <span ng-if="hideInactive.value!==true">
+        Hide Inactive Menu Items
+      </span>
+      
     </div>
   </div>
   <div class="row" style="margin-bottom:6px; margin-top:6px">
@@ -72,7 +81,7 @@
       <!--Buttons for grid / lines goes here-->
     </div>
   </div>
-  <div class="row" style="margin: 0px 0px; font-size:0.9em; color:#999999; padding-bottom:0px">
+  <div class="row" style="margin: 0px 0px; font-size:0.9em; color:#999999; padding-bottom:0px;">
     <div class="col-xs-1" style="padding-left:28px">
     </div>
     <div class="add_inv_sort_div_lt" ng-class="{'col-xs-5':showPurchase!==true, 'col-xs-3':showPurchase===true}" ng-if="add_type===add_types[0]" ng-click="sortBevsBy('product')" style="padding-left:14px">
@@ -103,7 +112,7 @@
     </div>
   </div>
   <hr style="margin:0 0;"/>
-  <div style="display:block; position:absolute; height:auto; bottom:0; top:94px; left: 0; right:0; margin-top:0px; margin-bottom:12px; margin-right:6px; margin-left:12px; padding:0px 0px; padding-bottom:12px; background-color:#fbfff9; overflow-y:scroll; overflow-x:hidden;">
+  <div style="display:block; position:absolute; height:auto; bottom:0; top:104px; left: 0; right:0; margin-top:0px; margin-bottom:12px; margin-right:6px; margin-left:12px; padding:0px 0px; padding-bottom:12px; background-color:#fbfff9; overflow-y:scroll; overflow-x:hidden;">
     <div ng-if="add_type===add_types[0]">
       <div ng-repeat="bev in filtered_bevs | filter:filter_query.query" class="row" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'" style="padding:4px 0px; margin:0px 2px;">
         <div class="col-xs-1" style="padding-left:6px;">

@@ -1609,6 +1609,96 @@ func distributorOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Write(js)
 
+  case "DELETE":
+
+    if !hasBasicPrivilege(privilege) {
+      http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
+      return
+    }
+
+    //restaurant_id := r.URL.Query().Get("test_restaurant_id")
+    do_id := r.URL.Query().Get("do_id")
+    
+    // Tables potentially affected: 
+    //      distributor_order_items
+    //      distributor_orders
+    //      do_deliveries
+    //      do_item_deliveries
+    //      purchase_orders
+    //
+    // 1. First confirm do_id exists in distributor_orders
+    //
+    // 2. Delete any do_deliveries and do_item_deliveries which match do_id
+    //
+    // 3. Delete all distributor_order_items and distributor_orders which 
+    //    match do_id
+    //
+    // 4. If PO no longer has any distributor_orders, delete the purchase order
+
+    var exists bool
+    err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM distributor_orders WHERE id=$1);", do_id).Scan(&exists)
+    if err != nil {
+      log.Println(err.Error())
+      http.Error(w, err.Error(), http.StatusInternalServerError)
+      return
+    }
+    if !exists {
+      http.Error(w, "No distributor order with posted ID found...", http.StatusBadRequest)
+      return
+    }
+
+    var po_id int
+    err = db.QueryRow("SELECT purchase_order_id FROM distributor_orders WHERE id=$1;", do_id).Scan(&po_id)
+    if err != nil {
+      log.Println(err.Error())
+      http.Error(w, err.Error(), http.StatusInternalServerError)
+      return
+    }
+
+    // XXX Verify restaurant id matches user_id
+
+    _, err = db.Exec("DELETE FROM do_item_deliveries WHERE distributor_order_id=$1;", do_id)
+    if err != nil {
+      log.Println(err.Error())
+      http.Error(w, err.Error(), http.StatusInternalServerError)
+      return
+    }
+    _, err = db.Exec("DELETE FROM do_deliveries WHERE distributor_order_id=$1;", do_id)
+    if err != nil {
+      log.Println(err.Error())
+      http.Error(w, err.Error(), http.StatusInternalServerError)
+      return
+    }
+    _, err = db.Exec("DELETE FROM distributor_order_items WHERE distributor_order_id=$1;", do_id)
+    if err != nil {
+      log.Println(err.Error())
+      http.Error(w, err.Error(), http.StatusInternalServerError)
+      return
+    }
+    _, err = db.Exec("DELETE FROM distributor_orders WHERE id=$1;", do_id)
+    if err != nil {
+      log.Println(err.Error())
+      http.Error(w, err.Error(), http.StatusInternalServerError)
+      return
+    }
+
+    var num_dos_in_po int
+    err = db.QueryRow("SELECT COUNT(DISTINCT id) FROM distributor_orders WHERE purchase_order_id=$1;", po_id).Scan(&num_dos_in_po)
+    if err != nil {
+      log.Println(err.Error())
+      http.Error(w, err.Error(), http.StatusInternalServerError)
+      return
+    }
+    // if the parent PO has no more distributor orders, delete it as well
+    if num_dos_in_po == 0 {
+      _, err = db.Exec("DELETE FROM purchase_orders WHERE id=$1;", po_id)
+      if err != nil {
+        log.Println(err.Error())
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+      }
+    }
+
 	}
 }
 

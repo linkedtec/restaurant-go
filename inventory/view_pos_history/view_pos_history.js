@@ -307,6 +307,43 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
     });
   };
 
+  $scope.promptDeleteDistOrder = function(porder, dorder) {
+    swal({
+      title: "Delete this Distributor Order?",
+      text: "This will remove all records of this Distributor Order, and the budgetary change will be reflected in your Monthly Budget and Margins calculations.  Are you absolutely sure?",
+      type: "warning",
+      showCancelButton: true,
+      html: true,
+      confirmButtonColor: "#cc2200",
+      confirmButtonText: "Yes, delete it!",
+      closeOnConfirm: true },
+      function() {
+        $scope.deleteDistOrder(porder, dorder);
+    });
+  };
+
+  $scope.deleteDistOrder = function(porder, dorder) {
+    console.log("DELETE DIST ORDER");
+
+    var test_restaurant_id = 1;
+    $http.delete('/purchase/dorder', {
+        params: {
+          restaurant_id: test_restaurant_id,
+          do_id: dorder.id
+        }
+      }).
+      success(function(data, status, headers, config) {
+        console.log(data)
+        
+        // Re-query POs in date range
+        $scope.getPurchaseOrders();
+
+      }).
+      error(function(data, status, headers, config) {
+        console.log(data);
+      });
+  };
+
   $scope.recordDelivery = function(order, dorder, is_edit) {
     console.log(order);
 

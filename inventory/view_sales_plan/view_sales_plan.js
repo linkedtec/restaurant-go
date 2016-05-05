@@ -9,7 +9,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
   });
 }])
 
-.controller('ViewSalesPlanCtrl', function($scope, $modal, $http, ItemsService, DateService, BeveragesService, DistributorsService, MathService) {
+.controller('ViewSalesPlanCtrl', function($scope, $modal, $http, ItemsService, DateService, BeveragesService, DistributorsService, MathService, VolUnitsService) {
 
   $scope.showSpinner = false;
 
@@ -31,6 +31,11 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
   $scope.all_breweries = [];
   $scope.all_distributors = [];
   $scope.inventory_items = [];
+
+  $scope.newBevControl = {};
+
+  $scope.volume_units_full = [];
+  $scope.volume_units = [];
 
   $scope.show_add_ui = false;
 
@@ -146,7 +151,6 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       console.log(data);
     });
   };
-  $scope.getAllDistributors();
 
   $scope.selectAddMode = function(mode) {
     if (mode === $scope.add_modes[$scope.add_mode]) {
@@ -809,6 +813,29 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
     $scope.getActiveMenuCount();
 
   };
+
+  $scope.getVolUnits = function() {
+
+    var result = VolUnitsService.get();
+    result.then(
+      function(payload) {
+        var data = payload.data;
+        if (data !== null) {
+          $scope.volume_units_full = data;
+          $scope.volume_units = [];
+          for (var i=0; i < data.length; i++)
+          {
+            $scope.volume_units.push(data[i].abbr_name);
+          }
+          // need to first load vol units before getting all distributors
+          $scope.getAllDistributors();
+        }
+      },
+      function(errorPayload) {
+        ; // do nothing for now
+      });
+  };
+  $scope.getVolUnits();
 
   $scope.viewOnlineMenu = function() {
 

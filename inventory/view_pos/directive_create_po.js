@@ -1,6 +1,6 @@
 angular.module('myApp')
 
-.directive('createPurchaseOrder', function($modal, $http, ContactService, DateService, DistributorsService, ItemsService, MathService) {
+.directive('createPurchaseOrder', function($modal, $http, ContactService, DateService, DistributorsService, ItemsService, MathService, VolUnitsService) {
   return {
     restrict: 'AE',
     scope: {
@@ -20,8 +20,17 @@ angular.module('myApp')
       scope.all_distributors = [];
       scope.sel_distributors = [];
 
+      // for create new bev
+      scope.all_breweries = [];
+      scope.volume_units_full = [];
+      scope.volume_units = [];
+      scope.newBevControl = {};
+
       scope.order_date_types = ['Immediately', 'A Future Date'];
       scope.send_methods = ['Send via Email', 'Send via Text', "Save & Don't Send"];
+
+      scope.add_mode = 1;
+      scope.add_modes = ['Existing Beverages in DB', 'Create New Beverage']
 
       scope.order = {};
       scope.order['restaurant_name'] = null;
@@ -446,7 +455,9 @@ angular.module('myApp')
           additional_notes: null,
           save_default_email: null,
           save_default_phone: null,
-          double_sort: -1
+          double_sort: -1,
+          add_mode: 0,
+          addUIStyle: {width:'800px'}
         };
       }
 
@@ -777,8 +788,23 @@ angular.module('myApp')
         }
       };
 
+      scope.selectAddMode = function(dist_order, mode) {
+        if (mode === scope.add_modes[dist_order.add_mode]) {
+          return;
+        }
+
+        dist_order.add_mode = scope.add_modes.indexOf(mode);
+        if (dist_order.add_mode===0) {
+          dist_order.addUIStyle = {width:'800px'}
+        } else {
+          dist_order.addUIStyle = {width:'96%'};
+        }
+      };
+
       scope.showAddInv = function(dist_order) {
         dist_order.show_add_ui = true;
+
+        scope.selectAddMode(dist_order, scope.add_modes[0]);
       };
 
       scope.hideAddInv = function(dist_order) {
@@ -886,7 +912,28 @@ angular.module('myApp')
         
       };
 
+      scope.getVolUnits = function() {
+        var result = VolUnitsService.get();
+        result.then(
+          function(payload) {
+            var data = payload.data;
+            if (data !== null) {
+              scope.volume_units_full = data;
+              scope.volume_units = [];
+              for (var i=0; i < data.length; i++)
+              {
+                scope.volume_units.push(data[i].abbr_name);
+              }
+            }
+          },
+          function(errorPayload) {
+            ; // do nothing for now
+          });
+      };
+
       scope.getAllDistributors = function( doAuto, doCopy ) {
+
+        scope.getVolUnits();
 
         scope.all_distributors = [];
 
@@ -916,6 +963,34 @@ angular.module('myApp')
           function(errorPayload) {
             ; // do nothing for now
           });
+      };
+
+      // for create new beverage from addable bevs UI
+      scope.newBeverageCloseOnSave = function(new_beverage) {
+
+        ItemsService.processBevsForAddable([new_beverage]);
+
+        scope.all_bevs.push(new_beverage);
+
+        // XXX make sure appears in addable list for distributor
+
+        if (scope.all_breweries.indexOf(new_beverage['brewery']) < 0) {
+          scope.all_breweries.push(new_beverage['brewery']);
+        }
+
+        // closeonsave callback doesn't pass us distributor order, so need 
+        // to resolve the associated dist_order, if any, of new_beverage
+        // by looking at its distributor id
+        var new_bev_dist_id = new_beverage['distributor_id'];
+        for (var j in scope.order.dist_orders) {
+          var dorder = scope.order.dist_orders[j];
+
+          if (dorder['distributor']['id'] == new_bev_dist_id) {
+            dorder['addable_items'].push(new_beverage);
+            scope.addItem(dorder, new_beverage);
+            break;
+          }
+        }
       };
 
       scope.distEmailChanged = function(dorder) {
@@ -1027,6 +1102,17 @@ angular.module('myApp')
             scope.all_bevs = data;
             ItemsService.processBevsForAddable(scope.all_bevs);
 
+            // process the data we get on the client
+            for (var i = 0; i < scope.all_bevs.length; i++) {
+              var inv = scope.all_bevs[i];
+
+              // add breweries all_breweries for typeahead convenience when adding 
+              // new beverages, which might come from same brewery
+              var exists = scope.all_breweries.indexOf(inv['brewery']) >= 0;
+              if (!exists) {
+                scope.all_breweries.push(inv['brewery']);
+              }
+            }
           }
           else {
             scope.all_bevs = [];
