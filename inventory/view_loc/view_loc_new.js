@@ -410,6 +410,8 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
       windowClass: 'start-count-modal',
       backdropClass: 'gray-modal-backdrop',
       size: 'md',
+      backdrop: 'static',
+      keyboard: false,
       resolve: {
         
       }
@@ -466,6 +468,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
       backdropClass: 'green-modal-backdrop',
       size: 'lg',
       backdrop : 'static',
+      keyboard: false,
       resolve: {
         all_bevs: function() {
           return $scope.add_inv_all_bevs;
