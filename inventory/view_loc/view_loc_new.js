@@ -410,8 +410,6 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
       windowClass: 'start-count-modal',
       backdropClass: 'gray-modal-backdrop',
       size: 'md',
-      backdrop: 'static',
-      keyboard: false,
       resolve: {
         
       }
