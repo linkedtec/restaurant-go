@@ -391,6 +391,33 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
     
   };
 
+  $scope.promptCountSheets = function() {
+    var modalStartInstance = $modal.open({
+      templateUrl: 'printCountSheetsModal.html',
+      controller: 'printCountSheetsModalCtrl',
+      windowClass: 'start-count-modal',
+      backdropClass: 'gray-modal-backdrop',
+      size: 'md',
+      resolve: {
+        locations: function() {
+          return $scope.locations;
+        }
+      }
+    });
+
+    modalStartInstance.result.then(
+      // success status
+      function( result ) {
+        var res = result[0];
+
+        $scope.previewCountSheets();
+      }, 
+      // error status
+      function() {
+        ;
+      });
+  };
+
   $scope.promptStartInv = function() {
 
     // XXX If all quantities are 0, directly go to startInv starting from scratch
@@ -870,6 +897,137 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
   };
 })
 
+.controller('printCountSheetsPDFModalCtrl', function($scope, $modalInstance, $http, $filter, $sce, ItemsService, content_type, review_obj) {
+
+  $scope.trustAsHtml = $sce.trustAsHtml;
+
+  $scope.content_type = content_type;
+  $scope.review_obj = review_obj;
+
+  // alert Safari users that their browser is bad
+  $scope.userAgent = null;
+  var uagent = navigator.userAgent.toLowerCase(); 
+  if (uagent.indexOf('safari') != -1) { 
+    if (uagent.indexOf('chrome') > -1) {
+      $scope.userAgent = 'chrome';
+    } else {
+      $scope.userAgent = 'safari';
+    }
+  }
+  console.log($scope.userAgent);
+
+  $scope.loadPdf = function() {
+
+    var pdf_url = $scope.review_obj;
+    var iframe = document.getElementById("pdf_embed");
+    iframe.setAttribute("src", pdf_url);
+  };
+  
+  $scope.cancel = function() {
+    console.log("cancel edit");
+    $modalInstance.dismiss('cancel');
+  };
+
+  $scope.doPrint = function() {
+    
+  };
+
+})
+
+.controller('printCountSheetsModalCtrl', function($scope, $modalInstance, $http, $modal, locations) {
+
+  $scope.locations = locations;
+  $scope.inv_locations = []; // stores only locations with previous inventory counts
+  $scope.none_checked = true;
+
+  for (var i in $scope.locations) {
+    var loc = $scope.locations[i];
+    if (loc.last_bev_count > 0 || loc.last_keg_count > 0) {
+      loc['print_sheet'] = true;
+      $scope.inv_locations.push(loc);
+      $scope.none_checked = false;
+    }
+  }
+
+  $scope.show_help = false;
+
+  $scope.showHelp = function() {
+    $scope.show_help = true;
+  };
+
+  $scope.checkedCountSheetLocation = function(loc) {
+    loc['print_sheet'] = !loc['print_sheet'];
+
+    $scope.none_checked = true;
+    for (var i in $scope.inv_locations) {
+      var loc = $scope.inv_locations[i];
+      if (loc['print_sheet'] == true) {
+        $scope.none_checked = false;
+        break;
+      }
+    }
+  };
+
+  $scope.confirm = function() {
+
+    var print_loc_ids = [];
+    for (var i in $scope.inv_locations) {
+      var loc = $scope.inv_locations[i];
+      if (loc['print_sheet'] == true) {
+        print_loc_ids.push(loc['id']);
+      }
+    }
+
+    console.log(print_loc_ids)
+    var params = { 
+      loc_ids: print_loc_ids.toString()
+    };
+
+    $http.get('/inv/countsheets', 
+      {params: params })
+    .success(function(data, status, headers, config) {
+      console.log(data);
+
+      var modalEditInstance = $modal.open({
+        templateUrl: 'printCountSheetsPDFModal.html',
+        controller: 'printCountSheetsPDFModalCtrl',
+        windowClass: 'review-purch-modal',
+        backdropClass: 'white-modal-backdrop',
+        resolve: {
+          content_type: function() {
+            return "pdf";
+          },
+          review_obj: function() {
+            var URL = data['url'];
+            return URL;
+          }
+        }
+      });
+
+      modalEditInstance.result.then(
+        // success status
+        function( result ) {
+          // result is a list, first item is string for status, e.g.,
+          // 'save' or 'delete'
+          // second item is the affected beverage
+          var status = result[0];
+
+        }, 
+        // error status
+        function() {
+
+        });
+
+    })
+    .error(function(data, status, headers, config) {
+
+    });
+  }
+
+  $scope.cancel = function() {
+    $modalInstance.dismiss('cancel');
+  };
+})
 
 .controller('startCountModalNewCtrl', function($scope, $modalInstance) {
 

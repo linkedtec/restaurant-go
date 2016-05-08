@@ -82,9 +82,15 @@
   
   <div ng-if="selected_loc !== null" style="margin-top:36px">
     <div class="row" ng-if="inv_started === false">
-      <div class="col-xs-12" style="float:none">
+      <div class="col-xs-4 min_padding"></div>
+      <div class="col-xs-4 min_padding">
         <button ng-click="promptStartInv()" type="button" class="btn btn-default inv_xl_btn center-block">
           <span class="glyphicon glyphicon-check" aria-hidden="true"></span> Start Counting Inventory
+        </button>
+      </div>
+      <div class="col-xs-4 min_padding">
+        <button ng-if="inv_items.length > 0" ng-click="promptCountSheets()" type="button" class="btn btn-default inv_xl_btn" style="float:right"  uib-popover="Print paper copies of inventory count sheets, which are populated with the inventory items from the last time you did inventory.  When you're done, input the paper counts into this app by pressing 'Start Counting'.  Requires a printer." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="400">
+          <span class="glyphicon glyphicon-list-alt" aria-hidden="true"></span> Print Count Sheets
         </button>
       </div>
     </div>
@@ -186,7 +192,9 @@
 
 </div>
 
+<div ng-include src="'./view_loc/print_count_sheets_modal.html'">
+<div ng-include src="'./view_loc/print_count_sheets_pdf_modal.html'">
 <div ng-include src="'./view_loc/start_count_modal_new.html'">
 <div ng-include src="'./view_loc/start_inv_modal.html'">
 <div ng-include src="'./view_loc/modal_inv_quantity.html'">
-
+<div ng-include src="'./view_pos/review_purchase_order_modal.html'">

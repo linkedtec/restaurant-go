@@ -24,7 +24,7 @@
     
   </div>
   <div class="modal-body" style="background-color:#eaeaea; overflow-y: scroll">
-    <embed ng-if="content_type==='pdf'" id="pdf_embed" ng-init="loadPdf()" width="100%" height="100%" style="background-color:#eaeaea"/>
+    <embed ng-if="content_type==='pdf'" id="pdf_embed" ng-init="loadPdf()" width="100%" height="100%" style="background-color:#eaeaea" type="application/pdf" />
     <div ng-if="content_type==='sms'" width="100%" height="100%" style="margin:24px">
       <div ng-repeat="sms_obj in review_obj" style="padding:12px; max-width:420px; margin: 0 auto;">
         <div style="background-color:#3698E2; color:white; padding: 4px 8px; border-radius:8px; text-align:right; margin-bottom:6px">Send to <b>{{sms_obj.distributor}}</b> : {{sms_obj.distributor_phone}}</div>

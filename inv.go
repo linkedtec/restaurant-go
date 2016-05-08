@@ -19,6 +19,7 @@ import (
 	"time"
 
 	//"github.com/lib/pq"
+	"github.com/jung-kurt/gofpdf"
 	"github.com/tealeg/xlsx"
 )
 
@@ -105,7 +106,248 @@ func setupInvHandlers() {
 	http.HandleFunc("/loc", locAPIHandler)
 	http.HandleFunc("/inv/loc", invLocAPIHandler)
 	http.HandleFunc("/inv/history", invHistoryAPIHandler)
+	http.HandleFunc("/inv/countsheets", invCountSheetsAPIHandler)
 	http.HandleFunc("/export/", exportAPIHandler)
+}
+
+func invCountSheetsAPIHandler(w http.ResponseWriter, r *http.Request) {
+
+	switch r.Method {
+	case "GET":
+		loc_ids := r.URL.Query().Get("loc_ids")
+
+		locs := strings.Split(loc_ids, ",")
+
+		test_restaurant_id := "1"
+
+		locMap := make(map[Location][]LocBeverageApp)
+
+		// collect the beverages / kegs per Location:
+		//     product
+		//     brewery
+		//     container & volume
+		//
+		for _, loc_id := range locs {
+
+			// Verify Location exists or quit
+			var exists bool
+			err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM locations WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, loc_id).Scan(&exists)
+			if err != nil {
+				// if query failed will exit here, so loc_id is guaranteed below
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				continue
+			}
+			if !exists {
+				log.Println("Location ID does not exist for restaurant")
+				continue
+			}
+
+			var last_update time.Time
+			err = db.QueryRow("SELECT last_update FROM locations WHERE id=$1;", loc_id).Scan(&last_update)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.Println(err.Error())
+				return
+			}
+
+			var loc Location
+			err = db.QueryRow("SELECT name FROM locations WHERE id=$1;", loc_id).Scan(&loc.Name)
+			loc.ID, _ = strconv.Atoi(loc_id)
+
+			var locBevs []LocBeverageApp
+
+			// =========================================================================
+			// Select BEVERAGES from location
+			rows, err := db.Query("SELECT beverages.id, beverages.version_id, beverages.product, beverages.container_type, beverages.brewery, beverages.alcohol_type, beverages.purchase_volume, beverages.purchase_unit, location_beverages.update FROM beverages INNER JOIN location_beverages ON (beverages.id=location_beverages.beverage_id) WHERE location_beverages.location_id=$1 AND location_beverages.update=$2 AND location_beverages.active AND location_beverages.type='bev' ORDER BY beverages.product ASC;", loc_id, last_update)
+			//rows, err := db.Query("SELECT beverages.id, beverages.version_id, beverages.product, beverages.container_type, beverages.brewery, distributors.name, beverages.alcohol_type, beverages.purchase_volume, beverages.purchase_unit, beverages.purchase_cost, beverages.purchase_count, beverages.deposit, location_beverages.quantity, location_beverages.inventory, location_beverages.update FROM beverages, location_beverages, distributors WHERE beverages.id=location_beverages.beverage_id AND location_beverages.location_id=$1 AND location_beverages.update=$2 AND location_beverages.active LEFT OUTER JOIN distributors ON (beverages.distributor_id=distributors.id) ORDER BY beverages.product ASC;", loc_id, last_update)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			defer rows.Close()
+			for rows.Next() {
+				var locBev LocBeverageApp
+				locBev.Type = "bev"
+				if err := rows.Scan(&locBev.ID, &locBev.VersionID, &locBev.Product, &locBev.ContainerType, &locBev.Brewery, &locBev.AlcoholType, &locBev.PurchaseVolume, &locBev.PurchaseUnit, &locBev.Update); err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				locBevs = append(locBevs, locBev)
+			}
+
+			// =========================================================================
+			// Select KEGS from location
+			rows, err = db.Query("SELECT kegs.id, kegs.version_id, distributors.name, kegs.volume, kegs.unit, location_beverages.update FROM kegs INNER JOIN location_beverages ON (kegs.id=location_beverages.beverage_id) INNER JOIN distributors ON (kegs.distributor_id=distributors.id) WHERE location_beverages.location_id=$1 AND location_beverages.update=$2 AND location_beverages.active AND location_beverages.type='keg' ORDER BY distributors.name ASC;", loc_id, last_update)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			defer rows.Close()
+			for rows.Next() {
+				var locBev LocBeverageApp
+				locBev.Type = "keg"
+				if err := rows.Scan(&locBev.ID, &locBev.VersionID, &locBev.Distributor, &locBev.PurchaseVolume, &locBev.PurchaseUnit, &locBev.Update); err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				locBevs = append(locBevs, locBev)
+			}
+
+			locMap[loc] = locBevs
+		}
+
+		log.Println(locMap)
+		createCountSheetsPDFFile(test_user_id, test_restaurant_id, locMap, w, r)
+	}
+}
+
+func createCountSheetsPDFFile(user_id string, restaurant_id string, locMap map[Location][]LocBeverageApp, w http.ResponseWriter, r *http.Request) {
+	export_dir := "./export/"
+	if os.MkdirAll(export_dir, 0755) != nil {
+		http.Error(w, "Unable to find or create export directory!", http.StatusInternalServerError)
+		return
+	}
+
+	var restaurant Restaurant
+	err := db.QueryRow("SELECT name FROM restaurants WHERE id=$1;", restaurant_id).Scan(&restaurant.Name)
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// create a hash from restaurant id as the filename extension
+	h := fnv.New32a()
+	h.Write([]byte(restaurant_id))
+	hash := strconv.FormatUint(uint64(h.Sum32()), 10)
+	filename := export_dir + "countsheet_" + hash
+	filename = strings.Replace(filename, " ", "_", -1)
+
+	var pdf *gofpdf.Fpdf
+	pdf = gofpdf.New("P", "mm", "A4", "")
+	pdf.SetTitle("Count Sheet", false)
+
+	// Iterate through the DistributorOrders, adding a page for each
+	for loc, locBevs := range locMap {
+
+		log.Println(locBevs)
+
+		pdf.AddPage()
+
+		// useful functions:
+		// Ln(h float64)
+		//     Linebreak
+		// MultiCell
+		// func (f *Fpdf) GetPageSize() (width, height float64)
+		// func (f *Fpdf) GetMargins() (left, top, right, bottom float64)
+		// func (f *Fpdf) Cell(w, h float64, txtStr string)
+		// func (f *Fpdf) CellFormat(w, h float64, txtStr string, borderStr string, ln int, alignStr string, fill bool, link int, linkStr string)
+
+		//page_width, page_height := pdf.GetPageSize()
+		page_width, _ := pdf.GetPageSize()
+		//margin_left, margin_top, margin_right, margin_bottom := pdf.GetMargins()
+		margin_left, _, margin_right, _ := pdf.GetMargins()
+		content_width := page_width - margin_left - margin_right
+
+		// ------------------------------- Header ----------------------------------
+
+		pdf.SetFont("helvetica", "", 12)
+		pdf.SetTextColor(120, 120, 120)
+		wd := pdf.GetStringWidth(restaurant.Name.String) + margin_right
+		pdf.SetX(-wd)
+		pdf.Cell(0, 6, restaurant.Name.String)
+
+		pdf.Ln(6)
+
+		pdf.SetFont("helvetica", "B", 16)
+
+		pdf.SetX(margin_left)
+		pdf.Cell(0, 6, loc.Name.String)
+
+		tz_str, _ := getRestaurantTimeZone(restaurant_id)
+		date_tz := getTimeAtTimezone(time.Now(), tz_str, true)
+
+		pdf.SetFont("helvetica", "", 11)
+		time_str := date_tz.Format("Mon Jan 2, 2006 3:04PM")
+		wd = pdf.GetStringWidth(time_str) + margin_right
+		pdf.SetX(-wd)
+		pdf.Cell(0, 6, time_str)
+
+		pdf.Ln(9)
+		pdf.SetDrawColor(160, 160, 160)
+		pdf.SetTextColor(120, 120, 120)
+		pdf.SetFillColor(240, 240, 240)
+		pdf.CellFormat(content_width/2, 9, " Product", "1", 0, "", true, 0, "")
+		pdf.CellFormat(content_width*5/16, 9, " Brewery", "1", 0, "", true, 0, "")
+		pdf.CellFormat(content_width*3/16, 9, " Count", "1", 0, "", true, 0, "")
+
+		min_rows := 25 // have at least this number of rows on a sheet
+		bev_rows := 0
+		min_extra_rows := 10 // have at least this many empty rows for user to record extra items not on list
+
+		pdf.SetFillColor(255, 255, 255)
+		pdf.SetTextColor(50, 50, 50)
+		pdf.SetFont("helvetica", "", 10)
+		for _, bev := range locBevs {
+			pdf.Ln(9)
+			product := ""
+			if bev.Type == "bev" {
+				product = bev.Product + "    ( "
+				if bev.PurchaseVolume.Valid {
+					product += fmt.Sprintf("%.1f", bev.PurchaseVolume.Float64) + " "
+				}
+				if bev.PurchaseUnit.Valid {
+					product += bev.PurchaseUnit.String + " "
+				}
+				product += bev.ContainerType + " )"
+			} else {
+				product = "Keg Deposit - " + bev.Distributor.String + "    ( " + fmt.Sprintf("%.1f", bev.PurchaseVolume.Float64) + " " + bev.PurchaseUnit.String + " )"
+			}
+			pdf.CellFormat(content_width/2, 9, " "+product, "1", 0, "", false, 0, "")
+			pdf.CellFormat(content_width*5/16, 9, " "+bev.Brewery.String, "1", 0, "", false, 0, "")
+			pdf.CellFormat(content_width*3/16, 9, "", "1", 0, "", false, 0, "")
+			bev_rows += 1
+		}
+
+		sub_min_rows := min_rows - bev_rows
+		if sub_min_rows < 0 {
+			sub_min_rows = min_extra_rows
+		} else {
+			if sub_min_rows < min_extra_rows {
+				sub_min_rows = min_extra_rows
+			}
+		}
+
+		for i := 0; i < sub_min_rows; i++ {
+			pdf.Ln(9)
+			pdf.CellFormat(content_width/2, 9, "", "1", 0, "", false, 0, "")
+			pdf.CellFormat(content_width*5/16, 9, "", "1", 0, "", false, 0, "")
+			pdf.CellFormat(content_width*3/16, 9, "", "1", 0, "", false, 0, "")
+		}
+
+	}
+
+	filename += ".pdf"
+	err = pdf.OutputFileAndClose(filename)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// if not do_send, it's for review
+	w.Header().Set("Content-Type", "application/json")
+	var retfile ExportFile
+	retfile.URL = filename[1:] // remove the . at the beginning
+	js, err := json.Marshal(retfile)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(js)
+
 }
 
 func invAPIHandler(w http.ResponseWriter, r *http.Request) {
@@ -782,6 +1024,28 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 			if err := rows.Scan(&loc.ID, &loc.Name, &loc.LastUpdate); err != nil {
 				log.Fatal(err)
 			}
+
+			// XXX Get the count of all inventory items and empty kegs in this loc
+			// since the last_update
+			// 1. First check if last_update is null.  If it is there's nothing to do.
+			// 2. Get count of bevs from last update
+			// 3. Get count of kegs from last update
+			//err = db.QueryRow("SELECT beverages.id, beverages.version_id, beverages.product, beverages.container_type, beverages.brewery, distributors.name, beverages.alcohol_type, beverages.purchase_volume, beverages.purchase_unit, beverages.purchase_cost, beverages.purchase_count, kegs.deposit, location_beverages.quantity, location_beverages.inventory, location_beverages.update FROM beverages INNER JOIN location_beverages ON (beverages.id=location_beverages.beverage_id) LEFT OUTER JOIN distributors ON (beverages.distributor_id=distributors.id) LEFT OUTER JOIN kegs ON (beverages.keg_id=kegs.id) WHERE location_beverages.location_id=$1 AND location_beverages.update=$2 AND location_beverages.active AND location_beverages.type='bev' ORDER BY beverages.product ASC;", loc_id, last_update)
+			err = db.QueryRow("SELECT COUNT(DISTINCT beverages.id) FROM beverages INNER JOIN location_beverages ON (beverages.id=location_beverages.beverage_id) WHERE location_beverages.location_id=$1 AND location_beverages.update=$2 AND location_beverages.active AND location_beverages.type='bev';", loc.ID, loc.LastUpdate).Scan(&loc.LastBevCount)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			//err = db.QueryRow("SELECT kegs.id, kegs.version_id, distributors.name, kegs.volume, kegs.unit, kegs.deposit, location_beverages.quantity, location_beverages.inventory, location_beverages.update FROM kegs INNER JOIN location_beverages ON (kegs.id=location_beverages.beverage_id) INNER JOIN distributors ON (kegs.distributor_id=distributors.id) WHERE location_beverages.location_id=$1 AND location_beverages.update=$2 AND location_beverages.active AND location_beverages.type='keg' ORDER BY distributors.name ASC;", loc_id, last_update)
+			err = db.QueryRow("SELECT COUNT(DISTINCT kegs.id) FROM kegs INNER JOIN location_beverages ON (kegs.id=location_beverages.beverage_id) WHERE location_beverages.location_id=$1 AND location_beverages.update=$2 AND location_beverages.active AND location_beverages.type='keg';", loc.ID, loc.LastUpdate).Scan(&loc.LastKegCount)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
 			locations = append(locations, loc)
 		}
 

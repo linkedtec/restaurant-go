@@ -338,6 +338,8 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     } else if ($scope.content_type==='sms') {
       $scope.send_caption="You are reviewing a pending SMS which will be texted to Distributor(s).";
     }
+  } else {
+    $scope.send_caption="";
   }
 
   $scope.loadPdf = function() {

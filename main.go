@@ -140,11 +140,13 @@ type LocBeverageAppBatch struct {
 }
 
 type Location struct {
-	ID         int        `json:"id"`
-	Name       NullString `json:"name"`
-	LastUpdate time.Time  `json:"last_update"`
-	Type       string     `json:"type"`
-	TotalInv   float32    `json:"total_inventory"`
+	ID           int        `json:"id"`
+	Name         NullString `json:"name"`
+	LastUpdate   time.Time  `json:"last_update"`
+	Type         string     `json:"type"`
+	TotalInv     float32    `json:"total_inventory"`
+	LastBevCount int        `json:"last_bev_count"`
+	LastKegCount int        `json:"last_keg_count"`
 }
 
 type RenameTuple struct {

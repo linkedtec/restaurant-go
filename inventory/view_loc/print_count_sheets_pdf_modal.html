@@ -1,0 +1,22 @@
+<script type="text/ng-template" id="printCountSheetsPDFModal.html">
+
+  <div class="modal-header" style="padding-top:12px; padding-bottom:4px; height:44px; border-color:#c0c0c0">
+    <button ng-click="cancel()" type="button" class="btn btn-default btn_modal_x" style="float:left">
+      <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+    </button>
+    <span style="font-size:1.2em;margin-left:8px; color:#555555; font-weight:bold">
+      Print Inventory Count Sheets
+    </span>
+    <span ng-if="userAgent == 'safari'" style="float:right; margin-top:2px">
+      Safari Users: hover mouse near bottom of page, click on PDF preview button, and print from there.
+    </span>
+    <span ng-if="userAgent == 'chrome'" style="float:right; margin-top:2px">
+      Chrome Users: hover mouse near top of page and click on Printer icon to print.
+    </span>
+  </div>
+
+  <div class="modal-body" style="background-color:#eaeaea; overflow-y: scroll">
+    <embed ng-if="content_type==='pdf'" id="pdf_embed" ng-init="loadPdf()" width="100%" height="100%" style="background-color:#eaeaea" type="application/pdf" />
+  </div>
+
+</script>

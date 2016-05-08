@@ -1,0 +1,63 @@
+<script type="text/ng-template" id="printCountSheetsModal.html">
+  <div class="modal-body" style="font-size:1.1em">
+    <div class="row" style="margin-bottom:12px">
+      <div class="col-xs-12" style="text-align:center">
+        <div style="font-size:1.4em; margin:0px; margin-top:12px">
+          <span class="glyphicon glyphicon-file" style="color:#ccc"></span> Print Count Sheets
+        </div>
+      </div>
+      <div ng-if="show_help!==true" class="col-xs-12" style="text-align:right" ng-click="showHelp()">
+        <span class="help_link" style="font-size:0.9em">How do I use this feature?</span>
+      </div>
+      <div ng-if="show_help===true" class="col-xs-12">
+        <div style="margin: 6px 16px; padding:12px; background-color: #fafafa; font-size:0.9em">
+          Some restaurants prefer using good-old-fashioned paper and clipboards  
+          to do inventory.  This feature will print a page for each of 
+          your inventory locations, pre-populated with the inventory items from 
+          the last time you did inventory.<br/>
+          <span class="blue_color">After counting on paper, remember to input 
+          your count results back in the 
+          app using the "Start Counting Inventory" button in each Location!</span>
+        </div>
+      </div>
+      <div class="col-xs-12" style="margin-top:6px">
+        <span style="font-size:1.2em">
+          Print Count Sheets for the following Locations:<br/>
+        </span>
+        <hr style="margin-top:4px; margin-bottom:0"/>
+      </div>
+
+    </div>
+    <div ng-repeat="loc in inv_locations" class="row" style="font-size:1.1em; margin: 0 auto; padding:6px 0px" ng-class-even="'inv_row_even'" ng-class-odd="'inv_row_odd'">
+      <div class="col-xs-1" style="text-align:right">
+        <input ng-checked="true" type="checkbox" id="checkbox{{$index}}" style="z-index:-99;" ng-click="checkedCountSheetLocation(loc)"/>
+        <label for="checkbox{{$index}}" style="margin:0; height:0; margin-top:-6px;"></label>
+      </div>
+      <div class="col-xs-7">
+        {{loc.name}}
+      </div>
+      <div class="col-xs-2 min_padding">
+        <img width="20" src="images/inv_all.png" style="margin-top:-6px;margin-right:6px" uib-popover="Distinct Beverages in last inventory, which will appear on count sheet." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="300" /> <span style="color:#888; font-size:1.0em">{{loc.last_bev_count}} </span>
+      </div>
+      <div class="col-xs-2 min_padding">
+        <img width="20" src="images/bev_keg.png" style="margin-top:-6px;margin-right:6px" uib-popover="Distinct Kegs in last inventory, which will appear on count sheet." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="300" /> <span style="color:#888; font-size:1.0em">{{loc.last_keg_count}} </span>
+      </div>
+    </div>
+    <div class="row" style="text-align:right; margin-top:4px">
+      <div class="col-xs-12">
+        <span class="hint_text" style="font-size:0.9em; font-style:italic">
+          Only Locations with previous inventory records are included
+        </span>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:24px; margin-bottom:24px">
+      <div class="col-xs-12" style="text-align:center">
+        <!--Count Sheets will include items from the last time you did inventory.-->
+        <button ng-click="confirm()" type="button" class="btn btn-success btn_ok" style="font-size:1.1em; margin-top:6px" ng-disabled="none_checked==true">
+          <span class="glyphicon glyphicon-print" aria-hidden="true"></span> Preview & Print
+        </button>
+      </div>
+    </div>
+
+</script>
