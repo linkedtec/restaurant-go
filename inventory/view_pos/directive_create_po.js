@@ -41,6 +41,7 @@ angular.module('myApp')
       scope.order['purchase_cc'] = null
       scope.order['po_num'] = null;
       scope.order['send_later'] = false;
+      scope.order['keg_count'] = 0;  // just for displaying number of ordered kegs on client
       scope.showPurchaseSave = false;
       scope.defaultContactChecked = {'value':true};
       // the global delivery date which will be applied to dorders at start
@@ -448,6 +449,7 @@ angular.module('myApp')
           delivery_date: null, 
           addable_items: [],
           items:[],
+          keg_count: 0,
           total:null,
           show_add_ui:false,
           addableControl: {},
@@ -1126,10 +1128,15 @@ angular.module('myApp')
 
       scope.updateDistOrderTotal = function(dorder) {
         dorder.total = 0;
+        dorder.keg_count = 0;
         for ( var i in dorder.items ) {
           var item = dorder.items[i];
           if (!MathService.numIsInvalidOrNegative(item['resolved_subtotal'])) {
             dorder.total += item['resolved_subtotal'];
+          }
+
+          if (item['container_type'] == 'Keg') {
+            dorder.keg_count += item['quantity'] * item['purchase_count'];
           }
         }
 
@@ -1138,12 +1145,15 @@ angular.module('myApp')
 
       scope.updateOrderGrandTotal = function() {
         scope.order['grand_total'] = null;
+        scope.order['keg_count'] = 0;
         for (var i in scope.order['dist_orders']) {
           var dorder = scope.order['dist_orders'][i];
           if (scope.order['grand_total']===null) {
             scope.order['grand_total'] = dorder.total;
+            scope.order['keg_count'] = dorder.keg_count;
           } else {
             scope.order['grand_total'] += dorder.total;
+            scope.order['keg_count'] += dorder.keg_count;
           }
         }
       };

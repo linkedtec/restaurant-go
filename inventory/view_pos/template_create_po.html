@@ -314,7 +314,7 @@
     </div>
     <div class="row">
       <div class="col-xs-12" style="margin:12px 0px 4px; font-size:1.1em; text-align:center">
-        Purchase Order #: <b>{{order.po_num}}</b> <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;"  uib-popover="Unique number which will be associated with this Purchase Order upon placement, and can be used to verify the PO upon delivery, or to reference when corresponding with your distributors." popover-trigger="mouseenter" popover-append-to-body="true"></span>
+        Purchase Order #: <b>{{order.po_num}}</b> <span class="glyphicon glyphicon-question-sign" style="font-size:16px; color:#88ccdd;" uib-popover="Unique number which will be associated with this Purchase Order upon placement, and can be used to verify the PO upon delivery, or to reference when corresponding with your distributors." popover-trigger="mouseenter" popover-append-to-body="true"></span>
       </div>
     </div>
     <div class="row" style="padding:12px 16px 10px">
@@ -599,7 +599,7 @@
             </div>
           </div>
           <div style="float:right; margin-top:4px">
-            <a tabindex="0" popover-trigger="focus" type="button" ng-model="item" uib-popover-template="'popoverRemoveItem.html'" popover-placement="left" popover-title="Remove from list?" popover-append-to-body="true" type="button" class="btn btn-sm btn_frameless hover_red" style="font-size:20px; float:right; padding:0;">
+            <a tabindex="0" popover-trigger="focus" type="button" ng-model="item" uib-popover-template="'popoverRemoveItem.html'" popover-placement="left" popover-title="Remove from list?" popover-append-to-body="true" type="button" class="btn btn-sm btn_frameless hover_red" style="font-size:20px; float:right; padding:0; color:#cacaca">
               <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
             </a>
           </div>
@@ -611,6 +611,10 @@
         <div class="col-xs-2 min_padding" style="font-weight:bold; font-size:1.2em; color:#18A518">
           <span ng-if="dorder.total===null">--</span>
           <span ng-if="dorder.total!==null"> $ {{dorder.total | number:2}}</span>
+
+          <span ng-if="dorder.keg_count>0" style="display:inline-block; float:right; font-weight:normal; color:#888" uib-popover="Number of Kegs in this order." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="300">
+            <img height="20" src="images/bev_keg2.png" style="margin-top:-4px" /> {{dorder.keg_count | number:0}}
+          </span>
         </div>
       </div>
     </div>
@@ -658,6 +662,11 @@
   <div class="col-xs-2" style="padding-right:4px; text-align:right; font-size:1.2em; color:#18A518; font-weight:bold">
     <span ng-if="order.grand_total===null"> --</span>
     <span ng-if="order.grand_total!==null"> $ {{order.grand_total | number:2}}</span>
+  </div>
+  <div ng-if="order.keg_count > 0" class="col-xs-12" style="padding-right:4px; text-align: right; font-size:1.1em; color:#888;">
+    <span  uib-popover="Number of Kegs in this order." popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="300">
+      <img height="20" src="images/bev_keg2.png" style="margin-top:-4px" /> {{order.keg_count | number:0}}
+    </span>
   </div>
   <div ng-if="remaining_monthly_budget!==null && order.grand_total!==null && remaining_monthly_budget < order.grand_total && showBudget===true && order.grand_total > 0" class="col-xs-12 red_color" style="text-align:right; padding-right:4px; font-style:italic">
     <span class="glyphicon glyphicon-alert"></span> Warning: Order total exceeds monthly budget!  <span ng-if="budget_alert_email!==null">{{budget_alert_email}} will be sent an email notification</span>
