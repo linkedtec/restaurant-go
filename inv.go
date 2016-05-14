@@ -100,7 +100,7 @@ func (t timeArr) Swap(i, j int) {
 
 func setupInvHandlers() {
 	invHandler := http.FileServer(http.Dir("inventory"))
-	http.Handle("/inventory/", http.StripPrefix("/inventory/", invHandler))
+	http.Handle("/inventory/", http.StripPrefix("/inventory/", sessionHandlerDecorator(invHandler)))
 
 	http.HandleFunc("/inv", invAPIHandler)
 	http.HandleFunc("/loc", locAPIHandler)

@@ -6,13 +6,16 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 )
 
 type User struct {
-	ID       int `json:"_id,omitempty"`
-	Username string
-	Password []byte
-	Posts    int
+	ID        int       `json:"id,omitempty"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Email     string    `json:"email"`
+	Password  []byte    `json:"password"`
+	LastSeen  time.Time `json:"last_seen"`
 }
 
 type RestaurantInvEmail struct {
@@ -72,13 +75,14 @@ type Dashboard struct {
 }
 
 func setupUsersHandlers() {
+	http.HandleFunc("/user", userAPIHandler)
 	http.HandleFunc("/users/inv_email", usersInvEmailAPIHandler)
 	// we separate name and purchase because the privilege levels for these differ
 	http.HandleFunc("/restaurant/name", restaurantNameAPIHandler)
 	http.HandleFunc("/restaurant/address", restaurantAddressAPIHandler)
 	http.HandleFunc("/restaurant/purchase", restaurantPurchaseAPIHandler)
 
-	http.HandleFunc("/dashboard", dashboardAPIHandler)
+	http.HandleFunc("/dashboard", sessionDecorator(dashboardAPIHandler, g_admin_privilege))
 
 }
 
@@ -138,6 +142,39 @@ func getOrAddContactEmail(email string, restaurant_id int) NullInt64 {
 	}
 
 	return ret_id
+}
+
+func userAPIHandler(w http.ResponseWriter, r *http.Request) {
+	user_id := sessionGetUserID(w, r)
+
+	switch r.Method {
+	case "GET":
+
+		if user_id < 0 {
+			log.Println("Error: No user ID found")
+			http.Error(w, "Error: No user ID found", http.StatusBadRequest)
+			return
+		}
+
+		var user User
+		err := db.QueryRow(`
+		SELECT first, last, email FROM users WHERE id=$1 AND active=TRUE;`,
+			user_id).Scan(&user.FirstName, &user.LastName, &user.Email)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		js, err := json.Marshal(&user)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(js)
+	}
+
 }
 
 func restaurantNameAPIHandler(w http.ResponseWriter, r *http.Request) {

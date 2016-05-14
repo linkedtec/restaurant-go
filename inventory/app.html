@@ -85,8 +85,8 @@
         <a class="navbar-brand" href="#" style="width:160px">Beverage App</a>
       </div>
 
-    <div class="collapse navbar-collapse" id="main-navbar-collapse">
-      <ul class="nav navbar-nav" ng-controller="myAppCtrl" style="font-size:1.0em;">
+    <div ng-controller="myAppCtrl" class="collapse navbar-collapse" id="main-navbar-collapse">
+      <ul class="nav navbar-nav" style="font-size:1.0em;">
         <li ng-class="{ 'active': isActive('/viewDashboard') || isActive('/viewAllInv') || isActive('/viewDistributors') || isActive('/viewRestaurant')}">
           <a href="#/viewDashboard">
             Overview
@@ -109,6 +109,17 @@
         </li>
         <!--li ng-class="{ 'active': isActive('/') }"><a href="#/viewDeliveries">Deliveries</a></li-->
       </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <!-- logged in user -->
+        <!--li><a href="/doc">{{ current_user.email }}</a></li-->
+        
+          <li>
+            <a tabIndex="0" popover-trigger="focus" type="button" uib-popover-template="'popoverAccount.html'" popover-placement="bottom" popover-title="{{user.email}}" popover-append-to-body="true" type="button" class="btn btn-sm btn_frameless" style="cursor:pointer;">
+              <span class="glyphicon glyphicon-user" style="font-size:1.2em;"></span>
+            </a>
+          </li>
+
+      </ul>
     </div>
   </nav>
   <!--div class="toolbar box-shadow">
@@ -127,8 +138,7 @@
   <script src="//ajax.googleapis.com/ajax/libs/angularjs/x.x.x/angular.min.js"></script>
   -->
   
-  
-  
+  <div ng-include src="'./popover_account.html'">
   
 </body>
 </html>

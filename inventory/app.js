@@ -56,7 +56,7 @@ config(['$routeProvider', function($routeProvider) {
   //usSpinnerConfigProvider.setTheme('smallRed', {color: 'red', radius: 6});
 }])
 
-.run(function($rootScope, $http, DateService) {
+.run(function($rootScope, $http, DateService, UserService) {
   // Place run-once-at-startup functions here
 
   // Get the restaurant timezone from server so that when we post *specific
@@ -82,12 +82,27 @@ config(['$routeProvider', function($routeProvider) {
 
 })
 
-.controller('myAppCtrl', function($scope, $location) {
+.controller('myAppCtrl', function($scope, $location, $http, UserService) {
 
   $scope.isActive = function (viewLocation) {
     var active = (viewLocation === $location.path());
     return active;
   };
+
+  if (!UserService.isLoaded()) {
+    $http.get('/user')
+    .success(function(data, status, headers, config) {
+      console.log("PRINTING USER:");
+      console.log(data);
+      UserService.setUserInfo(data['first_name'], data['last_name'], data['email']);
+      UserService.setLoaded(true);
+      $scope.user = UserService.getUserInfo();
+    })
+    .error(function(data, status, headers, config) {
+
+    });
+  }
+  
 
 })
 
@@ -767,6 +782,52 @@ config(['$routeProvider', function($routeProvider) {
       return calculateStockColor(item);
     }
   }
+})
+
+.factory("UserService", function() {
+
+  var first_name = '';
+  var last_name = '';
+  var email = '';
+  var loaded = false;
+
+  var _setUserInfo = function(_first, _last, _email) {
+    first_name = _first;
+    last_name = _last;
+    email = _email;
+    loaded = true;
+  }
+
+  return {
+
+    setUserInfo: function(_first, _last, _email) {
+      _setUserInfo(_first, _last, _email)
+    },
+
+    setLoaded: function(loaded) {
+      loaded = loaded;
+    },
+
+    isLoaded: function() {
+      return loaded;
+    },
+
+    getUserInfo: function() {
+      return {
+        first_name: first_name,
+        last_name: last_name,
+        email: email
+      }
+    },
+
+    getFirstName: function() {
+      return first_name;
+    },
+
+    firstName: first_name
+
+  }
+
 })
 
 .factory("DateService", function() {

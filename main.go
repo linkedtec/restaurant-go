@@ -6,6 +6,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/context"
+	"golang.org/x/crypto/bcrypt"
+	//"github.com/gorilla/sessions"
 	_ "github.com/lib/pq"
 	"io/ioutil"
 	"log"
@@ -172,6 +175,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	initSessionStore(isProduction)
+
+	test_email := "core433@gmail.com"
+	test_pw := "abc123"
+	password_hash, err := bcrypt.GenerateFromPassword([]byte(test_pw), bcrypt.DefaultCost)
+	_, err = db.Exec(`
+		UPDATE users SET email=$1, pw_hash=$2 WHERE id=1;`, test_email, password_hash)
+
 	// handle home
 	http.HandleFunc("/", rootHandler)
 
@@ -187,6 +198,8 @@ func main() {
 	http.HandleFunc("/volume_units", volumeUnitsHandler)
 
 	http.HandleFunc("/timezone", timezoneHandler)
+
+	setupSessionHandlers()
 
 	// handle users
 	setupUsersHandlers()
@@ -217,7 +230,7 @@ func main() {
 
 	log.Printf("Listening on port 8080...")
 	log.Print("Current time is: " + getCurrentTime())
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":8080", context.ClearHandler(http.DefaultServeMux))
 }
 
 func getCurrentTime() string {
