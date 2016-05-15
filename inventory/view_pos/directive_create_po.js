@@ -105,12 +105,7 @@ angular.module('myApp')
         scope.budget_alert_email = null;
         scope.total_monthly_budget = null;
         scope.remaining_monthly_budget = null;
-        var test_user_id = 1;
-        $http.get('/budget', {
-          params: {
-            user_id: test_user_id
-          }
-        }).
+        $http.get('/budget').
         success(function(data, status, headers, config) {
           // this callback will be called asynchronously when the response
           // is available
@@ -368,11 +363,7 @@ angular.module('myApp')
       scope.getRestaurant = function() {
         var test_restaurant_id = 1;
 
-        $http.get('/restaurant/name', {
-          params: {
-            restaurant_id: test_restaurant_id
-          }
-        }).
+        $http.get('/restaurant/name').
         success(function(data, status, headers, config) {
           // this callback will be called asynchronously when the response
           // is available

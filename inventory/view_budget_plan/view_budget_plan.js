@@ -47,12 +47,7 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
   };
 
   $scope.getBudget = function() {
-    var test_user_id = 1;
-    $http.get('/budget', {
-      params: {
-        user_id: test_user_id
-      }
-    }).
+    $http.get('/budget').
     success(function(data, status, headers, config) {
       // this callback will be called asynchronously when the response
       // is available
@@ -76,12 +71,7 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
 
   $scope.getMarkups = function() {
 
-    var test_user_id = 1;
-    $http.get('/markups', {
-      params: {
-        user_id: test_user_id
-      }
-    }).
+    $http.get('/markups').
     success(function(data, status, headers, config) {
       // this callback will be called asynchronously when the response
       // is available
@@ -148,7 +138,6 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
 
     var test_user_id = 1;
     $http.post('/budget', {
-      user_id:test_user_id,
       monthly_budget:$scope.new_budget.value,
       target_run_rate:null
     }).
@@ -193,7 +182,6 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
 
     var test_user_id = 1;
     $http.post('/budget', {
-      user_id:test_user_id,
       monthly_budget:$scope.calc_budget,
       target_run_rate:$scope.target_run_rate.value
     }).
@@ -243,7 +231,6 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
     // cleared to null string if desired
     var test_user_id = 1;
     $http.put('/budget', {
-      user_id:test_user_id,
       change_keys:['budget_alert_email'],
       budget:{'budget_alert_email':$scope.budget_email_edit.value}
     }).

@@ -67,11 +67,7 @@ config(['$routeProvider', function($routeProvider) {
   // and minutes set by us.  "Right now" times do not need to be corrected for
   // time zone because they will be treated and saved as UTC.
 
-  var params = { 
-    restaurant_id: '1'
-  };
-  $http.get('/timezone', 
-    {params: params })
+  $http.get('/timezone')
   .success(function(data, status, headers, config) {
     DateService.setRestaurantTimezone(data['timezone']);
     DateService.setRestaurantTimezoneOffset(data['offset']);

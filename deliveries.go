@@ -39,12 +39,15 @@ type DeliveryUpdate struct {
 }
 
 func setupDeliveriesHandlers() {
-	http.HandleFunc("/deliveries", deliveriesAPIHandler)
+	http.HandleFunc("/deliveries", sessionDecorator(deliveriesAPIHandler, g_basic_privilege))
 }
 
 func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 
-	privilege := checkUserPrivilege()
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 
@@ -52,10 +55,6 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 	// return the params in do_deliveries
 	// and for each item, return the params from do_item_deliveries
 	case "GET":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
 
 		do_id := r.URL.Query().Get("id")
 
@@ -140,10 +139,6 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	// puts to edit an existing delivery
 	case "PUT":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
 
 		decoder := json.NewDecoder(r.Body)
 		var dlv_update DeliveryUpdate
@@ -297,7 +292,7 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 						}
 
 						var exists bool
-						err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, item.BeverageID).Scan(&exists)
+						err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", restaurant_id, item.BeverageID).Scan(&exists)
 						if err != nil {
 							log.Println(err.Error())
 							http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -387,10 +382,6 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	// post a new delivery
 	case "POST":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
 
 		decoder := json.NewDecoder(r.Body)
 		var dorder DistributorDelivery
@@ -474,7 +465,7 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 				}
 
 				var exists bool
-				err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, item.BeverageID).Scan(&exists)
+				err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", restaurant_id, item.BeverageID).Scan(&exists)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)

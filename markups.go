@@ -7,7 +7,7 @@ import (
 )
 
 func setupMarkupHandlers() {
-	http.HandleFunc("/markups", markupAPIHandler)
+	http.HandleFunc("/markups", sessionDecorator(markupAPIHandler, g_basic_privilege))
 }
 
 func getVolumeInLiters(
@@ -253,33 +253,20 @@ func calcMarkupsFromBeverages(bevs []Beverage) (map[string]float32, error) {
 
 func markupAPIHandler(w http.ResponseWriter, r *http.Request) {
 
-	privilege := checkUserPrivilege()
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 
 	case "GET":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
-
-		user_id := r.URL.Query().Get("user_id")
-		var restaurant_id string
-
-		err := db.QueryRow(`
-      SELECT restaurant_id 
-      FROM restaurant_users WHERE user_id=$1;`, user_id).Scan(&restaurant_id)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
 
 		brows, err := db.Query(`
-      SELECT id, product, sale_status,  alcohol_type, 
-      purchase_cost, purchase_count, purchase_volume, purchase_unit 
-      FROM beverages 
-      WHERE restaurant_id=$1 AND current=true;`, restaurant_id)
+	      SELECT id, product, sale_status,  alcohol_type, 
+	      purchase_cost, purchase_count, purchase_volume, purchase_unit 
+	      FROM beverages 
+	      WHERE restaurant_id=$1 AND current=true;`, restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)

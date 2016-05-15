@@ -75,14 +75,14 @@ type Dashboard struct {
 }
 
 func setupUsersHandlers() {
-	http.HandleFunc("/user", userAPIHandler)
-	http.HandleFunc("/users/inv_email", usersInvEmailAPIHandler)
+	http.HandleFunc("/user", sessionDecorator(userAPIHandler, g_basic_privilege))
+	http.HandleFunc("/users/inv_email", sessionDecorator(usersInvEmailAPIHandler, g_basic_privilege))
 	// we separate name and purchase because the privilege levels for these differ
-	http.HandleFunc("/restaurant/name", restaurantNameAPIHandler)
-	http.HandleFunc("/restaurant/address", restaurantAddressAPIHandler)
-	http.HandleFunc("/restaurant/purchase", restaurantPurchaseAPIHandler)
+	http.HandleFunc("/restaurant/name", sessionDecorator(restaurantNameAPIHandler, g_basic_privilege))
+	http.HandleFunc("/restaurant/address", sessionDecorator(restaurantAddressAPIHandler, g_basic_privilege))
+	http.HandleFunc("/restaurant/purchase", sessionDecorator(restaurantPurchaseAPIHandler, g_basic_privilege))
 
-	http.HandleFunc("/dashboard", sessionDecorator(dashboardAPIHandler, g_admin_privilege))
+	http.HandleFunc("/dashboard", sessionDecorator(dashboardAPIHandler, g_basic_privilege))
 
 }
 
@@ -110,7 +110,7 @@ func hasAdminPrivilege(p string) bool {
 	return p == "admin"
 }
 
-func getOrAddContactEmail(email string, restaurant_id int) NullInt64 {
+func getOrAddContactEmail(email string, restaurant_id string) NullInt64 {
 
 	var exists bool
 	var ret_id NullInt64
@@ -145,12 +145,18 @@ func getOrAddContactEmail(email string, restaurant_id int) NullInt64 {
 }
 
 func userAPIHandler(w http.ResponseWriter, r *http.Request) {
-	user_id := sessionGetUserID(w, r)
+
+	user_id, err := sessionGetUserID(w, r)
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	switch r.Method {
 	case "GET":
 
-		if user_id < 0 {
+		if user_id == ERR_RET_STR {
 			log.Println("Error: No user ID found")
 			http.Error(w, "Error: No user ID found", http.StatusBadRequest)
 			return
@@ -158,7 +164,7 @@ func userAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		var user User
 		err := db.QueryRow(`
-		SELECT first, last, email FROM users WHERE id=$1 AND active=TRUE;`,
+			SELECT first, last, email FROM users WHERE id=$1 AND active=TRUE;`,
 			user_id).Scan(&user.FirstName, &user.LastName, &user.Email)
 		if err != nil {
 			log.Println(err.Error())
@@ -178,14 +184,14 @@ func userAPIHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func restaurantNameAPIHandler(w http.ResponseWriter, r *http.Request) {
-	privilege := checkUserPrivilege()
+
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 	case "GET":
-
-		restaurant_id := r.URL.Query().Get("restaurant_id")
-
-		// privilege: anyone can GET the restaurant name...
 
 		var restaurant Restaurant
 		err := db.QueryRow("SELECT name FROM restaurants WHERE id=$1;", restaurant_id).Scan(&restaurant.Name)
@@ -198,12 +204,6 @@ func restaurantNameAPIHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 
 	case "PUT":
-		// privilege: only the admin can post restaurant name
-		if !hasAdminPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
-
 		var restaurant Restaurant
 
 		decoder := json.NewDecoder(r.Body)
@@ -214,9 +214,7 @@ func restaurantNameAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Println(restaurant)
-
-		_, err = db.Exec("UPDATE restaurants SET name=$1 WHERE id=$2", restaurant.Name, restaurant.ID)
+		_, err = db.Exec("UPDATE restaurants SET name=$1 WHERE id=$2", restaurant.Name, restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -227,7 +225,11 @@ func restaurantNameAPIHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func restaurantAddressAPIHandler(w http.ResponseWriter, r *http.Request) {
-	privilege := checkUserPrivilege()
+
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 	case "GET":
@@ -239,14 +241,17 @@ func restaurantAddressAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		var err error
 		if addr_type == "delivery" {
-			err = db.QueryRow("SELECT delivery_addr1, delivery_addr2, delivery_city, delivery_state, delivery_zipcode FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
+			err = db.QueryRow(`
+				SELECT delivery_addr1, delivery_addr2, delivery_city, delivery_state, delivery_zipcode 
+				FROM restaurants WHERE id=$1;`, restaurant_id).Scan(
 				&address.AddressOne,
 				&address.AddressTwo,
 				&address.City,
 				&address.State,
 				&address.Zipcode)
 		} else {
-			err = db.QueryRow("SELECT addr1, addr2, city, state, zipcode FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
+			err = db.QueryRow(`SELECT addr1, addr2, city, state, zipcode 
+				FROM restaurants WHERE id=$1;`, restaurant_id).Scan(
 				&address.AddressOne,
 				&address.AddressTwo,
 				&address.City,
@@ -266,11 +271,6 @@ func restaurantAddressAPIHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 
 	case "POST":
-		// privilege: only the admin can post restaurant name
-		if !hasAdminPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
 
 		var address RestaurantAddress
 
@@ -285,14 +285,22 @@ func restaurantAddressAPIHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(address)
 
 		if address.Type.Valid && address.Type.String == "delivery" {
-			_, err = db.Exec("UPDATE restaurants SET delivery_addr1=$1, delivery_addr2=$2, delivery_city=$3, delivery_state=$4, delivery_zipcode=$5 WHERE id=$6", address.AddressOne, address.AddressTwo, address.City, address.State, address.Zipcode, test_restaurant_id)
+			_, err = db.Exec(`
+				UPDATE restaurants SET delivery_addr1=$1, delivery_addr2=$2, 
+				delivery_city=$3, delivery_state=$4, delivery_zipcode=$5 WHERE id=$6`,
+				address.AddressOne, address.AddressTwo,
+				address.City, address.State, address.Zipcode, restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 		} else {
-			_, err = db.Exec("UPDATE restaurants SET addr1=$1, addr2=$2, city=$3, state=$4, zipcode=$5 WHERE id=$6", address.AddressOne, address.AddressTwo, address.City, address.State, address.Zipcode, test_restaurant_id)
+			_, err = db.Exec(`
+				UPDATE restaurants SET addr1=$1, addr2=$2, 
+				city=$3, state=$4, zipcode=$5 WHERE id=$6`,
+				address.AddressOne, address.AddressTwo, address.City,
+				address.State, address.Zipcode, restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -305,18 +313,18 @@ func restaurantAddressAPIHandler(w http.ResponseWriter, r *http.Request) {
 // restaurantAPIHandler is an admin screen, need to check user_id
 // and credentials has access to admin info via the restaurant_users table
 func restaurantPurchaseAPIHandler(w http.ResponseWriter, r *http.Request) {
-	privilege := checkUserPrivilege()
+
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 	case "GET":
-		// only basic privileged users can access this info
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
-
 		var restaurant Restaurant
-		err := db.QueryRow("SELECT purchase_contact, purchase_email, purchase_phone, purchase_fax, purchase_cc FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
+		err := db.QueryRow(`
+			SELECT purchase_contact, purchase_email, purchase_phone, 
+			purchase_fax, purchase_cc FROM restaurants WHERE id=$1;`, restaurant_id).Scan(
 			&restaurant.PurchaseContact,
 			&restaurant.PurchaseEmail,
 			&restaurant.PurchasePhone,
@@ -348,12 +356,6 @@ func restaurantPurchaseAPIHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 
 	case "PUT":
-		// only basic privileged users can access this info
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
-
 		var restaurant Restaurant
 
 		decoder := json.NewDecoder(r.Body)
@@ -366,7 +368,11 @@ func restaurantPurchaseAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		log.Println(restaurant)
 
-		_, err = db.Exec("UPDATE restaurants SET purchase_contact=$1, purchase_email=$2, purchase_phone=$3, purchase_fax=$4 WHERE id=$5", restaurant.PurchaseContact, restaurant.PurchaseEmail, restaurant.PurchasePhone, restaurant.PurchaseFax, test_restaurant_id)
+		_, err = db.Exec(`
+			UPDATE restaurants SET purchase_contact=$1, purchase_email=$2, 
+			purchase_phone=$3, purchase_fax=$4 WHERE id=$5;`,
+			restaurant.PurchaseContact, restaurant.PurchaseEmail, restaurant.PurchasePhone,
+			restaurant.PurchaseFax, restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -377,14 +383,17 @@ func restaurantPurchaseAPIHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func usersInvEmailAPIHandler(w http.ResponseWriter, r *http.Request) {
+
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
+
 	switch r.Method {
 	case "GET":
 
-		// XXX In future also replace this with proper authentication
-		//restaurant_id := r.URL.Query().Get("restaurant_id")
-
 		var ret_user_email RestaurantInvEmail
-		err := db.QueryRow("SELECT inv_email_recipient FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(&ret_user_email.Email)
+		err := db.QueryRow("SELECT inv_email_recipient FROM restaurants WHERE id=$1;", restaurant_id).Scan(&ret_user_email.Email)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -400,7 +409,6 @@ func usersInvEmailAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	case "POST":
 
-		// also need to fix test_restaurant_id case here
 		var restaurant_email RestaurantInvEmail
 		log.Println("Received post")
 
@@ -412,7 +420,7 @@ func usersInvEmailAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = db.Exec("UPDATE restaurants SET inv_email_recipient=$1 WHERE id=$2", restaurant_email.Email, test_restaurant_id)
+		_, err = db.Exec("UPDATE restaurants SET inv_email_recipient=$1 WHERE id=$2", restaurant_email.Email, restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -423,29 +431,14 @@ func usersInvEmailAPIHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func dashboardAPIHandler(w http.ResponseWriter, r *http.Request) {
-	privilege := checkUserPrivilege()
+
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 	case "GET":
-
-		// only basic privileged users can access this info
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
-
-		user_id := r.URL.Query().Get("user_id")
-		var restaurant_id string
-		var privilege string
-
-		err := db.QueryRow(`
-			SELECT restaurant_id, privilege 
-			FROM restaurant_users WHERE user_id=$1;`, user_id).Scan(&restaurant_id, &privilege)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
 
 		// Beverages:
 		// Total number of beverages / average markup
@@ -548,7 +541,10 @@ func dashboardAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// graph of weekly inventory
 
 		inv_secs_ago := 0.0
-		err = db.QueryRow("SELECT EXTRACT(EPOCH FROM (now() AT TIME ZONE 'UTC' - last_update)) FROM locations WHERE restaurant_id=$1 ORDER BY last_update DESC LIMIT 1;", test_restaurant_id).Scan(&inv_secs_ago)
+		err = db.QueryRow(`
+			SELECT EXTRACT(EPOCH FROM (now() AT TIME ZONE 'UTC' - last_update)) 
+			FROM locations WHERE restaurant_id=$1 
+			ORDER BY last_update DESC LIMIT 1;`, restaurant_id).Scan(&inv_secs_ago)
 		if err != nil {
 			switch {
 			// If there were no rows, that means the beverage was probably deleted (no current).  In that case don't do the update
@@ -604,7 +600,7 @@ func dashboardAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = db.QueryRow("SELECT purchase_contact FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(&dash.PurchaseContact)
+		err = db.QueryRow("SELECT purchase_contact FROM restaurants WHERE id=$1;", restaurant_id).Scan(&dash.PurchaseContact)
 		if err != nil {
 			switch {
 			case err == sql.ErrNoRows:
@@ -617,7 +613,7 @@ func dashboardAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// get last time a PO was sent
-		err = db.QueryRow("SELECT order_date FROM purchase_orders WHERE restaurant_id=$1 AND sent=TRUE ORDER BY order_date DESC LIMIT 1;", test_restaurant_id).Scan(&dash.LastPurchaseDate)
+		err = db.QueryRow("SELECT order_date FROM purchase_orders WHERE restaurant_id=$1 AND sent=TRUE ORDER BY order_date DESC LIMIT 1;", restaurant_id).Scan(&dash.LastPurchaseDate)
 		if err != nil {
 			switch {
 			// If there were no rows, that means the beverage was probably deleted (no current).  In that case don't do the update

@@ -30,22 +30,20 @@ type Margin struct {
 }
 
 func setupMarginsHandlers() {
-	http.HandleFunc("/margins", marginsAPIHandler)
+	http.HandleFunc("/margins", sessionDecorator(marginsAPIHandler, g_basic_privilege))
 }
 
 func marginsAPIHandler(w http.ResponseWriter, r *http.Request) {
 
-	privilege := checkUserPrivilege()
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 
 	case "GET":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
 
-		restaurant_id := r.URL.Query().Get("restaurant_id")
 		//margin_type := r.URL.Query().Get("margin_type")
 		tz_str, _ := getRestaurantTimeZone(restaurant_id)
 

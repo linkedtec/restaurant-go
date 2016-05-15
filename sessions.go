@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/gorilla/sessions"
 	"golang.org/x/crypto/bcrypt"
 	"log"
@@ -36,31 +37,54 @@ func setupSessionHandlers() {
 
 }
 
-func sessionGetUserID(w http.ResponseWriter, r *http.Request) int {
+func sessionGetUserID(w http.ResponseWriter, r *http.Request) (user_id string, err error) {
 
 	loginSession, err := session_store.Get(r, "loginSession")
 	if err != nil {
 		log.Println(err.Error())
 		http.Redirect(w, r, "/login", http.StatusFound)
-		return -1
+		return ERR_RET_STR, err
 	}
 	if val, ok := loginSession.Values["id"].(string); ok {
 		// if val is a string
 		switch val {
 		case "":
 			http.Redirect(w, r, "/login", http.StatusFound)
-			return -1
+			return ERR_RET_STR, errors.New("Empty user ID for login session.")
 		default:
-			user_id_int, _ := strconv.Atoi(val)
-			return user_id_int
+			return val, nil
 		}
 	} else {
 		http.Redirect(w, r, "/login", http.StatusFound)
-		return -1
+		return ERR_RET_STR, errors.New("Missing user ID for login session.")
 	}
 	http.Redirect(w, r, "/login", http.StatusFound)
-	return -1
+	return ERR_RET_STR, errors.New("Missing user ID for login session.")
+}
 
+func sessionGetUserCurrentRestaurant(user_id string) (restaurant_id string, err error) {
+
+	err = db.QueryRow(`
+		SELECT cur_restaurant FROM users WHERE id=$1 AND active=TRUE;`,
+		user_id).Scan(&restaurant_id)
+	if err != nil {
+		log.Println(err.Error())
+		return ERR_RET_STR, err
+	}
+	return restaurant_id, nil
+}
+
+func sessionGetUserAndRestaurant(w http.ResponseWriter, r *http.Request) (user_id string, restaurant_id string, err error) {
+
+	user_id, err = sessionGetUserID(w, r)
+	if err != nil {
+		return ERR_RET_STR, ERR_RET_STR, err
+	}
+	restaurant_id, err = sessionGetUserCurrentRestaurant(user_id)
+	if err != nil {
+		return ERR_RET_STR, ERR_RET_STR, err
+	}
+	return user_id, restaurant_id, nil
 }
 
 // Call this function before every API call that needs authentication
@@ -161,7 +185,13 @@ func sessionHandlerDecorator(h http.Handler) http.Handler {
 }
 
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
+
 	loginSession, err := session_store.Get(r, "loginSession")
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	loginSession.Values["email"] = ""
 	loginSession.Values["id"] = ""

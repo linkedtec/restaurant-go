@@ -52,9 +52,9 @@ func refreshMenuPages() {
 }
 
 func setupMenuHandlers() {
-	http.HandleFunc("/inv/menu", invMenuAPIHandler)
-	http.HandleFunc("/inv/menu/count", invMenuCountAPIHandler)
-	http.HandleFunc("/inv/menu/create", invMenuCreateAPIHandler)
+	http.HandleFunc("/inv/menu", sessionDecorator(invMenuAPIHandler, g_basic_privilege))
+	http.HandleFunc("/inv/menu/count", sessionDecorator(invMenuCountAPIHandler, g_basic_privilege))
+	http.HandleFunc("/inv/menu/create", sessionDecorator(invMenuCreateAPIHandler, g_basic_privilege))
 	http.HandleFunc("/menu_pages/", menuPagesAPIHandler)
 }
 
@@ -288,35 +288,39 @@ func createRestaurantMenuPage(restaurant_id string, w http.ResponseWriter, do_ht
 
 func invMenuCreateAPIHandler(w http.ResponseWriter, r *http.Request) {
 
-	privilege := checkUserPrivilege()
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	// Creates a static Menu Page for customers to see
 	// creates page in /menu_pages and returns a link
 	switch r.Method {
 	case "GET":
 
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
-
-		createRestaurantMenuPage(test_restaurant_id, w, true)
+		createRestaurantMenuPage(restaurant_id, w, true)
 
 	}
 
 }
 
 func invMenuCountAPIHandler(w http.ResponseWriter, r *http.Request) {
+
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
+
 	switch r.Method {
 	case "GET":
 		// just returns the count of active menu items
 
 		// when getting sales status, we always want to first set any seasonal
 		// bevs whose sale_end period has ended to inactive
-		go inactivateExpiredSeasonals(w, test_restaurant_id)
+		go inactivateExpiredSeasonals(w, restaurant_id)
 
 		var active_count ActiveMenuCount
-		err := db.QueryRow("SELECT COUNT (DISTINCT id) FROM beverages WHERE restaurant_id=$1 AND current AND COALESCE(sale_status, 'Inactive')!='Inactive';", test_restaurant_id).Scan(&active_count.Count)
+		err := db.QueryRow("SELECT COUNT (DISTINCT id) FROM beverages WHERE restaurant_id=$1 AND current AND COALESCE(sale_status, 'Inactive')!='Inactive';", restaurant_id).Scan(&active_count.Count)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -339,22 +343,27 @@ func invMenuCountAPIHandler(w http.ResponseWriter, r *http.Request) {
 // staple, seasonal, or inactive sales items.
 func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
+
 	switch r.Method {
 	case "GET":
 
 		// when getting sales status, we always want to first set any seasonal
 		// bevs whose sale_end period has ended to inactive
-		go inactivateExpiredSeasonals(w, test_restaurant_id)
+		go inactivateExpiredSeasonals(w, restaurant_id)
 
 		sale_status := r.URL.Query().Get("sale_status")
 
 		rows, err := db.Query(`
-      SELECT id, version_id, product, distributor_id, container_type, 
-      serve_type, brewery, alcohol_type, 
-      purchase_volume, purchase_unit, purchase_cost, purchase_count, 
-      sale_status, sale_start, sale_end, par 
-      FROM beverages WHERE restaurant_id=$1 AND current 
-      AND COALESCE(sale_status, 'Inactive')=$2;`, test_restaurant_id, sale_status)
+	      SELECT id, version_id, product, distributor_id, container_type, 
+	      serve_type, brewery, alcohol_type, 
+	      purchase_volume, purchase_unit, purchase_cost, purchase_count, 
+	      sale_status, sale_start, sale_end, par 
+	      FROM beverages WHERE restaurant_id=$1 AND current 
+	      AND COALESCE(sale_status, 'Inactive')=$2;`, restaurant_id, sale_status)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -439,7 +448,7 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		var exists bool
-		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, bev.ID).Scan(&exists)
+		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", restaurant_id, bev.ID).Scan(&exists)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -479,7 +488,7 @@ func invMenuAPIHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		createRestaurantMenuPage(test_restaurant_id, w, false)
+		createRestaurantMenuPage(restaurant_id, w, false)
 
 	default:
 		http.Error(w, "Invalid request", http.StatusBadRequest)

@@ -42,8 +42,8 @@ type CloverJoin struct {
 var clover_db *sql.DB
 
 func setupPOSCloverHandlers() {
-	http.HandleFunc("/pos/clover", posCloverAPIHandler)
-	http.HandleFunc("/pos/clover/match", posCloverMatchAPIHandler)
+	http.HandleFunc("/pos/clover", sessionDecorator(posCloverAPIHandler, g_basic_privilege))
+	http.HandleFunc("/pos/clover/match", sessionDecorator(posCloverMatchAPIHandler, g_basic_privilege))
 }
 
 func batchGetUnitsSoldInPeriodClover(margins []Margin, restaurant_id string, clover_db *sql.DB) ([]CloverSale, error) {
@@ -317,17 +317,17 @@ func getTotalSalesInPeriodClover(version_id int,
 }
 
 func posCloverMatchAPIHandler(w http.ResponseWriter, r *http.Request) {
-	privilege := checkUserPrivilege()
+
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 
 	// A POST relates a clover item to our in-app beverages by adding an
 	// entry into the clover_join table
 	case "POST":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
 
 		var cjoin CloverJoin
 		decoder := json.NewDecoder(r.Body)
@@ -347,7 +347,7 @@ func posCloverMatchAPIHandler(w http.ResponseWriter, r *http.Request) {
 				AND beverages.current=TRUE 
 				AND size_prices.serving_size=$3 AND size_prices.serving_unit=$4 
 				AND size_prices.beverage_id=beverages.id;`,
-			cjoin.RestaurantID, cjoin.VersionID, cjoin.SellVolume, cjoin.SellUnit).Scan(
+			restaurant_id, cjoin.VersionID, cjoin.SellVolume, cjoin.SellUnit).Scan(
 			&cjoin.BeverageID,
 			&cjoin.SizePricesID)
 		if err != nil {
@@ -370,15 +370,15 @@ func posCloverMatchAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 func posCloverAPIHandler(w http.ResponseWriter, r *http.Request) {
 
-	privilege := checkUserPrivilege()
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 
 	case "GET":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
+
 		connectToCloverDB()
 
 		_start_date := r.URL.Query().Get("start_date")
@@ -424,14 +424,14 @@ func posCloverAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// SELECT SUM(price)/100.0 AS total, count(id) AS cnt, order_items.name, price/100.0 FROM order_items, itemcat WHERE itemcat.name=order_items.name AND itemcat.activeOnMenu = 'true' AND itemcat.current = 1 AND createdTime>='2016-02-19 00:00:00' AND createdTime<='2016-02-19 23:59:59' AND food_bev_cat='beverage' GROUP BY name ORDER BY total DESC;
 		rows, err := clover_db.Query(`
-      SELECT SUM(order_items.price)/100.0 AS total, 
-      COUNT(order_items.id) AS cnt, order_items.name, order_items.price/100.0, 
-      order_items.item 
-      FROM itemcat, order_items, orders 
-      WHERE orders.id=order_items.orderRef AND order_items.name=itemcat.name 
-      AND itemcat.current=1 AND food_bev_cat='beverage' AND 
-      order_items.createdTime>=? AND order_items.createdTime<=? AND state = 'locked' 
-      GROUP BY order_items.name ORDER BY total DESC;`, start_date, end_date)
+	      SELECT SUM(order_items.price)/100.0 AS total, 
+	      COUNT(order_items.id) AS cnt, order_items.name, order_items.price/100.0, 
+	      order_items.item 
+	      FROM itemcat, order_items, orders 
+	      WHERE orders.id=order_items.orderRef AND order_items.name=itemcat.name 
+	      AND itemcat.current=1 AND food_bev_cat='beverage' AND 
+	      order_items.createdTime>=? AND order_items.createdTime<=? AND state = 'locked' 
+	      GROUP BY order_items.name ORDER BY total DESC;`, start_date, end_date)
 		if err != nil {
 			log.Println(err.Error)
 		}
@@ -465,7 +465,7 @@ func posCloverAPIHandler(w http.ResponseWriter, r *http.Request) {
 				AND size_prices.beverage_id=beverages.id 
 				AND beverages.version_id=clover_join.version_id 
 				AND clover_join.size_prices_id=size_prices.id 
-				AND clover_join.pos_item_id=$2 LIMIT 1;`, test_restaurant_id, csale.ItemID).Scan(
+				AND clover_join.pos_item_id=$2 LIMIT 1;`, restaurant_id, csale.ItemID).Scan(
 				&csales[i].ID,
 				&csales[i].Product,
 				&csales[i].Brewery,

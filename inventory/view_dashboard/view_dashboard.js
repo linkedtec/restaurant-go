@@ -18,11 +18,7 @@ angular.module('myApp.viewDashboard', ['ngRoute', 'ui.bootstrap'])
 
     var test_restaurant_id = 1;
 
-    $http.get('/restaurant/name', {
-      params: {
-        restaurant_id: test_restaurant_id
-      }
-    }).
+    $http.get('/restaurant/name').
     success(function(data, status, headers, config) {
       // this callback will be called asynchronously when the response
       // is available
@@ -42,13 +38,7 @@ angular.module('myApp.viewDashboard', ['ngRoute', 'ui.bootstrap'])
 
   $scope.getDashboard = function() {
 
-    var test_user_id = 1;
-
-    $http.get('/dashboard', {
-      params: {
-        user_id: test_user_id
-      }
-    }).
+    $http.get('/dashboard').
     success(function(data, status, headers, config) {
       // this callback will be called asynchronously when the response
       // is available

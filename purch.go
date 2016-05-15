@@ -111,15 +111,15 @@ type BudgetUpdate struct {
 }
 
 func setupPurchaseOrderHandlers() {
-	http.HandleFunc("/purchase", purchaseOrderAPIHandler)
-	http.HandleFunc("/purchase/all", purchaseOrderAllAPIHandler)
-	http.HandleFunc("/purchase/pending", purchaseOrderPendingAPIHandler)
-	http.HandleFunc("/purchase/auto", purchaseOrderAutoAPIHandler)
-	http.HandleFunc("/purchase/copy", purchaseOrderCopyAPIHandler)
-	http.HandleFunc("/purchase/nextponum", purchaseOrderNextNumAPIHandler)
-	http.HandleFunc("/purchase/dorder", distributorOrderAPIHandler)
-	http.HandleFunc("/purchase/po", purchaseOrderSearchPOAPIHandler)
-	http.HandleFunc("/budget", budgetAPIHandler)
+	http.HandleFunc("/purchase", sessionDecorator(purchaseOrderAPIHandler, g_basic_privilege))
+	http.HandleFunc("/purchase/all", sessionDecorator(purchaseOrderAllAPIHandler, g_basic_privilege))
+	http.HandleFunc("/purchase/pending", sessionDecorator(purchaseOrderPendingAPIHandler, g_basic_privilege))
+	http.HandleFunc("/purchase/auto", sessionDecorator(purchaseOrderAutoAPIHandler, g_basic_privilege))
+	http.HandleFunc("/purchase/copy", sessionDecorator(purchaseOrderCopyAPIHandler, g_basic_privilege))
+	http.HandleFunc("/purchase/nextponum", sessionDecorator(purchaseOrderNextNumAPIHandler, g_basic_privilege))
+	http.HandleFunc("/purchase/dorder", sessionDecorator(distributorOrderAPIHandler, g_basic_privilege))
+	http.HandleFunc("/purchase/po", sessionDecorator(purchaseOrderSearchPOAPIHandler, g_basic_privilege))
+	http.HandleFunc("/budget", sessionDecorator(budgetAPIHandler, g_basic_privilege))
 }
 
 func setupSendPendingPOsCron() {
@@ -179,8 +179,7 @@ func sendPendingPOs() {
 			continue
 		}
 
-		po_id_int, _ := strconv.Atoi(po_id)
-		purchase_order, err := getPurchaseOrderFromID(po_id_int)
+		purchase_order, err := getPurchaseOrderFromID(po_id, restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			continue
@@ -852,20 +851,20 @@ func getPurchaseOrderNumForRestaurant(restaurant_id string) string {
 }
 
 func purchaseOrderNextNumAPIHandler(w http.ResponseWriter, r *http.Request) {
-	privilege := checkUserPrivilege()
+
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 
 	case "GET":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
 
 		// XXX Need to post restaurant_id here and valdiate user
 
 		var po_num PO_Num
-		po_num.PO_Num = getPurchaseOrderNumForRestaurant(test_restaurant_id)
+		po_num.PO_Num = getPurchaseOrderNumForRestaurant(restaurant_id)
 
 		w.Header().Set("Content-Type", "application/json")
 		js, err := json.Marshal(po_num)
@@ -884,19 +883,15 @@ func purchaseOrderNextNumAPIHandler(w http.ResponseWriter, r *http.Request) {
 // returns the id and version_id for these bevs, up to caller to populate
 // their details.
 func purchaseOrderAutoAPIHandler(w http.ResponseWriter, r *http.Request) {
-	privilege := checkUserPrivilege()
+
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 
 	case "GET":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
-
-		// XXX in the future need to validate poster is authenticated to query
-		// for this restaurant.  Need to replace user_id in query with restaurant_id
-		//restaurant_id := r.URL.Query().Get("restaurant_id")
 
 		var dist_orders []DistributorOrder
 		var processed_dist_ids []int
@@ -904,7 +899,7 @@ func purchaseOrderAutoAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// get all beverages for restaurant whose sale_status not Inactive or NULL
 		rows, err := db.Query(`
 			SELECT id, version_id, distributor_id FROM beverages WHERE restaurant_id=$1 AND sale_status IS NOT NULL AND distributor_id IS NOT NULL AND sale_status!='Inactive';`,
-			test_restaurant_id)
+			restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -981,26 +976,37 @@ func purchaseOrderAutoAPIHandler(w http.ResponseWriter, r *http.Request) {
 // returns the order's contact info, delivery address type, and additional
 // comments for the distributor orders
 func purchaseOrderCopyAPIHandler(w http.ResponseWriter, r *http.Request) {
-	privilege := checkUserPrivilege()
+
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 
 	case "GET":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
-
-		// XXX in the future need to validate poster is authenticated to query
-		// for this restaurant.  Need to replace user_id in query with restaurant_id
-		//restaurant_id := r.URL.Query().Get("restaurant_id")
 
 		copy_id := r.URL.Query().Get("copy_id")
+
+		// make sure copy_id belongs to the right restaurant of user
+		var po_exists bool
+		err := db.QueryRow(`
+			SELECT EXISTS(SELECT 1 FROM purchase_orders WHERE id=$1 AND restaurant_id=$2);`, copy_id, restaurant_id).Scan(
+			&po_exists)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if !po_exists {
+			http.Error(w, "Requested PO does not exist!", http.StatusInternalServerError)
+			return
+		}
 
 		// first get the purchase order, along with contact information
 		var copy_po PurchaseOrder
 		var purchase_cc_id NullInt64
-		err := db.QueryRow(`
+		err = db.QueryRow(`
 			SELECT purchase_contact, purchase_email, purchase_phone, purchase_fax, purchase_cc 
 			FROM purchase_orders WHERE id=$1;`, copy_id).Scan(
 			&copy_po.Order.PurchaseContact,
@@ -1094,16 +1100,14 @@ func purchaseOrderCopyAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 func purchaseOrderPendingAPIHandler(w http.ResponseWriter, r *http.Request) {
 
-	privilege := checkUserPrivilege()
+	user_id, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 
 	case "GET":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
-
 		// note we return unconverted times here so that client can convert that
 		// to local JS Date object.  Don't use AT TIME ZONE in this query!
 		var purchase_orders []PurchaseOrder
@@ -1112,7 +1116,7 @@ func purchaseOrderPendingAPIHandler(w http.ResponseWriter, r *http.Request) {
 				FROM purchase_orders 
 				WHERE restaurant_id=$1 AND sent=FALSE 
 			ORDER BY order_date ASC;`,
-			test_restaurant_id)
+			restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1176,11 +1180,6 @@ func purchaseOrderPendingAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	case "POST":
 
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
-
 		// POST on /purchase/pending is to 'Send Now' on a pending purchase order
 		// first verify that the posted po_id is indeed pending
 		// update the DB purchase_orders.order_date to now()
@@ -1218,7 +1217,7 @@ func purchaseOrderPendingAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		purchase_order, err := getPurchaseOrderFromID(order.ID)
+		purchase_order, err := getPurchaseOrderFromID(strconv.Itoa(order.ID), restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1226,44 +1225,51 @@ func purchaseOrderPendingAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if purchase_order.Order.SendMethod.String == "email" {
-			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, true, true, w, r)
+			createPurchaseOrderPDFFile(user_id, restaurant_id, purchase_order, true, true, w, r)
 		} else if purchase_order.Order.SendMethod.String == "text" {
-			createPurchaseOrderSMS(test_user_id, test_restaurant_id, purchase_order, true, w, r)
+			createPurchaseOrderSMS(user_id, restaurant_id, purchase_order, true, w, r)
 		} else if purchase_order.Order.SendMethod.String == "save" {
-			createPurchaseOrderSaveOnly(test_user_id, test_restaurant_id, purchase_order, true, w, r)
+			createPurchaseOrderSaveOnly(user_id, restaurant_id, purchase_order, true, w, r)
 		}
 		// if purchase order had a CC email, send out CC email
 		// by setting split_by_dist_order false and do_send true, it will send
 		// a single overview pdf to the CC list only
 		if len(purchase_order.Order.PurchaseCC) > 0 {
-			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, false, true, w, r)
+			createPurchaseOrderPDFFile(user_id, restaurant_id, purchase_order, false, true, w, r)
 		}
 
 		// if the PO total exceeded the remaining budget, AND there is a
 		// contact specified for email alerts, send email alert
-		budget, err := getMonthlyBudget(test_restaurant_id)
+		budget, err := getMonthlyBudget(restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 		if budget.RemainingBudget.Valid && budget.RemainingBudget.Float64 < 0 {
 			log.Println("Monthly budget exceeded, sending budget alert!")
-			_ = sendBudgetAlert(test_restaurant_id, budget)
+			_ = sendBudgetAlert(restaurant_id, budget)
 		}
 
 	case "DELETE":
-
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
 
 		// CANNOT delete purchase_orders which have already been sent.
 		// First check that purchase_orders.sent is not TRUE for the po to be deleted
 		po_id := r.URL.Query().Get("id")
 
+		var po_exists bool
+		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM purchase_orders WHERE restaurant_id=$1 AND id=$2);", restaurant_id, po_id).Scan(&po_exists)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if !po_exists {
+			http.Error(w, "Posted PO does not exist!", http.StatusBadRequest)
+			return
+		}
+
 		var sent bool
-		err := db.QueryRow("SELECT sent FROM purchase_orders WHERE restaurant_id=$1 AND id=$2;", test_restaurant_id, po_id).Scan(&sent)
+		err = db.QueryRow("SELECT sent FROM purchase_orders WHERE restaurant_id=$1 AND id=$2;", restaurant_id, po_id).Scan(&sent)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1397,15 +1403,15 @@ func getPurchaseOrderHistoryFromPurchaseOrderIds(pos []PurchaseOrder, w http.Res
 }
 
 func purchaseOrderSearchPOAPIHandler(w http.ResponseWriter, r *http.Request) {
-	privilege := checkUserPrivilege()
+
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 
 	case "GET":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
 
 		po_num := r.URL.Query().Get("po_num")
 		// if po_num starts with '#', trim it
@@ -1422,8 +1428,11 @@ func purchaseOrderSearchPOAPIHandler(w http.ResponseWriter, r *http.Request) {
 		var purchase_orders []PurchaseOrder
 		rows, err := db.Query(`
 			SELECT DISTINCT purchase_order_id 
-			FROM distributor_orders 
-			WHERE distributor_orders.do_num LIKE '%' || $1 || '%' ORDER BY purchase_order_id DESC;`, po_num)
+			FROM distributor_orders, purchase_orders 
+			WHERE distributor_orders.do_num LIKE '%' || $1 || '%' 
+			AND distributor_orders.purchase_order_id=purchase_orders.id 
+			AND purchase_orders.restaurant_id=$2 
+			ORDER BY purchase_order_id DESC;`, po_num, restaurant_id)
 		if err != nil {
 			switch {
 			// If there were no rows, that means the beverage was probably deleted (no current).  In that case don't do the update
@@ -1467,20 +1476,18 @@ func purchaseOrderSearchPOAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 
-	privilege := checkUserPrivilege()
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 
 	case "GET":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
 
 		start_date := r.URL.Query().Get("start_date")
 		end_date := r.URL.Query().Get("end_date")
 		include_pending := r.URL.Query().Get("include_pending")
-		//tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
 		log.Println(start_date)
 		log.Println(end_date)
 
@@ -1492,7 +1499,7 @@ func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		var purchase_orders []PurchaseOrder
 		rows, err := db.Query(query_str,
-			start_date, end_date, test_restaurant_id)
+			start_date, end_date, restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1530,23 +1537,41 @@ func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func distributorOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
-	privilege := checkUserPrivilege()
+
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 
 	case "GET":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
 
 		// gets a single distributor order via id
 		do_id := r.URL.Query().Get("id")
 
-		tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
+		tz_str, _ := getRestaurantTimeZone(restaurant_id)
+
+		// make sure user is authorized to access this distributor order
+		var do_exists bool
+		err := db.QueryRow(`
+			SELECT EXISTS(SELECT 1 FROM distributor_orders, purchase_orders 
+				WHERE distributor_orders.id=$1 AND 
+				distributor_orders.purchase_order_id=purchase_orders.id AND 
+				purchase_orders.restaurant_id=$2);
+			`, do_id, restaurant_id).Scan(&do_exists)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if !do_exists {
+			http.Error(w, "Posted Distributor Order ID does not exist!", http.StatusBadRequest)
+			return
+		}
 
 		var dist_order DistributorOrder
-		err := db.QueryRow(`
+		err = db.QueryRow(`
 			SELECT id, distributor, delivery_date AT TIME ZONE 'UTC' AT TIME ZONE $1, total, do_num FROM distributor_orders WHERE id=$2;`, tz_str, do_id).Scan(
 			&dist_order.ID,
 			&dist_order.Distributor,
@@ -1560,9 +1585,9 @@ func distributorOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		irows, err := db.Query(`
-				SELECT beverage_id, quantity, batch_cost, subtotal, resolved_subtotal, 
-				additional_pricing, additional_pricing_description, delivery_status 
-					FROM distributor_order_items WHERE distributor_order_id=$1;`, dist_order.ID)
+			SELECT beverage_id, quantity, batch_cost, subtotal, resolved_subtotal, 
+			additional_pricing, additional_pricing_description, delivery_status 
+				FROM distributor_order_items WHERE distributor_order_id=$1;`, dist_order.ID)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1609,100 +1634,98 @@ func distributorOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Write(js)
 
-  case "DELETE":
+	case "DELETE":
 
-    if !hasBasicPrivilege(privilege) {
-      http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-      return
-    }
+		do_id := r.URL.Query().Get("do_id")
 
-    //restaurant_id := r.URL.Query().Get("test_restaurant_id")
-    do_id := r.URL.Query().Get("do_id")
-    
-    // Tables potentially affected: 
-    //      distributor_order_items
-    //      distributor_orders
-    //      do_deliveries
-    //      do_item_deliveries
-    //      purchase_orders
-    //
-    // 1. First confirm do_id exists in distributor_orders
-    //
-    // 2. Delete any do_deliveries and do_item_deliveries which match do_id
-    //
-    // 3. Delete all distributor_order_items and distributor_orders which 
-    //    match do_id
-    //
-    // 4. If PO no longer has any distributor_orders, delete the purchase order
+		// Tables potentially affected:
+		//      distributor_order_items
+		//      distributor_orders
+		//      do_deliveries
+		//      do_item_deliveries
+		//      purchase_orders
+		//
+		// 1. First confirm do_id exists in distributor_orders
+		//
+		// 2. Delete any do_deliveries and do_item_deliveries which match do_id
+		//
+		// 3. Delete all distributor_order_items and distributor_orders which
+		//    match do_id
+		//
+		// 4. If PO no longer has any distributor_orders, delete the purchase order
 
-    var exists bool
-    err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM distributor_orders WHERE id=$1);", do_id).Scan(&exists)
-    if err != nil {
-      log.Println(err.Error())
-      http.Error(w, err.Error(), http.StatusInternalServerError)
-      return
-    }
-    if !exists {
-      http.Error(w, "No distributor order with posted ID found...", http.StatusBadRequest)
-      return
-    }
+		var do_exists bool
+		err := db.QueryRow(`
+			SELECT EXISTS(SELECT 1 FROM distributor_orders, purchase_orders 
+				WHERE distributor_orders.id=$1 AND 
+				distributor_orders.purchase_order_id=purchase_orders.id AND 
+				purchase_orders.restaurant_id=$2);
+			`, do_id, restaurant_id).Scan(&do_exists)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if !do_exists {
+			http.Error(w, "Posted Distributor Order ID does not exist!", http.StatusBadRequest)
+			return
+		}
 
-    var po_id int
-    err = db.QueryRow("SELECT purchase_order_id FROM distributor_orders WHERE id=$1;", do_id).Scan(&po_id)
-    if err != nil {
-      log.Println(err.Error())
-      http.Error(w, err.Error(), http.StatusInternalServerError)
-      return
-    }
+		var po_id int
+		err = db.QueryRow("SELECT purchase_order_id FROM distributor_orders WHERE id=$1;", do_id).Scan(&po_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-    // XXX Verify restaurant id matches user_id
+		// XXX Verify restaurant id matches user_id
 
-    _, err = db.Exec("DELETE FROM do_item_deliveries WHERE distributor_order_id=$1;", do_id)
-    if err != nil {
-      log.Println(err.Error())
-      http.Error(w, err.Error(), http.StatusInternalServerError)
-      return
-    }
-    _, err = db.Exec("DELETE FROM do_deliveries WHERE distributor_order_id=$1;", do_id)
-    if err != nil {
-      log.Println(err.Error())
-      http.Error(w, err.Error(), http.StatusInternalServerError)
-      return
-    }
-    _, err = db.Exec("DELETE FROM distributor_order_items WHERE distributor_order_id=$1;", do_id)
-    if err != nil {
-      log.Println(err.Error())
-      http.Error(w, err.Error(), http.StatusInternalServerError)
-      return
-    }
-    _, err = db.Exec("DELETE FROM distributor_orders WHERE id=$1;", do_id)
-    if err != nil {
-      log.Println(err.Error())
-      http.Error(w, err.Error(), http.StatusInternalServerError)
-      return
-    }
+		_, err = db.Exec("DELETE FROM do_item_deliveries WHERE distributor_order_id=$1;", do_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		_, err = db.Exec("DELETE FROM do_deliveries WHERE distributor_order_id=$1;", do_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		_, err = db.Exec("DELETE FROM distributor_order_items WHERE distributor_order_id=$1;", do_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		_, err = db.Exec("DELETE FROM distributor_orders WHERE id=$1;", do_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-    var num_dos_in_po int
-    err = db.QueryRow("SELECT COUNT(DISTINCT id) FROM distributor_orders WHERE purchase_order_id=$1;", po_id).Scan(&num_dos_in_po)
-    if err != nil {
-      log.Println(err.Error())
-      http.Error(w, err.Error(), http.StatusInternalServerError)
-      return
-    }
-    // if the parent PO has no more distributor orders, delete it as well
-    if num_dos_in_po == 0 {
-      _, err = db.Exec("DELETE FROM purchase_orders WHERE id=$1;", po_id)
-      if err != nil {
-        log.Println(err.Error())
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-      }
-    }
-
+		var num_dos_in_po int
+		err = db.QueryRow("SELECT COUNT(DISTINCT id) FROM distributor_orders WHERE purchase_order_id=$1;", po_id).Scan(&num_dos_in_po)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		// if the parent PO has no more distributor orders, delete it as well
+		if num_dos_in_po == 0 {
+			_, err = db.Exec("DELETE FROM purchase_orders WHERE id=$1;", po_id)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
 	}
 }
 
-func getPurchaseOrderFromID(po_id int) (PurchaseOrder, error) {
+func getPurchaseOrderFromID(po_id string, restaurant_id string) (PurchaseOrder, error) {
 	// XXX VERY IMPORTANT NOTE HERE:
 	// We get all the order_date, delivery_date in time zone UTC instead of
 	// user's / restaurant's local time to reproduce the conditions when they
@@ -1712,7 +1735,10 @@ func getPurchaseOrderFromID(po_id int) (PurchaseOrder, error) {
 	var purchase_order PurchaseOrder
 	var email_contact EmailContact
 	err := db.QueryRow(`
-			SELECT id, order_date, sent, purchase_contact, purchase_email, purchase_phone, purchase_fax, purchase_cc, send_method, po_num FROM purchase_orders WHERE id=$1;`, po_id).Scan(
+			SELECT id, order_date, sent, purchase_contact, purchase_email, purchase_phone, 
+			purchase_fax, purchase_cc, send_method, po_num 
+			FROM purchase_orders 
+			WHERE id=$1 AND restaurant_id=$2;`, po_id, restaurant_id).Scan(
 		&purchase_order.Order.ID,
 		&purchase_order.Order.OrderDate,
 		&purchase_order.Order.Sent,
@@ -1807,18 +1833,17 @@ func getPurchaseOrderFromID(po_id int) (PurchaseOrder, error) {
 
 func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 
-	privilege := checkUserPrivilege()
+	user_id, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 
 	case "GET":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
 
 		// gets a single purchase order PDF via id
-		_po_id := r.URL.Query().Get("id")
+		po_id := r.URL.Query().Get("id")
 		// an optional argument from client if we're overriding the order_date
 		// for display back, for reviewing "Send Now" versions of pending orders
 		// if none was specified will be empty string ""
@@ -1830,8 +1855,7 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// everything as 'save' so we get additional product info
 		view_override := r.URL.Query().Get("view_override")
 
-		po_id, _ := strconv.Atoi(_po_id)
-		purchase_order, err := getPurchaseOrderFromID(po_id)
+		purchase_order, err := getPurchaseOrderFromID(po_id, restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1840,7 +1864,7 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		if order_date_override != "" && len(order_date_override) > 3 {
 			log.Println(order_date_override)
-			tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
+			tz_str, _ := getRestaurantTimeZone(restaurant_id)
 			order_date := getTimeAtTimezoneFromString(order_date_override, tz_str, true)
 			log.Println("Overriden:")
 			log.Println(order_date)
@@ -1853,18 +1877,14 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if view_method == "email" {
-			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, false, false, w, r)
+			createPurchaseOrderPDFFile(user_id, restaurant_id, purchase_order, false, false, w, r)
 		} else if view_method == "text" {
-			createPurchaseOrderSMS(test_user_id, test_restaurant_id, purchase_order, false, w, r)
+			createPurchaseOrderSMS(user_id, restaurant_id, purchase_order, false, w, r)
 		} else if view_method == "save" {
-			createPurchaseOrderSaveOnly(test_user_id, test_restaurant_id, purchase_order, false, w, r)
+			createPurchaseOrderSaveOnly(user_id, restaurant_id, purchase_order, false, w, r)
 		}
 
 	case "POST":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
 
 		// receives:
 		// Order Information:
@@ -1908,14 +1928,18 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		if order.Order.DeliveryAddressType.Valid && len(order.Order.DeliveryAddressType.String) > 0 {
 			if order.Order.DeliveryAddressType.String == "delivery" {
-				err = db.QueryRow("SELECT delivery_addr1, delivery_addr2, delivery_city, delivery_state, delivery_zipcode FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
+				err = db.QueryRow(`
+					SELECT delivery_addr1, delivery_addr2, delivery_city, 
+					delivery_state, delivery_zipcode FROM restaurants WHERE id=$1;`, restaurant_id).Scan(
 					&order.DeliveryAddress.AddressOne,
 					&order.DeliveryAddress.AddressTwo,
 					&order.DeliveryAddress.City,
 					&order.DeliveryAddress.State,
 					&order.DeliveryAddress.Zipcode)
 			} else {
-				err = db.QueryRow("SELECT addr1, addr2, city, state, zipcode FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(
+				err = db.QueryRow(`
+					SELECT addr1, addr2, city, state, zipcode 
+					FROM restaurants WHERE id=$1;`, restaurant_id).Scan(
 					&order.DeliveryAddress.AddressOne,
 					&order.DeliveryAddress.AddressTwo,
 					&order.DeliveryAddress.City,
@@ -1938,12 +1962,15 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		cc_id.Valid = false
 		if len(order.Order.PurchaseCC) > 0 {
 			email := order.Order.PurchaseCC[0].Email
-			test_restaurant_id_int, _ := strconv.Atoi(test_restaurant_id)
-			cc_id = getOrAddContactEmail(email, test_restaurant_id_int)
+			cc_id = getOrAddContactEmail(email, restaurant_id)
 		}
 
 		if order.Order.PurchaseSaveDefault.Valid && order.Order.PurchaseSaveDefault.Bool == true {
-			_, err = db.Exec("UPDATE restaurants SET purchase_contact=$1, purchase_email=$2, purchase_phone=$3, purchase_fax=$4, purchase_cc=$5 WHERE id=$6", order.Order.PurchaseContact, order.Order.PurchaseEmail, order.Order.PurchasePhone, order.Order.PurchaseFax, cc_id, test_restaurant_id)
+			_, err = db.Exec(`
+				UPDATE restaurants SET purchase_contact=$1, purchase_email=$2, purchase_phone=$3, 
+				purchase_fax=$4, purchase_cc=$5 WHERE id=$6;`,
+				order.Order.PurchaseContact, order.Order.PurchaseEmail, order.Order.PurchasePhone,
+				order.Order.PurchaseFax, cc_id, restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1953,14 +1980,18 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		for _, dorder := range order.DistributorOrders {
 			if dorder.DistributorEmailSaveDefault.Valid && dorder.DistributorEmailSaveDefault.Bool == true {
-				_, err = db.Exec("UPDATE distributors SET email=$1, contact_name=$2 WHERE id=$3", dorder.DistributorEmail, dorder.DistributorContactName, dorder.DistributorID)
+				_, err = db.Exec(`
+					UPDATE distributors SET email=$1, contact_name=$2 WHERE id=$3;`,
+					dorder.DistributorEmail, dorder.DistributorContactName, dorder.DistributorID)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
 			} else if dorder.DistributorPhoneSaveDefault.Valid && dorder.DistributorPhoneSaveDefault.Bool == true {
-				_, err = db.Exec("UPDATE distributors SET phone=$1, contact_name=$2 WHERE id=$3", dorder.DistributorPhone, dorder.DistributorContactName, dorder.DistributorID)
+				_, err = db.Exec(`
+					UPDATE distributors SET phone=$1, contact_name=$2 WHERE id=$3`,
+					dorder.DistributorPhone, dorder.DistributorContactName, dorder.DistributorID)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1971,7 +2002,7 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// get the unique Purchase Order Number.  Do this outside of DoSend check
 		// since previews need it too
-		po_num := getPurchaseOrderNumForRestaurant(test_restaurant_id)
+		po_num := getPurchaseOrderNumForRestaurant(restaurant_id)
 		order.Order.PO_Num.String = po_num
 		order.Order.PO_Num.Valid = true
 		sub_nums := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -1988,7 +2019,7 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// Save the entire Purchase Order into history so we can view history in
 			// the future
 			var restaurant Restaurant
-			err := db.QueryRow("SELECT name FROM restaurants WHERE id=$1;", test_restaurant_id).Scan(&restaurant.Name)
+			err := db.QueryRow("SELECT name FROM restaurants WHERE id=$1;", restaurant_id).Scan(&restaurant.Name)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2005,7 +2036,7 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 					addr1, addr2, city, state, zipcode, send_method, po_num) 
 				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) 
 				RETURNING id;`,
-				restaurant.Name.String, test_restaurant_id, test_user_id, cur_time,
+				restaurant.Name.String, restaurant_id, user_id, cur_time,
 				order.Order.OrderDate, false, order.Order.PurchaseContact,
 				order.Order.PurchaseEmail, order.Order.PurchasePhone, order.Order.PurchaseFax,
 				cc_id,
@@ -2063,20 +2094,20 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 				// if sending later, we don't actually create anything now, we're
 				// content with saving the PO in the DB above
 			} else {
-				createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, order, order.DoSend, order.DoSend, w, r)
+				createPurchaseOrderPDFFile(user_id, restaurant_id, order, order.DoSend, order.DoSend, w, r)
 			}
 		} else if order.Order.SendMethod.String == "text" {
 			if order.DoSend == true && order.Order.SendLater == true {
 				// if sending later, we don't actually create anything now, we're
 				// content with saving the PO in the DB above
 			} else {
-				createPurchaseOrderSMS(test_user_id, test_restaurant_id, order, order.DoSend, w, r)
+				createPurchaseOrderSMS(user_id, restaurant_id, order, order.DoSend, w, r)
 			}
 		} else if order.Order.SendMethod.String == "save" {
 			// Note for saving we never actually "send later", so we don't have
 			// additional checks for send later, we always just "save" it now
 			// which will mark it as sent, so it doesn't show up in pending POs
-			createPurchaseOrderSaveOnly(test_user_id, test_restaurant_id, order, order.DoSend, w, r)
+			createPurchaseOrderSaveOnly(user_id, restaurant_id, order, order.DoSend, w, r)
 		}
 
 		actually_sent := order.DoSend == true && (order.Order.SendLater == false || order.Order.SendMethod.String == "save")
@@ -2085,20 +2116,20 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// by setting split_by_dist_order false and do_send true, it will send
 			// a single overview pdf to the CC list only
 			if len(order.Order.PurchaseCC) > 0 {
-				createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, order, false, true, w, r)
+				createPurchaseOrderPDFFile(user_id, restaurant_id, order, false, true, w, r)
 			}
 
 			// check if budget was overdrawn and send alert email if necessary
 			// if the PO total exceeded the remaining budget, AND there is a
 			// contact specified for email alerts, send email alert
-			budget, err := getMonthlyBudget(test_restaurant_id)
+			budget, err := getMonthlyBudget(restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 			if budget.RemainingBudget.Valid && budget.RemainingBudget.Float64 < 0 {
 				log.Println("Monthly budget exceeded, sending budget alert!")
-				_ = sendBudgetAlert(test_restaurant_id, budget)
+				_ = sendBudgetAlert(restaurant_id, budget)
 			}
 		}
 	}
@@ -2231,26 +2262,15 @@ func getMonthlyBudget(restaurant_id string) (Budget, error) {
 }
 
 func budgetAPIHandler(w http.ResponseWriter, r *http.Request) {
-	privilege := checkUserPrivilege()
+
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 
 	case "GET":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
-
-		user_id := r.URL.Query().Get("user_id")
-		var restaurant_id string
-		err := db.QueryRow(`
-      SELECT restaurant_id 
-      FROM restaurant_users WHERE user_id=$1;`, user_id).Scan(&restaurant_id)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
 
 		budget, err := getMonthlyBudget(restaurant_id)
 		if err != nil {
@@ -2268,28 +2288,12 @@ func budgetAPIHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 
 	case "POST":
-
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
-
 		decoder := json.NewDecoder(r.Body)
 		var budget Budget
 		err := decoder.Decode(&budget)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		var restaurant_id string
-		err = db.QueryRow(`
-      SELECT restaurant_id 
-      FROM restaurant_users WHERE user_id=$1;`, budget.UserID).Scan(&restaurant_id)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -2314,10 +2318,6 @@ func budgetAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case "PUT":
-		if !hasBasicPrivilege(privilege) {
-			http.Error(w, "You lack privileges for this action!", http.StatusInternalServerError)
-			return
-		}
 
 		decoder := json.NewDecoder(r.Body)
 		var budget_update BudgetUpdate
@@ -2325,16 +2325,6 @@ func budgetAPIHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		var restaurant_id string
-		err = db.QueryRow(`
-      SELECT restaurant_id 
-      FROM restaurant_users WHERE user_id=$1;`, budget_update.UserID).Scan(&restaurant_id)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 

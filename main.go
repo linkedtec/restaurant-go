@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/context"
-	"golang.org/x/crypto/bcrypt"
+	//"golang.org/x/crypto/bcrypt"
 	//"github.com/gorilla/sessions"
 	_ "github.com/lib/pq"
 	"io/ioutil"
@@ -21,6 +21,8 @@ import (
 var db *sql.DB
 var test_user_id string = "1"
 var test_restaurant_id string = "1"
+
+var ERR_RET_STR = "-1"
 
 type VolumeUnit struct {
 	FullName string  `json:"full_name"`
@@ -177,11 +179,13 @@ func main() {
 
 	initSessionStore(isProduction)
 
+	/* hack-assery
 	test_email := "core433@gmail.com"
 	test_pw := "abc123"
 	password_hash, err := bcrypt.GenerateFromPassword([]byte(test_pw), bcrypt.DefaultCost)
 	_, err = db.Exec(`
 		UPDATE users SET email=$1, pw_hash=$2 WHERE id=1;`, test_email, password_hash)
+	*/
 
 	// handle home
 	http.HandleFunc("/", rootHandler)
@@ -197,7 +201,7 @@ func main() {
 	// handle volume_units APIs
 	http.HandleFunc("/volume_units", volumeUnitsHandler)
 
-	http.HandleFunc("/timezone", timezoneHandler)
+	http.HandleFunc("/timezone", sessionDecorator(timezoneHandler, g_basic_privilege))
 
 	setupSessionHandlers()
 
@@ -304,9 +308,14 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func timezoneHandler(w http.ResponseWriter, r *http.Request) {
+
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
+
 	switch r.Method {
 	case "GET":
-		restaurant_id := r.URL.Query().Get("restaurant_id")
 
 		var timezone string
 		err := db.QueryRow(`SELECT timezone FROM restaurants WHERE id=$1;`, restaurant_id).Scan(&timezone)

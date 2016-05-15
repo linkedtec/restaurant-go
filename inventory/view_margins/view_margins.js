@@ -47,11 +47,7 @@ angular.module('myApp.viewMargins', ['ngRoute', 'ui.bootstrap'])
 
     $scope.showSpinner = true;
 
-    var params = { 
-    restaurant_id: '1'
-    };
-    $http.get('/margins',
-      {params: params}).
+    $http.get('/margins').
     success(function(data, status, headers, config) {
 
       $scope.showSpinner = false;
