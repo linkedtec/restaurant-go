@@ -62,14 +62,16 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		var dlv_exists bool
 		err := db.QueryRow(`
-			SELECT EXISTS(SELECT 1 FROM do_deliveries 
-				WHERE distributor_order_id=$1);`, do_id).Scan(&dlv_exists)
+			SELECT EXISTS(SELECT 1 FROM do_deliveries, distributor_orders, purchase_orders 
+				WHERE do_deliveries.distributor_order_id=$1 
+				AND do_deliveries.distributor_order_id=distributor_orders.id 
+				AND distributor_orders.purchase_order_id=purchase_orders.id 
+				AND purchase_orders.restaurant_id=$2);`, do_id, restaurant_id).Scan(&dlv_exists)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-
 		if !dlv_exists {
 			log.Println("No Delivery with the Distributor Order ID found.  Quitting...")
 			http.Error(w, "No Delivery with the Distributor Order ID found.  Quitting...", http.StatusBadRequest)
@@ -155,18 +157,20 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// Is there already an entry in do_deliveries
 		var dlv_exists bool
 		err = db.QueryRow(`
-				SELECT EXISTS(SELECT 1 FROM do_deliveries
-					WHERE distributor_order_id=$1);`, dlv_update.Delivery.DistributorOrderID).Scan(&dlv_exists)
+			SELECT EXISTS(SELECT 1 FROM do_deliveries, distributor_orders, purchase_orders 
+				WHERE do_deliveries.distributor_order_id=$1 
+				AND do_deliveries.distributor_order_id=distributor_orders.id 
+				AND distributor_orders.purchase_order_id=purchase_orders.id 
+				AND purchase_orders.restaurant_id=$2);`,
+			dlv_update.Delivery.DistributorOrderID, restaurant_id).Scan(&dlv_exists)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-
-		// If delivery does not exist, cannot edit it
-		if dlv_exists != true {
-			log.Println("Delivery not found.  Quitting...")
-			http.Error(w, "Delivery not found.  Quitting...", http.StatusBadRequest)
+		if !dlv_exists {
+			log.Println("No Delivery with the Distributor Order ID found.  Quitting...")
+			http.Error(w, "No Delivery with the Distributor Order ID found.  Quitting...", http.StatusBadRequest)
 			return
 		}
 
@@ -396,7 +400,27 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(dorder)
 		log.Println(dorder.DistributorOrderID)
 
-		// Is there already an entry in do_deliveries
+		// make sure the distributor order ID the user is trying to POST
+		// belongs to their restaurant
+		var dorder_exists bool
+		err = db.QueryRow(`
+				SELECT EXISTS(SELECT 1 FROM distributor_orders, purchase_orders 
+				WHERE distributor_orders.id=$1 
+				AND distributor_orders.purchase_order_id=purchase_orders.id 
+				AND purchase_orders.restaurant_id=$2);`,
+			dorder.DistributorOrderID, restaurant_id).Scan(&dorder_exists)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		// if delivery already exists, should not accept another POST
+		if !dorder_exists == true {
+			http.Error(w, "No valid Distributor Order found.  Quitting...", http.StatusBadRequest)
+			return
+		}
+
+		// Is there already an entry in do_deliveries?  There can only be one delivery entry.
 		var dlv_exists bool
 		err = db.QueryRow(`
 				SELECT EXISTS(SELECT 1 FROM do_deliveries
@@ -406,7 +430,6 @@ func deliveriesAPIHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-
 		// if delivery already exists, should not accept another POST
 		if dlv_exists == true {
 			log.Println("Delivery already exists, cannot POST new record.  Quitting...")

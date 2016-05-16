@@ -11,7 +11,7 @@ angular.module('myApp')
       title:'=',
       formVerDate:'='
     },
-    templateUrl: './view_pos_deliveries/template_date_time_picker.html',
+    templateUrl: './view_pos_history/template_date_time_picker.html',
     link: function(scope, elem, attrs) {
 
       // provides a way of exposing certain functions to outside controllers

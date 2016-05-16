@@ -1,6 +1,6 @@
 angular.module('myApp')
 
-.directive('recordDelivery', function($modal, $http, $timeout, MathService, DateService, DeliveriesService, ItemsService) {
+.directive('recordDelivery', function($modal, $http, $timeout, MathService, DateService, ItemsService) {
   return {
     restrict: 'AE',
     scope: {

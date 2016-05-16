@@ -50,9 +50,9 @@
   <script src="/inventory/view_pos/view_pos.js"></script>
   <script src="/inventory/view_pos/directive_create_po.js"></script>
   <script src="/inventory/view_pos/directive_search_click_box.js"></script>
+  <script src="/inventory/view_pos_history/directive_date_time_picker.js"></script>
   <script src="/inventory/view_pos_history/view_pos_history.js"></script>
   <script src="/inventory/view_pos_history/directive_record_delivery.js"></script>
-  <script src="/inventory/view_pos_deliveries_new/view_pos_deliveries.js"></script>
   <script src="/inventory/view_loc/view_loc_new.js"></script>
   <script src="/inventory/view_loc/directive_new_location.js"></script>
   <!--script src="/inventory/view_loc/directive_loc_add_inv.js"></script-->
@@ -63,11 +63,6 @@
   <script src="/inventory/view_history/view_history.js"></script>
   <script src="/inventory/view_history/directive_date_range.js"></script>
   <script src="/inventory/view_history/directive_email_button.js"></script>
-  <script src="/inventory/view_pos_deliveries/directive_date_time_picker.js"></script>
-  <script src="/inventory/view_pos_deliveries/view_deliveries.js"></script>
-  <!--script src="/inventory/view_pos_deliveries/directive_new_delivery.js"></script-->
-  <script src="/inventory/view_pos_deliveries/directive_new_delivery_new.js"></script>
-  <script src="/inventory/view_pos_deliveries/service_deliveries.js"></script>
   <!--script src="/lib/tableToExcel/tableToExcel.js"></script-->
   <script src="/inventory/view_margins/view_margins.js"></script>
 </head>
@@ -97,17 +92,16 @@
             Menu & Sales
           </a>
         </li>
-        <li ng-class="{ 'active': isActive('/viewBudgetPlanner') || isActive('/viewPurchaseOrders') || isActive('/viewPurchaseHistory') || isActive('/viewPODeliveries') }">
+        <li ng-class="{ 'active': isActive('/viewBudgetPlanner') || isActive('/viewPurchaseOrders') || isActive('/viewPurchaseHistory') }">
           <a href="#/viewBudgetPlanner">
             Purchasing
           </a>
         </li>
-        <li ng-class="{ 'active': isActive('/viewInvByLoc') || isActive('/viewInvByLocNew') || isActive('/viewOnTap') || isActive('/viewHistory') || isActive('/viewDeliveries') }">
+        <li ng-class="{ 'active': isActive('/viewInvByLoc') || isActive('/viewInvByLocNew') || isActive('/viewOnTap') || isActive('/viewHistory') }">
           <a href="#/viewInvByLocNew">
             Inventory
           </a>
         </li>
-        <!--li ng-class="{ 'active': isActive('/') }"><a href="#/viewDeliveries">Deliveries</a></li-->
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <!-- logged in user -->

@@ -14,13 +14,11 @@ angular.module('myApp', [
   'myApp.viewBudgetPlanner',
   'myApp.viewPurchaseOrders',
   'myApp.viewPurchaseHistory',
-  'myApp.viewPODeliveries',
 //  'myApp.viewInvByLoc',
   'myApp.viewInvByLocNew',
 //  'myApp.viewOnTap',
  // 'myApp.viewEmptyKegs',
   'myApp.viewHistory',
-  'myApp.viewDeliveries',
   'myApp.viewMargins'
 ]).
 config(['$routeProvider', function($routeProvider) {

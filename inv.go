@@ -102,23 +102,26 @@ func setupInvHandlers() {
 	invHandler := http.FileServer(http.Dir("inventory"))
 	http.Handle("/inventory/", http.StripPrefix("/inventory/", sessionHandlerDecorator(invHandler)))
 
-	http.HandleFunc("/inv", invAPIHandler)
-	http.HandleFunc("/loc", locAPIHandler)
-	http.HandleFunc("/inv/loc", invLocAPIHandler)
+	http.HandleFunc("/inv", sessionDecorator(invAPIHandler, g_basic_privilege))
+	http.HandleFunc("/loc", sessionDecorator(locAPIHandler, g_basic_privilege))
+	http.HandleFunc("/inv/loc", sessionDecorator(invLocAPIHandler, g_basic_privilege))
 	http.HandleFunc("/inv/history", invHistoryAPIHandler)
-	http.HandleFunc("/inv/countsheets", invCountSheetsAPIHandler)
+	http.HandleFunc("/inv/countsheets", sessionDecorator(invCountSheetsAPIHandler, g_basic_privilege))
 	http.HandleFunc("/export/", exportAPIHandler)
 }
 
 func invCountSheetsAPIHandler(w http.ResponseWriter, r *http.Request) {
+
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
 
 	switch r.Method {
 	case "GET":
 		loc_ids := r.URL.Query().Get("loc_ids")
 
 		locs := strings.Split(loc_ids, ",")
-
-		test_restaurant_id := "1"
 
 		locMap := make(map[Location][]LocBeverageApp)
 
@@ -131,7 +134,7 @@ func invCountSheetsAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 			// Verify Location exists or quit
 			var exists bool
-			err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM locations WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, loc_id).Scan(&exists)
+			err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM locations WHERE restaurant_id=$1 AND id=$2);", restaurant_id, loc_id).Scan(&exists)
 			if err != nil {
 				// if query failed will exit here, so loc_id is guaranteed below
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -201,11 +204,11 @@ func invCountSheetsAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		log.Println(locMap)
-		createCountSheetsPDFFile(test_user_id, test_restaurant_id, locMap, w, r)
+		createCountSheetsPDFFile(restaurant_id, locMap, w, r)
 	}
 }
 
-func createCountSheetsPDFFile(user_id string, restaurant_id string, locMap map[Location][]LocBeverageApp, w http.ResponseWriter, r *http.Request) {
+func createCountSheetsPDFFile(restaurant_id string, locMap map[Location][]LocBeverageApp, w http.ResponseWriter, r *http.Request) {
 	export_dir := "./export/"
 	if os.MkdirAll(export_dir, 0755) != nil {
 		http.Error(w, "Unable to find or create export directory!", http.StatusInternalServerError)
@@ -352,6 +355,11 @@ func createCountSheetsPDFFile(user_id string, restaurant_id string, locMap map[L
 
 func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
+
 	switch r.Method {
 	case "GET":
 
@@ -359,7 +367,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// when getting sales status, we always want to first set any seasonal
 		// bevs whose sale_end period has ended to inactive
-		go inactivateExpiredSeasonals(w, test_restaurant_id)
+		go inactivateExpiredSeasonals(w, restaurant_id)
 
 		get_type := r.URL.Query().Get("type")
 		// if type is "names", only return the names, ids, and container types
@@ -370,9 +378,9 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		var beverages []Beverage
 		var beverages_light []BeverageLight
 
-		query := "SELECT id, version_id, container_type, serve_type, distributor_id, keg_id, product, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, purchase_count, flavor_profile, sale_status, sale_start, sale_end, par FROM beverages WHERE restaurant_id=" + test_restaurant_id + " AND current"
+		query := "SELECT id, version_id, container_type, serve_type, distributor_id, keg_id, product, brewery, alcohol_type, abv, purchase_volume, purchase_unit, purchase_cost, purchase_count, flavor_profile, sale_status, sale_start, sale_end, par FROM beverages WHERE restaurant_id=" + restaurant_id + " AND current"
 		if names_only {
-			query = "SELECT id, version_id, container_type, product FROM beverages WHERE restaurant_id=" + test_restaurant_id + " AND current"
+			query = "SELECT id, version_id, container_type, product FROM beverages WHERE restaurant_id=" + restaurant_id + " AND current"
 		}
 		// this is a hackery to prevent injection attacks
 		if len(container_type) != 0 && len(container_type) < 8 {
@@ -566,7 +574,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 			bev.Product, bev.ContainerType, bev.ServeType, bev.DistributorID,
 			bev.KegID, bev.Brewery, bev.AlcoholType, bev.ABV, bev.PurchaseVolume,
 			bev.PurchaseUnit, bev.PurchaseCost, bev.PurchaseCount, bev.FlavorProfile,
-			test_restaurant_id, cur_time, bev.SaleStatus, bev.SaleStart, bev.SaleEnd,
+			restaurant_id, cur_time, bev.SaleStatus, bev.SaleStart, bev.SaleEnd,
 			bev.Par).Scan(&bev_id)
 		if err != nil {
 			log.Println(err.Error())
@@ -632,7 +640,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// first verify this beverage belongs to the user
 		var exists bool
-		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, bev_update.Bev.ID).Scan(&exists)
+		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", restaurant_id, bev_update.Bev.ID).Scan(&exists)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -855,7 +863,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 					WHERE size_prices.beverage_id=$2 
 					AND size_prices.serving_size=old_clover_join.serving_size 
 					AND size_prices.serving_unit=old_clover_join.serving_unit;
-					`, test_restaurant_id, new_bev_id, old_bev_id)
+					`, restaurant_id, new_bev_id, old_bev_id)
 		}
 
 		// Finally, handle sale status changes
@@ -891,7 +899,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
-			createRestaurantMenuPage(test_restaurant_id, w, false)
+			createRestaurantMenuPage(restaurant_id, w, false)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -918,7 +926,7 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 		//   delete all beverages with version_id
 
 		var version_id int
-		err := db.QueryRow("SELECT version_id FROM beverages WHERE restaurant_id=$1 AND id=$2;", test_restaurant_id, bev_id).Scan(&version_id)
+		err := db.QueryRow("SELECT version_id FROM beverages WHERE restaurant_id=$1 AND id=$2;", restaurant_id, bev_id).Scan(&version_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1006,6 +1014,11 @@ func invAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
+
 	switch r.Method {
 	case "GET":
 
@@ -1013,8 +1026,9 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		var locations []Location
 
-		log.Println(test_restaurant_id)
-		rows, err := db.Query("SELECT id, name, last_update FROM locations WHERE restaurant_id=$1 AND type=$2 AND active ORDER BY id;", test_restaurant_id, loc_type)
+		rows, err := db.Query(`
+			SELECT id, name, last_update FROM locations 
+			WHERE restaurant_id=$1 AND type=$2 AND active ORDER BY id;`, restaurant_id, loc_type)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -1069,7 +1083,9 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = db.Exec("INSERT INTO locations(name, last_update, restaurant_id, type, active) VALUES ($1, $2, $3, $4, TRUE);", newLoc.Name, time.Time{}, test_restaurant_id, newLoc.Type)
+		_, err = db.Exec(`
+			INSERT INTO locations(name, last_update, restaurant_id, type, active) 
+			VALUES ($1, $2, $3, $4, TRUE);`, newLoc.Name, time.Time{}, restaurant_id, newLoc.Type)
 		if err != nil {
 			log.Println(err.Error())
 		}
@@ -1085,7 +1101,9 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Verify Location exists or quit
 		var loc_id int
-		err = db.QueryRow("SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type=$3;", test_restaurant_id, rename.Name, rename.Type).Scan(&loc_id)
+		err = db.QueryRow(`
+			SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type=$3;`,
+			restaurant_id, rename.Name, rename.Type).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
 			log.Println(err.Error())
@@ -1107,7 +1125,8 @@ func locAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Verify Location exists or quit
 		var loc_id int
-		err := db.QueryRow("SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type=$3;", test_restaurant_id, loc_name, loc_type).Scan(&loc_id)
+		err := db.QueryRow(`SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type=$3;`,
+			restaurant_id, loc_name, loc_type).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2489,6 +2508,12 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 // Adds an inventory item type to a location.
 func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
+
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
+
 	switch r.Method {
 
 	case "GET":
@@ -2506,7 +2531,9 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Verify Location exists or quit
 		var loc_id int
-		err := db.QueryRow("SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type=$3;", test_restaurant_id, loc_name, loc_type).Scan(&loc_id)
+		err := db.QueryRow(`
+			SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type=$3;`,
+			restaurant_id, loc_name, loc_type).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2532,7 +2559,17 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			WHERE location_beverages.location_id=$1 AND location_beverages.update=$2 AND location_beverages.active AND location_beverages.type='bev'
 			ORDER BY beverages.product ASC;
 		*/
-		rows, err := db.Query("SELECT beverages.id, beverages.version_id, beverages.product, beverages.container_type, beverages.brewery, distributors.name, beverages.alcohol_type, beverages.purchase_volume, beverages.purchase_unit, beverages.purchase_cost, beverages.purchase_count, kegs.deposit, location_beverages.quantity, location_beverages.inventory, location_beverages.update FROM beverages INNER JOIN location_beverages ON (beverages.id=location_beverages.beverage_id) LEFT OUTER JOIN distributors ON (beverages.distributor_id=distributors.id) LEFT OUTER JOIN kegs ON (beverages.keg_id=kegs.id) WHERE location_beverages.location_id=$1 AND location_beverages.update=$2 AND location_beverages.active AND location_beverages.type='bev' ORDER BY beverages.product ASC;", loc_id, last_update)
+		rows, err := db.Query(`
+			SELECT beverages.id, beverages.version_id, beverages.product, beverages.container_type, 
+			beverages.brewery, distributors.name, beverages.alcohol_type, beverages.purchase_volume, 
+			beverages.purchase_unit, beverages.purchase_cost, beverages.purchase_count, kegs.deposit, 
+			location_beverages.quantity, location_beverages.inventory, location_beverages.update 
+			FROM beverages INNER JOIN location_beverages ON (beverages.id=location_beverages.beverage_id) 
+			LEFT OUTER JOIN distributors ON (beverages.distributor_id=distributors.id) 
+			LEFT OUTER JOIN kegs ON (beverages.keg_id=kegs.id) 
+			WHERE location_beverages.location_id=$1 
+			AND location_beverages.update=$2 AND location_beverages.active 
+			AND location_beverages.type='bev' ORDER BY beverages.product ASC;`, loc_id, last_update)
 		//rows, err := db.Query("SELECT beverages.id, beverages.version_id, beverages.product, beverages.container_type, beverages.brewery, distributors.name, beverages.alcohol_type, beverages.purchase_volume, beverages.purchase_unit, beverages.purchase_cost, beverages.purchase_count, beverages.deposit, location_beverages.quantity, location_beverages.inventory, location_beverages.update FROM beverages, location_beverages, distributors WHERE beverages.id=location_beverages.beverage_id AND location_beverages.location_id=$1 AND location_beverages.update=$2 AND location_beverages.active LEFT OUTER JOIN distributors ON (beverages.distributor_id=distributors.id) ORDER BY beverages.product ASC;", loc_id, last_update)
 		if err != nil {
 			log.Println(err.Error())
@@ -2557,7 +2594,9 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// info about it.
 			var most_recent_id int
 			do_update := true
-			err = db.QueryRow("SELECT id FROM beverages WHERE version_id=(SELECT version_id FROM beverages WHERE id=$1) AND current;", locBev.ID).Scan(&most_recent_id)
+			err = db.QueryRow(`
+				SELECT id FROM beverages 
+				WHERE version_id=(SELECT version_id FROM beverages WHERE id=$1) AND current;`, locBev.ID).Scan(&most_recent_id)
 			switch {
 			// If there were no rows, that means the beverage was probably deleted (no current).  In that case don't do the update
 			case err == sql.ErrNoRows:
@@ -2577,7 +2616,14 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 						LEFT OUTER JOIN kegs ON (beverages.keg_id=kegs.id)
 					WHERE beverages.id=$1;
 				*/
-				err = db.QueryRow("SELECT beverages.product, beverages.container_type, beverages.brewery, distributors.name, beverages.alcohol_type, beverages.purchase_volume, beverages.purchase_unit, beverages.purchase_cost, beverages.purchase_count, kegs.deposit FROM beverages LEFT OUTER JOIN distributors ON (beverages.distributor_id=distributors.id) LEFT OUTER JOIN kegs ON (beverages.keg_id=kegs.id) WHERE beverages.id=$1;", most_recent_id).Scan(&locBev.Product, &locBev.ContainerType, &locBev.Brewery, &locBev.Distributor, &locBev.AlcoholType, &locBev.PurchaseVolume, &locBev.PurchaseUnit, &locBev.PurchaseCost, &locBev.PurchaseCount, &locBev.Deposit)
+				err = db.QueryRow(`
+					SELECT beverages.product, beverages.container_type, beverages.brewery, 
+					distributors.name, beverages.alcohol_type, beverages.purchase_volume, 
+					beverages.purchase_unit, beverages.purchase_cost, beverages.purchase_count, 
+					kegs.deposit 
+					FROM beverages LEFT OUTER JOIN distributors ON (beverages.distributor_id=distributors.id) 
+					LEFT OUTER JOIN kegs ON (beverages.keg_id=kegs.id) 
+					WHERE beverages.id=$1;`, most_recent_id).Scan(&locBev.Product, &locBev.ContainerType, &locBev.Brewery, &locBev.Distributor, &locBev.AlcoholType, &locBev.PurchaseVolume, &locBev.PurchaseUnit, &locBev.PurchaseCost, &locBev.PurchaseCount, &locBev.Deposit)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					log.Println(err.Error())
@@ -2606,7 +2652,14 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			WHERE location_beverages.location_id=$1 AND location_beverages.update=$2 AND location_beverages.active AND location_beverages.type='keg'
 			ORDER BY beverages.product ASC;
 		*/
-		rows, err = db.Query("SELECT kegs.id, kegs.version_id, distributors.name, kegs.volume, kegs.unit, kegs.deposit, location_beverages.quantity, location_beverages.inventory, location_beverages.update FROM kegs INNER JOIN location_beverages ON (kegs.id=location_beverages.beverage_id) INNER JOIN distributors ON (kegs.distributor_id=distributors.id) WHERE location_beverages.location_id=$1 AND location_beverages.update=$2 AND location_beverages.active AND location_beverages.type='keg' ORDER BY distributors.name ASC;", loc_id, last_update)
+		rows, err = db.Query(`
+			SELECT kegs.id, kegs.version_id, distributors.name, kegs.volume, kegs.unit, kegs.deposit, 
+			location_beverages.quantity, location_beverages.inventory, location_beverages.update 
+			FROM kegs INNER JOIN location_beverages ON (kegs.id=location_beverages.beverage_id) 
+			INNER JOIN distributors ON (kegs.distributor_id=distributors.id) 
+			WHERE location_beverages.location_id=$1 AND location_beverages.update=$2 
+			AND location_beverages.active AND location_beverages.type='keg' 
+			ORDER BY distributors.name ASC;`, loc_id, last_update)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2616,7 +2669,10 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			var locBev LocBeverageApp
 			locBev.Type = "keg"
-			if err := rows.Scan(&locBev.ID, &locBev.VersionID, &locBev.Distributor, &locBev.PurchaseVolume, &locBev.PurchaseUnit, &locBev.Deposit, &locBev.Quantity, &locBev.Inventory, &locBev.Update); err != nil {
+			if err := rows.Scan(
+				&locBev.ID, &locBev.VersionID, &locBev.Distributor, &locBev.PurchaseVolume,
+				&locBev.PurchaseUnit, &locBev.Deposit, &locBev.Quantity, &locBev.Inventory,
+				&locBev.Update); err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -2630,7 +2686,9 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// info about it.
 			var most_recent_id int
 			do_update := true
-			err = db.QueryRow("SELECT id FROM kegs WHERE version_id=(SELECT version_id FROM kegs WHERE id=$1) AND current;", locBev.ID).Scan(&most_recent_id)
+			err = db.QueryRow(`
+				SELECT id FROM kegs 
+				WHERE version_id=(SELECT version_id FROM kegs WHERE id=$1) AND current;`, locBev.ID).Scan(&most_recent_id)
 			switch {
 			// If there were no rows, that means the beverage was probably deleted (no current).  In that case don't do the update
 			case err == sql.ErrNoRows:
@@ -2643,7 +2701,9 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			if do_update && most_recent_id != locBev.ID {
 				// We just need to replace things that can change from keg version to
 				// version, such as volume, unit, and deposit.
-				err = db.QueryRow("SELECT kegs.volume, kegs.unit, kegs.deposit FROM kegs WHERE kegs.id=$1;", most_recent_id).Scan(&locBev.PurchaseVolume, &locBev.PurchaseUnit, &locBev.Deposit)
+				err = db.QueryRow(`
+					SELECT kegs.volume, kegs.unit, kegs.deposit 
+					FROM kegs WHERE kegs.id=$1;`, most_recent_id).Scan(&locBev.PurchaseVolume, &locBev.PurchaseUnit, &locBev.Deposit)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					log.Println(err.Error())
@@ -2670,128 +2730,152 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Write(js)
 
-	case "POST":
-		// A Post to location_beverages for inventory locations "adds" the beverage
-		// to the location with 0 quantity.  It's not an inventory update, but
-		// rather adding a beverage type to the inventory location.
-		//
-		// Expects beverage id, location name, bev type ('bev' or 'keg')
-		log.Println("Received /inv/loc POST")
-		decoder := json.NewDecoder(r.Body)
-		var locBev LocBeverageApp
-		err := decoder.Decode(&locBev)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		log.Println(locBev.ID)
-		log.Println(locBev.Location)
+		/* THIS IS DEPRECATED AND NO LONGER USED
+		    * /inv/loc NOW SAVES LISTS OF ITEMS VIA PUT
+		    * AND NOT VIA INDIVIDUAL ITEMS BEING POSTED
+		    *
+		   	case "POST":
+		   		// A Post to location_beverages for inventory locations "adds" the beverage
+		   		// to the location with 0 quantity.  It's not an inventory update, but
+		   		// rather adding a beverage type to the inventory location.
+		   		//
+		   		// Expects beverage id, location name, bev type ('bev' or 'keg')
+		   		log.Println("Received /inv/loc POST")
+		   		decoder := json.NewDecoder(r.Body)
+		   		var locBev LocBeverageApp
+		   		err := decoder.Decode(&locBev)
+		   		if err != nil {
+		   			log.Println(err.Error())
+		   			http.Error(w, err.Error(), http.StatusBadRequest)
+		   			return
+		   		}
+		   		log.Println(locBev.ID)
+		   		log.Println(locBev.Location)
 
-		// Verify Location exists or quit
-		var loc_id int
-		// Note that locations are either 'bev' or 'tap', and kegs are stored in
-		// 'bev' type locations.  This is not to be confused with locBev.Type,
-		// which is beverage type of 'bev' or 'keg'.
-		err = db.QueryRow("SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type='bev';", test_restaurant_id, locBev.Location).Scan(&loc_id)
-		if err != nil {
-			// if query failed will exit here, so loc_id is guaranteed below
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		   		// Verify Location exists or quit
+		   		var loc_id int
+		   		// Note that locations are either 'bev' or 'tap', and kegs are stored in
+		   		// 'bev' type locations.  This is not to be confused with locBev.Type,
+		   		// which is beverage type of 'bev' or 'keg'.
+		   		err = db.QueryRow(`SELECT id FROM locations
+		   			WHERE restaurant_id=$1 AND name=$2 AND type='bev';`, restaurant_id, locBev.Location).Scan(&loc_id)
+		   		if err != nil {
+		   			// if query failed will exit here, so loc_id is guaranteed below
+		   			log.Println(err.Error())
+		   			http.Error(w, err.Error(), http.StatusInternalServerError)
+		   			return
+		   		}
 
-		var last_update time.Time
-		err = db.QueryRow("SELECT last_update FROM locations WHERE id=$1;", loc_id).Scan(&last_update)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			log.Println(err.Error())
-			return
-		}
+		   		var last_update time.Time
+		   		err = db.QueryRow("SELECT last_update FROM locations WHERE id=$1;", loc_id).Scan(&last_update)
+		   		if err != nil {
+		   			http.Error(w, err.Error(), http.StatusInternalServerError)
+		   			log.Println(err.Error())
+		   			return
+		   		}
 
-		// Verify Beverage exists
-		log.Println("About the check if exists by checking version id")
-		var version_id int
-		if locBev.Type == "bev" {
-			err = db.QueryRow("SELECT version_id FROM beverages WHERE restaurant_id=$1 AND id=$2;", test_restaurant_id, locBev.ID).Scan(&version_id)
-		} else { // keg
-			err = db.QueryRow("SELECT kegs.version_id FROM kegs INNER JOIN distributors ON (distributors.id=kegs.distributor_id) WHERE kegs.id=$1 AND distributors.restaurant_id=$2;", locBev.ID, test_restaurant_id).Scan(&version_id)
-		}
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		   		// Verify Beverage exists
+		   		log.Println("About the check if exists by checking version id")
+		   		var version_id int
+		   		if locBev.Type == "bev" {
+		   			err = db.QueryRow(`
+		   				SELECT version_id FROM beverages WHERE restaurant_id=$1 AND id=$2;`,
+		   				restaurant_id, locBev.ID).Scan(&version_id)
+		   		} else { // keg
+		   			err = db.QueryRow(`
+		   				SELECT kegs.version_id FROM kegs INNER JOIN distributors ON (distributors.id=kegs.distributor_id)
+		   				WHERE kegs.id=$1 AND distributors.restaurant_id=$2;`, locBev.ID, restaurant_id).Scan(&version_id)
+		   		}
+		   		if err != nil {
+		   			log.Println(err.Error())
+		   			http.Error(w, err.Error(), http.StatusInternalServerError)
+		   			return
+		   		}
 
-		//   Does LocationBeverage from last_update exist already?
-		//   XXX Compare version_id of posted beverage against version_id of
-		//   beverage_id of old entries
-		//     If it already exists:
-		//       If it's not active (deleted), restore active status
-		//       If it is active, return, it already is in the location
-		//   Else:
-		//     Add as normal
-		var existing_id int
-		var active bool
-		exists := true
-		if locBev.Type == "bev" {
-			err = db.QueryRow("SELECT beverage_id, active FROM location_beverages WHERE location_id=$1 AND (SELECT beverages.version_id FROM beverages WHERE beverages.id=location_beverages.beverage_id)=$2 AND update=$3 AND type=$4;", loc_id, version_id, last_update, locBev.Type).Scan(&existing_id, &active)
-		} else { // keg
-			err = db.QueryRow("SELECT beverage_id, active FROM location_beverages WHERE location_id=$1 AND (SELECT kegs.version_id FROM kegs WHERE kegs.id=location_beverages.beverage_id)=$2 AND update=$3 AND type=$4;", loc_id, version_id, last_update, locBev.Type).Scan(&existing_id, &active)
-		}
-		switch {
-		// if there were no rows, that means the beverage was not already in location_beverages
-		case err == sql.ErrNoRows:
-			exists = false
-		case err != nil:
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		if exists {
-			if active {
-				http.Error(w, "Posted item exists in location.", http.StatusInternalServerError)
-				return
-			} else {
-				_, err = db.Exec("UPDATE location_beverages SET active=TRUE WHERE location_id=$1 AND beverage_id=$2 AND update=$3 AND type=$4;", loc_id, existing_id, last_update, locBev.Type)
-				if err != nil {
-					log.Println(err.Error())
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				// Return the previous quantity and inventory of the now restored bev
-				var bevInv LocBeverageApp
-				err = db.QueryRow("SELECT quantity, inventory FROM location_beverages WHERE location_id=$1 AND beverage_id=$2 AND update=$3 AND type=$4 AND active;", loc_id, existing_id, last_update, locBev.Type).Scan(
-					&bevInv.Quantity,
-					&bevInv.Inventory)
-				bevInv.ID = locBev.ID
-				// if the existing id is older than the posted id, set as inactive for client
-				if existing_id != locBev.ID {
-					bevInv.OutOfDate.Valid = true
-					bevInv.OutOfDate.Bool = true
-				}
+		   		//   Does LocationBeverage from last_update exist already?
+		   		//   XXX Compare version_id of posted beverage against version_id of
+		   		//   beverage_id of old entries
+		   		//     If it already exists:
+		   		//       If it's not active (deleted), restore active status
+		   		//       If it is active, return, it already is in the location
+		   		//   Else:
+		   		//     Add as normal
+		   		var existing_id int
+		   		var active bool
+		   		exists := true
+		   		if locBev.Type == "bev" {
+		   			err = db.QueryRow(`
+		   				SELECT beverage_id, active FROM location_beverages
+		   				WHERE location_id=$1 AND (
+		   					SELECT beverages.version_id FROM beverages WHERE beverages.id=location_beverages.beverage_id
+		   				)=$2 AND update=$3 AND type=$4;`, loc_id, version_id, last_update, locBev.Type).Scan(&existing_id, &active)
+		   		} else { // keg
+		   			err = db.QueryRow(`
+		   				SELECT beverage_id, active FROM location_beverages
+		   				WHERE location_id=$1 AND (
+		   					SELECT kegs.version_id FROM kegs WHERE kegs.id=location_beverages.beverage_id
+		   				)=$2 AND update=$3 AND type=$4;`, loc_id, version_id, last_update, locBev.Type).Scan(&existing_id, &active)
+		   		}
+		   		switch {
+		   		// if there were no rows, that means the beverage was not already in location_beverages
+		   		case err == sql.ErrNoRows:
+		   			exists = false
+		   		case err != nil:
+		   			log.Println(err.Error())
+		   			http.Error(w, err.Error(), http.StatusInternalServerError)
+		   			return
+		   		}
+		   		if exists {
+		   			if active {
+		   				http.Error(w, "Posted item exists in location.", http.StatusInternalServerError)
+		   				return
+		   			} else {
+		   				_, err = db.Exec(`
+		   					UPDATE location_beverages SET active=TRUE
+		   					WHERE location_id=$1 AND beverage_id=$2 AND update=$3 AND type=$4;`, loc_id, existing_id, last_update, locBev.Type)
+		   				if err != nil {
+		   					log.Println(err.Error())
+		   					http.Error(w, err.Error(), http.StatusInternalServerError)
+		   					return
+		   				}
+		   				// Return the previous quantity and inventory of the now restored bev
+		   				var bevInv LocBeverageApp
+		   				err = db.QueryRow(`
+		   					SELECT quantity, inventory FROM location_beverages
+		   					WHERE location_id=$1 AND beverage_id=$2 AND update=$3 AND type=$4 AND active;`, loc_id, existing_id, last_update, locBev.Type).Scan(
+		   					&bevInv.Quantity,
+		   					&bevInv.Inventory)
+		   				bevInv.ID = locBev.ID
+		   				// if the existing id is older than the posted id, set as inactive for client
+		   				if existing_id != locBev.ID {
+		   					bevInv.OutOfDate.Valid = true
+		   					bevInv.OutOfDate.Bool = true
+		   				}
 
-				w.Header().Set("Content-Type", "application/json")
-				// need to marshal pointer to struct or custom marshal interface of
-				// NullFloat64 is never called
-				js, err := json.Marshal(&bevInv)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				w.Write(js)
-			}
-		} else {
-			// doesn't exist yet, means good to add.
-			// Set the new location_beverage entry's update time to last_update so it
-			// appears with the other entries in this location.
-			_, err = db.Exec("INSERT INTO location_beverages (beverage_id, location_id, quantity, update, inventory, active, type) VALUES ($1, $2, 0, $3, 0, TRUE, $4);", locBev.ID, loc_id, last_update, locBev.Type)
-			if err != nil {
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
+		   				w.Header().Set("Content-Type", "application/json")
+		   				// need to marshal pointer to struct or custom marshal interface of
+		   				// NullFloat64 is never called
+		   				js, err := json.Marshal(&bevInv)
+		   				if err != nil {
+		   					http.Error(w, err.Error(), http.StatusInternalServerError)
+		   					return
+		   				}
+		   				w.Write(js)
+		   			}
+		   		} else {
+		   			// doesn't exist yet, means good to add.
+		   			// Set the new location_beverage entry's update time to last_update so it
+		   			// appears with the other entries in this location.
+		   			_, err = db.Exec(`
+		   				INSERT INTO location_beverages (beverage_id, location_id, quantity, update, inventory, active, type)
+		   				VALUES ($1, $2, 0, $3, 0, TRUE, $4);`, locBev.ID, loc_id, last_update, locBev.Type)
+		   			if err != nil {
+		   				log.Println(err.Error())
+		   				http.Error(w, err.Error(), http.StatusInternalServerError)
+		   				return
+		   			}
+		   		}
+		*/ // POST
 
 	case "PUT":
 
@@ -2809,7 +2893,9 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(batch)
 		// check location exists
 		var loc_id int
-		err = db.QueryRow("SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type=$3;", test_restaurant_id, batch.Location, batch.Type).Scan(&loc_id)
+		err = db.QueryRow(`
+			SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type=$3;`,
+			restaurant_id, batch.Location, batch.Type).Scan(&loc_id)
 		if err != nil {
 			// if query failed will exit here, so loc_id is guaranteed below
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2843,7 +2929,7 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		// 3. Check their date components, if they match, same_day = true
 
 		cur_time := time.Now().UTC()
-		tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
+		tz_str, _ := getRestaurantTimeZone(restaurant_id)
 		var tz_hour int
 		err = db.QueryRow(`SELECT EXTRACT (TIMEZONE_HOUR FROM CURRENT_TIME AT TIME ZONE $1);`, tz_str).Scan(&tz_hour)
 		if err != nil {
@@ -2911,9 +2997,13 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// check that the item id exists
 			var exists bool
 			if anItem.Type == "bev" {
-				err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);", test_restaurant_id, anItem.ID).Scan(&exists)
+				err = db.QueryRow(`
+					SELECT EXISTS (SELECT 1 FROM beverages WHERE restaurant_id=$1 AND id=$2);`,
+					restaurant_id, anItem.ID).Scan(&exists)
 			} else { //keg
-				err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM kegs INNER JOIN distributors ON (distributors.id=kegs.distributor_id) WHERE kegs.id=$1 AND distributors.restaurant_id=$2);", anItem.ID, test_restaurant_id).Scan(&exists)
+				err = db.QueryRow(`
+					SELECT EXISTS (SELECT 1 FROM kegs INNER JOIN distributors ON (distributors.id=kegs.distributor_id) 
+					WHERE kegs.id=$1 AND distributors.restaurant_id=$2);`, anItem.ID, restaurant_id).Scan(&exists)
 			}
 			if err != nil {
 				log.Println(err.Error())
@@ -2931,9 +3021,13 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 			var most_recent_id int
 			do_update := true
 			if anItem.Type == "bev" {
-				err = db.QueryRow("SELECT id FROM beverages WHERE version_id=(SELECT version_id FROM beverages WHERE id=$1) AND current;", anItem.ID).Scan(&most_recent_id)
+				err = db.QueryRow(`
+					SELECT id FROM beverages 
+					WHERE version_id=(SELECT version_id FROM beverages WHERE id=$1) AND current;`, anItem.ID).Scan(&most_recent_id)
 			} else { // keg
-				err = db.QueryRow("SELECT id FROM kegs WHERE version_id=(SELECT version_id FROM kegs WHERE id=$1) AND current;", anItem.ID).Scan(&most_recent_id)
+				err = db.QueryRow(`
+					SELECT id FROM kegs 
+					WHERE version_id=(SELECT version_id FROM kegs WHERE id=$1) AND current;`, anItem.ID).Scan(&most_recent_id)
 			}
 
 			switch {
@@ -3033,110 +3127,120 @@ func invLocAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Write(js)
 
-	case "DELETE":
-		loc_name := r.URL.Query().Get("location")
-		item_id := r.URL.Query().Get("id")
-		item_type := r.URL.Query().Get("type")
+		/* LIKE POST, THIS IS DEPRECATED, SINCE WE DON'T DELETE
+			 * INDIVIDUAL ITEMS FROM LOCATIONS, BUT RATHER SAVE OVER
+			 * COUNTS OF LISTS OF ITEMS WHICH WERE MADE ON THE SAME DAY
+		case "DELETE":
+			loc_name := r.URL.Query().Get("location")
+			item_id := r.URL.Query().Get("id")
+			item_type := r.URL.Query().Get("type")
 
-		// if item_type is not "keg" or "bev", error
-		if item_type != "bev" && item_type != "keg" {
-			http.Error(w, "Unrecognize item type posted to delete.", http.StatusInternalServerError)
-			return
-		}
+			// if item_type is not "keg" or "bev", error
+			if item_type != "bev" && item_type != "keg" {
+				http.Error(w, "Unrecognize item type posted to delete.", http.StatusInternalServerError)
+				return
+			}
 
-		// Verify Location exists or quit
-		var loc_id int
-		err := db.QueryRow("SELECT id FROM locations WHERE restaurant_id=$1 AND name=$2 AND type='bev';", test_restaurant_id, loc_name).Scan(&loc_id)
-		if err != nil {
-			// if query failed will exit here, so loc_id is guaranteed below
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		// Verify beverage exists or quit
-		var existing_item_id int
-		if item_type == "bev" {
-			err = db.QueryRow("SELECT id FROM beverages WHERE restaurant_id=$1 AND id=$2;", test_restaurant_id, item_id).Scan(&existing_item_id)
-		} else { //keg
-			err = db.QueryRow("SELECT kegs.id FROM kegs INNER JOIN distributors ON (distributors.id=kegs.distributor_id) WHERE kegs.id=$1 AND distributors.restaurant_id=$2;", item_id, test_restaurant_id).Scan(&existing_item_id)
-		}
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			log.Println(err.Error())
-			return
-		}
-
-		var last_update time.Time
-		err = db.QueryRow("SELECT last_update FROM locations WHERE id=$1;", loc_id).Scan(&last_update)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			log.Println(err.Error())
-			return
-		}
-
-		// XXX New logic:
-		// To prevent duplicate entries (multiple inactive beverages in same location)
-		// If last_update is within today's date, delete entry altogether
-		// Otherwise set active = FALSE
-		cur_time := time.Now().UTC()
-		tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
-		var tz_hour int
-		err = db.QueryRow(`SELECT EXTRACT (TIMEZONE_HOUR FROM CURRENT_TIME AT TIME ZONE $1);`, tz_str).Scan(&tz_hour)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
-		}
-
-		// convert tz_hour to duration in hours
-		hour_offset := time.Duration(tz_hour) * time.Hour
-
-		// now that we have hour offset, add it to cur_time, which is in
-		// UTC, to get the equivalent of the local time
-		user_put_time := cur_time.Add(hour_offset)
-		log.Println("USER TIME:")
-		log.Println(user_put_time)
-
-		user_last_update := last_update.Add(hour_offset)
-		log.Println("LAST UPDATE TIME:")
-		log.Println(user_last_update)
-
-		user_year := user_put_time.Year()
-		user_month := user_put_time.Month()
-		user_day := user_put_time.Day()
-		last_year := user_last_update.Year()
-		last_month := user_last_update.Month()
-		last_day := user_last_update.Day()
-		same_day := false
-		if user_year == last_year && user_month == last_month && user_day == last_day {
-			same_day = true
-		}
-
-		log.Println("SAME DAY?")
-		log.Println(same_day)
-
-		if same_day {
-			// if deletion happens the same day as last_update time, remove the
-			// history entirely.  Doing inventory for an item and deleting it on
-			// the same day does not record that day's history.
-			_, err = db.Exec("DELETE FROM location_beverages WHERE location_id=$1 AND beverage_id=$2 AND update=$3 AND type=$4;", loc_id, item_id, last_update, item_type)
+			// Verify Location exists or quit
+			var loc_id int
+			err := db.QueryRow(`
+				SELECT id FROM locations
+				WHERE restaurant_id=$1 AND name=$2 AND type='bev';`, restaurant_id, loc_name).Scan(&loc_id)
 			if err != nil {
-				log.Println(err.Error())
+				// if query failed will exit here, so loc_id is guaranteed below
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-		} else {
-			// if deletion happens on different day as last_update time, want to
-			// preserve that history but stop it from propagating to next time's
-			// inventory PUT operation.
-			// set location_beverages.active of deleted entry to false
-			_, err = db.Exec("UPDATE location_beverages SET active=FALSE WHERE location_id=$1 AND beverage_id=$2 AND update=$3 AND type=$4;", loc_id, item_id, last_update, item_type)
+
+			// Verify beverage exists or quit
+			var existing_item_id int
+			if item_type == "bev" {
+				err = db.QueryRow(`
+					SELECT id FROM beverages
+					WHERE restaurant_id=$1 AND id=$2;`, restaurant_id, item_id).Scan(&existing_item_id)
+			} else { //keg
+				err = db.QueryRow(`
+					SELECT kegs.id FROM kegs INNER JOIN distributors ON (distributors.id=kegs.distributor_id)
+					WHERE kegs.id=$1 AND distributors.restaurant_id=$2;`, item_id, restaurant_id).Scan(&existing_item_id)
+			}
 			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
 				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-		}
+
+			var last_update time.Time
+			err = db.QueryRow("SELECT last_update FROM locations WHERE id=$1;", loc_id).Scan(&last_update)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				log.Println(err.Error())
+				return
+			}
+
+			// XXX New logic:
+			// To prevent duplicate entries (multiple inactive beverages in same location)
+			// If last_update is within today's date, delete entry altogether
+			// Otherwise set active = FALSE
+			cur_time := time.Now().UTC()
+			tz_str, _ := getRestaurantTimeZone(restaurant_id)
+			var tz_hour int
+			err = db.QueryRow(`SELECT EXTRACT (TIMEZONE_HOUR FROM CURRENT_TIME AT TIME ZONE $1);`, tz_str).Scan(&tz_hour)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
+			}
+
+			// convert tz_hour to duration in hours
+			hour_offset := time.Duration(tz_hour) * time.Hour
+
+			// now that we have hour offset, add it to cur_time, which is in
+			// UTC, to get the equivalent of the local time
+			user_put_time := cur_time.Add(hour_offset)
+			log.Println("USER TIME:")
+			log.Println(user_put_time)
+
+			user_last_update := last_update.Add(hour_offset)
+			log.Println("LAST UPDATE TIME:")
+			log.Println(user_last_update)
+
+			user_year := user_put_time.Year()
+			user_month := user_put_time.Month()
+			user_day := user_put_time.Day()
+			last_year := user_last_update.Year()
+			last_month := user_last_update.Month()
+			last_day := user_last_update.Day()
+			same_day := false
+			if user_year == last_year && user_month == last_month && user_day == last_day {
+				same_day = true
+			}
+
+			log.Println("SAME DAY?")
+			log.Println(same_day)
+
+			if same_day {
+				// if deletion happens the same day as last_update time, remove the
+				// history entirely.  Doing inventory for an item and deleting it on
+				// the same day does not record that day's history.
+				_, err = db.Exec("DELETE FROM location_beverages WHERE location_id=$1 AND beverage_id=$2 AND update=$3 AND type=$4;", loc_id, item_id, last_update, item_type)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			} else {
+				// if deletion happens on different day as last_update time, want to
+				// preserve that history but stop it from propagating to next time's
+				// inventory PUT operation.
+				// set location_beverages.active of deleted entry to false
+				_, err = db.Exec("UPDATE location_beverages SET active=FALSE WHERE location_id=$1 AND beverage_id=$2 AND update=$3 AND type=$4;", loc_id, item_id, last_update, item_type)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			}
+		*/ // DELETE
 
 	default:
 		http.Error(w, "Invalid request", http.StatusBadRequest)
