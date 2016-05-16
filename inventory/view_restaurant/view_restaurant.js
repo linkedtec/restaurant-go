@@ -40,8 +40,6 @@ angular.module('myApp.viewRestaurant', ['ngRoute'])
       $scope.name_failure_msg = "Please give your restaurant a name!";
       return;
     }
-
-    var test_restaurant_id = 1;
     
     $http.put('/restaurant/name', {
       name: $scope.restaurant_name_edit
@@ -65,7 +63,6 @@ angular.module('myApp.viewRestaurant', ['ngRoute'])
   };
 
   $scope.getRestaurant = function() {
-    var test_restaurant_id = 1;
 
     $http.get('/restaurant/name').
     success(function(data, status, headers, config) {

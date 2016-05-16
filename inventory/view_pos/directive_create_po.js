@@ -361,7 +361,6 @@ angular.module('myApp')
       };
 
       scope.getRestaurant = function() {
-        var test_restaurant_id = 1;
 
         $http.get('/restaurant/name').
         success(function(data, status, headers, config) {

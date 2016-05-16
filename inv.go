@@ -105,7 +105,7 @@ func setupInvHandlers() {
 	http.HandleFunc("/inv", sessionDecorator(invAPIHandler, g_basic_privilege))
 	http.HandleFunc("/loc", sessionDecorator(locAPIHandler, g_basic_privilege))
 	http.HandleFunc("/inv/loc", sessionDecorator(invLocAPIHandler, g_basic_privilege))
-	http.HandleFunc("/inv/history", invHistoryAPIHandler)
+	http.HandleFunc("/inv/history", sessionDecorator(invHistoryAPIHandler, g_basic_privilege))
 	http.HandleFunc("/inv/countsheets", sessionDecorator(invCountSheetsAPIHandler, g_basic_privilege))
 	http.HandleFunc("/export/", exportAPIHandler)
 }
@@ -1446,13 +1446,18 @@ func createXlsxFile(data []byte, sorted_keys []string, history_type string, suff
 
 func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	if err != nil {
+		return
+	}
+
 	switch r.Method {
 	case "GET":
 		history_type := r.URL.Query().Get("type")
 		start_date := r.URL.Query().Get("start_date")
 		end_date := r.URL.Query().Get("end_date")
 
-		tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
+		tz_str, _ := getRestaurantTimeZone(restaurant_id)
 
 		log.Println("TZ STRING")
 		log.Println(tz_str)
@@ -1503,7 +1508,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3
 					AND locations.id=location_beverages.location_id AND locations.restaurant_id=$4
 				GROUP BY local_update ORDER BY local_update;`,
-				tz_str, start_date, end_date, test_restaurant_id)
+				tz_str, start_date, end_date, restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1541,7 +1546,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				FROM location_beverages, locations 
 				WHERE locations.restaurant_id=$1 
 					AND location_beverages.location_id=locations.id 
-					AND locations.type!='tap';`, test_restaurant_id)
+					AND locations.type!='tap';`, restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1605,7 +1610,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					AND location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
 					AND locations.restaurant_id=$4 
 				GROUP BY local_update ORDER BY local_update;`,
-				tz_str, start_date, end_date, test_restaurant_id)
+				tz_str, start_date, end_date, restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1646,7 +1651,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					AND locations.id=location_beverages.location_id AND locations.restaurant_id=$3 
 					AND beverages.id=location_beverages.beverage_id AND location_beverages.type='bev' 
 				ORDER BY beverages.alcohol_type ASC;`,
-				start_date, end_date, test_restaurant_id)
+				start_date, end_date, restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1772,7 +1777,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							AND location_beverages.type='bev' 
 							AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$5) 
 						ORDER BY local_update DESC;`,
-						tz_str, start_date, end_date, test_restaurant_id, id)
+						tz_str, start_date, end_date, restaurant_id, id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1828,7 +1833,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 								AND locations.restaurant_id=$3 AND location_beverages.type='bev' 
 								AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$4) 
 							GROUP BY beverages.id ORDER BY beverages.product ASC;`,
-							tz_str, a_date, test_restaurant_id, id)
+							tz_str, a_date, restaurant_id, id)
 						if err != nil {
 							log.Println(err.Error())
 							http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1867,7 +1872,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				switch export {
 				case "xlsx":
 					log.Println("create xlsx")
-					createXlsxFile(js, sorted_keys, "all_itemized", "items_", test_restaurant_id, w, r, email, start_date, end_date, tz_str)
+					createXlsxFile(js, sorted_keys, "all_itemized", "items_", restaurant_id, w, r, email, start_date, end_date, tz_str)
 				}
 
 			} else {
@@ -1903,7 +1908,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							AND (SELECT version_id FROM beverages WHERE id=location_beverages.beverage_id)=(SELECT version_id FROM beverages WHERE id=$4) 
 							AND locations.restaurant_id=$5 
 						GROUP BY beverages.id, local_update ORDER BY local_update DESC;`,
-						tz_str, start_date, end_date, item_id, test_restaurant_id)
+						tz_str, start_date, end_date, item_id, restaurant_id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1957,7 +1962,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					AND locations.id=location_beverages.location_id 
 					AND locations.restaurant_id=$4 
 				ORDER BY local_update DESC;`,
-				tz_str, start_date, end_date, test_restaurant_id)
+				tz_str, start_date, end_date, restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1995,7 +2000,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					AND location_beverages.beverage_id=beverages.id 
 					AND location_beverages.location_id=locations.id 
 					AND locations.restaurant_id=$3 AND location_beverages.type='bev' 
-				GROUP BY beverages.id ORDER BY beverages.product ASC;`, tz_str, a_date, test_restaurant_id)
+				GROUP BY beverages.id ORDER BY beverages.product ASC;`, tz_str, a_date, restaurant_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2036,7 +2041,8 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						AND kegs.distributor_id=distributors.id 
 						AND location_beverages.location_id=locations.id 
 						AND locations.restaurant_id=$3 AND location_beverages.type='keg' 
-					GROUP BY kegs.id,distributors.name ORDER BY distributors.name ASC;`, tz_str, a_date, test_restaurant_id)
+					GROUP BY kegs.id,distributors.name ORDER BY distributors.name ASC;`,
+					tz_str, a_date, restaurant_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2079,7 +2085,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				switch export {
 				case "xlsx":
 					log.Println("create xlsx")
-					createXlsxFile(js, sorted_keys, history_type, "all_", test_restaurant_id, w, r, email, start_date, end_date, tz_str)
+					createXlsxFile(js, sorted_keys, history_type, "all_", restaurant_id, w, r, email, start_date, end_date, tz_str)
 				}
 			} else {
 				w.Header().Set("Content-Type", "application/json")
@@ -2109,7 +2115,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
 					AND locations.id=location_beverages.location_id AND locations.restaurant_id=$4 
 				ORDER BY local_update DESC;`,
-				tz_str, start_date, end_date, test_restaurant_id)
+				tz_str, start_date, end_date, restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2139,7 +2145,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 					WHERE (location_beverages.update AT TIME ZONE 'UTC' AT TIME ZONE $1)::date=$2::date 
 						AND locations.id=location_beverages.location_id AND locations.restaurant_id=$3 
 						AND locations.type!='tap' 
-					ORDER BY location_beverages.location_id ASC;`, tz_str, a_date, test_restaurant_id)
+					ORDER BY location_beverages.location_id ASC;`, tz_str, a_date, restaurant_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2261,7 +2267,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						AND location_beverages.location_id=locations.id 
 						AND locations.restaurant_id=$3 AND locations.type='tap' 
 					GROUP BY beverages.id, location_beverages.inventory, location_beverages.wholesale, location_beverages.deposit  
-					ORDER BY beverages.product ASC;`, tz_str, a_date, test_restaurant_id)
+					ORDER BY beverages.product ASC;`, tz_str, a_date, restaurant_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2302,7 +2308,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				switch export {
 				case "xlsx":
 					log.Println("create xlsx")
-					createXlsxFile(js, sorted_keys, history_type, "loc_", test_restaurant_id, w, r, email, start_date, end_date, tz_str)
+					createXlsxFile(js, sorted_keys, history_type, "loc_", restaurant_id, w, r, email, start_date, end_date, tz_str)
 				}
 			} else {
 				w.Header().Set("Content-Type", "application/json")
@@ -2326,7 +2332,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				WHERE location_beverages.update AT TIME ZONE 'UTC' BETWEEN $2 AND $3 
 					AND locations.id=location_beverages.location_id AND locations.restaurant_id=$4 
 				ORDER BY local_update DESC;`,
-				tz_str, start_date, end_date, test_restaurant_id)
+				tz_str, start_date, end_date, restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2356,7 +2362,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 						AND locations.id=location_beverages.location_id 
 						AND locations.restaurant_id=$3 AND beverages.id=location_beverages.beverage_id 
 						AND location_beverages.type='bev' 
-					ORDER BY beverages.alcohol_type ASC;`, tz_str, a_date, test_restaurant_id)
+					ORDER BY beverages.alcohol_type ASC;`, tz_str, a_date, restaurant_id)
 				if err != nil {
 					log.Println(err.Error())
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2390,7 +2396,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							AND location_beverages.location_id=locations.id 
 							AND beverages.alcohol_type=$3 AND locations.restaurant_id=$4 
 							AND location_beverages.type='bev' 
-						GROUP BY beverages.id ORDER BY beverages.product ASC;`, tz_str, a_date, type_name, test_restaurant_id)
+						GROUP BY beverages.id ORDER BY beverages.product ASC;`, tz_str, a_date, type_name, restaurant_id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2449,7 +2455,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 							AND location_beverages.beverage_id=kegs.id 
 							AND kegs.distributor_id=distributors.id 
 						GROUP BY kegs.id, distributors.name 
-						ORDER BY distributors.name;`, tz_str, a_date, test_restaurant_id)
+						ORDER BY distributors.name;`, tz_str, a_date, restaurant_id)
 					if err != nil {
 						log.Println(err.Error())
 						http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2492,7 +2498,7 @@ func invHistoryAPIHandler(w http.ResponseWriter, r *http.Request) {
 				switch export {
 				case "xlsx":
 					log.Println("create xlsx")
-					createXlsxFile(js, sorted_keys, history_type, "type_", test_restaurant_id, w, r, email, start_date, end_date, tz_str)
+					createXlsxFile(js, sorted_keys, history_type, "type_", restaurant_id, w, r, email, start_date, end_date, tz_str)
 				}
 			} else {
 				w.Header().Set("Content-Type", "application/json")

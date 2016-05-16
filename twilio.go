@@ -88,7 +88,7 @@ func twilioSendSMS(to_phone, content, restaurant_id string) (result string, err 
 		// we could do len(content) / 160 to get a rough estimate,
 		// or we could somehow get the # texts from twilio's response?
 		num_sent := 1
-		_, _err := db.Exec("UPDATE sms_limits SET sent_today=$1 WHERE restaurant_id=$2;", sent_today+num_sent, test_restaurant_id)
+		_, _err := db.Exec("UPDATE sms_limits SET sent_today=$1 WHERE restaurant_id=$2;", sent_today+num_sent, restaurant_id)
 		if _err != nil {
 			log.Println(_err.Error())
 			return "db error", _err

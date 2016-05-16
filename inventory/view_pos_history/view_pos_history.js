@@ -325,10 +325,8 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
   $scope.deleteDistOrder = function(porder, dorder) {
     console.log("DELETE DIST ORDER");
 
-    var test_restaurant_id = 1;
     $http.delete('/purchase/dorder', {
         params: {
-          restaurant_id: test_restaurant_id,
           do_id: dorder.id
         }
       }).

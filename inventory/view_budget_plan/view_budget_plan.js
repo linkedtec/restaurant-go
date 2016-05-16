@@ -136,7 +136,6 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
       return;
     }
 
-    var test_user_id = 1;
     $http.post('/budget', {
       monthly_budget:$scope.new_budget.value,
       target_run_rate:null
@@ -180,7 +179,6 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
       return;
     }
 
-    var test_user_id = 1;
     $http.post('/budget', {
       monthly_budget:$scope.calc_budget,
       target_run_rate:$scope.target_run_rate.value
@@ -229,7 +227,6 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
 
     // we use PUT to edit email so it can be handled individually, and be 
     // cleared to null string if desired
-    var test_user_id = 1;
     $http.put('/budget', {
       change_keys:['budget_alert_email'],
       budget:{'budget_alert_email':$scope.budget_email_edit.value}

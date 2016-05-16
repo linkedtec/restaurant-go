@@ -20,14 +20,8 @@ angular.module('myApp')
       scope.default_email_tmp = {email:""};
       scope.default_email_valid = false;
 
-      var test_restaurant_id = 1;
-
       scope.getDefaultEmail = function() {
-        $http.get('/users/inv_email', {
-          params: {
-            restaurant_id: test_restaurant_id
-          }
-        }).
+        $http.get('/users/inv_email').
         success(function(data, status, headers, config) {
           // this callback will be called asynchronously when the response
           // is available
@@ -60,9 +54,7 @@ angular.module('myApp')
           return;
         }
 
-        var test_restaurant_id = 1;
         $http.post('/users/inv_email', {
-            restaurant_id: test_restaurant_id,
             email: scope.default_email_tmp.email
           }).
           success(function(data, status, headers, config) {

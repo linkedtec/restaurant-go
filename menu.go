@@ -78,7 +78,7 @@ func inactivateExpiredSeasonals(w http.ResponseWriter, restaurant_id string) {
 
 }
 
-func createMenuBevHTML(bev_type string, w http.ResponseWriter) string {
+func createMenuBevHTML(bev_type string, restaurant_id string, w http.ResponseWriter) string {
 
 	html_content := ""
 
@@ -123,7 +123,7 @@ func createMenuBevHTML(bev_type string, w http.ResponseWriter) string {
 		title = "NON-ALCOHOLIC"
 	}
 
-	rows, err := db.Query(query, test_restaurant_id)
+	rows, err := db.Query(query, restaurant_id)
 	if err != nil {
 		log.Println(err.Error())
 		if w != nil {
@@ -258,12 +258,12 @@ func createRestaurantMenuPage(restaurant_id string, w http.ResponseWriter, do_ht
 	// container_type=="Keg"
 
 	html_content := ""
-	html_content += createMenuBevHTML("seasonal draft", w)
-	html_content += createMenuBevHTML("staple draft", w)
-	html_content += createMenuBevHTML("bottled beer", w)
-	html_content += createMenuBevHTML("wine", w)
-	html_content += createMenuBevHTML("liquor", w)
-	html_content += createMenuBevHTML("non alcoholic", w)
+	html_content += createMenuBevHTML("seasonal draft", restaurant_id, w)
+	html_content += createMenuBevHTML("staple draft", restaurant_id, w)
+	html_content += createMenuBevHTML("bottled beer", restaurant_id, w)
+	html_content += createMenuBevHTML("wine", restaurant_id, w)
+	html_content += createMenuBevHTML("liquor", restaurant_id, w)
+	html_content += createMenuBevHTML("non alcoholic", restaurant_id, w)
 
 	page_content = bytes.Replace(page_content, []byte("[CONTENT]"), []byte(html_content), 1)
 

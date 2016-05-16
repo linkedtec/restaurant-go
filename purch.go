@@ -188,17 +188,17 @@ func sendPendingPOs() {
 		var w http.ResponseWriter
 		var r http.Request
 		if purchase_order.Order.SendMethod.String == "email" {
-			createPurchaseOrderPDFFile(test_user_id, restaurant_id, purchase_order, true, true, w, &r)
+			createPurchaseOrderPDFFile(restaurant_id, purchase_order, true, true, w, &r)
 		} else if purchase_order.Order.SendMethod.String == "text" {
-			createPurchaseOrderSMS(test_user_id, restaurant_id, purchase_order, true, w, &r)
+			createPurchaseOrderSMS(restaurant_id, purchase_order, true, w, &r)
 		} else if purchase_order.Order.SendMethod.String == "save" {
-			createPurchaseOrderSaveOnly(test_user_id, restaurant_id, purchase_order, true, w, &r)
+			createPurchaseOrderSaveOnly(restaurant_id, purchase_order, true, w, &r)
 		}
 		// if purchase order had a CC email, send out CC email
 		// by setting split_by_dist_order false and do_send true, it will send
 		// a single overview pdf to the CC list only
 		if len(purchase_order.Order.PurchaseCC) > 0 {
-			createPurchaseOrderPDFFile(test_user_id, test_restaurant_id, purchase_order, false, true, w, &r)
+			createPurchaseOrderPDFFile(restaurant_id, purchase_order, false, true, w, &r)
 		}
 
 		// if the PO total exceeded the remaining budget, AND there is a
@@ -215,7 +215,7 @@ func sendPendingPOs() {
 	}
 }
 
-func createPurchaseOrderSaveOnly(user_id string, restaurant_id string, purchase_order PurchaseOrder, do_send bool, w http.ResponseWriter, r *http.Request) {
+func createPurchaseOrderSaveOnly(restaurant_id string, purchase_order PurchaseOrder, do_send bool, w http.ResponseWriter, r *http.Request) {
 	// Simply return the purchase_order object with a few added params
 	if do_send == false {
 
@@ -273,7 +273,7 @@ func createPurchaseOrderSaveOnly(user_id string, restaurant_id string, purchase_
 
 }
 
-func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order PurchaseOrder, do_send bool, w http.ResponseWriter, r *http.Request) {
+func createPurchaseOrderSMS(restaurant_id string, purchase_order PurchaseOrder, do_send bool, w http.ResponseWriter, r *http.Request) {
 	// just need to construct a JSON list of distributor order strings and return
 
 	var restaurant Restaurant
@@ -354,7 +354,7 @@ func createPurchaseOrderSMS(user_id string, restaurant_id string, purchase_order
 
 		if do_send == true {
 			// send the SMS via twilio
-			_, err := twilioSendSMS(dorder.DistributorPhone.String, sms_str, test_restaurant_id)
+			_, err := twilioSendSMS(dorder.DistributorPhone.String, sms_str, restaurant_id)
 			if err != nil {
 				log.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -418,7 +418,7 @@ func helperAdditionalPricingDescription(additional_pricing NullString, additiona
 	return desc_line
 }
 
-func createPurchaseOrderPDFFile(user_id string, restaurant_id string, purchase_order PurchaseOrder, split_by_dist_order bool, do_send bool, w http.ResponseWriter, r *http.Request) {
+func createPurchaseOrderPDFFile(restaurant_id string, purchase_order PurchaseOrder, split_by_dist_order bool, do_send bool, w http.ResponseWriter, r *http.Request) {
 	export_dir := "./export/"
 	if os.MkdirAll(export_dir, 0755) != nil {
 		http.Error(w, "Unable to find or create export directory!", http.StatusInternalServerError)
@@ -1100,7 +1100,7 @@ func purchaseOrderCopyAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 func purchaseOrderPendingAPIHandler(w http.ResponseWriter, r *http.Request) {
 
-	user_id, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
+	_, restaurant_id, err := sessionGetUserAndRestaurant(w, r)
 	if err != nil {
 		return
 	}
@@ -1225,17 +1225,17 @@ func purchaseOrderPendingAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if purchase_order.Order.SendMethod.String == "email" {
-			createPurchaseOrderPDFFile(user_id, restaurant_id, purchase_order, true, true, w, r)
+			createPurchaseOrderPDFFile(restaurant_id, purchase_order, true, true, w, r)
 		} else if purchase_order.Order.SendMethod.String == "text" {
-			createPurchaseOrderSMS(user_id, restaurant_id, purchase_order, true, w, r)
+			createPurchaseOrderSMS(restaurant_id, purchase_order, true, w, r)
 		} else if purchase_order.Order.SendMethod.String == "save" {
-			createPurchaseOrderSaveOnly(user_id, restaurant_id, purchase_order, true, w, r)
+			createPurchaseOrderSaveOnly(restaurant_id, purchase_order, true, w, r)
 		}
 		// if purchase order had a CC email, send out CC email
 		// by setting split_by_dist_order false and do_send true, it will send
 		// a single overview pdf to the CC list only
 		if len(purchase_order.Order.PurchaseCC) > 0 {
-			createPurchaseOrderPDFFile(user_id, restaurant_id, purchase_order, false, true, w, r)
+			createPurchaseOrderPDFFile(restaurant_id, purchase_order, false, true, w, r)
 		}
 
 		// if the PO total exceeded the remaining budget, AND there is a
@@ -1334,10 +1334,10 @@ func purchaseOrderPendingAPIHandler(w http.ResponseWriter, r *http.Request) {
 // viewing their history, such as created time, order date, send method, etc.
 // Used for getting PO history within time range (purchaseOrderAllAPIHandler),
 // or by specific po_num (purchaseOrderSearchPOAPIHandler)
-func getPurchaseOrderHistoryFromPurchaseOrderIds(pos []PurchaseOrder, w http.ResponseWriter, r *http.Request) (ret_pos []PurchaseOrder, err error) {
+func getPurchaseOrderHistoryFromPurchaseOrderIds(pos []PurchaseOrder, restaurant_id string, w http.ResponseWriter, r *http.Request) (ret_pos []PurchaseOrder, err error) {
 	//ret_pos = make([]PurchaseOrder, len(pos), (cap(pos)+1)*2)
 	ret_pos = pos
-	tz_str, _ := getRestaurantTimeZone(test_restaurant_id)
+	tz_str, _ := getRestaurantTimeZone(restaurant_id)
 	for i, po := range ret_pos {
 		err = db.QueryRow(`
 			SELECT created AT TIME ZONE 'UTC' AT TIME ZONE $1, id, (order_date AT TIME ZONE 'UTC' AT TIME ZONE $1) AS local_order_date, send_method, po_num 
@@ -1457,7 +1457,7 @@ func purchaseOrderSearchPOAPIHandler(w http.ResponseWriter, r *http.Request) {
 			purchase_orders = append(purchase_orders, purchase_order)
 		}
 
-		purchase_orders, err = getPurchaseOrderHistoryFromPurchaseOrderIds(purchase_orders, w, r)
+		purchase_orders, err = getPurchaseOrderHistoryFromPurchaseOrderIds(purchase_orders, restaurant_id, w, r)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1518,7 +1518,7 @@ func purchaseOrderAllAPIHandler(w http.ResponseWriter, r *http.Request) {
 			purchase_orders = append(purchase_orders, purchase_order)
 		}
 
-		purchase_orders, err = getPurchaseOrderHistoryFromPurchaseOrderIds(purchase_orders, w, r)
+		purchase_orders, err = getPurchaseOrderHistoryFromPurchaseOrderIds(purchase_orders, restaurant_id, w, r)
 
 		if err != nil {
 			log.Println(err.Error())
@@ -1678,8 +1678,6 @@ func distributorOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		// XXX Verify restaurant id matches user_id
 
 		_, err = db.Exec("DELETE FROM do_item_deliveries WHERE distributor_order_id=$1;", do_id)
 		if err != nil {
@@ -1877,11 +1875,11 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if view_method == "email" {
-			createPurchaseOrderPDFFile(user_id, restaurant_id, purchase_order, false, false, w, r)
+			createPurchaseOrderPDFFile(restaurant_id, purchase_order, false, false, w, r)
 		} else if view_method == "text" {
-			createPurchaseOrderSMS(user_id, restaurant_id, purchase_order, false, w, r)
+			createPurchaseOrderSMS(restaurant_id, purchase_order, false, w, r)
 		} else if view_method == "save" {
-			createPurchaseOrderSaveOnly(user_id, restaurant_id, purchase_order, false, w, r)
+			createPurchaseOrderSaveOnly(restaurant_id, purchase_order, false, w, r)
 		}
 
 	case "POST":
@@ -2094,20 +2092,20 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 				// if sending later, we don't actually create anything now, we're
 				// content with saving the PO in the DB above
 			} else {
-				createPurchaseOrderPDFFile(user_id, restaurant_id, order, order.DoSend, order.DoSend, w, r)
+				createPurchaseOrderPDFFile(restaurant_id, order, order.DoSend, order.DoSend, w, r)
 			}
 		} else if order.Order.SendMethod.String == "text" {
 			if order.DoSend == true && order.Order.SendLater == true {
 				// if sending later, we don't actually create anything now, we're
 				// content with saving the PO in the DB above
 			} else {
-				createPurchaseOrderSMS(user_id, restaurant_id, order, order.DoSend, w, r)
+				createPurchaseOrderSMS(restaurant_id, order, order.DoSend, w, r)
 			}
 		} else if order.Order.SendMethod.String == "save" {
 			// Note for saving we never actually "send later", so we don't have
 			// additional checks for send later, we always just "save" it now
 			// which will mark it as sent, so it doesn't show up in pending POs
-			createPurchaseOrderSaveOnly(user_id, restaurant_id, order, order.DoSend, w, r)
+			createPurchaseOrderSaveOnly(restaurant_id, order, order.DoSend, w, r)
 		}
 
 		actually_sent := order.DoSend == true && (order.Order.SendLater == false || order.Order.SendMethod.String == "save")
@@ -2116,7 +2114,7 @@ func purchaseOrderAPIHandler(w http.ResponseWriter, r *http.Request) {
 			// by setting split_by_dist_order false and do_send true, it will send
 			// a single overview pdf to the CC list only
 			if len(order.Order.PurchaseCC) > 0 {
-				createPurchaseOrderPDFFile(user_id, restaurant_id, order, false, true, w, r)
+				createPurchaseOrderPDFFile(restaurant_id, order, false, true, w, r)
 			}
 
 			// check if budget was overdrawn and send alert email if necessary

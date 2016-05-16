@@ -19,8 +19,6 @@ import (
 )
 
 var db *sql.DB
-var test_user_id string = "1"
-var test_restaurant_id string = "1"
 
 var ERR_RET_STR = "-1"
 
@@ -178,14 +176,6 @@ func main() {
 	}
 
 	initSessionStore(isProduction)
-
-	/* hack-assery
-	test_email := "core433@gmail.com"
-	test_pw := "abc123"
-	password_hash, err := bcrypt.GenerateFromPassword([]byte(test_pw), bcrypt.DefaultCost)
-	_, err = db.Exec(`
-		UPDATE users SET email=$1, pw_hash=$2 WHERE id=1;`, test_email, password_hash)
-	*/
 
 	// handle home
 	http.HandleFunc("/", rootHandler)

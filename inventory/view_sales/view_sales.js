@@ -403,7 +403,6 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
       return;
     }
 
-    var test_restaurant_id = 1;
     $http.post('/pos/clover/match', {
       version_id:$scope.match.version_id,
       pos_item_id:$scope.item.item_id,

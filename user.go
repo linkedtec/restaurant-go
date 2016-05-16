@@ -86,30 +86,6 @@ func setupUsersHandlers() {
 
 }
 
-func checkUserPrivilege() string {
-	// check user_id against restaurant_users to see whether they have
-	// privileges to see this admin screen
-	var privilege string
-	err := db.QueryRow("SELECT privilege FROM restaurant_users WHERE restaurant_id=$1 AND user_id=$2;", test_restaurant_id, test_user_id).Scan(&privilege)
-	if err != nil {
-		log.Println(err.Error())
-		return "error"
-	}
-
-	return privilege
-}
-
-func hasBasicPrivilege(p string) bool {
-	if p != "admin" && p != "basic" {
-		return false
-	}
-	return true
-}
-
-func hasAdminPrivilege(p string) bool {
-	return p == "admin"
-}
-
 func getOrAddContactEmail(email string, restaurant_id string) NullInt64 {
 
 	var exists bool
@@ -420,7 +396,7 @@ func usersInvEmailAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = db.Exec("UPDATE restaurants SET inv_email_recipient=$1 WHERE id=$2", restaurant_email.Email, restaurant_id)
+		_, err = db.Exec("UPDATE restaurants SET inv_email_recipient=$1 WHERE id=$2;", restaurant_email.Email, restaurant_id)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)

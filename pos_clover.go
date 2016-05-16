@@ -383,7 +383,6 @@ func posCloverAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		_start_date := r.URL.Query().Get("start_date")
 		_end_date := r.URL.Query().Get("end_date")
-		//tz_str, _ := getRestaurantTimeZone(test_restaurant_id) // not currently used
 		// if no dates were provided, set start date to 1 month ago and end date
 		// to now
 		var start_date time.Time
