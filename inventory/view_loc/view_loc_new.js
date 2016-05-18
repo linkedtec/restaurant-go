@@ -17,7 +17,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
     });
 }])
 
-.controller('ViewInvByLocNewCtrl', function($scope, $modal, $http, DateService, MathService, ItemsService, locType) {
+.controller('ViewInvByLocNewCtrl', function($scope, $modal, $http, DateService, MathService, ItemsService, UserService, locType) {
 
   // XXX DO NOT REASSIGN VALUE OF k_loc_type, it is determined by route
   // to be "bev" or "keg" and is a CONSTANT
@@ -82,7 +82,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
       
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
 
   // Shows the add new location UI box
@@ -172,7 +172,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
       
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   };
   $scope.getAllInv();
@@ -194,7 +194,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
       $scope.cleanUpExistingInv();
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -540,7 +540,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
       }
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -645,7 +645,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
 
 })
 
-.controller('printCountSheetsModalCtrl', function($scope, $modalInstance, $http, $modal, locations) {
+.controller('printCountSheetsModalCtrl', function($scope, $modalInstance, $http, $modal, UserService, locations) {
 
   $scope.locations = locations;
   $scope.inv_locations = []; // stores only locations with previous inventory counts
@@ -731,7 +731,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
 
     })
     .error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   }
 
@@ -771,7 +771,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
 
 })
 
-.controller('startInvModalCtrl', function($scope, $modalInstance, $modal, $http, DateService, loc_name, all_bevs, all_kegs, existing_items) {
+.controller('startInvModalCtrl', function($scope, $modalInstance, $modal, $http, DateService, UserService, loc_name, all_bevs, all_kegs, existing_items) {
 
   $scope.loc_name = loc_name;
 
@@ -875,7 +875,7 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
       $modalInstance.close(['save', return_data]);
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   }
 

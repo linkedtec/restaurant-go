@@ -9,7 +9,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
   });
 }])
 
-.controller('ViewDistributorsCtrl', function($scope, $modal, $http, MathService, DistributorsService, VolUnitsService) {
+.controller('ViewDistributorsCtrl', function($scope, $modal, $http, MathService, DistributorsService, UserService, VolUnitsService) {
 
   $scope.showSpinner = false;
 
@@ -46,21 +46,25 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
     $scope.showSpinner = true;
 
     var result = DistributorsService.get();
-    result.then(function(payload) {
-      $scope.showSpinner = false;
-      var data = payload.data;
-      
-      $scope.distributors = data;
-      console.log(data);
+    result.then(
+      function(payload) {
+        $scope.showSpinner = false;
+        var data = payload.data;
+        
+        $scope.distributors = data;
+        console.log(data);
 
-      if ($scope.firstTimeSort) {
-        $scope.firstTimeSort = false;
-        $scope.sortBy('name');
-      }
+        if ($scope.firstTimeSort) {
+          $scope.firstTimeSort = false;
+          $scope.sortBy('name');
+        }
 
-      $scope.$apply();
+        $scope.$apply();
 
-    });
+      },
+      function(errorPayload) {
+        UserService.checkAjaxLoginRequired(errorPayload.data);
+      });
   };
   $scope.getDistributors();
 
@@ -220,7 +224,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
 
 })
 
-.controller('editDistModalCtrl', function($scope, $modalInstance, $modal, $http, $filter, DistributorsService, ContactService, MathService, distributor, distributors, volume_units) {
+.controller('editDistModalCtrl', function($scope, $modalInstance, $modal, $http, $filter, DistributorsService, ContactService, MathService, UserService, distributor, distributors, volume_units) {
 
   $scope.volume_units = volume_units;
 
@@ -315,6 +319,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
       function(errorPayload) {
         $scope.distributor.name = old_name;
         $scope.edit_name = old_name;
+        UserService.checkAjaxLoginRequired(errorPayload.data);
       });
 
   };
@@ -342,6 +347,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
       function(errorPayload) {
         $scope.distributor.contact_name = old_contact_name;
         $scope.edit_contact_name = old_contact_name;
+        UserService.checkAjaxLoginRequired(errorPayload.data);
       });
 
   };
@@ -386,6 +392,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
       function(errorPayload) {
         $scope.distributor.email = old_email;
         $scope.edit_email = old_email;
+        UserService.checkAjaxLoginRequired(errorPayload.data);
       });
 
   };
@@ -421,6 +428,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
       function(errorPayload) {
         $scope.distributor.phone = old_phone;
         $scope.edit_phone = old_phone;
+        UserService.checkAjaxLoginRequired(errorPayload.data);
       });
 
   };
@@ -585,6 +593,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
 
       }).
       error(function(data, status, headers, config) {
+        UserService.checkAjaxLoginRequired(data);
       });
   };
 
@@ -663,6 +672,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
 
     }).
     error(function(data, status, headers, config) {
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -812,7 +822,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
       $modalInstance.close(['save', $scope.distributor.id, new_dist_id]);
     }).
     error(function(data, status, headers, config) {
-      console.log(data);
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -887,7 +897,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
           
         }).
         error(function(data, status, headers, config) {
-          console.log(data);
+          UserService.checkAjaxLoginRequired(data);
         });
     });
 
@@ -944,7 +954,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
               
         }).
         error(function(data, status, headers, config) {
-          console.log(data);
+          UserService.checkAjaxLoginRequired(data);
         });
       });
   }
@@ -1013,7 +1023,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
 
 })
 
-.controller('deleteDistModalCtrl', function($scope, $modalInstance, $http, $filter, MathService, distributor, dist_beverages) {
+.controller('deleteDistModalCtrl', function($scope, $modalInstance, $http, $filter, MathService, UserService, distributor, dist_beverages) {
 
   $scope.distributor = distributor;
   $scope.dist_beverages = dist_beverages;
@@ -1053,7 +1063,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
           
     }).
     error(function(data, status, headers, config) {
-      console.log(data);
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -1064,7 +1074,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
 
 })
 
-.controller('deleteKegModalCtrl', function($scope, $modalInstance, $http, $filter, MathService, distributor, keg, keg_beverages) {
+.controller('deleteKegModalCtrl', function($scope, $modalInstance, $http, $filter, MathService, UserService, distributor, keg, keg_beverages) {
 
   $scope.distributor = distributor;
   $scope.keg = keg;
@@ -1105,7 +1115,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
           
     }).
     error(function(data, status, headers, config) {
-      console.log(data);
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 

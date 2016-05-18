@@ -9,7 +9,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   });
 }])
 
-.controller('ViewAllInvCtrl', function($scope, $modal, $http, $filter, ItemsService, MathService, DistributorsService, VolUnitsService) {
+.controller('ViewAllInvCtrl', function($scope, $modal, $http, $filter, ItemsService, MathService, DistributorsService, VolUnitsService, UserService) {
 
   $scope.showSpinner = false;
 
@@ -223,6 +223,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
     }).
     error(function(data, status, headers, config) {
       $scope.showSpinner = false;
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -403,7 +404,7 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
       $scope.getAllInv();
     },
     function(errorPayload) {
-      ; // do nothing for now
+      UserService.checkAjaxLoginRequired(errorPayload.data);
     });
   };
 

@@ -9,7 +9,7 @@ angular.module('myApp.viewDashboard', ['ngRoute', 'ui.bootstrap'])
   });
 }])
 
-.controller('ViewDashboardCtrl', function($scope, $modal, $http, $filter, DateService, ItemsService, MathService) {
+.controller('ViewDashboardCtrl', function($scope, $modal, $http, $filter, $window, DateService, ItemsService, MathService, UserService) {
 
   $scope.restaurant_name = null;
   $scope.dash_data = null;
@@ -29,7 +29,7 @@ angular.module('myApp.viewDashboard', ['ngRoute', 'ui.bootstrap'])
       }
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   };
   $scope.getRestaurant();
@@ -70,6 +70,8 @@ angular.module('myApp.viewDashboard', ['ngRoute', 'ui.bootstrap'])
     }).
     error(function(data, status, headers, config) {
 
+      UserService.checkAjaxLoginRequired(data);
+      
     });
   };
   $scope.getDashboard();

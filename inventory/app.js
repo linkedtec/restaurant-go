@@ -71,7 +71,7 @@ config(['$routeProvider', function($routeProvider) {
     DateService.setRestaurantTimezoneOffset(data['offset']);
   })
   .error(function(data, status, headers, config) {
-
+    UserService.checkAjaxLoginRequired(data);
   });
 
 })
@@ -93,7 +93,7 @@ config(['$routeProvider', function($routeProvider) {
       $scope.user = UserService.getUserInfo();
     })
     .error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   }
   
@@ -778,7 +778,7 @@ config(['$routeProvider', function($routeProvider) {
   }
 })
 
-.factory("UserService", function() {
+.factory("UserService", function($window) {
 
   var first_name = '';
   var last_name = '';
@@ -818,7 +818,11 @@ config(['$routeProvider', function($routeProvider) {
       return first_name;
     },
 
-    firstName: first_name
+    checkAjaxLoginRequired: function(response) {
+      if ( response.startsWith("LOGIN_REQUIRED") ) {
+        $window.location.href = '/login';
+      }
+    }
 
   }
 

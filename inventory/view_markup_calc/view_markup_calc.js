@@ -9,7 +9,7 @@ angular.module('myApp.viewMarkupCalc', ['ngRoute', 'ui.bootstrap'])
   });
 }])
 
-.controller('ViewMarkupCalcCtrl', function($scope, $modal, $http, $filter, ItemsService, MathService, VolUnitsService) {
+.controller('ViewMarkupCalcCtrl', function($scope, $modal, $http, $filter, ItemsService, MathService, UserService, VolUnitsService) {
 
   $scope.showSpinner = false;
 
@@ -202,6 +202,7 @@ angular.module('myApp.viewMarkupCalc', ['ngRoute', 'ui.bootstrap'])
     }).
     error(function(data, status, headers, config) {
       $scope.showSpinner = false;
+      UserService.checkAjaxLoginRequired(data);
     });
   };
   $scope.getBeverages();
@@ -416,7 +417,7 @@ angular.module('myApp.viewMarkupCalc', ['ngRoute', 'ui.bootstrap'])
 
 })
 
-.controller('editMarkupModalCtrl', function($scope, $modalInstance, $http, BeveragesService, MathService, VolUnitsService, item, target_markup, volume_units_full, volume_units) {
+.controller('editMarkupModalCtrl', function($scope, $modalInstance, $http, BeveragesService, MathService, UserService, VolUnitsService, item, target_markup, volume_units_full, volume_units) {
 
   $scope.item = item;
   $scope.item_tmp = JSON.parse( JSON.stringify( $scope.item ) );
@@ -896,7 +897,7 @@ angular.module('myApp.viewMarkupCalc', ['ngRoute', 'ui.bootstrap'])
 
     },
     function(errorPayload) {
-      ; // do nothing for now
+      UserService.checkAjaxLoginRequired(errorPayload.data);
     });
 
   };

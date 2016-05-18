@@ -10,7 +10,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
     });
 }])
 
-.controller('ViewPurchaseOrdersCtrl', function($scope, $modal, $http, ContactService, DateService, ItemsService) {
+.controller('ViewPurchaseOrdersCtrl', function($scope, $modal, $http, ContactService, DateService, ItemsService, UserService) {
 
   $scope.pending_orders = [];
 
@@ -82,7 +82,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       console.log($scope.pending_orders);
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   };
   $scope.getPendingPOs();
@@ -206,7 +206,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
     })
     .error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -240,7 +240,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
           });
         }).
         error(function(data, status, headers, config) {
-          console.log(data);
+          UserService.checkAjaxLoginRequired(data);
         });
     });
   }
@@ -260,7 +260,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
 
 })
 
-.controller('reviewPurchaseOrderModalCtrl', function($scope, $modalInstance, $http, $filter, $sce, ItemsService, content_type, review_obj, post_order, read_mode, po_id, send_later) {
+.controller('reviewPurchaseOrderModalCtrl', function($scope, $modalInstance, $http, $filter, $sce, ItemsService, UserService, content_type, review_obj, post_order, read_mode, po_id, send_later) {
 
   $scope.trustAsHtml = $sce.trustAsHtml;
 
@@ -377,6 +377,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       error(function(data, status, headers, config) {
         $scope.disableSend = false;
         $modalInstance.close(['error', null]);
+        UserService.checkAjaxLoginRequired(data);
       });
     } 
     // other POs do not have DB entries and we need to post the post_order
@@ -393,6 +394,7 @@ angular.module('myApp.viewPurchaseOrders', ['ngRoute'])
       error(function(data, status, headers, config) {
         $scope.disableSend = false;
         $modalInstance.close(['error', null]);
+        UserService.checkAjaxLoginRequired(data);
       });
     }
     

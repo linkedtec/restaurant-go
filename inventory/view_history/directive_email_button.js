@@ -1,6 +1,6 @@
 angular.module('myApp')
 
-.directive('emailButton', function($modal, $http, ContactService) {
+.directive('emailButton', function($modal, $http, ContactService, UserService) {
   return {
     restrict: 'AE',
     scope: {
@@ -31,7 +31,7 @@ angular.module('myApp')
           
         }).
         error(function(data, status, headers, config) {
-
+          UserService.checkAjaxLoginRequired(data);
         });
       };
       scope.getDefaultEmail();
@@ -67,7 +67,7 @@ angular.module('myApp')
             
           }).
           error(function(data, status, headers, config) {
-
+            UserService.checkAjaxLoginRequired(data);
           });
       };
 

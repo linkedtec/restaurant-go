@@ -10,7 +10,7 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
     });
 }])
 
-.controller('ViewPurchaseHistoryCtrl', function($scope, $modal, $http, DateService, ItemsService) {
+.controller('ViewPurchaseHistoryCtrl', function($scope, $modal, $http, DateService, ItemsService, UserService) {
 
   $scope.showSpinner = false;
 
@@ -62,6 +62,7 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
       // return false to searchClickBox directive to inactivate highlight
       $scope.searchPOControl.deactivate();
       $scope.showSpinner = false;
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -90,6 +91,7 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
     })
     .error(function(data, status, headers, config) {
       $scope.showSpinner = false;
+      UserService.checkAjaxLoginRequired(data);
     });
 
   };
@@ -176,7 +178,7 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
       });
     })
     .error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -303,7 +305,7 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
 
     })
     .error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -338,7 +340,7 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
 
       }).
       error(function(data, status, headers, config) {
-        console.log(data);
+        UserService.checkAjaxLoginRequired(data);
       });
   };
 
@@ -384,7 +386,7 @@ angular.module('myApp.viewPurchaseHistory', ['ngRoute'])
 
     })
     .error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 

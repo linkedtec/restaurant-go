@@ -9,7 +9,7 @@ angular.module('myApp.viewMargins', ['ngRoute', 'ui.bootstrap'])
   });
 }])
 
-.controller('ViewMarginsCtrl', function($scope, $modal, $http, DateService) {
+.controller('ViewMarginsCtrl', function($scope, $modal, $http, DateService, UserService) {
 
   $scope.showSpinner = false;
 
@@ -66,6 +66,7 @@ angular.module('myApp.viewMargins', ['ngRoute', 'ui.bootstrap'])
     }).
     error(function(data, status, headers, config) {
       $scope.showSpinner = false;
+      UserService.checkAjaxLoginRequired(data);
     });
   };
   $scope.getMargins();

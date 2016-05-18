@@ -42,23 +42,23 @@ func sessionGetUserID(w http.ResponseWriter, r *http.Request) (user_id string, e
 	loginSession, err := session_store.Get(r, "loginSession")
 	if err != nil {
 		log.Println(err.Error())
-		http.Redirect(w, r, "/login", http.StatusFound)
+		http.Error(w, ERR_LOGIN_REQUIRED, http.StatusUnauthorized)
 		return ERR_RET_STR, err
 	}
 	if val, ok := loginSession.Values["id"].(string); ok {
 		// if val is a string
 		switch val {
 		case "":
-			http.Redirect(w, r, "/login", http.StatusFound)
+			http.Error(w, ERR_LOGIN_REQUIRED, http.StatusUnauthorized)
 			return ERR_RET_STR, errors.New("Empty user ID for login session.")
 		default:
 			return val, nil
 		}
 	} else {
-		http.Redirect(w, r, "/login", http.StatusFound)
+		http.Error(w, ERR_LOGIN_REQUIRED, http.StatusUnauthorized)
 		return ERR_RET_STR, errors.New("Missing user ID for login session.")
 	}
-	http.Redirect(w, r, "/login", http.StatusFound)
+	http.Error(w, ERR_LOGIN_REQUIRED, http.StatusUnauthorized)
 	return ERR_RET_STR, errors.New("Missing user ID for login session.")
 }
 
@@ -101,7 +101,7 @@ func sessionDecorator(f http.HandlerFunc, req_privilege string) http.HandlerFunc
 		loginSession, err := session_store.Get(r, "loginSession")
 		if err != nil {
 			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, ERR_LOGIN_REQUIRED, http.StatusUnauthorized)
 			return
 		}
 
@@ -110,11 +110,14 @@ func sessionDecorator(f http.HandlerFunc, req_privilege string) http.HandlerFunc
 		if user_id, ok := loginSession.Values["id"].(string); ok {
 
 			log.Println("USER ID OKAY")
+			log.Println(user_id)
 
 			// if user_id is a string
 			switch user_id {
 			case "":
-				http.Redirect(w, r, "/login", http.StatusFound)
+				log.Println("EMPTY")
+				http.Error(w, ERR_LOGIN_REQUIRED, http.StatusUnauthorized)
+				return
 			default:
 				log.Println(user_id)
 				var restaurant_id int
@@ -123,8 +126,9 @@ func sessionDecorator(f http.HandlerFunc, req_privilege string) http.HandlerFunc
 					user_id).Scan(&restaurant_id)
 				if err != nil {
 					log.Println(err.Error())
-					http.Error(w, err.Error(), http.StatusBadRequest)
-					http.Redirect(w, r, "/login", http.StatusFound)
+					//http.Error(w, err.Error(), http.StatusBadRequest)
+					http.Error(w, ERR_LOGIN_REQUIRED, http.StatusUnauthorized)
+					return
 				}
 				// check privilege of user_id with restaurant_id in restaurant_users table
 				var user_privilege string
@@ -134,28 +138,34 @@ func sessionDecorator(f http.HandlerFunc, req_privilege string) http.HandlerFunc
 					user_id, restaurant_id).Scan(&user_privilege)
 				if err != nil {
 					log.Println(err.Error())
-					http.Error(w, err.Error(), http.StatusBadRequest)
-					http.Redirect(w, r, "/login", http.StatusFound)
+					//http.Error(w, err.Error(), http.StatusBadRequest)
+					http.Error(w, ERR_UNAUTHORIZED, http.StatusUnauthorized)
+					return
 				}
 
 				// "admin" is highest privilege, always pass through
 				if user_privilege == g_admin_privilege || user_privilege == req_privilege {
 					f(w, r)
 				} else {
-					http.Error(w, "Insufficient privilege!", http.StatusUnauthorized)
+					http.Error(w, ERR_UNAUTHORIZED, http.StatusUnauthorized)
 				}
 			}
 		} else {
 			log.Println("USER ID NOT OKAY")
-			// if user_id is not a string type
-			http.Redirect(w, r, "/login", http.StatusFound)
+			http.Error(w, ERR_LOGIN_REQUIRED, http.StatusUnauthorized)
 		}
 	}
 }
 
 func sessionHandlerDecorator(h http.Handler) http.Handler {
+
+	log.Println("SESSION HANDLER DECORATOR")
+
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
+
+			log.Println("SESSION HANDLER DECORATOR2")
+
 			loginSession, err := session_store.Get(r, "loginSession")
 			if err != nil {
 				log.Println(err.Error())
@@ -171,6 +181,8 @@ func sessionHandlerDecorator(h http.Handler) http.Handler {
 				case "":
 					//http.ServeFile(w, r, "login.html")
 					http.Redirect(w, r, "/login", http.StatusFound)
+					log.Println("EMPTY SESSION HANDLER")
+					return
 				default:
 					log.Println("Decorator validated email:")
 					log.Println(val)
@@ -179,6 +191,7 @@ func sessionHandlerDecorator(h http.Handler) http.Handler {
 			} else {
 				// if val is not a string type
 				http.Redirect(w, r, "/login", http.StatusFound)
+				log.Println("SESSION HANDLER REDIRECT")
 				//http.ServeFile(w, r, "login.html")
 			}
 		})
@@ -206,6 +219,8 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
+
+	log.Println("CALLING LOGIN HANDLER")
 
 	switch r.Method {
 	case "GET":

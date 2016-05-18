@@ -119,7 +119,7 @@ angular.module('myApp')
   
 })
 
-.directive('newDistributor', function(DistributorsService, ContactService, VolUnitsService, MathService) {
+.directive('newDistributor', function(DistributorsService, ContactService, MathService, UserService, VolUnitsService) {
   return {
     restrict: 'AE',
     scope: {
@@ -313,7 +313,7 @@ angular.module('myApp')
 
           },
           function(errorPayload) {
-            ; // do nothing for now
+            UserService.checkAjaxLoginRequired(errorPayload.data);
           });
       };
 

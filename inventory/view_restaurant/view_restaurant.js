@@ -10,7 +10,7 @@ angular.module('myApp.viewRestaurant', ['ngRoute'])
     });
 }])
 
-.controller('ViewRestaurantCtrl', function($scope, $modal, $http, ContactService) {
+.controller('ViewRestaurantCtrl', function($scope, $modal, $http, ContactService, UserService) {
 
   $scope.form_ver = {};
   $scope.name_failure_msg = null;
@@ -52,7 +52,7 @@ angular.module('myApp.viewRestaurant', ['ngRoute'])
       $scope.restaurant_name = $scope.restaurant_name_edit;
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -79,7 +79,7 @@ angular.module('myApp.viewRestaurant', ['ngRoute'])
       }
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
 
     $http.get('/restaurant/purchase').
@@ -109,7 +109,7 @@ angular.module('myApp.viewRestaurant', ['ngRoute'])
       }
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
 
   };
@@ -183,7 +183,7 @@ angular.module('myApp.viewRestaurant', ['ngRoute'])
       $scope.showPurchaseSave = false;
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
 
     

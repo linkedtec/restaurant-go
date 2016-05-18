@@ -9,7 +9,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
   });
 }])
 
-.controller('ViewHistoryCtrl', function($scope, $http, $timeout, DateService) { 
+.controller('ViewHistoryCtrl', function($scope, $http, $timeout, DateService, UserService) { 
 
   $scope.showSpinner = false;
 
@@ -202,7 +202,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       });
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -350,7 +350,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
       
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
 
   };
@@ -392,6 +392,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     }).
     error(function(data, status, headers, config) {
       $scope.showSpinner = false;
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -445,6 +446,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     }).
     error(function(data, status, headers, config) {
       $scope.showSpinner = false;
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -501,6 +503,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     }).
     error(function(data, status, headers, config) {
       $scope.showSpinner = false;
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -551,6 +554,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     }).
     error(function(data, status, headers, config) {
       $scope.showSpinner = false;
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -607,6 +611,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     }).
     error(function(data, status, headers, config) {
       $scope.showSpinner = false;
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -659,6 +664,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     }).
     error(function(data, status, headers, config) {
       $scope.showSpinner = false;
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -724,6 +730,7 @@ angular.module('myApp.viewHistory', ['ngRoute'])
     }).
     error(function(data, status, headers, config) {
       $scope.showSpinner = false;
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 

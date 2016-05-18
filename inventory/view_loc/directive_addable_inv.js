@@ -1,6 +1,6 @@
 angular.module('myApp')
 
-.directive('addableInv', function($http, $modal, KegsService, DistributorsService, VolUnitsService, MathService) {
+.directive('addableInv', function($http, $modal, KegsService, DistributorsService, MathService, UserService, VolUnitsService) {
   return {
     restrict: 'AE',
     scope: {
@@ -236,7 +236,7 @@ angular.module('myApp')
             }
           },
           function(errorPayload) {
-            ; // do nothing for now
+            UserService.checkAjaxLoginRequired(errorPayload.data);
           });
 
         scope.reSort();

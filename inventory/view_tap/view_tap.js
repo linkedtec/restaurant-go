@@ -9,7 +9,7 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
   });
 }])
 
-.controller('ViewOnTapCtrl', function($scope, $modal, $http, DateService) {
+.controller('ViewOnTapCtrl', function($scope, $modal, $http, DateService, UserService) {
 
   $scope.k_loc_type = 'tap';
   $scope.use_modes = ['Manage Taps', 'Take Inventory'];
@@ -71,7 +71,7 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
       $scope.getTapBevs(null);
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
 
   // get the tap / untap history of beverages for each tap
@@ -132,7 +132,7 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
       }
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -176,11 +176,9 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
 
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   };
-
-  
 
   $scope.saveInv = function() {
 
@@ -258,7 +256,8 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
 
       }).
       error(function(data, status, headers, config) {
-    });
+        UserService.checkAjaxLoginRequired(data);
+      });
   };
 
   $scope.getDisplayTime = function(timestamp, or_date) {
@@ -304,7 +303,7 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
       }
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   };
   $scope.getExistingInv();
@@ -334,7 +333,8 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
 
       }).
       error(function(data, status, headers, config) {
-    });
+        UserService.checkAjaxLoginRequired(data);
+      });
   };
 
   $scope.removeTap = function(index) {
@@ -373,7 +373,7 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
           }          
         }).
         error(function(data, status, headers, config) {
-
+          UserService.checkAjaxLoginRequired(data);
         });
       });
   };
@@ -509,7 +509,7 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
 
 })
 
-.controller('showTapModalCtrl', function($scope, $modalInstance, $http, tap, add_inv_all_items, tap_or_untap) {
+.controller('showTapModalCtrl', function($scope, $modalInstance, $http, UserService, tap, add_inv_all_items, tap_or_untap) {
 
   $scope.cancel = function() {
     $modalInstance.dismiss('cancel');
@@ -603,10 +603,11 @@ angular.module('myApp.viewOnTap', ['ngRoute'])
       tap_or_untap: tap_or_untap,
       tap_time: local_date
     }).
-      success(function(data, status, headers, config) {
-        $modalInstance.close([bev_product, local_date]);
-      }).
-      error(function(data, status, headers, config) {
+    success(function(data, status, headers, config) {
+      $modalInstance.close([bev_product, local_date]);
+    }).
+    error(function(data, status, headers, config) {
+      UserService.checkAjaxLoginRequired(data);
     });
 
   };

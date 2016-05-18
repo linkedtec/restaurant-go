@@ -9,7 +9,7 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
   });
 }])
 
-.controller('ViewPOSSalesCtrl', function($scope, $modal, $http, DateService, ItemsService, MathService) {
+.controller('ViewPOSSalesCtrl', function($scope, $modal, $http, DateService, ItemsService, MathService, UserService) {
 
   $scope.all_beverages = [];
   $scope.pos_data = [];
@@ -122,6 +122,7 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
     }).
     error(function(data, status, headers, config) {
       $scope.showSpinner = false;
+      UserService.checkAjaxLoginRequired(data);
     });
   };
   
@@ -146,6 +147,7 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
     }).
     error(function(data, status, headers, config) {
       $scope.getSalesData();
+      UserService.checkAjaxLoginRequired(data);
     });
   };
   // this is the entry point to this controller
@@ -311,7 +313,7 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
 
 })
 
-.controller('modalPOSConfirmMatchingCtrl', function($scope, $modalInstance, $modal, $http, item, match) {
+.controller('modalPOSConfirmMatchingCtrl', function($scope, $modalInstance, $modal, $http, UserService, item, match) {
 
   $scope.item = item;
   $scope.match = match;
@@ -421,6 +423,7 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
         text: "You most likely already matched this beverage + serving size to another PoS entry.  Either change that one first and try again, or pick a different beverage + serving size!",
         type: "error",
         allowOutsideClick: true});
+      UserService.checkAjaxLoginRequired(data);
     });
 
   };

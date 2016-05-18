@@ -1,6 +1,6 @@
 angular.module('myApp')
 
-.directive('editLocation', function($modal, $http) {
+.directive('editLocation', function($modal, $http, UserService) {
   return {
     restrict: 'AE',
     scope: {
@@ -64,6 +64,7 @@ angular.module('myApp')
 
         }).
         error(function(data, status, headers, config) {
+          UserService.checkAjaxLoginRequired(data);
         });
       };
 
@@ -94,7 +95,7 @@ angular.module('myApp')
             }
           }).
           error(function(data, status, headers, config) {
-
+            UserService.checkAjaxLoginRequired(data);
           });
         });
       };
@@ -102,7 +103,7 @@ angular.module('myApp')
   }
 })
 
-.directive('newLocation', function($modal, $http) {
+.directive('newLocation', function($modal, $http, UserService) {
   return {
     restrict: 'AE',
     scope: {
@@ -170,6 +171,7 @@ angular.module('myApp')
 
           }).
           error(function(data, status, headers, config) {
+            UserService.checkAjaxLoginRequired(data);
           });
       };
 

@@ -1,6 +1,6 @@
 angular.module('myApp')
 
-.directive('recordDelivery', function($modal, $http, $timeout, MathService, DateService, ItemsService) {
+.directive('recordDelivery', function($modal, $http, $timeout, MathService, DateService, ItemsService, UserService) {
   return {
     restrict: 'AE',
     scope: {
@@ -177,6 +177,7 @@ angular.module('myApp')
           post_order['invoice_num'] = scope.newDistOrder['invoice_num'];
           console.log('POST ORDER');
           console.log(post_order);
+
           $http.post('/deliveries', {
             id: post_order['id'],
             delivery_time: post_order['delivery_time'],
@@ -204,6 +205,7 @@ angular.module('myApp')
               type: "error",
               allowOutsideClick: true,
               html: true});
+            UserService.checkAjaxLoginRequired(data);
           });
         } // end !isEdit posting of new delivery record
         else {
@@ -317,6 +319,7 @@ angular.module('myApp')
               type: "error",
               allowOutsideClick: true,
               html: true});
+            UserService.checkAjaxLoginRequired(data);
           });
         }
       };

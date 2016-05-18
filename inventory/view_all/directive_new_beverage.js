@@ -1,6 +1,6 @@
 angular.module('myApp')
 
-.directive('newBeverage', function($modal, $http, BeveragesService, DateService, VolUnitsService, MathService) {
+.directive('newBeverage', function($modal, $http, BeveragesService, DateService, MathService, UserService, VolUnitsService) {
   return {
     restrict: 'AE',
     scope: {
@@ -248,29 +248,6 @@ angular.module('myApp')
 
       scope.internalControl.clearNewForm();
 
-      // This is currently being passed by caller, disable for now...
-      /*
-      scope.getVolUnits = function() {
-        var result = VolUnitsService.get();
-        result.then(
-          function(payload) {
-            var data = payload.data;
-            if (data !== null) {
-              scope.volume_units_full = data;
-              scope.volume_units = [];
-              for (var i=0; i < data.length; i++)
-              {
-                scope.volume_units.push(data[i].abbr_name);
-              }
-            }
-          },
-          function(errorPayload) {
-            ; // do nothing for now
-          });
-      };
-      scope.getVolUnits();
-      */
-
       scope.applyPrepopulateVars = function() {
         // if prepopulated parameters were passed, fill them out now
         if (scope.prepopulateVars !== null && scope.prepopulateVars !== undefined) {
@@ -453,7 +430,7 @@ angular.module('myApp')
 
               },
               function(errorPayload) {
-                ; // do nothing for now
+                UserService.checkAjaxLoginRequired(errorPayload.data);
               });
         });
       };
@@ -771,7 +748,7 @@ angular.module('myApp')
 
           },
           function(errorPayload) {
-            ; // do nothing for now
+            UserService.checkAjaxLoginRequired(errorPayload.data);
           });
         } else {
           // If this is an EDIT operation
@@ -868,7 +845,7 @@ angular.module('myApp')
 
           },
           function(errorPayload) {
-            ; // do nothing for now
+            UserService.checkAjaxLoginRequired(errorPayload.data);
           });
         }
 

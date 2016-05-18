@@ -9,7 +9,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
   });
 }])
 
-.controller('ViewSalesPlanCtrl', function($scope, $modal, $http, ItemsService, DateService, BeveragesService, DistributorsService, MathService, VolUnitsService) {
+.controller('ViewSalesPlanCtrl', function($scope, $modal, $http, ItemsService, DateService, BeveragesService, DistributorsService, MathService, UserService, VolUnitsService) {
 
   $scope.showSpinner = false;
 
@@ -74,7 +74,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       
     })
     .error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
 
   };
@@ -144,12 +144,16 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
   $scope.getAllDistributors = function() {
 
     var result = DistributorsService.get();
-    result.then(function(payload) {
-      var data = payload.data;
-      
-      $scope.all_distributors = data;
-      console.log(data);
-    });
+    result.then(
+      function(payload) {
+        var data = payload.data;
+        
+        $scope.all_distributors = data;
+        console.log(data);
+      },
+      function(errorPayload) {
+        UserService.checkAjaxLoginRequired(errorPayload.data);
+      });
   };
 
   $scope.selectAddMode = function(mode) {
@@ -206,7 +210,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   };
   $scope.getInactiveInv();
@@ -301,6 +305,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
     }).
     error(function(data, status, headers, config) {
       $scope.showSpinner = false;
+      UserService.checkAjaxLoginRequired(data);
     });
   };
   //$scope.getInvData();
@@ -383,7 +388,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
     },
     function(errorPayload) {
-      ; // do nothing for now
+      UserService.checkAjaxLoginRequired(errorPayload.data);
     });
   };
 
@@ -583,6 +588,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
           }).
           error(function(data, status, headers, config) {
+            UserService.checkAjaxLoginRequired(data);
           });
         }
         
@@ -854,14 +860,14 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
       
     })
     .error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
 
   };
 
 })
 
-.controller('modalItemDistributorCtrl', function($scope, $modalInstance, $modal, BeveragesService, item, all_distributors) {
+.controller('modalItemDistributorCtrl', function($scope, $modalInstance, $modal, BeveragesService, UserService, item, all_distributors) {
   $scope.item = item;
   $scope.all_distributors = all_distributors;
 
@@ -978,7 +984,7 @@ angular.module('myApp.viewSalesPlan', ['ngRoute', 'ui.bootstrap'])
 
     },
     function(errorPayload) {
-      ; // do nothing for now
+      UserService.checkAjaxLoginRequired(errorPayload.data);
     });
   };
 

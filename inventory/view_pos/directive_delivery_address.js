@@ -1,6 +1,6 @@
 angular.module('myApp')
 
-.directive('deliveryAddress', function($modal, $http) {
+.directive('deliveryAddress', function($modal, $http, UserService) {
   return {
     restrict: 'AE',
     scope: {
@@ -74,7 +74,7 @@ angular.module('myApp')
 
         }).
         error(function(data, status, headers, config) {
-
+          UserService.checkAjaxLoginRequired(data);
         });
 
         $http.get('/restaurant/address', {
@@ -100,7 +100,7 @@ angular.module('myApp')
 
         }).
         error(function(data, status, headers, config) {
-
+          UserService.checkAjaxLoginRequired(data);
         });
       };
       scope.getRestaurantAddress();
@@ -122,7 +122,7 @@ angular.module('myApp')
 
         }).
         error(function(data, status, headers, config) {
-
+          UserService.checkAjaxLoginRequired(data);
         });
         
       };
@@ -152,7 +152,7 @@ angular.module('myApp')
 
         }).
         error(function(data, status, headers, config) {
-
+          UserService.checkAjaxLoginRequired(data);
         });
       };
 

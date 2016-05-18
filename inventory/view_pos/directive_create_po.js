@@ -1,6 +1,6 @@
 angular.module('myApp')
 
-.directive('createPurchaseOrder', function($modal, $http, ContactService, DateService, DistributorsService, ItemsService, MathService, VolUnitsService) {
+.directive('createPurchaseOrder', function($modal, $http, ContactService, DateService, DistributorsService, ItemsService, MathService, UserService, VolUnitsService) {
   return {
     restrict: 'AE',
     scope: {
@@ -96,7 +96,7 @@ angular.module('myApp')
 
         })
         .error(function(data, status, headers, config) {
-
+          UserService.checkAjaxLoginRequired(data);
         });
 
       };
@@ -117,7 +117,7 @@ angular.module('myApp')
           }
         }).
         error(function(data, status, headers, config) {
-
+          UserService.checkAjaxLoginRequired(data);
         });
       };
       scope.getBudget();
@@ -177,7 +177,7 @@ angular.module('myApp')
           });
         })
         .error(function(data, status, headers, config) {
-
+          UserService.checkAjaxLoginRequired(data);
         });
       };
 
@@ -246,6 +246,7 @@ angular.module('myApp')
         .error(function(data, status, headers, config) {
           // return false to searchClickBox directive to inactivate highlight
           scope.searchPOControl.deactivate();
+          UserService.checkAjaxLoginRequired(data);
         });
       };
 
@@ -317,7 +318,7 @@ angular.module('myApp')
           
         }).
         error(function(data, status, headers, config) {
-
+          UserService.checkAjaxLoginRequired(data);
         });
       };
 
@@ -375,7 +376,7 @@ angular.module('myApp')
           }
         }).
         error(function(data, status, headers, config) {
-
+          UserService.checkAjaxLoginRequired(data);
         });
 
         $http.get('/restaurant/purchase').
@@ -421,7 +422,7 @@ angular.module('myApp')
           }
         }).
         error(function(data, status, headers, config) {
-
+          UserService.checkAjaxLoginRequired(data);
         });
 
       };
@@ -584,7 +585,7 @@ angular.module('myApp')
           
         }).
         error(function(data, status, headers, config) {
-
+          UserService.checkAjaxLoginRequired(data);
         });
       };
 
@@ -610,7 +611,7 @@ angular.module('myApp')
           
         }).
         error(function(data, status, headers, config) {
-
+          UserService.checkAjaxLoginRequired(data);
         });
       };
 
@@ -953,7 +954,7 @@ angular.module('myApp')
           console.log(data);
           },
           function(errorPayload) {
-            ; // do nothing for now
+            UserService.checkAjaxLoginRequired(errorPayload.data);
           });
       };
 
@@ -1111,7 +1112,7 @@ angular.module('myApp')
           }
         }).
         error(function(data, status, headers, config) {
-
+          UserService.checkAjaxLoginRequired(data);
         });
       };
       scope.getAllInv();
@@ -1770,7 +1771,7 @@ angular.module('myApp')
                
         }).
         error(function(data, status, headers, config) {
-
+          UserService.checkAjaxLoginRequired(data);
         });
         
       }

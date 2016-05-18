@@ -21,6 +21,8 @@ import (
 var db *sql.DB
 
 var ERR_RET_STR = "-1"
+var ERR_UNAUTHORIZED = "UNAUTHORIZED"
+var ERR_LOGIN_REQUIRED = "LOGIN_REQUIRED"
 
 type VolumeUnit struct {
 	FullName string  `json:"full_name"`

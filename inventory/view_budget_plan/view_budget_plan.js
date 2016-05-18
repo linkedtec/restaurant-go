@@ -9,7 +9,7 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
   });
 }])
 
-.controller('ViewBudgetPlannerCtrl', function($scope, $modal, $http, ContactService, MathService) {
+.controller('ViewBudgetPlannerCtrl', function($scope, $modal, $http, ContactService, MathService, UserService) {
 
   $scope.edit_mode = false;
   $scope.monthly_budget = {value:null};
@@ -64,7 +64,7 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
       $scope.getMarkups();
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   };
   $scope.getBudget();
@@ -82,7 +82,7 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
       }
     }).
     error(function(data, status, headers, config) {
-
+      UserService.checkAjaxLoginRequired(data);
     });
   };
 
@@ -153,6 +153,7 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
 
     }).
     error(function(data, status, headers, config) {
+      UserService.checkAjaxLoginRequired(data);
     });
 
   }
@@ -195,6 +196,7 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
 
     }).
     error(function(data, status, headers, config) {
+      UserService.checkAjaxLoginRequired(data);
     });
     
   };
@@ -238,6 +240,7 @@ angular.module('myApp.viewBudgetPlanner', ['ngRoute', 'ui.bootstrap'])
 
     }).
     error(function(data, status, headers, config) {
+      UserService.checkAjaxLoginRequired(data);
     });
     
     
