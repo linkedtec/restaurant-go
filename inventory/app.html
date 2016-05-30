@@ -65,6 +65,9 @@
   <script src="/inventory/view_history/directive_email_button.js"></script>
   <!--script src="/lib/tableToExcel/tableToExcel.js"></script-->
   <script src="/inventory/view_margins/view_margins.js"></script>
+  <script src="/inventory/view_missing_restaurant/view_missing_restaurant.js"></script>
+  <script src="/inventory/view_profile/view_profile.js"></script>
+  <script src="/inventory/view_profile/directive_edit_input.js"></script>
 </head>
 <body>
   
@@ -110,9 +113,13 @@
         <!--li><a href="/doc">{{ current_user.email }}</a></li-->
         
           <li>
-            <a tabIndex="0" popover-trigger="focus" type="button" uib-popover-template="'popoverAccount.html'" popover-placement="bottom" popover-title="{{user.email}}" popover-append-to-body="true" type="button" class="btn btn-sm btn_frameless" style="cursor:pointer;">
-              <div style="width:30px; height:30px; border-radius:15px; background-color:#245682; margin-top:-4px; padding:5px">
-                <span class="glyphicon glyphicon-user" style="font-size:1.1em;"></span>
+            <a tabIndex="0" popover-trigger="focus" type="button" uib-popover-template="'popoverAccount.html'" popover-placement="bottom" popover-title="{{user.email}}" popover-append-to-body="true" type="button" class="btn btn-sm btn_frameless" style="cursor:pointer; ">
+              <div style="display:inline-block; width:28px; height:28px; border-radius:14px; background-color:#245682; margin-top:-4px; padding:5px; float:left">
+                <img ng-if="isActive('/viewProfile')" src="images/inv_profile.png" width="20" style="margin-top:-8px; margin-left:-1px" />
+                <img ng-if="!isActive('/viewProfile')" src="images/inv_profile_dark.png" width="20" style="margin-top:-8px; margin-left:-1px" />
+              </div>
+              <div ng-class="{ 'bold white_color': isActive('/viewProfile') }" style="display:inline-block; max-width:80px; text-overflow: ellipsis; overflow:hidden; white-space: nowrap; float:left; margin-left:6px">
+                {{getFirstName()}}
               </div>
             </a>
           </li>

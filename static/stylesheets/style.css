@@ -17,3 +17,57 @@ body {
 	border: 1px solid #d0d0d0;
 	background-color:#fafafa;
 }
+
+.signup_user_icon {
+	color: #48AF99;
+	font-size:3.6em;
+	border-radius: 48px;
+	padding-top:20px;
+	border: 2px solid #A7D2D0;
+	width: 96px;
+	height: 96px;
+	background-color: #F4FFFD
+}
+
+.signup_user_ring {
+	padding-top:4px;
+	border-radius: 54px;
+	width: 108px;
+	height: 108px;
+	border: 1px solid #A1E4CF;
+	margin: 0 auto;
+}
+
+.signup_user_ring_outer {
+	padding-top:7px;
+	border-radius: 100px;
+	width: 124px;
+	height: 124px;
+	border: 1px solid #D4F7EC;
+	margin: 0 auto;
+}
+
+
+.login_btn {
+	width: 100%;
+	color: #1888c1;
+	border-color: #81c1e0;
+}
+
+.login_btn:hover {
+	background-color: #F8FEFF;
+	color: #1888c1;
+	border-color: #81c1e0;
+}
+
+.signup_btn {
+	width: 100%;
+	color: #50B362;
+	border-color: #90D28B;
+}
+
+.signup_btn:hover {
+	background-color: #FCFFF3;
+	color: #50B362;
+	border-color: #90D28B;
+}

@@ -13,16 +13,24 @@
     <title> Home </title>
   </head>
   <body>
+    {{with $page := "home"}}
+      {{template "nav-template" .}}
+    {{end}}
+
     <div class="container">
       <div class="row">
-        <div class="center-block center-text" style="margin-top:200px">
+        <div class="center-block center-text" style="margin-top:120px">
           <h1>
-            Beverage App
+            Bev App
           </h1>
         </div>
       
-        <div class="center-block center-text" style="margin-top:60px">
-          <a class="btn btn-default btn-lg" href="/inventory/app.html">Enter</a>
+        <div class="center-block center-text" style="margin-top:80px; width: 240px">
+          <a class="btn btn-default btn-lg login_btn" style="width:100%" href="/inventory/app.html">Log In</a>
+        </div>
+
+        <div class="center-block center-text" style="margin-top:24px; width: 240px">
+          <a class="btn btn-default btn-lg signup_btn" style="width:100%" href="/signup">Create New Account</a>
         </div>
     </div>
   </div>

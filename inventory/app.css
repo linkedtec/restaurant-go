@@ -12,6 +12,10 @@
   color: black !important;
 }
 
+.white_color {
+  color: white !important;
+}
+
 .tiny_date {
   font-size:0.8em;
   color:#c0c0c0;

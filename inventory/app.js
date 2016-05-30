@@ -19,7 +19,9 @@ angular.module('myApp', [
 //  'myApp.viewOnTap',
  // 'myApp.viewEmptyKegs',
   'myApp.viewHistory',
-  'myApp.viewMargins'
+  'myApp.viewMargins',
+  'myApp.viewMissingRestaurant',
+  'myApp.viewProfile'
 ]).
 config(['$routeProvider', function($routeProvider) {
   $routeProvider.otherwise({redirectTo: '/viewDashboard'});
@@ -88,14 +90,18 @@ config(['$routeProvider', function($routeProvider) {
     .success(function(data, status, headers, config) {
       console.log("PRINTING USER:");
       console.log(data);
-      UserService.setUserInfo(data['first_name'], data['last_name'], data['email']);
+      UserService.setUserInfo(data['first_name'], data['last_name'], data['email'], data['phone']);
       UserService.setLoaded(true);
       $scope.user = UserService.getUserInfo();
     })
     .error(function(data, status, headers, config) {
       UserService.checkAjaxLoginRequired(data);
     });
-  }
+  };
+
+  $scope.getFirstName = function() {
+    return UserService.getFirstName();
+  };
   
 
 })
@@ -783,19 +789,21 @@ config(['$routeProvider', function($routeProvider) {
   var first_name = '';
   var last_name = '';
   var email = '';
+  var phone = '';
   var loaded = false;
 
-  var _setUserInfo = function(_first, _last, _email) {
+  var _setUserInfo = function(_first, _last, _email, _phone) {
     first_name = _first;
     last_name = _last;
     email = _email;
+    phone = _phone;
     loaded = true;
   }
 
   return {
 
-    setUserInfo: function(_first, _last, _email) {
-      _setUserInfo(_first, _last, _email)
+    setUserInfo: function(_first, _last, _email, _phone) {
+      _setUserInfo(_first, _last, _email, _phone)
     },
 
     setLoaded: function(loaded) {
@@ -810,7 +818,8 @@ config(['$routeProvider', function($routeProvider) {
       return {
         first_name: first_name,
         last_name: last_name,
-        email: email
+        email: email,
+        phone: phone
       }
     },
 
@@ -818,9 +827,39 @@ config(['$routeProvider', function($routeProvider) {
       return first_name;
     },
 
+    setFirstName: function(_name) {
+      first_name = _name;
+    },
+
+    getLastName: function() {
+      return last_name;
+    },
+
+    setLastName: function(_name) {
+      last_name = _name;
+    },
+
+    getEmail: function() {
+      return email;
+    },
+
+    setEmail: function(_email) {
+      email = _email;
+    },
+
+    getPhone: function() {
+      return phone;
+    },
+
+    setPhone: function(_phone) {
+      phone = _phone;
+    },
+
     checkAjaxLoginRequired: function(response) {
       if ( response.startsWith("LOGIN_REQUIRED") ) {
         $window.location.href = '/login';
+      } else if (response.startsWith("MISSING_RESTAURANT") ) {
+        $window.location.href = '#/viewMissingRestaurant';
       }
     }
 

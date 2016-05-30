@@ -1,0 +1,53 @@
+<div class="container" style="min-width:880px; max-width:960px">
+
+  <span us-spinner spinner-theme="default" spinner-on="showSpinner"></span>
+
+  <div style="width:100%; margin-top:24px; padding-bottom:4px; font-size:1.3em; border-bottom:solid 1px #dddddd">
+    <img src="images/inv_profile_dark.png" height="32" width="32" style="vertical-align:top"/>
+    <div style="display: inline-block; vertical-align:top; margin-top:8px; margin-left:2px">My Profile</div>
+  </div>
+  <div class="hint_text" style="width:100%; padding-top:2px; font-size:1.0em">
+    View and edit your profile information.
+  </div>
+
+  <div class="row" style="margin-top:42px">
+    <div class="col-xs-4">
+      <edit-input value="profile.first_name" label="'First Name'" placeholder="'First Name'" max-width="'200px'" caller-save="saveFirstName(new_value)" caller-validate="validateFirstName(value)" />
+
+      <!--div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_first_name===true}">
+        <label class="control-label label_small"> First Name</label>
+        <input ng-model="profile.first_name_edit" class="form-control" placeholder="First Name" style="max-width:200px">
+      </div-->
+    </div>
+    <div class="col-xs-4">
+      <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_last_name===true}">
+        <label class="control-label label_small"> Last Name</label>
+        <input ng-model="profile.last_name_edit" class="form-control" placeholder="Last Name" style="max-width:200px">
+      </div>
+    </div>
+  </div>
+  <hr/>
+  <div class="row" style="margin-top:36px">
+    <div class="col-xs-4">
+      <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_phone===true}">
+        <label class="control-label label_small"> Email</label>
+        <input ng-model="profile.email_edit" class="form-control" placeholder="Email" style="max-width:200px">
+      </div>
+    </div>
+    <div class="col-xs-4">
+      <div class="form-group" style="margin-bottom:0px" ng-class="{'has-error': form_ver.error_email===true}">
+        <label class="control-label label_small"> Phone &nbsp;<span style="font-style:italic; color:#aaa">optional</span></label>
+        <input ng-model="profile.phone_edit" class="form-control" placeholder="Phone #" style="max-width:200px">
+      </div>
+    </div>
+  </div>
+  <hr/>
+  <div class="row" style="margin-top:42px">
+    <div class="col-xs-6">
+      <button ng-click="editPassword()" type="button" class="btn btn-md btn-primary" style="width:200px">
+        <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span> Change Password
+      </button>
+    </div>
+  </div>
+
+</div>

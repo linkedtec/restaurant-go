@@ -10,46 +10,48 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
     <!-- Latest compiled and minified JavaScript -->
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+
+    <script src="/static/scripts/login_controller.js"></script>
     <title> BevApp Login </title>
   </head>
   <body>
+    {{with $page := "login"}}
+      {{template "nav-template" .}}
+    {{end}}
+    
     <div class="container" style="max-width:800px">
       <div class="row" style="margin-top:80px">
         <div class="center-block center-text">
-        <img width="42" src="/static/images/inv_all.png" />
+        <!--img width="42" src="/static/images/inv_all.png" /-->
         </div>
       </div>
-      <div class="row" style="margin-top:64px">
-        <div class="center-block center-text">
+      <div class="row" style="margin-top:48px">
+        <div class="col-sm-3 col-xs-2"></div>
+        <div class="col-sm-6 col-xs-8" style="text-align:center; margin: 0 auto; border-radius:6px; background-color:#f6f6f6; padding: 52px 12px 64px; box-shadow: 1px 1px 1px #b0b0b0;">
           <h3>
-            Login to BevApp
+            <span style="font-size:0.9em">Login to BevApp</span>
           </h3>
-        </div>
-      
-        <form method="POST" action="/login" style="margin-top:16px">
-          <div class="row">
-            <div class="col-xs-4"></div>
-            <div class="col-xs-4 min_padding">
-              <div class="col-xs-12" style="padding:0">
+          <div id="form_msg" style="text-align:center; color:#cc2200; margin-top:12px">
+            {{.Message}}
+          </div>
+          <form method="POST" name="loginForm" action="/login" style="margin: 0 auto; margin-top:24px; max-width:240px" onsubmit="return tryLogin()">
+            <div class="row">
+              <div class="col-xs-12">
                 <input type="text" name="email" value="" placeholder="User Email" class="form_input">
               </div>
             </div>
-          </div>
-          <div class="row" style="margin-top: 12px">
-            <div class="col-xs-4"></div>
-            <div class="col-xs-4 min_padding">
-              <div class="col-xs-12" style="padding:0">
+            <div class="row" style="margin-top: 12px">
+              <div class="col-xs-12">
                 <input type="password" name="password" value="" placeholder="Password" class="form_input">
               </div>
             </div>
-          </div>
-          <div class="row" style="margin-top:12px">
-            <div class="col-xs-4"></div>
-            <div class="col-xs-4 min_padding" style="text-align:center">
-              <input class="btn_submit btn btn-md btn-primary" style="width:100%; padding: 8px 0px; font-size:1.1em" type="submit" value="Sign In">
+            <div class="row" style="margin-top:12px">
+              <div class="col-xs-12" style="text-align:center;">
+                <input class="btn_submit btn btn-md btn-primary" style="width:100%; padding: 8px 0px; font-size:1.1em" type="submit" value="Sign In">
+              </div>
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
 
     </div>
   </div>

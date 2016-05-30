@@ -10,46 +10,70 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
     <!-- Latest compiled and minified JavaScript -->
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+
+    <script src="/static/scripts/login_controller.js"></script>
     <title> Sign Up for BevApp! </title>
   </head>
   <body>
+    {{with $page := "signup"}}
+      {{template "nav-template" .}}
+    {{end}}
+    
     <div class="container" style="max-width:800px">
-      <div class="row" style="margin-top:80px">
-        <div class="center-block center-text">
-        <img width="42" src="/static/images/inv_all.png" />
-        </div>
-      </div>
       <div class="row" style="margin-top:64px">
         <div class="center-block center-text">
-          <h3>
-            Create BevApp Account
-          </h3>
-        </div>
-      
-        <form method="POST" action="/login" style="margin-top:16px">
-          <div class="row">
-            <div class="col-xs-4"></div>
-            <div class="col-xs-4 min_padding">
-              <div class="col-xs-12" style="padding:0">
-                <input type="text" name="email" value="" placeholder="User Email" class="form_input">
-              </div>
+          <!--img width="42" src="/static/images/inv_all.png" /-->
+          <div class="signup_user_ring_outer">
+            <div class="signup_user_ring">
+              <span class="glyphicon glyphicon-user signup_user_icon"></span>
             </div>
           </div>
-          <div class="row" style="margin-top: 12px">
-            <div class="col-xs-4"></div>
-            <div class="col-xs-4 min_padding">
-              <div class="col-xs-12" style="padding:0">
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div class="col-sm-3 col-xs-2"></div>
+        <div class="col-sm-6 col-xs-8" style="text-align:center; margin: 0 auto;">
+          <div class="center-block center-text">
+            <h3>
+              <span style="font-size:0.9em">Create New Account</span>
+            </h3>
+          </div>
+
+          <div id="form_msg" style="text-align:center; color:#cc2200; margin-top:12px; margin-bottom:12px">
+            {{.Message}}
+          </div>
+        
+          <form method="POST" name="signupForm" action="/signup" style="margin-top:16px; max-width: 300px; margin: 0 auto;" onsubmit="return trySignUp()">
+            <div class="row">
+              <div class="col-xs-6" style="padding-right:5px">
+                <input type="text" name="first_name" value="" placeholder="First Name" class="form_input">
+              </div>
+              <div class="col-xs-6" style="padding-left:5px">
+                <input type="text" name="last_name" value="" placeholder="Last Name" class="form_input">
+              </div>
+            </div>
+            <div class="row" style="margin-top: 24px">
+              <div class="col-xs-12">
+                <input type="text" name="email" value="" placeholder="Account Email" class="form_input">
+              </div>
+            </div>
+            <div class="row" style="margin-top: 12px">
+              <div class="col-xs-12">
                 <input type="password" name="password" value="" placeholder="Password" class="form_input">
               </div>
             </div>
-          </div>
-          <div class="row" style="margin-top:12px">
-            <div class="col-xs-4"></div>
-            <div class="col-xs-4 min_padding" style="text-align:center">
-              <input class="btn_submit btn btn-md btn-primary" style="width:100%; padding: 8px 0px; font-size:1.1em" type="submit" value="Sign In">
+            <div class="row" style="margin-top: 12px">
+              <div class="col-xs-12">
+                <input type="password" name="confirm_password" value="" placeholder="Confirm Password" class="form_input">
+              </div>
             </div>
-          </div>
-        </form>
+            <div class="row" style="margin-top:12px">
+              <div class="col-xs-12 min_padding" style="text-align:center">
+                <input class="btn_submit btn btn-md btn-primary" style="width:100%; padding: 8px 0px; font-size:1.1em" type="submit" value="Create My Account">
+              </div>
+            </div>
+          </form>
+        </div>
 
     </div>
   </div>

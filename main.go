@@ -15,14 +15,12 @@ import (
 	"net/http"
 	"net/smtp"
 	"os"
+	"strings"
+	"text/template"
 	"time"
 )
 
 var db *sql.DB
-
-var ERR_RET_STR = "-1"
-var ERR_UNAUTHORIZED = "UNAUTHORIZED"
-var ERR_LOGIN_REQUIRED = "LOGIN_REQUIRED"
 
 type VolumeUnit struct {
 	FullName string  `json:"full_name"`
@@ -295,8 +293,41 @@ func getTimeAtTimezoneFromString(in_time string, in_tz string, has_timezone bool
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Root handler")
-	http.ServeFile(w, r, "./home.html")
-	//fmt.Fprintf(w, "Hi there")
+
+	url_str := r.URL.Path
+	log.Println(url_str)
+
+	if url_str == "/" {
+
+		logged_in := sessionCheckUerLoggedIn(w, r)
+		if logged_in {
+			http.Redirect(w, r, "/inventory/app.html", http.StatusFound)
+			return
+		}
+
+		// Handle main page templates
+		t, err := template.ParseFiles("home.html", "nav.tmpl")
+		if err != nil {
+			log.Println(err.Error())
+		}
+
+		t.Execute(w, nil)
+		//http.ServeFile(w, r, "./home.html")
+	} else {
+		resource := url_str[len("/"):]
+
+		if strings.HasSuffix(resource, ".html") {
+			t, err := template.ParseFiles(resource, "nav.tmpl")
+			if err != nil {
+				log.Println(err.Error())
+			}
+
+			t.Execute(w, nil)
+		} else {
+			http.ServeFile(w, r, resource)
+		}
+
+	}
 }
 
 func timezoneHandler(w http.ResponseWriter, r *http.Request) {
@@ -507,6 +538,38 @@ func getBeverageRecentInventory(version_id int) (NullFloat64, NullTime, error) {
 	}
 
 	return count_recent, last_inv_update, err
+}
+
+func sendEmail(email_address string, email_title string, email_body string) error {
+	from := "bevappdaemon@gmail.com"
+	to := email_address
+	to_name := "Recipient"
+	marker := "ACUSTOMANDUNIQUEBOUNDARY"
+	subject := email_title
+	body := email_body
+
+	// part1 will be the mail headers
+	part1 := fmt.Sprintf("From: Bev App <%s>\r\nTo: %s <%s>\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=%s\r\n--%s", from, to_name, to, subject, marker, marker)
+
+	// part2 will be the body of the email (text or HTML)
+	part2 := fmt.Sprintf("\r\nContent-Type: text/html\r\nContent-Transfer-Encoding:8bit\r\n\r\n%s\r\n--%s", body, marker)
+
+	//send the email
+	auth := smtp.PlainAuth(
+		"",
+		"bevappdaemon@gmail.com",
+		"bevApp4eva",
+		"smtp.gmail.com",
+	)
+	err := smtp.SendMail(
+		"smtp.gmail.com:587",
+		auth,
+		from,
+		[]string{to},
+		[]byte(part1+part2),
+	)
+
+	return err
 }
 
 func sendAttachmentEmail(email_address string, email_title string, email_body string, file_location string, file_name string, attachment_type string) error {

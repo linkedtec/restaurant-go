@@ -1,12 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gorilla/sessions"
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"strconv"
+	"text/template"
 	"time"
 )
 
@@ -14,6 +17,21 @@ var session_store = sessions.NewCookieStore([]byte("bevapp-sessions-secret"))
 
 const g_basic_privilege = "basic"
 const g_admin_privilege = "admin"
+
+const ERR_RET_STR = "-1"
+const ERR_UNAUTHORIZED = "UNAUTHORIZED"
+const ERR_LOGIN_REQUIRED = "LOGIN_REQUIRED"
+const ERR_MISSING_RESTAURANT = "MISSING_RESTAURANT"
+
+// for injecting into templates to client forms, such as login and sign up
+type ClientFormMsg struct {
+	Message string
+}
+
+type MissingRestaurantRequest struct {
+	Name       string `json:"name"`
+	Restaurant string `json:"restaurant"`
+}
 
 func initSessionStore(isProduction string) {
 	// init sessions for user authentication sessions
@@ -34,9 +52,36 @@ func setupSessionHandlers() {
 	http.HandleFunc("/login", LoginHandler)
 	http.HandleFunc("/logout", LogoutHandler)
 	http.HandleFunc("/signup", SignUpHandler)
+	// For posting request to email me for restaurant activation:
+	http.HandleFunc("/missing_restaurant", sessionDecoratorNoRestaurant(MissingRestaurantHandler))
 
 }
 
+// This is the "light-weight" function to call to check user has login
+// credentials, only returns boolean and doesn't alter state or send
+// HTTP Errors
+func sessionCheckUerLoggedIn(w http.ResponseWriter, r *http.Request) bool {
+	loginSession, err := session_store.Get(r, "loginSession")
+	if err != nil {
+		return false
+	}
+	if val, ok := loginSession.Values["id"].(string); ok {
+		// if val is a string
+		switch val {
+		case "":
+			return false
+		default:
+			return true
+		}
+	} else {
+		return false
+	}
+	return false
+}
+
+// This is the "full-weight" decorator to call when login is required
+// to access the underlying content, and will throw HTTP Errors to the client
+// to signify failure
 func sessionGetUserID(w http.ResponseWriter, r *http.Request) (user_id string, err error) {
 
 	loginSession, err := session_store.Get(r, "loginSession")
@@ -87,6 +132,45 @@ func sessionGetUserAndRestaurant(w http.ResponseWriter, r *http.Request) (user_i
 	return user_id, restaurant_id, nil
 }
 
+// No restaurant required for certain calls...
+// I hate this organization but adding an extra param to sessionDecorator seems
+// extraneous
+func sessionDecoratorNoRestaurant(f http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		log.Println("In session decorator no restaurant")
+
+		loginSession, err := session_store.Get(r, "loginSession")
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, ERR_LOGIN_REQUIRED, http.StatusUnauthorized)
+			return
+		}
+
+		// check for id key to verify is valid user
+		// Set session values for identification
+		if user_id, ok := loginSession.Values["id"].(string); ok {
+
+			log.Println("USER ID OKAY")
+			log.Println(user_id)
+
+			// if user_id is a string
+			switch user_id {
+			case "":
+				log.Println("EMPTY")
+				http.Error(w, ERR_LOGIN_REQUIRED, http.StatusUnauthorized)
+				return
+			default:
+
+				f(w, r)
+			}
+		} else {
+			log.Println("USER ID NOT OKAY")
+			http.Error(w, ERR_LOGIN_REQUIRED, http.StatusUnauthorized)
+		}
+	}
+}
+
 // Call this function before every API call that needs authentication
 // Sessions are provided by gorilla/sessions
 //     Should have "id" and "email" Values stored from login cookie
@@ -125,9 +209,10 @@ func sessionDecorator(f http.HandlerFunc, req_privilege string) http.HandlerFunc
 					SELECT cur_restaurant FROM users WHERE id=$1 AND active=TRUE;`,
 					user_id).Scan(&restaurant_id)
 				if err != nil {
+					log.Println("No restaurant")
 					log.Println(err.Error())
 					//http.Error(w, err.Error(), http.StatusBadRequest)
-					http.Error(w, ERR_LOGIN_REQUIRED, http.StatusUnauthorized)
+					http.Error(w, ERR_MISSING_RESTAURANT, http.StatusUnauthorized)
 					return
 				}
 				// check privilege of user_id with restaurant_id in restaurant_users table
@@ -224,7 +309,12 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
-		http.ServeFile(w, r, "./login.html")
+		t, err := template.ParseFiles("login.html", "nav.tmpl")
+		if err != nil {
+			log.Println(err.Error())
+		}
+
+		t.Execute(w, nil)
 
 	case "POST":
 
@@ -240,7 +330,17 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			email).Scan(&pw_hash)
 		if err != nil {
 			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusBadRequest)
+
+			//http.Error(w, err.Error(), http.StatusBadRequest)
+			t, err := template.ParseFiles("login.html", "nav.tmpl")
+			if err != nil {
+				log.Println(err.Error())
+			}
+			loginError := ClientFormMsg{"email / password invalid, please try again!"}
+			err = t.Execute(w, loginError)
+			if err != nil {
+				log.Println(err.Error())
+			}
 			return
 		}
 
@@ -248,7 +348,15 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		// err == nil means it's a match
 		if err != nil {
 			log.Println("No match found!")
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			t, err := template.ParseFiles("login.html", "nav.tmpl")
+			if err != nil {
+				log.Println(err.Error())
+			}
+			loginError := ClientFormMsg{"email / password invalid, please try again!"}
+			err = t.Execute(w, loginError)
+			if err != nil {
+				log.Println(err.Error())
+			}
 			return
 		}
 
@@ -299,48 +407,127 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func SignUpHandler(w http.ResponseWriter, r *http.Request) {
-	first_name := r.FormValue("first_name")
-	last_name := r.FormValue("last_name")
-	email := r.FormValue("email")
-	password := r.FormValue("password")
-	cur_time := time.Now().UTC()
 
-	password_hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	switch r.Method {
+	case "GET":
+		t, err := template.ParseFiles("signup.html", "nav.tmpl")
+		if err != nil {
+			log.Println(err.Error())
+		}
+
+		t.Execute(w, nil)
+
+	case "POST":
+		first_name := r.FormValue("first_name")
+		last_name := r.FormValue("last_name")
+		email := r.FormValue("email")
+		password := r.FormValue("password")
+		cur_time := time.Now().UTC()
+
+		password_hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// check if email already exists
+		email_exists := false
+		_ = db.QueryRow(`
+			SELECT EXISTS(SELECT 1 FROM users WHERE email=$1);`,
+			email).Scan(&email_exists)
+		if email_exists {
+			t, err := template.ParseFiles("signup.html", "nav.tmpl")
+			if err != nil {
+				log.Println(err.Error())
+			}
+			loginError := ClientFormMsg{email + " is already registered."}
+			err = t.Execute(w, loginError)
+			if err != nil {
+				log.Println(err.Error())
+			}
+			return
+		}
+
+		var user_id int
+		err = db.QueryRow(`
+		INSERT INTO users(first, last, email, pw_hash, member_since, active) 
+		VALUES($1, $2, $3, $4, $5, TRUE) RETURNING id;`,
+			first_name, last_name, email, password_hash, cur_time).Scan(&user_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Now need to generate a session and return to the user, then redirect them to
+		// the app
+		newSession, err := session_store.Get(r, "loginSession")
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		// Set session values for identification
+		newSession.Values["email"] = email
+		newSession.Values["id"] = strconv.Itoa(user_id)
+		err = newSession.Save(r, w)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// redirect the user to app
+		http.Redirect(w, r, "inventory/app.html", http.StatusFound)
+	}
+
+}
+
+func MissingRestaurantHandler(w http.ResponseWriter, r *http.Request) {
+
+	user_id, err := sessionGetUserID(w, r)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	var user_id int
-	err = db.QueryRow(`
-		INSERT INTO users(first, last, email, pw_hash, member_since, active) 
-		VALUES($1, $2, $3, $4, $5, TRUE) RETURNING id;`,
-		first_name, last_name, email, password_hash, cur_time).Scan(&user_id)
-	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	switch r.Method {
+	case "POST":
 
-	// Now need to generate a session and return to the user, then redirect them to
-	// the app
-	newSession, err := session_store.Get(r, "loginSession")
-	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	// Set session values for identification
-	newSession.Values["email"] = email
-	err = newSession.Save(r, w)
-	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+		decoder := json.NewDecoder(r.Body)
+		var req MissingRestaurantRequest
+		err := decoder.Decode(&req)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 
-	// redirect the user to app
-	http.Redirect(w, r, "inventory/app.html", http.StatusFound)
+		fullname := req.Name
+		restaurant := req.Restaurant
 
+		if len(fullname) < 4 || len(restaurant) < 3 {
+			http.Error(w, "Invalid name or restaurant name!", http.StatusBadRequest)
+			return
+		}
+
+		var email string
+		err = db.QueryRow(`SELECT email FROM users WHERE id=$1;`, user_id).Scan(&email)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		email_title := fmt.Sprintf("Restaurant Activation Request from %s", fullname)
+		email_body := fmt.Sprintf("A new user has requested their account be associated with a Restaurant.  Please fulfill within 24 hours.<br/><br/>Full Name: %s<br/>User ID: %s<br/>Account Email: %s<br/>Restaurant: %s<br/>", fullname, user_id, email, restaurant)
+		err = sendEmail("core433@gmail.com", email_title, email_body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+	}
 }

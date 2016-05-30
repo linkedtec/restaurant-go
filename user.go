@@ -6,16 +6,23 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
 type User struct {
-	ID        int       `json:"id,omitempty"`
-	FirstName string    `json:"first_name"`
-	LastName  string    `json:"last_name"`
-	Email     string    `json:"email"`
-	Password  []byte    `json:"password"`
-	LastSeen  time.Time `json:"last_seen"`
+	ID        int        `json:"id,omitempty"`
+	FirstName string     `json:"first_name"`
+	LastName  string     `json:"last_name"`
+	Email     string     `json:"email"`
+	Phone     NullString `json:"phone"`
+	Password  []byte     `json:"password"`
+	LastSeen  time.Time  `json:"last_seen"`
+}
+
+type UserUpdate struct {
+	User       User     `json:"user"`
+	ChangeKeys []string `json:"change_keys"`
 }
 
 type RestaurantInvEmail struct {
@@ -75,7 +82,8 @@ type Dashboard struct {
 }
 
 func setupUsersHandlers() {
-	http.HandleFunc("/user", sessionDecorator(userAPIHandler, g_basic_privilege))
+	// user can be unassociated with a restaurant, so use the special NoRestaurant decorator
+	http.HandleFunc("/user", sessionDecoratorNoRestaurant(userAPIHandler))
 	http.HandleFunc("/users/inv_email", sessionDecorator(usersInvEmailAPIHandler, g_basic_privilege))
 	// we separate name and purchase because the privilege levels for these differ
 	http.HandleFunc("/restaurant/name", sessionDecorator(restaurantNameAPIHandler, g_basic_privilege))
@@ -140,8 +148,8 @@ func userAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 		var user User
 		err := db.QueryRow(`
-			SELECT first, last, email FROM users WHERE id=$1 AND active=TRUE;`,
-			user_id).Scan(&user.FirstName, &user.LastName, &user.Email)
+			SELECT first, last, email, phone FROM users WHERE id=$1 AND active=TRUE;`,
+			user_id).Scan(&user.FirstName, &user.LastName, &user.Email, &user.Phone)
 		if err != nil {
 			log.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -155,6 +163,84 @@ func userAPIHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Write(js)
+
+	case "PUT":
+
+		log.Println("Received /user PUT")
+		decoder := json.NewDecoder(r.Body)
+		var user_update UserUpdate
+		err := decoder.Decode(&user_update)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		log.Println(user_update.ChangeKeys)
+
+		for _, key := range user_update.ChangeKeys {
+			if key == "first_name" {
+
+				log.Println("FIRST NAME")
+				// check name is proper
+				if len(user_update.User.FirstName) < 1 {
+					http.Error(w, "First name is too short!", http.StatusInternalServerError)
+					continue
+				}
+
+				_, err = db.Exec("UPDATE users SET first=$1 WHERE id=$2;", user_update.User.FirstName, user_id)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+
+			} else if key == "last_name" {
+
+				// check name is proper
+				if len(user_update.User.LastName) < 1 {
+					http.Error(w, "Last name is too short!", http.StatusInternalServerError)
+					continue
+				}
+
+				_, err = db.Exec("UPDATE users SET last=$1 WHERE id=$2;", user_update.User.LastName, user_id)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+
+			} else if key == "email" {
+
+				// check name is proper
+				if len(user_update.User.Email) < 6 {
+					http.Error(w, "Email is too short!", http.StatusInternalServerError)
+					continue
+				}
+
+				if !strings.Contains(user_update.User.Email, "@") || !strings.Contains(user_update.User.Email, ".") {
+					http.Error(w, "Invalid email address!", http.StatusInternalServerError)
+					continue
+				}
+
+				_, err = db.Exec("UPDATE users SET email=$1 WHERE id=$2;", user_update.User.Email, user_id)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+
+			} else if key == "phone" {
+
+				_, err = db.Exec("UPDATE users SET phone=$1 WHERE id=$2;", user_update.User.Phone, user_id)
+				if err != nil {
+					log.Println(err.Error())
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					continue
+				}
+
+			}
+		}
 	}
 
 }
