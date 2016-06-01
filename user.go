@@ -4,6 +4,7 @@ import (
 	//	"code.google.com/p/go.crypto/bcrypt"
 	"database/sql"
 	"encoding/json"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"strings"
@@ -23,6 +24,11 @@ type User struct {
 type UserUpdate struct {
 	User       User     `json:"user"`
 	ChangeKeys []string `json:"change_keys"`
+}
+
+type UserPasswordUpdate struct {
+	OldPassword string `json:"old_pw"`
+	NewPassword string `json:"new_pw"`
 }
 
 type RestaurantInvEmail struct {
@@ -84,6 +90,7 @@ type Dashboard struct {
 func setupUsersHandlers() {
 	// user can be unassociated with a restaurant, so use the special NoRestaurant decorator
 	http.HandleFunc("/user", sessionDecoratorNoRestaurant(userAPIHandler))
+	http.HandleFunc("/user/password", sessionDecoratorNoRestaurant(userPasswordAPIHandler))
 	http.HandleFunc("/users/inv_email", sessionDecorator(usersInvEmailAPIHandler, g_basic_privilege))
 	// we separate name and purchase because the privilege levels for these differ
 	http.HandleFunc("/restaurant/name", sessionDecorator(restaurantNameAPIHandler, g_basic_privilege))
@@ -126,6 +133,77 @@ func getOrAddContactEmail(email string, restaurant_id string) NullInt64 {
 	}
 
 	return ret_id
+}
+
+func userPasswordAPIHandler(w http.ResponseWriter, r *http.Request) {
+	user_id, err := sessionGetUserID(w, r)
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	switch r.Method {
+
+	case "PUT":
+
+		log.Println("Received /user/password PUT")
+		decoder := json.NewDecoder(r.Body)
+		var user_password_update UserPasswordUpdate
+		err := decoder.Decode(&user_password_update)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		log.Println(user_id)
+		log.Println(user_password_update)
+
+		if len(user_password_update.NewPassword) < 6 {
+			log.Println("New password is too short!")
+			http.Error(w, "New password is too short!", http.StatusBadRequest)
+			return
+		}
+
+		// Confirm old_pw hash is correct
+		var old_pw_hash string
+		err = db.QueryRow(`
+		SELECT pw_hash FROM users WHERE id=$1 AND active=TRUE;`,
+			user_id).Scan(&old_pw_hash)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		log.Println(old_pw_hash)
+
+		err = bcrypt.CompareHashAndPassword([]byte(old_pw_hash), []byte(user_password_update.OldPassword))
+		// err == nil means it's a match
+		if err != nil {
+			log.Println("Incorrect password!")
+			http.Error(w, "Incorrect password!", http.StatusBadRequest)
+			return
+		}
+
+		new_pw_hash, err := bcrypt.GenerateFromPassword([]byte(user_password_update.NewPassword), bcrypt.DefaultCost)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		_, err = db.Exec(`
+			UPDATE users SET pw_hash=$1 WHERE id=$2;`,
+			new_pw_hash, user_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+	}
+
 }
 
 func userAPIHandler(w http.ResponseWriter, r *http.Request) {
