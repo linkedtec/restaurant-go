@@ -1,0 +1,73 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/stylesheets/style.css">
+
+    <!-- Optional theme -->
+    <!--link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css"-->
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+
+    <script src="/static/scripts/login_controller.js"></script>
+
+    <link rel="stylesheet" href="/lib/sweet-alert/sweet-alert.css">
+    
+    <title> BevApp Activate User (Admin) </title>
+  </head>
+  <body>
+    {{with $page := "activate"}}
+      {{template "nav-template" .}}
+    {{end}}
+    
+    <div class="container" style="max-width:800px">
+      <div class="row" style="margin-top:80px">
+        <div class="center-block center-text">
+        <!--img width="42" src="/static/images/inv_all.png" /-->
+        </div>
+      </div>
+      <div class="row" style="margin-top:48px">
+        <div class="col-sm-3 col-xs-2"></div>
+        <div class="col-sm-6 col-xs-8" style="text-align:center; margin: 0 auto; border-radius:6px; background-color:#f6f6f6; padding: 52px 12px 64px; box-shadow: 1px 1px 1px #b0b0b0;">
+          <h3>
+            <span style="font-size:0.8em">Activate BevApp User (Admin Only)</span>
+          </h3>
+          <div id="form_msg" style="text-align:center; color:#cc2200; margin-top:12px">
+            {{.Message}}
+          </div>
+          <form method="POST" name="activateForm" action="/activate" style="margin: 0 auto; margin-top:24px; max-width:240px" onsubmit="return tryActivate()">
+            <div class="row">
+              <div class="col-xs-12">
+                <input type="text" name="user_id" value="" placeholder="User ID" class="form_input">
+              </div>
+            </div>
+            <div class="row" style="margin-top: 12px">
+              <div class="col-xs-12">
+                <input type="text" name="restaurant_id" value="" placeholder="Restaurant ID" class="form_input">
+              </div>
+            </div>
+            <div class="row" style="margin-top: 12px">
+              <div class="col-xs-12">
+                <input type="password" name="password" value="" placeholder="Admin Password" class="form_input">
+              </div>
+            </div>
+            <div class="row" style="margin-top: 16px; font-size:1.2em">
+              <div class="col-xs-12">
+                User is Restaurant Admin? <input type="checkbox" name="is_admin" value="1" style="font-size:2em"> 
+              </div>
+            </div>
+
+            <div class="row" style="margin-top:16px">
+              <div class="col-xs-12" style="text-align:center;">
+                <input class="btn_submit btn btn-md btn-primary" style="width:100%; padding: 8px 0px; font-size:1.1em" type="submit" value="Activate">
+              </div>
+            </div>
+          </form>
+        </div>
+
+    </div>
+  </div>
+  </body>
+</html>

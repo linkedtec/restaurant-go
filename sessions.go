@@ -8,6 +8,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"text/template"
 	"time"
@@ -54,6 +55,8 @@ func setupSessionHandlers() {
 	http.HandleFunc("/signup", SignUpHandler)
 	// For posting request to email me for restaurant activation:
 	http.HandleFunc("/missing_restaurant", sessionDecoratorNoRestaurant(MissingRestaurantHandler))
+	// For my own admin use to easily activate a user
+	http.HandleFunc("/activate", ActivateUserHandler)
 
 }
 
@@ -521,13 +524,113 @@ func MissingRestaurantHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		isProduction := os.Getenv("RESTAURANT_PRODUCTION")
+		var activate_link string
+		if isProduction == "1" {
+			activate_link = "http://192.241.217.104:6060/activate"
+		} else {
+			activate_link = "http://localhost:8080/activate"
+		}
+
 		email_title := fmt.Sprintf("Restaurant Activation Request from %s", fullname)
-		email_body := fmt.Sprintf("A new user has requested their account be associated with a Restaurant.  Please fulfill within 24 hours.<br/><br/>Full Name: %s<br/>User ID: %s<br/>Account Email: %s<br/>Restaurant: %s<br/>", fullname, user_id, email, restaurant)
+		email_body := fmt.Sprintf("A new user has requested their account be associated with a Restaurant.  Please fulfill within 24 hours.<br/><br/>Full Name: %s<br/>User ID: %s<br/>Account Email: %s<br/>Restaurant: %s<br/><br/>Please go here for BevAppActivate: %s", fullname, user_id, email, restaurant, activate_link)
 		err = sendEmail("core433@gmail.com", email_title, email_body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+	}
+}
+
+func ActivateUserHandler(w http.ResponseWriter, r *http.Request) {
+
+	// No authentication required, needs to know activation password
+
+	switch r.Method {
+
+	case "GET":
+		t, err := template.ParseFiles("activate.html", "nav.tmpl")
+		if err != nil {
+			log.Println(err.Error())
+		}
+
+		t.Execute(w, nil)
+
+	case "POST":
+
+		log.Println("Received activate POST")
+
+		user_id := r.FormValue("user_id")
+		restaurant_id := r.FormValue("restaurant_id")
+		password := r.FormValue("password")
+		_is_admin := r.FormValue("is_admin")
+
+		log.Println(user_id)
+		log.Println(restaurant_id)
+
+		is_admin := false
+		if _is_admin == "1" {
+			is_admin = true
+		}
+
+		admin_password := "BevAppActivate"
+		if password != admin_password {
+			http.Error(w, "Invalid admin password", http.StatusBadRequest)
+			return
+		}
+
+		var user_exists bool
+		err := db.QueryRow(`
+			SELECT EXISTS(SELECT 1 FROM users WHERE id=$1);`, user_id).Scan(&user_exists)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if !user_exists {
+			http.Error(w, "Posted user does not exist!", http.StatusBadRequest)
+			return
+		}
+
+		var restaurant_exists bool
+		err = db.QueryRow(`
+			SELECT EXISTS(SELECT 1 FROM restaurants WHERE id=$1);`, restaurant_id).Scan(&restaurant_exists)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if !restaurant_exists {
+			http.Error(w, "Posted restaurant does not exist!", http.StatusBadRequest)
+			return
+		}
+
+		privilege := g_basic_privilege
+		if is_admin {
+			privilege = g_admin_privilege
+		}
+
+		// 1. Update TABLE restaurant_users to associate user with the restaurant
+		_, err = db.Exec(`
+			INSERT INTO restaurant_users(
+				restaurant_id, user_id, privilege) 
+				VALUES($1, $2, $3);`, restaurant_id, user_id, privilege)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		// 2. Update user's cur_restaurant in TABLE users
+		_, err = db.Exec(`
+			UPDATE users SET cur_restaurant=$1 WHERE id=$2;`, restaurant_id, user_id)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		http.Error(w, "User was successfully activated!", http.StatusOK)
 
 	}
 }
