@@ -16,12 +16,12 @@
 </div>
 <div class="row" style="margin:0; margin-top:3px">
   <div class="col-xs-6">
-    <div ng-class="{'my_error':form_ver.error_restaurant===true, 'selected_box':deliverToRestaurant.value===true, 'unselected_box':deliverToRestaurant.value===false}" style="padding:8px;">
+    <div ng-class="{'my_error':form_ver.error_restaurant===true, 'selected_box':deliverToRestaurant.value===true && choosable===true, 'unselected_box':deliverToRestaurant.value===false || choosable===false}" style="padding:8px;">
       <address-field address-line-one="address.addressOne" address-line-two="address.addressTwo" city="address.city" state="address.state" zipcode="address.zipcode" caller-save="saveRestaurantAddress()" control="restaurantControl"></address-field>
     </div>
   </div>
   <div class="col-xs-6">
-    <div ng-class="{'my_error':form_ver.error_delivery===true, 'selected_box':deliverToDelivery.value===true, 'unselected_box':deliverToDelivery.value===false}" style="padding:8px;">
+    <div ng-class="{'my_error':form_ver.error_delivery===true, 'selected_box':deliverToDelivery.value===true && choosable===true, 'unselected_box':deliverToDelivery.value===false || choosable===false}" style="padding:8px;">
       <address-field address-line-one="addressDelivery.addressOne" address-line-two="addressDelivery.addressTwo" city="addressDelivery.city" state="addressDelivery.state" zipcode="addressDelivery.zipcode" is-delivery="true" delivery-copy-addr-one="address.addressOne" delivery-copy-addr-two="address.addressTwo" delivery-copy-city="address.city" delivery-copy-state="address.state" delivery-copy-zipcode="address.zipcode" caller-save="saveDeliveryAddress()" control="deliveryControl" delivery-saved="deliverySaved()"></address-field>
     </div>
   </div>

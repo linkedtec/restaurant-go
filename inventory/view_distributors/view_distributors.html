@@ -11,7 +11,16 @@
     Manage Distributor Info, including Beer Kegs and Deposits
   </div>
 
-
+  <div class="row tutorial_box" ng-if="show_tutorial==true" style="max-width:790px" ng-cloak>
+    <div class="tutorial_title">
+      <span class="glyphicon glyphicon-star"></span> Tutorial
+    </div>
+    <div class="col-xs-12">
+      Associating Distributors with your Beverages lets you easily send Purchase Orders.<br/>
+      If you order kegged beers, you can also create different Keg sizes and Deposits per Distributor to keep track of that.
+    </div>
+  </div>
+  
   <div ng-show="show_add_ui===true" class="add_ui_box_green" style="margin-top:16px; max-width:640px;">
     <div class="add_title_bar_green">
       <button ng-click="hideAddDistributor()" type="button" class="btn btn-default btn_x" style="float:left">
@@ -27,17 +36,12 @@
   </div>
 
   <!-- No existing distributors, show first time hint -->
-  <div ng-if="distributors.length===0 && show_add_ui===false" style="margin-top:24px; margin-bottom:36px">
+  <div ng-if="distributors.length===0 && show_add_ui===false" style="margin-top:24px;">
     <div class="row">
       <div class="col-xs-3" style="margin-top:4px">
         <button ng-click="showAddDistributor()" type="button" class="btn btn-success btn-md" style="font-size:16px">
           <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Distributor
         </button>
-      </div>
-      <div class="col-xs-9" style="font-size:1.0em">
-        Adding Distributors allows you to associate distributor information with 
-        your beverages, make purchase orders, and track deliveries and keg 
-        deposits.
       </div>
     </div>
   </div>
@@ -147,8 +151,8 @@
       </tr>
     </tbody>
     <!-- Empty row -->
-    <tr ng-if="distributors.length===0" style="width:100%">
-      <td class="hint_text" colspan="9" style="text-align:center; font-size:1.4em; padding:16px 0px; border-left: 1px solid #dddddd; border-right: 1px solid #dddddd">
+    <tr ng-if="distributors.length===0" style="width:100%; border-top: 1px solid #ddd">
+      <td class="hint_text" colspan="10" style="text-align:center; font-size:1.4em; padding:16px 0px; border-left: 1px solid #dddddd; border-right: 1px solid #dddddd">
         Empty
       </td>
     </tr>

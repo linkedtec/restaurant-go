@@ -22,6 +22,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
 
   $scope.volume_units = ["L", "mL", "oz", "pt", "qt", "gal"];
   $scope.distributors = [];
+  $scope.show_tutorial = false;
 
   $scope.newDistControl = {};
 
@@ -51,7 +52,14 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
         $scope.showSpinner = false;
         var data = payload.data;
         
-        $scope.distributors = data;
+        if (data == null || data.length == 0) {
+          $scope.distributors = [];
+          $scope.show_tutorial = true;
+        } else {
+          $scope.distributors = data;
+          $scope.show_tutorial = false;
+        }
+        
         console.log(data);
 
         if ($scope.firstTimeSort) {
@@ -215,6 +223,7 @@ angular.module('myApp.viewDistributors', ['ngRoute', 'ui.bootstrap'])
   $scope.newDistributorCloseOnSave = function(new_distributor) {
 
     $scope.distributors.push(new_distributor);
+    $scope.show_tutorial = false;
 
     // after saving new distributor, re-sort the distributors
     $scope.sortBy($scope.sort_key);

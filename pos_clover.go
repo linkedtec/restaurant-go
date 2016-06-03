@@ -375,6 +375,11 @@ func posCloverAPIHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// XXX Hacky, currently only do clover PoS for Bierhaus
+	if restaurant_id != "1" {
+		return
+	}
+
 	switch r.Method {
 
 	case "GET":

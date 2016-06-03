@@ -14,8 +14,12 @@ angular.module('myApp')
           result.then(
           function(payload) {
             var data = payload.data;
+            var all_distributors = [];
             
-            var all_distributors = data;
+            if (data !== null) {
+              all_distributors = data;
+            }
+
             //console.log(data);
 
             // go through all kegs in all distributors and add a 'formatted'

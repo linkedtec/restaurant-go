@@ -924,6 +924,27 @@ like enclosed space */
   padding: 2px 4px 2px 8px;
 }
 
+.tutorial_box {
+  position: relative;
+  margin: 24px 10px 12px;
+  background-color: #F7E9FF;
+  color: #8E67B7;
+  border-radius: 6px;
+  box-shadow: 1px 1px 1px #B99CE6;
+  padding: 16px 6px 12px;
+}
+
+.tutorial_title {
+  position: absolute;
+  top: -7px;
+  left: 2px;
+  background-color: #B979D4;
+  padding: 1px 12px 1px 6px;
+  border-radius: 8px;
+  color: white;
+  font-size:0.9em;
+}
+
 .hint_text {
   /*font-style: italic;*/
   color: #999999;
@@ -953,7 +974,7 @@ like enclosed space */
 }
 
 .unselected_box {
-  border: 1px solid #ECE0C8;
+  border: 1px solid #eaeaea;
   box-shadow:0px 0px 5px #f0f0f0;
   background-color:#fcfcfc;
   color:#999999;

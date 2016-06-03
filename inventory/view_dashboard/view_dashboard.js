@@ -13,6 +13,7 @@ angular.module('myApp.viewDashboard', ['ngRoute', 'ui.bootstrap'])
 
   $scope.restaurant_name = null;
   $scope.dash_data = null;
+  $scope.show_tutorial = false;
 
   $scope.getRestaurant = function() {
 
@@ -61,6 +62,11 @@ angular.module('myApp.viewDashboard', ['ngRoute', 'ui.bootstrap'])
             $scope.dash_data['last_purchase_date'], true, true);
         } else {
           $scope.dash_data['last_purchase_date'] = "Never";
+        }
+
+        $scope.show_tutorial = true;
+        if ( parseInt($scope.dash_data.total_beverages) > 0) {
+          $scope.show_tutorial = false;
         }
       }
       else {

@@ -11,6 +11,16 @@
     Complete Database of all Beverages in the system.
   </div>
 
+  <div class="row tutorial_box" ng-if="inventory_items.length===0" style="max-width:790px" ng-cloak>
+    <div class="tutorial_title">
+      <span class="glyphicon glyphicon-star"></span> Tutorial
+    </div>
+    <div class="col-xs-12">
+      This page is where you create and manage <i>all</i> of your restaurant's beverages.<br/>
+      Before you can take inventory or make purchase orders for your beverages, they must first be added here.<br/><br/>
+      Let's add your first beverage by clicking <b>New Beverage</b> below:
+    </div>
+  </div>
 
   <div ng-show="show_add_ui===true" class="add_ui_box_green" style="margin-top:16px">
     <div class="add_title_bar_green">
@@ -27,16 +37,10 @@
   </div>
 
   <!-- if no inventory, show the first time add new beverage dialogue -->
-  <div ng-if="inventory_items.length===0 && show_add_ui!==true" style="margin-top:36px;" ng-cloak>
-    <div style="font-size:1.2em">
-      Let's get started by adding your first beverage!
-    </div>
-    <div>
+  <div ng-if="inventory_items.length===0 && show_add_ui!==true" style="margin-top:0px; margin-left:10px" ng-cloak>
       <button ng-show="show_add_ui===false" ng-click="showAddInv()" type="button" class="btn btn-success btn-md" style="font-size:16px; margin-top:16px">
         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> New Beverage
       </button>
-    </div>
-    
   </div>
 
   <div ng-if="inventory_items.length > 0" style="margin-top:24px; margin-bottom:4px; overflow:hidden">

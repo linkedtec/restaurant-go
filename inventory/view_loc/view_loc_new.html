@@ -20,7 +20,7 @@
       </div>
       <br/>
     </div>
-    <div class="row" ng-if="locations.length===0" style="padding-left:30px; margin-top:10px; font-size:1.1em">
+    <div class="row" ng-if="locations.length===0" style="padding-left:30px; margin-top:10px; font-size:1.0em">
       We track inventory by storage Locations.  &nbsp;Let's create one to get started!
     </div>
     <new-location all-locations="locations" loc-type="k_loc_type" control="newLocControl" close-on-save="newLocationCloseOnSave(new_loc)"></new-location>
@@ -63,7 +63,7 @@
     </div>
   </div>
 
-  <div ng-if="selected_loc===null" style="text-align:center; margin-top:96px; font-size:2.2em; color:#cccccc">
+  <div ng-if="selected_loc===null && locations.length > 0" style="text-align:center; margin-top:96px; font-size:2.2em; color:#cccccc">
     Select a Location to get started.
   </div>
 

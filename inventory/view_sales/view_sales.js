@@ -12,7 +12,7 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
 .controller('ViewPOSSalesCtrl', function($scope, $modal, $http, DateService, ItemsService, MathService, UserService) {
 
   $scope.all_beverages = [];
-  $scope.pos_data = [];
+  $scope.pos_data = null;
   $scope.period_total = null;
 
   // sorting
@@ -55,6 +55,11 @@ angular.module('myApp.viewPOSSales', ['ngRoute', 'ui.bootstrap'])
       // this callback will be called asynchronously when the response
       // is available
       console.log(data);
+
+      if (data == null) {
+        $scope.pos_data = [];
+      }
+
       if (data != null) {
         $scope.pos_data = data;
 
