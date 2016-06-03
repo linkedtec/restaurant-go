@@ -977,14 +977,14 @@ like enclosed space */
   border: 1px solid #eaeaea;
   box-shadow:0px 0px 5px #f0f0f0;
   background-color:#fcfcfc;
-  color:#999999;
+  color:#777;
 }
 
 .selected_box {
   border: 1px solid #ADD9FF;
   box-shadow:0px 0px 5px #b9dfff;
   background-color:#F5FCFD;
-  color:#222222;
+  color:#111;
 }
 
 .blue_box_glow {
@@ -1587,6 +1587,41 @@ input[type=checkbox]:checked + label:before {
 .center_date_popover .dropdown-menu {
   left: auto !important;
   right: -140px;
+}
+
+/*
+  Styles placeholder color for all vendors
+*/
+.ng-touched::-webkit-input-placeholder {
+   color: #c0c0c0;
+}
+
+.ng-untouched::-webkit-input-placeholder {
+   color: #c0c0c0;
+}
+
+.ng-touched:-moz-placeholder { /* Firefox 18- */
+   color: #c0c0c0;  
+}
+
+.ng-untouched:-moz-placeholder { /* Firefox 18- */
+   color: #c0c0c0;  
+}
+
+.ng-touched::-moz-placeholder {  /* Firefox 19+ */
+   color: #c0c0c0;  
+}
+
+.ng-untouched::-moz-placeholder {  /* Firefox 19+ */
+   color: #c0c0c0;  
+}
+
+.ng-touched:-ms-input-placeholder {  
+   color: #c0c0c0;  
+}
+
+.ng-untouched:-ms-input-placeholder {  
+   color: #c0c0c0;  
 }
 
 
