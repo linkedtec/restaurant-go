@@ -432,6 +432,26 @@ angular.module('myApp.viewAllInv', ['ngRoute', 'ui.bootstrap'])
   $scope.getVolUnits();
 })
 
+.controller('newInvModalCtrl',  function($scope, $modalInstance, $http, $filter, MathService, all_distributors, all_breweries, volume_units) {
+
+  $scope.all_distributors = all_distributors;
+  $scope.all_breweries = all_breweries;
+  $scope.volume_units = volume_units;
+
+  $scope.newBevControl = {};
+
+  $scope.cancel = function() {
+    console.log("cancel");
+    $modalInstance.dismiss('cancel');
+  };
+
+  $scope.closeOnSave = function(new_beverage) {
+
+    $modalInstance.close(['save', new_beverage]);
+  };
+
+})
+
 .controller('editInvModalCtrl', function($scope, $modalInstance, $http, $filter, MathService, edit_beverage, all_distributors, all_breweries, volume_units, edit_mode, hide_delete, required_vars) {
 
   $scope.edit_beverage = edit_beverage;

@@ -67,11 +67,11 @@
       <div style="display:inline-block;">
         <div style="display:inline-block; white-space:nowrap" class="btn-group">
           <label class="btn btn-default btn-xs btn_filter col_comp" ng-model="col_comps.product" uib-btn-checkbox ng-mouseover="highlightCols('product')" ng-mouseleave="unhighlightCols()">Product</label>
+          <label class="btn btn-default btn-xs btn_filter col_comp" ng-model="col_comps.brewery" uib-btn-checkbox ng-mouseover="highlightCols('brewery')" ng-mouseleave="unhighlightCols()">Brewery</label>
           <label class="btn btn-default btn-xs btn_filter col_comp" ng-model="col_comps.alc_type" uib-btn-checkbox ng-mouseover="highlightCols('alc_type')" ng-mouseleave="unhighlightCols()">Bev. Type</label>
           <label class="btn btn-default btn-xs btn_filter col_comp" ng-model="col_comps.container" uib-btn-checkbox ng-mouseover="highlightCols('container')" ng-mouseleave="unhighlightCols()">Container</label>
           <label class="btn btn-default btn-xs btn_filter col_comp" ng-model="col_comps.serve" uib-btn-checkbox ng-mouseover="highlightCols('serve')" ng-mouseleave="unhighlightCols()">Serve</label>
           <label class="btn btn-default btn-xs btn_filter col_comp" ng-model="col_comps.distributor" uib-btn-checkbox ng-mouseover="highlightCols('distributor')" ng-mouseleave="unhighlightCols()">Distributor</label>
-          <label class="btn btn-default btn-xs btn_filter col_comp" ng-model="col_comps.brewery" uib-btn-checkbox ng-mouseover="highlightCols('brewery')" ng-mouseleave="unhighlightCols()">Brewery</label>
           <label class="btn btn-default btn-xs btn_filter col_comp" ng-model="col_comps.abv" uib-btn-checkbox ng-mouseover="highlightCols('abv')" ng-mouseleave="unhighlightCols()">AbV</label>
           <label class="btn btn-default btn-xs btn_filter col_comp" ng-model="col_comps.pvol" uib-btn-checkbox ng-mouseover="highlightCols('pvol')" ng-mouseleave="unhighlightCols()">P. Vol</label>
           <label class="btn btn-default btn-xs btn_filter col_comp" ng-model="col_comps.punit" uib-btn-checkbox ng-mouseover="highlightCols('punit')" ng-mouseleave="unhighlightCols()">P. Unit</label>
@@ -108,6 +108,12 @@
           <span ng-show="sort_key === 'product'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
+      <td class="all_inv_label_span noselect" style="width:140px;" ng-show="col_comps.brewery === true" ng-class="{'col_highlight': highlight_cols==='brewery'}">
+        <div class="sort_div" ng-click="sortBy('brewery')">
+          <span>Brewery</span>
+          <span ng-show="sort_key === 'brewery'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
+        </div>
+      </td>
       <td class="all_inv_label_span noselect" style="width:95px;" ng-show="col_comps.alc_type===true" ng-class="{'col_highlight':highlight_cols==='alc_type'}">
         <div class="sort_div" ng-click="sortBy('alcohol_type')" uib-popover="Beverage Type" popover-trigger="mouseenter" popover-append-to-body="true" popover-popup-delay="500">
           <span>Bev. Type</span>
@@ -130,12 +136,6 @@
         <div class="sort_div" ng-click="sortBy('distributor')">
           <span>Distributor</span>
           <span ng-show="sort_key === 'distributor'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
-        </div>
-      </td>
-      <td class="all_inv_label_span noselect" style="width:140px;" ng-show="col_comps.brewery === true" ng-class="{'col_highlight': highlight_cols==='brewery'}">
-        <div class="sort_div" ng-click="sortBy('brewery')">
-          <span>Brewery</span>
-          <span ng-show="sort_key === 'brewery'" class="glyphicon sort_carat" ng-class="{'glyphicon-menu-down': double_sort<0, 'glyphicon-menu-up':double_sort>0}"></span>
         </div>
       </td>
       <td class="all_inv_label_span noselect" style="width:50px;" ng-show="col_comps.abv === true" ng-class="{'col_highlight': highlight_cols==='abv'}">
@@ -247,6 +247,7 @@
         </div>
       </div>
       </td>
+      <td class="all_inv_span" style="width:140px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap" ng-show="col_comps.brewery===true" ng-class-even="{'col_highlight_row_even': highlight_cols==='brewery'}">{{inv.brewery}}</td>
       <td class="all_inv_span" style="width:95px;" ng-show="col_comps.alc_type===true" ng-class-even="{'col_highlight_row_even': highlight_cols==='alc_type'}">{{inv.alcohol_type}}</td>
       <td class="all_inv_span" style="width:80px;" ng-show="col_comps.container===true" ng-class-even="{'col_highlight_row_even': highlight_cols==='container'}">{{inv.container_type}}</td>
       <td class="all_inv_span" style="width:60px;" ng-show="col_comps.serve===true" ng-class-even="{'col_highlight_row_even': highlight_cols==='serve'}">
@@ -254,7 +255,6 @@
         <span ng-show="inv.serve_type===1">Multi</span>
       </td>
       <td class="all_inv_span" style="width:140px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap" ng-show="col_comps.distributor===true" ng-class-even="{'col_highlight_row_even': highlight_cols==='distributor'}">{{inv.distributor.name}}</td>
-      <td class="all_inv_span" style="width:140px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap" ng-show="col_comps.brewery===true" ng-class-even="{'col_highlight_row_even': highlight_cols==='brewery'}">{{inv.brewery}}</td>
       <td class="all_inv_span" style="width:50px;" ng-show="col_comps.abv === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='abv'}">
         <span ng-if="inv.abv !== null">{{inv.abv | number:2}} <span class="inv_symbol">%</span></span<</td>
       <td class="all_inv_span" style="width:70px;" ng-show="col_comps.pvol === true" ng-class-even="{'col_highlight_row_even': highlight_cols==='pvol'}">{{inv.purchase_volume | number:2}}</td>

@@ -32,7 +32,7 @@
         <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
       </button>
       <div class="form" ng-class="{'has-error': new_failure_msg!==null}" style="display:inline-block; vertical-align:top; margin: 0px 5px">
-        <input ng-model="quantity" ng-class="{'input_error': new_failure_msg!==null}" class="form-control" style="text-align:center; max-width:96px; height:52px; font-size:1.6em;" ng-change="updateExpectedInvoice()">
+        <input id="qty_input" ng-model="quantity" ng-class="{'input_error': new_failure_msg!==null}" class="form-control" style="text-align:center; max-width:96px; height:52px; font-size:1.6em;" ng-change="updateExpectedInvoice()" autofocus ng-focus="onFocus($event)">
       </div>
       <button ng-click="addQuantity(item,1, false)" type="button" class="btn btn-default inv_plus_btn_lg">
         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>

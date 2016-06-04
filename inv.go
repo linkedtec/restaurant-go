@@ -208,6 +208,60 @@ func invCountSheetsAPIHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// sorting bevs for count sheet by brewery
+type ByBrewery []LocBeverageApp
+
+func (a ByBrewery) Len() int      { return len(a) }
+func (a ByBrewery) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByBrewery) Less(i, j int) bool {
+
+	// Keg is sorted after Bevs
+	// Invalid brewery is less than valid brewery
+	// If breweries same, sort by product
+	// Sort by brewery
+
+	i_type := a[i].Type
+	j_type := a[j].Type
+	i_product := strings.ToLower(a[i].Product)
+	j_product := strings.ToLower(a[j].Product)
+
+	if i_type == "keg" && j_type == "bev" {
+		return false
+	}
+	if i_type == "bev" && j_type == "keg" {
+		return true
+	}
+	if i_type == "keg" && j_type == "keg" {
+		if a[i].Distributor.Valid && !a[j].Distributor.Valid {
+			return true
+		}
+		if !a[i].Distributor.Valid && a[j].Distributor.Valid {
+			return false
+		}
+		if !a[i].Distributor.Valid && !a[j].Distributor.Valid {
+			return i_product < j_product
+		}
+		return strings.ToLower(a[i].Distributor.String) < strings.ToLower(a[j].Distributor.String)
+	}
+
+	i_brewery := a[i].Brewery
+	j_brewery := a[j].Brewery
+
+	if i_brewery.Valid && !j_brewery.Valid {
+		return true
+	}
+	if !i_brewery.Valid && j_brewery.Valid {
+		return false
+	}
+	if !i_brewery.Valid && !j_brewery.Valid {
+		return i_product < j_product
+	}
+	if i_brewery == j_brewery {
+		return i_product < j_product
+	}
+	return strings.ToLower(i_brewery.String) < strings.ToLower(j_brewery.String)
+}
+
 func createCountSheetsPDFFile(restaurant_id string, locMap map[Location][]LocBeverageApp, w http.ResponseWriter, r *http.Request) {
 	export_dir := "./export/"
 	if os.MkdirAll(export_dir, 0755) != nil {
@@ -284,8 +338,8 @@ func createCountSheetsPDFFile(restaurant_id string, locMap map[Location][]LocBev
 		pdf.SetDrawColor(160, 160, 160)
 		pdf.SetTextColor(120, 120, 120)
 		pdf.SetFillColor(240, 240, 240)
-		pdf.CellFormat(content_width/2, 9, " Product", "1", 0, "", true, 0, "")
 		pdf.CellFormat(content_width*5/16, 9, " Brewery", "1", 0, "", true, 0, "")
+		pdf.CellFormat(content_width/2, 9, " Product", "1", 0, "", true, 0, "")
 		pdf.CellFormat(content_width*3/16, 9, " Count", "1", 0, "", true, 0, "")
 
 		min_rows := 25 // have at least this number of rows on a sheet
@@ -293,13 +347,16 @@ func createCountSheetsPDFFile(restaurant_id string, locMap map[Location][]LocBev
 		min_extra_rows := 10 // have at least this many empty rows for user to record extra items not on list
 
 		pdf.SetFillColor(255, 255, 255)
-		pdf.SetTextColor(50, 50, 50)
+
 		pdf.SetFont("helvetica", "", 10)
+		sort.Sort(ByBrewery(locBevs))
 		for _, bev := range locBevs {
 			pdf.Ln(9)
 			product := ""
+			brewery := ""
 			if bev.Type == "bev" {
 				product = bev.Product + "    ( "
+				brewery = bev.Brewery.String
 				if bev.PurchaseVolume.Valid {
 					product += fmt.Sprintf("%.1f", bev.PurchaseVolume.Float64) + " "
 				}
@@ -307,11 +364,16 @@ func createCountSheetsPDFFile(restaurant_id string, locMap map[Location][]LocBev
 					product += bev.PurchaseUnit.String + " "
 				}
 				product += bev.ContainerType + " )"
+
+				pdf.SetTextColor(30, 30, 30)
 			} else {
-				product = "Keg Deposit - " + bev.Distributor.String + "    ( " + fmt.Sprintf("%.1f", bev.PurchaseVolume.Float64) + " " + bev.PurchaseUnit.String + " )"
+				product = "Keg Deposit " + "    ( " + fmt.Sprintf("%.1f", bev.PurchaseVolume.Float64) + " " + bev.PurchaseUnit.String + " )"
+				brewery = bev.Distributor.String
+
+				pdf.SetTextColor(150, 150, 150)
 			}
+			pdf.CellFormat(content_width*5/16, 9, " "+brewery, "1", 0, "", false, 0, "")
 			pdf.CellFormat(content_width/2, 9, " "+product, "1", 0, "", false, 0, "")
-			pdf.CellFormat(content_width*5/16, 9, " "+bev.Brewery.String, "1", 0, "", false, 0, "")
 			pdf.CellFormat(content_width*3/16, 9, "", "1", 0, "", false, 0, "")
 			bev_rows += 1
 		}
@@ -327,8 +389,8 @@ func createCountSheetsPDFFile(restaurant_id string, locMap map[Location][]LocBev
 
 		for i := 0; i < sub_min_rows; i++ {
 			pdf.Ln(9)
-			pdf.CellFormat(content_width/2, 9, "", "1", 0, "", false, 0, "")
 			pdf.CellFormat(content_width*5/16, 9, "", "1", 0, "", false, 0, "")
+			pdf.CellFormat(content_width/2, 9, "", "1", 0, "", false, 0, "")
 			pdf.CellFormat(content_width*3/16, 9, "", "1", 0, "", false, 0, "")
 		}
 

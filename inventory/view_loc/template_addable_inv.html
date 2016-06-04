@@ -1,6 +1,6 @@
 <!--div style="position:absolute; left:24px; top:4px; font-size:1.1em">All Addable Items</div-->
 <uib-tabset ng-if="showTabs===true" style="margin: 0px 0px; font-size:1.0em; margin-left:0px; max-height:37px">
-  <uib-tab ng-repeat="type in add_types" heading="{{type}}" ng-click="selectAddType(type)">
+  <uib-tab ng-repeat="type in add_types" heading="{{type}}" ng-click="selectAddType(type)" active="tab_active[type]">
   </uib-tab>
 </uib-tabset>
 <div ng-class="{'new_inv_border_box': showTabs===true, 'addable_tab_margin': showTabs===true}" style="display:block; position:absolute; height:auto; top:0; bottom:0; left: 0; right:0; margin-top:0px; margin-bottom:0px; margin-right:0px; margin-left:0px !important; padding:4px 12px; padding-bottom:12px">
@@ -84,21 +84,25 @@
   <div class="row" style="margin: 0px 0px; font-size:0.9em; color:#999999; padding-bottom:0px;">
     <div class="col-xs-1" style="padding-left:28px">
     </div>
-    <div class="add_inv_sort_div_lt" ng-class="{'col-xs-5':showPurchase!==true, 'col-xs-3':showPurchase===true}" ng-if="add_type===add_types[0]" ng-click="sortBevsBy('product')" style="padding-left:14px">
-      Product
-      <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_bev === 'product'" ng-class="{'glyphicon-menu-down': double_sort_bev<0, 'glyphicon-menu-up':double_sort_bev>0}" style="color:#cccccc;">
-      </span>
-    </div>
-    <div class="col-xs-5 add_inv_sort_div_lt" ng-if="add_type===add_types[1]" ng-click="sortKegsBy('distributor')" style="padding-left:14px">
-      Distributor
-      <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_keg === 'distributor'" ng-class="{'glyphicon-menu-down': double_sort_keg<0, 'glyphicon-menu-up':double_sort_keg>0}" style="color:#cccccc;">
-      </span>
-    </div>
+
     <div class="add_inv_sort_div_lt" ng-class="{'col-xs-4':showPurchase!==true, 'col-xs-3':showPurchase===true}" ng-if="add_type===add_types[0]" ng-click="sortBevsBy('brewery')" style="padding-left:0px">
       Brewery
       <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_bev === 'brewery'" ng-class="{'glyphicon-menu-down': double_sort_bev<0, 'glyphicon-menu-up':double_sort_bev>0}" style="color:#cccccc;">
       </span>
     </div>
+
+    <div class="add_inv_sort_div_lt" ng-class="{'col-xs-5':showPurchase!==true, 'col-xs-3':showPurchase===true}" ng-if="add_type===add_types[0]" ng-click="sortBevsBy('product')" style="padding-left:14px">
+      Product
+      <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_bev === 'product'" ng-class="{'glyphicon-menu-down': double_sort_bev<0, 'glyphicon-menu-up':double_sort_bev>0}" style="color:#cccccc;">
+      </span>
+    </div>
+
+    <div class="col-xs-5 add_inv_sort_div_lt" ng-if="add_type===add_types[1]" ng-click="sortKegsBy('distributor')" style="padding-left:14px">
+      Distributor
+      <span class="glyphicon inv_sort_carat glyphicon-menu-down noselect" ng-show="sort_key_keg === 'distributor'" ng-class="{'glyphicon-menu-down': double_sort_keg<0, 'glyphicon-menu-up':double_sort_keg>0}" style="color:#cccccc;">
+      </span>
+    </div>
+    
     <div class="col-xs-4 add_inv_sort_div_lt_nosort noselect" ng-if="add_type===add_types[1]" style="padding-left:0px">
       Keg Size
     </div>
@@ -122,6 +126,9 @@
           <img ng-if="bev.icon==='can'" src="images/bev_can.png" height="34px" width="34px" style="margin-left:0px">
           <img ng-if="bev.icon==='liquor'" src="images/bev_xo.png" height="34px" width="34px" style="margin-left:0px">
         </div>
+        <div ng-class="{'col-xs-4':showPurchase!==true, 'col-xs-3':showPurchase===true}" style="font-size:0.9em; padding-left:6px; padding-right:4px;">
+          {{bev.brewery}}
+        </div>
         <div ng-class="{'col-xs-5':showPurchase!==true, 'col-xs-3':showPurchase===true}" style="padding-left:6px; padding-right:6px">
           <div class="nowrap_span" style="font-size:0.9em">{{bev.product}}</div>
           <div style="font-size:0.9em; color:#999999; margin-top:-3px">
@@ -133,9 +140,6 @@
             </span>
             
           </div>
-        </div>
-        <div ng-class="{'col-xs-4':showPurchase!==true, 'col-xs-3':showPurchase===true}" style="font-size:0.9em; padding-left:6px; padding-right:4px; color:#888888">
-          {{bev.brewery}}
         </div>
         <div class="min_padding col-xs-2" ng-if="showPurchase===true" style="font-size:0.9em;">
           <div>
@@ -189,3 +193,6 @@
 </div>
 
 <div ng-include src="'./view_loc/modal_inv_quantity.html'">
+<div ng-include src="'./view_all/new_inv_modal.html'">
+<div ng-include src="'./view_all/modal_new_dist.html'">
+<div ng-include src="'./view_all/modal_new_keg.html'">

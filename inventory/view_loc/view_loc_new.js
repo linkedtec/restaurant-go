@@ -894,6 +894,10 @@ angular.module('myApp.viewInvByLocNew', ['ngRoute', 'ui.bootstrap'])
     $scope.quantity = 0;
   }
 
+  $scope.onFocus = function($event) {
+    $event.target.select();
+  }
+
   $scope.expected_invoice = {value:0}
 
   $scope.new_failure_msg = null;

@@ -1,6 +1,6 @@
 angular.module('myApp')
 
-.directive('addableInv', function($http, $modal, KegsService, DistributorsService, MathService, UserService, VolUnitsService) {
+.directive('addableInv', function($http, $modal, DistributorsService, ItemsService, KegsService, MathService, UserService, VolUnitsService) {
   return {
     restrict: 'AE',
     scope: {
@@ -35,8 +35,22 @@ angular.module('myApp')
         scope.isDelivery = false;
       };
 
-      scope.add_types = ['Beverages', 'Empty Kegs'/*, 'Recently Used in This Location'*/];
+      scope.all_breweries = [];
+      for ( var i=0; i < scope.allBevs.length; i++ ) {
+        var bev = scope.allBevs[i];
+        var exists = scope.all_breweries.indexOf(bev['brewery']) >= 0;
+        if (!exists) {
+          scope.all_breweries.push(bev['brewery']);
+        }
+      }
+
+      scope.add_types = ['Beverages', 'Empty Kegs', '+ New Beverage'/*, 'Recently Used in This Location'*/];
       scope.add_type = scope.add_types[0];
+      scope.tab_active = {};
+      for (var i=0; i<scope.add_types.length; i++) {
+        scope.tab_active[scope.add_types[i]] = false;
+      }
+      scope.tab_active[scope.add_types[0]] = true;
 
       scope.filtered_bevs = JSON.parse(JSON.stringify(scope.allBevs));
       scope.filtered_kegs = JSON.parse(JSON.stringify(scope.allKegs));
@@ -56,7 +70,7 @@ angular.module('myApp')
       scope.dist_filter = scope.dist_filters[0];
       scope.distributors = null;
 
-      scope.sort_key_bev = 'product';
+      scope.sort_key_bev = 'brewery';
       scope.sort_key_keg = 'distributor';
       scope.double_sort_bev = -1;
       scope.double_sort_keg = -1;
@@ -126,6 +140,11 @@ angular.module('myApp')
         scope.sort_key_bev = sort_str;
         var isNum = (sort_str === 'batch_cost' || sort_str === 'par');
 
+        var sub_sort = null;
+        if (sort_str == 'brewery') {
+          sub_sort = 'product';
+        }
+
         scope.filtered_bevs.sort(function(a, b) {
           var keyA = a[sort_str];
           var keyB = b[sort_str];
@@ -151,6 +170,10 @@ angular.module('myApp')
           {
             return parseFloat(keyB) - parseFloat(keyA);
           } else {
+
+            if (keyA == keyB && sub_sort !== null) {
+              return a[sub_sort].localeCompare(b[sub_sort]);
+            }
             return keyA.localeCompare(keyB);
           }
         });
@@ -199,19 +222,21 @@ angular.module('myApp')
       scope.reSort();
 
       scope.selectAddType = function(type) {
+
+        // if add_type is 2, that's add new beverage, don't change add_type,
+        // just show new beverage modal
+        if (type == scope.add_types[2]) {
+
+          scope.createNewBeverage();
+          scope.tab_active[scope.add_types[2]] = false;
+          scope.tab_active[scope.add_type] = true;
+          return;
+        }
+
         scope.add_type = type;
+        scope.tab_active[scope.add_type] = true;
 
-        var doReSort = true;
-        if (type === scope.add_types[1]) {
-          if (scope.distributors === null) {
-            scope.getDistributors();
-            doReSort = false;
-          }
-        }
-
-        if (doReSort) {
-          scope.reSort();
-        }
+        scope.reSort();
       };
 
       scope.getDistributors = function() {
@@ -241,6 +266,29 @@ angular.module('myApp')
 
         scope.reSort();
       };
+
+      scope.getVolUnits = function() {
+
+        var result = VolUnitsService.get();
+        result.then(
+          function(payload) {
+            var data = payload.data;
+            if (data !== null) {
+              scope.volume_units_full = data;
+              scope.volume_units = [];
+              for (var i=0; i < data.length; i++)
+              {
+                scope.volume_units.push(data[i].abbr_name);
+              }
+              // need to first load vol units before getting all distributors
+              scope.getDistributors();
+            }
+          },
+          function(errorPayload) {
+            ; // do nothing for now
+          });
+      };
+      scope.getVolUnits();
 
       scope.selectContainer = function(cont) {
 
@@ -546,6 +594,62 @@ angular.module('myApp')
               ;
             }
             
+          }, 
+          // error status
+          function() {
+            ;
+          });
+      };
+
+      scope.createNewBeverage = function() {
+        var modalEditInstance = $modal.open({
+          templateUrl: 'newInvModal.html',
+          controller: 'newInvModalCtrl',
+          windowClass: 'edit-inv-modal',
+          backdropClass: 'white-modal-backdrop',
+          resolve: {
+            all_distributors: function() {
+              return scope.distributors;
+            },
+            all_breweries: function() {
+              return scope.all_breweries;
+            },
+            volume_units: function() {
+              return scope.volume_units;
+            },
+            edit_mode: function() {
+              return "all";
+            }
+          }
+        });
+
+        modalEditInstance.result.then(
+          // success status
+          function( result ) {
+            // result is a list, first item is string for status, e.g.,
+            // 'save' or 'delete'
+            // second item is the affected beverage
+            var status = result[0];
+            var new_bev = result[1];
+            if (status === 'save') {
+              console.log(new_bev);
+
+              if (scope.all_breweries.indexOf(new_bev.brewery) < 0) {
+                scope.all_breweries.push(new_bev.brewery);
+              }
+
+              ItemsService.processBevsForAddable([new_bev]);
+              scope.allBevs.push(new_bev);
+              scope.internalControl.applyTypeFilter();
+
+              swal({
+                title: "Beverage Created!",
+                text: "<b>" + new_bev.product + "</b> has been added to your Beverages DB.",
+                type: "success",
+                timer: 4000,
+                allowOutsideClick: true,
+                html: true});
+            }
           }, 
           // error status
           function() {

@@ -19,12 +19,16 @@
       <img ng-if="item.icon==='can'" src="images/bev_can.png" height="34px" width="34px" style="margin-left:0px">
       <img ng-if="item.icon==='liquor'" src="images/bev_xo.png" height="34px" width="34px" style="margin-left:0px">
     </div>
+    <div ng-class="{'col-xs-4':isDelivery!==true, 'col-xs-3':isDelivery===true}" ng-if="item.type==='bev'" style="padding-left:6px; padding-right:8px; font-size:0.9em;">
+      {{item.brewery}}
+    </div>
+
     <div ng-class="{'col-xs-8': item.type==='keg', 'col-xs-4': item.type==='bev'}" style="padding:0; padding-left:6px">
       <div style="font-size:0.9em">
         <span ng-if="item.type==='bev'" class="nowrap_span">{{item.product}}</span>
         <span ng-if="item.type==='keg'" class="nowrap_span">{{item.distributor}}</span>
       </div>
-      <div style="font-size:0.8em; color:#999999; padding:0; margin-top:-3px">
+      <div style="font-size:0.8em; color:#999999; padding:0; margin-top:-1px">
         <span ng-if="item.purchase_unit!==null">
           {{item.purchase_volume | number:1}} {{item.purchase_unit}}
         </span>
@@ -33,9 +37,7 @@
         </span>
       </div>
     </div>
-    <div ng-class="{'col-xs-4':isDelivery!==true, 'col-xs-3':isDelivery===true}" ng-if="item.type==='bev'" style="padding-left:6px; padding-right:8px; font-size:0.8em; color:#999999">
-      {{item.brewery}}
-    </div>
+    
     <div ng-if="isDelivery!==true" class="col-xs-2" style="padding:0">
       <button ng-click="enterInvQuantity(item, true)" type="button" class="btn btn-sm btn_inv_qty">
         {{item.quantity}}
